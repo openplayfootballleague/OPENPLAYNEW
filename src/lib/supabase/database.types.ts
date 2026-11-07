@@ -2639,6 +2639,7 @@ export type Database = {
         | "paid"
         | "failed"
         | "refunded"
+        | "partially_refunded"
         | "cancelled"
       player_registration_status: "registered" | "pending_review" | "rejected"
       registration_status: "pending" | "approved" | "rejected" | "withdrawn"
