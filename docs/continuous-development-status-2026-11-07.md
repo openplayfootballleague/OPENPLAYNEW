@@ -1,6 +1,6 @@
 # Open Play — Continuous Development Status
 
-**Last verified:** 7 November 2026, 23:25 UTC  
+**Last verified:** 7 November 2026, 23:29 UTC  
 **Repository:** `openplayfootballleague/OPENPLAYNEW`  
 **Supabase project:** `ghnrsysvrlgkjmdlwdmp` — Open Play New only  
 **Applied database migrations:** 63
@@ -69,7 +69,7 @@
 - Email and in-app notifications default on; SMS defaults off and requires explicit opt-in. SMS consent and revocation timestamps/version are stored and preference changes are audited. Direct client table updates are revoked; preferences are changed through the RPC.
 - Database triggers enqueue notifications for team/member approvals, fixture scheduling/status changes and published/corrected results.
 - The notification outbox tracks attempts, backoff, provider errors, holds, one manual retry, and unconfirmed delivery outcomes. Admin actions are audited.
-- A JWT-verified Supabase Edge Function `deliver-notifications` is deployed (version 6). It supports Resend email and Twilio SMS, checks admin/service-role access, claims only configured channels, distinguishes permanent provider/recipient errors from transient failures, and avoids blindly retrying a provider-accepted but unconfirmed message. Player ban/unban changes also generate notifications.
+- A JWT-verified Supabase Edge Function `deliver-notifications` is deployed (version 8; `verify_jwt=true`). It supports Resend email and Twilio SMS, checks admin/service-role access, claims only configured channels, distinguishes permanent provider/recipient errors from transient failures (non-retryable 4xx are terminal; 408/429/5xx remain retryable), and avoids blindly retrying a provider-accepted but unconfirmed message. The permanent-error classifier is shared with unit tests and the Edge Function is Deno type-checked in CI. Player ban/unban changes also generate notifications.
 - A `pg_cron` job named `open-play-fixture-reminders` is active every 15 minutes. It enqueues idempotent 24-hour and 3-hour fixture reminders and cancels stale queued/in-app reminders when a fixture is moved or cancelled.
 
 ## Verification evidence
@@ -82,6 +82,7 @@
 - GitHub Actions run [42424234675](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424234675) passed all 12 domain tests, TypeScript check, production build and Cloudflare Worker dry run for admin membership removal.
 - GitHub Actions run [42424344218](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424344218) passed all 15 domain tests, TypeScript check, production build and Cloudflare Worker dry run for match appearance capture and goalscorer eligibility.
 - GitHub Actions run [42424703489](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424703489) passed all 20 tests, TypeScript check, production build and Cloudflare Worker dry run for the finance ledger. The follow-up sign-in navigation link is in a separate CI run.
+- GitHub Actions run [42425449833](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42425449833) passed all 32 tests, Deno type-check for the notification Edge Function, TypeScript check, production build and Cloudflare Worker dry run. The corrected notification worker was deployed to the separate Open Play New Supabase project as version 8 with JWT verification still enabled.
 - GitHub Actions run [42424849096](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424849096) passed the 20-test suite, TypeScript check, production build and Cloudflare Worker dry run for the administrator audit-history UI.
 - GitHub Actions run [42425103732](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42425103732) passed all 20 tests, TypeScript check, production build and Cloudflare Worker dry run for the guided admin help walkthrough and access-check error handling.
 - The season-statistics SQL was executed against the empty project and returned the expected empty result sets/zero summary. Real-data calculations still need acceptance testing.
