@@ -2016,6 +2016,18 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_admin_audit_history: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string }
+        Returns: {
+          action: string
+          actor_user_id: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: number
+          reason: string
+        }[]
+      }
       get_admin_competition_setup: { Args: never; Returns: Json }
       get_admin_dashboard: { Args: never; Returns: Json }
       get_admin_fixture_scorer_options: {
