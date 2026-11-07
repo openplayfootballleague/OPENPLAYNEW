@@ -142,3 +142,11 @@ a { color: inherit; text-decoration: none; }
 .fixture-pick{display:grid;width:100%;gap:5px;padding:14px 0;border:0;border-top:1px solid #cfcec5;background:transparent;text-align:left;cursor:pointer}.fixture-pick span{font-size:12px;font-weight:800;color:#171c18}.fixture-pick small{font-size:10px;color:#686960}.fixture-pick.selected{padding-left:12px;background:#f2f0e9;box-shadow:inset 3px 0 #e96831}.team-sheet-form{padding:18px;background:#f2f0e9}.team-sheet-form h2{margin:0;font-size:30px}.sheet-counts{display:flex;justify-content:space-between;color:#77786f;font-size:10px;font-weight:800}.sheet-player{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-top:1px solid #cfcec5;font-size:12px}.sheet-player>div{display:flex;gap:12px}.sheet-player label{display:flex;align-items:center;gap:4px;font-size:10px}.sheet-player input{accent-color:#e96831}.team-sheet-form>.button{width:100%;border:0;cursor:pointer}
 
 .availability-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-top:1px solid #cfcec5}.availability-row>div:first-child{display:grid;gap:5px}.availability-row strong{font-size:12px}.availability-row span,.availability-row small{font-size:10px;color:#686960}.availability-actions{display:flex;gap:6px;flex-shrink:0}.availability-actions button{padding:8px 10px;border:1px solid #cfcec5;background:#f2f0e9;color:#55564f;font-size:9px;font-weight:800;cursor:pointer}.availability-actions button.selected{border-color:#171c18;background:#171c18;color:#fff}.availability-actions button:disabled{opacity:.5;cursor:wait}@media(max-width:620px){.availability-row{align-items:flex-start;flex-direction:column}.availability-actions{width:100%}.availability-actions button{flex:1}}
+
+
+/* Captain-only squad availability */
+.captain-availability-fixture { padding: 16px 0; border-top: 1px solid #e2e0d7; }
+.captain-availability-fixture .hub-section-heading { align-items: flex-start; gap: 12px; }
+.captain-availability-fixture .hub-section-heading strong { color: #252720; font-size: 12px; }
+.captain-availability-fixture .hub-section-heading small { color: #77786f; font-size: 10px; text-align: right; }
+.status-unanswered { color: #77786f; background: #efeee9; border-radius: 20px; padding: 5px 9px; font-size: 10px; white-space: nowrap; }
