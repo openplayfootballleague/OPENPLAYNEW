@@ -44,6 +44,6 @@ function SignInPage() {
       <button className="button" type="submit" disabled={busy}>{busy ? "PLEASE WAIT…" : "SIGN IN"} <span aria-hidden="true">↗</span></button>
     </form>
     <button className="auth-text-button" type="button" onClick={resetPassword} disabled={busy}>Forgot your password?</button>
-    <p className="auth-switch">New to Open Play? <Link to="/sign-up">Create an account</Link></p>
+    <p className="auth-switch">New to Open Play? <Link to="/sign-up">Create an account</Link></p><p className="auth-switch"><Link to="/finance">Finance team access</Link></p>
   </section></main>;
 }
