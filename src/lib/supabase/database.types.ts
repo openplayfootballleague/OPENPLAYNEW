@@ -174,27 +174,30 @@ export type Database = {
       }
       fixture_team_sheets: {
         Row: {
+          draft_saved_at: string | null
           fixture_id: string
           id: string
           is_locked: boolean
           season_team_id: string
-          submitted_at: string
+          submitted_at: string | null
           submitted_by: string
         }
         Insert: {
+          draft_saved_at?: string | null
           fixture_id: string
           id?: string
           is_locked?: boolean
           season_team_id: string
-          submitted_at?: string
+          submitted_at?: string | null
           submitted_by: string
         }
         Update: {
+          draft_saved_at?: string | null
           fixture_id?: string
           id?: string
           is_locked?: boolean
           season_team_id?: string
-          submitted_at?: string
+          submitted_at?: string | null
           submitted_by?: string
         }
         Relationships: [
@@ -1013,6 +1016,18 @@ export type Database = {
           team_name: string
         }[]
       }
+      get_captain_team_sheet: {
+        Args: { p_fixture_id: string }
+        Returns: {
+          draft_saved_at: string
+          goalkeeper_membership_id: string
+          is_locked: boolean
+          season_team_id: string
+          starters: string[]
+          submitted_at: string
+          substitutes: string[]
+        }[]
+      }
       has_finance_access: { Args: never; Returns: boolean }
       has_platform_role: { Args: never; Returns: boolean }
       is_active_team_captain: {
@@ -1173,6 +1188,30 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      save_team_sheet_draft: {
+        Args: {
+          p_fixture_id: string
+          p_goalkeeper_membership_id?: string
+          p_season_team_id: string
+          p_starters: string[]
+          p_substitutes?: string[]
+        }
+        Returns: {
+          draft_saved_at: string | null
+          fixture_id: string
+          id: string
+          is_locked: boolean
+          season_team_id: string
+          submitted_at: string | null
+          submitted_by: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fixture_team_sheets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       set_team_squad_number: {
         Args: { p_membership_id: string; p_squad_number?: number }
         Returns: {
@@ -1203,11 +1242,12 @@ export type Database = {
           p_substitutes?: string[]
         }
         Returns: {
+          draft_saved_at: string | null
           fixture_id: string
           id: string
           is_locked: boolean
           season_team_id: string
-          submitted_at: string
+          submitted_at: string | null
           submitted_by: string
         }
         SetofOptions: {
