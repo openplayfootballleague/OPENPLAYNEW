@@ -151,7 +151,7 @@ Deno.serve(async (req: Request) => {
   });
   if (claimError) return Response.json({ error: "Unable to claim notification events" }, { status: 500 });
 
-  const summary = { claimed: (claimed ?? []).length, sent: 0, failed: 0 };
+  const summary = { claimed: (claimed ?? []).length, sent: 0, failed: 0, unconfirmed: 0 };
   for (const event of (claimed ?? []) as EventRow[]) {
     try {
       const [{ data: player, error: playerError }, { data: profile, error: profileError }] = await Promise.all([
@@ -165,12 +165,12 @@ Deno.serve(async (req: Request) => {
       if (event.channel === "email") {
         const email = String(player?.email ?? "").trim();
         if (!email || !resendKey || !resendFrom) throw new Error("Recipient email or Resend configuration is missing");
-        providerReference = await sendEmail(resendKey, resendFrom, email, message);
+        providerReference = await sendEmail(resendKey, resendFrom, email, message);\n        providerAccepted = true;
       } else {
         const rawPhone = String(player?.phone ?? profile?.phone ?? "").trim();
         const phone = normaliseUkPhone(rawPhone);
         if (!phone || !twilioSid || !twilioToken || !twilioFrom) throw new Error("Recipient phone or Twilio configuration is missing/invalid");
-        providerReference = await sendSms(twilioSid, twilioToken, twilioFrom, phone, message.text);
+        providerReference = await sendSms(twilioSid, twilioToken, twilioFrom, phone, message.text);\n        providerAccepted = true;
       }
 
       const { error: completeError } = await service.rpc("complete_notification_event", {
