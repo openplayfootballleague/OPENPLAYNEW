@@ -169,3 +169,51 @@ $$;
 
 revoke all on function public.get_my_fixture_payments() from public, anon;
 grant execute on function public.get_my_fixture_payments() to authenticated;
+
+
+-- Finance administrators can inspect the Stripe-backed player payment ledger.
+create or replace function public.get_admin_stripe_payments(p_season_id uuid default null)
+returns table(
+  payment_record_id uuid,
+  fixture_id uuid,
+  gameweek integer,
+  scheduled_at timestamptz,
+  season_id uuid,
+  season_name text,
+  team_name text,
+  player_name text,
+  amount_pence integer,
+  currency text,
+  status public.payment_status,
+  amount_refunded_pence integer,
+  stripe_fee_pence integer,
+  net_amount_pence integer,
+  paid_at timestamptz,
+  created_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if not public.has_finance_access() then
+    raise exception 'Finance access required';
+  end if;
+  return query
+  select pr.id, pr.fixture_id, f.gameweek, f.scheduled_at, s.id, s.name,
+         st.name, p.full_name, pr.amount_pence, pr.currency, pr.status,
+         pr.amount_refunded_pence, pr.stripe_fee_pence, pr.net_amount_pence,
+         pr.paid_at, pr.created_at
+  from public.payment_records pr
+  join public.season_teams st on st.id = pr.season_team_id
+  join public.seasons s on s.id = st.season_id
+  left join public.fixtures f on f.id = pr.fixture_id
+  left join public.players p on p.user_id = pr.player_user_id
+  where (p_season_id is null or s.id = p_season_id)
+  order by pr.created_at desc;
+end;
+$$;
+
+revoke all on function public.get_admin_stripe_payments(uuid) from public, anon;
+grant execute on function public.get_admin_stripe_payments(uuid) to authenticated;
