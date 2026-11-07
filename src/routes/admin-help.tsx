@@ -8,7 +8,7 @@ function AdminHelpPage(){
  const [error,setError]=useState("");
  const [tourActive,setTourActive]=useState(false);
  const [tourStep,setTourStep]=useState(0);
- useEffect(()=>{let active=true;void getSupabaseClient().rpc("has_platform_role").then(({data,error:rpcError})=>{if(!active)return;if(rpcError){setError(rpcError.message);setAllowed(false);}else setAllowed(Boolean(data));}).catch(cause=>{if(!active)return;setError(cause instanceof Error?cause.message:"Unable to verify administrator access.");setAllowed(false);});return()=>{active=false;};},[]);
+ useEffect(()=>{let active=true;const verify=async()=>{try{const {data,error:rpcError}=await getSupabaseClient().rpc("has_platform_role");if(!active)return;if(rpcError){setError(rpcError.message);setAllowed(false);}else setAllowed(Boolean(data));}catch(cause){if(!active)return;setError(cause instanceof Error?cause.message:"Unable to verify administrator access.");setAllowed(false);}};void verify();return()=>{active=false;};},[]);
  if(allowed===null)return <main className="notice-page"><section className="notice-panel"><p className="eyebrow eyebrow-dark">ADMIN HELP</p><h1>Loading<br/><em>guide.</em></h1></section></main>;
  if(!allowed)return <main className="notice-page"><section className="notice-panel"><Link className="notice-brand" to="/">OPEN PLAY</Link><p className="eyebrow eyebrow-dark">RESTRICTED</p><h1>Admin<br/><em>access.</em></h1><p className="form-error">{error||"This guide is available to approved platform administrators only."}</p><Link className="auth-switch" to="/sign-in">Sign in</Link></section></main>;
  const steps=[
