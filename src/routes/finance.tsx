@@ -15,7 +15,11 @@ function FinancePage(){
  const [options,setOptions]=useState<FinanceOption[]>([]);
  const [entries,setEntries]=useState<FinanceEntry[]>([]);
  const [summary,setSummary]=useState<FinanceSummary[]>([]);
- const [stripePayments,setStripePayments]=useState<StripePayment[]>([]);\n const [feeSeasonId,setFeeSeasonId]=useState("");\n const [playerFee,setPlayerFee]=useState("");\n const [feeGameweek,setFeeGameweek]=useState("1");\n const [feeReason,setFeeReason]=useState("");
+ const [stripePayments,setStripePayments]=useState<StripePayment[]>([]);
+ const [feeSeasonId,setFeeSeasonId]=useState("");
+ const [playerFee,setPlayerFee]=useState("");
+ const [feeGameweek,setFeeGameweek]=useState("1");
+ const [feeReason,setFeeReason]=useState("");
  const [seasonFilter,setSeasonFilter]=useState("");
  const [teamFilter,setTeamFilter]=useState("");
  const [teamId,setTeamId]=useState("");
