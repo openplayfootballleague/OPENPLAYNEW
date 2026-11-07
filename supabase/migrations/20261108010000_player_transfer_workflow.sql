@@ -206,7 +206,7 @@ declare
   v_player public.players;
 begin
   if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
-  if p_decision not in ('approved','rejected') then raise exception 'Decision must be approved or rejected'; end if;
+  if p_decision is null or p_decision not in ('approved','rejected') then raise exception 'Decision must be approved or rejected'; end if;
   if p_reason is null or length(btrim(p_reason))<5 then raise exception 'Enter a decision reason of at least 5 characters'; end if;
 
   select * into v_request from public.player_transfer_requests where id=p_request_id for update;
@@ -218,6 +218,7 @@ begin
   select * into v_destination from public.season_teams where id=v_request.destination_season_team_id;
   select * into v_season from public.seasons where id=v_destination.season_id;
   select * into v_player from public.players where user_id=v_request.user_id;
+  if not found then raise exception 'Player record not found'; end if;
   if v_player.registration_status<>'registered' or v_player.is_banned then raise exception 'Player is not currently eligible to transfer'; end if;
   if v_destination.season_id<>(select season_id from public.season_teams where id=v_request.source_season_team_id)
     or v_destination.registration_status<>'approved'
