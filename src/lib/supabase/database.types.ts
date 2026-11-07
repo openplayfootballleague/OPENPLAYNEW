@@ -1491,6 +1491,28 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_remove_player_from_team: {
+        Args: { p_membership_id: string; p_reason: string }
+        Returns: {
+          created_at: string
+          id: string
+          is_captain: boolean
+          joined_at: string | null
+          left_at: string | null
+          season_team_id: string
+          squad_number: number | null
+          status: Database["public"]["Enums"]["membership_status"]
+          transfer_request_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_memberships"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_resolve_player_transfer_request: {
         Args: { p_decision: string; p_reason: string; p_request_id: string }
         Returns: {
