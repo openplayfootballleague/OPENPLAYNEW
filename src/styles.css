@@ -175,3 +175,10 @@ a { color: inherit; text-decoration: none; }
 
 .team-sheet-form .draft-save { flex: 1; min-height: 46px; border: 1px solid #171c18; background: transparent; color: #171c18; font-size: 10px; font-weight: 800; letter-spacing: .04em; cursor: pointer; }
 .team-sheet-form .draft-save:disabled { opacity: .55; cursor: wait; }
+
+.admin-sheet-editor { margin-top: 22px; padding: 18px; background: #f2f0e9; }
+.admin-sheet-editor .sheet-player { border-top-color: #d7d5cc; }
+.admin-reason-label { display: grid; gap: 8px; margin-top: 18px; color: #30312c; font-size: 11px; font-weight: 800; }
+.admin-reason-label textarea { width: 100%; min-height: 88px; padding: 12px; border: 1px solid #cfcec5; background: #fffefa; color: #171c18; font: inherit; font-size: 13px; resize: vertical; }
+.admin-reason-label textarea:focus { outline: 2px solid #e96831; border-color: #e96831; }
+.admin-sheet-editor .captain-actions { margin-top: 16px; }
