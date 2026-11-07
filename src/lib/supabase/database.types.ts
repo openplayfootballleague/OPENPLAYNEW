@@ -1170,6 +1170,27 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_team_squad_number: {
+        Args: { p_membership_id: string; p_squad_number?: number }
+        Returns: {
+          created_at: string
+          id: string
+          is_captain: boolean
+          joined_at: string | null
+          left_at: string | null
+          season_team_id: string
+          squad_number: number | null
+          status: Database["public"]["Enums"]["membership_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_memberships"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       submit_team_sheet: {
         Args: {
           p_fixture_id: string
