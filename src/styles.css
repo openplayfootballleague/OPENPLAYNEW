@@ -103,3 +103,12 @@ a { color: inherit; text-decoration: none; }
 .auth-switch { margin: 28px 0 0 !important; font-size: 12px !important; }
 .auth-switch a { color: #c94e20; font-weight: 800; text-decoration: underline; }
 @media (max-width: 520px) { .auth-panel .notice-brand { margin-bottom: 36px; } .auth-panel { padding: 28px 22px; } }
+
+.auth-mode-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin: 26px 0 20px; background: #cfcec5; }
+.auth-mode-switch button { min-height: 48px; border: 0; background: #e6e4db; color: #55564f; font-size: 10px; font-weight: 800; letter-spacing: .08em; cursor: pointer; }
+.auth-mode-switch button.active { background: #171c18; color: #fff; box-shadow: inset 0 -3px 0 #e96831; }
+.auth-select-label { display: grid; gap: 8px; color: #30312c; font-size: 11px; font-weight: 800; }
+.auth-select-label select, .auth-form select { width: 100%; min-height: 49px; padding: 12px 14px; border: 1px solid #cfcec5; border-radius: 0; background: #fffefa; color: #111411; font: inherit; font-size: 14px; }
+.auth-colours { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-note { margin: 12px 0; color: #686960; font-size: 12px; line-height: 1.7; }
+@media (max-width: 520px) { .auth-colours { grid-template-columns: 1fr; } .auth-mode-switch button { font-size: 9px; } }
