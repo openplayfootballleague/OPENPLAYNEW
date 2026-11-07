@@ -208,6 +208,7 @@ begin
   if tg_op='INSERT' then
     v_event:='fixture.scheduled';
   elsif old.status is distinct from new.status then
+    if new.status='completed' then return new; end if;
     v_event:='fixture.status_changed';
   elsif old.scheduled_at is distinct from new.scheduled_at then
     v_event:='fixture.rescheduled';
@@ -308,12 +309,13 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
-declare v_actor uuid:=auth.uid(); v_event public.notification_events;
+declare v_actor uuid:=auth.uid(); v_event public.notification_events; v_previous text;
 begin
   if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
   if p_reason is null or length(btrim(p_reason))<5 then raise exception 'Enter a reason of at least 5 characters'; end if;
   select * into v_event from public.notification_events where id=p_event_id for update;
   if not found then raise exception 'Notification event not found'; end if;
+  v_previous:=v_event.status;
   if v_event.status not in ('failed','unconfirmed') then raise exception 'Only failed or unconfirmed events can be retried'; end if;
   if v_event.manual_retry_used then raise exception 'The one manual retry has already been used'; end if;
   update public.notification_events
@@ -420,7 +422,7 @@ begin
   if coalesce(auth.role(),'')<>'service_role' then raise exception 'Service role required'; end if;
   select * into v_event from public.notification_events where id=p_event_id for update;
   if not found or v_event.status<>'sending' then raise exception 'Notification event is not currently sending'; end if;
-  v_max_attempts:=case when v_event.manual_retry_used then 6 else 5 end;
+  v_max_attempts:=case when v_event.manual_retry_used then v_event.attempt_count else 5 end;
   v_delay:=least(5*power(2,greatest(v_event.attempt_count-1,0)),240)::integer;
   update public.notification_events
   set status=case when v_event.attempt_count>=v_max_attempts then 'failed' else 'queued' end,
