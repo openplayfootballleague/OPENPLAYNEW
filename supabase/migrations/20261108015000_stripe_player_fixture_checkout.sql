@@ -231,6 +231,7 @@ set search_path = ''
 as $$
 declare
   v_id uuid;
+  v_team_fee integer := 0;
 begin
   if not public.has_finance_access() then
     raise exception 'Finance access required';
@@ -248,11 +249,17 @@ begin
     raise exception 'Season not found';
   end if;
 
+  select sfc.team_fee_pence into v_team_fee
+  from public.season_fee_configs sfc
+  where sfc.season_id = p_season_id
+  order by sfc.effective_from_gameweek desc, sfc.created_at desc
+  limit 1;
+
   insert into public.season_fee_configs(
     season_id, team_fee_pence, player_fee_pence,
     effective_from_gameweek, reason, changed_by
   ) values (
-    p_season_id, 0, p_player_fee_pence,
+    p_season_id, coalesce(v_team_fee, 0), p_player_fee_pence,
     p_effective_from_gameweek, btrim(p_reason), auth.uid()
   ) returning id into v_id;
 
