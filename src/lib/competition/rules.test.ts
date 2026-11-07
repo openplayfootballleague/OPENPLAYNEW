@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canTransitionFixtureStatus, getTeamSheetLimits, isValidFixtureScore, validateTeamSheet, type TeamSheetPlayer } from "./rules";
+import { canTransitionFixtureStatus, getTeamSheetLimits, hasOneScorerPerGoal, isValidFixtureScore, validateTeamSheet, type TeamSheetPlayer } from "./rules";
 
 function starters(count: number): TeamSheetPlayer[] {
   return Array.from({ length: count }, (_, index) => ({
@@ -82,5 +82,23 @@ describe("fixture lifecycle rules", () => {
     expect(isValidFixtureScore(-1)).toBe(false);
     expect(isValidFixtureScore(1.5)).toBe(false);
     expect(isValidFixtureScore(32768)).toBe(false);
+  });
+});
+
+describe("fixture goalscorer validation", () => {
+  it("requires exactly one selected scorer per goal", () => {
+    expect(hasOneScorerPerGoal(0, [])).toBe(true);
+    expect(hasOneScorerPerGoal(2, ["player-a"])).toBe(false);
+    expect(hasOneScorerPerGoal(2, ["player-a", "player-b"])).toBe(true);
+  });
+
+  it("allows the same player to score multiple goals", () => {
+    expect(hasOneScorerPerGoal(3, ["player-a", "player-a", "player-a"])).toBe(true);
+  });
+
+  it("rejects blank scorer selections and invalid score counts", () => {
+    expect(hasOneScorerPerGoal(1, [""])).toBe(false);
+    expect(hasOneScorerPerGoal(-1, [])).toBe(false);
+    expect(hasOneScorerPerGoal(1.5, ["player-a"])).toBe(false);
   });
 });
