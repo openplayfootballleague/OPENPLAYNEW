@@ -23,10 +23,13 @@ A user must create an account before proceeding with either route. Creating an a
 
 ## 3. Player registration
 
-Player registration requires these three fields, all mandatory:
+Player registration requires these four fields, all mandatory:
 1. Full name
 2. Phone number
 3. Email address
+4. Date of birth
+
+Date of birth is collected as a required player detail, but it is **not** a fourth matching metric. The duplicate/review threshold remains based only on full name, phone number and email address.
 
 On submission, the system compares the submitted details against existing player records. It evaluates three independent matching metrics:
 - Full name matches an existing player.
@@ -118,7 +121,8 @@ A player may be registered with Open Play without belonging to a team.
 13. Registered player with no team can use their player account without being assigned to a team.
 14. A captain rejects a team-joining request: no active membership is created.
 15. Returning player in a later season retains the same permanent player identity.
-16. Duplicate or simultaneous registration submissions cannot create duplicate player identities.
+16. Date of birth is required and validated, but does not affect the three-metric matching count.
+17. Duplicate or simultaneous registration submissions cannot create duplicate player identities.
 
 ## 10. Security and privacy requirements
 
