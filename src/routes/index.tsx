@@ -12,12 +12,12 @@ function HomePage() {
           <span>OPEN PLAY</span>
         </a>
         <nav className="header-nav" aria-label="Main navigation">
-          <a href="#match-centre">Match centre</a>
-          <a href="#leagues">Leagues</a>
+          <a href="/match-centre">Match centre</a>
+          <a href="/teams">Leagues</a>
           <a href="#about">About</a>
         </nav>
         <div className="header-actions">
-          <a className="login-link" href="/sign-in">Log in</a>
+          <a className="login-link" href="/player">Player Hub</a>
           <a className="button button-small" href="/join">Join Open Play</a>
         </div>
       </header>
@@ -36,7 +36,7 @@ function HomePage() {
             something.
           </p>
           <div className="hero-actions">
-            <a className="button" href="#join">Find your league <span aria-hidden="true">↗</span></a>
+            <a className="button" href="/join">Find your league <span aria-hidden="true">↗</span></a>
             <a className="text-link" href="#match-centre">Explore match centre <span aria-hidden="true">→</span></a>
           </div>
         </div>
