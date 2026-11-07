@@ -199,3 +199,10 @@ a { color: inherit; text-decoration: none; }
 .admin-setup-registers p { margin: 8px 0; color: #171c18; font-size: 12px; font-weight: 750; }
 .admin-setup-registers small { display: block; margin-top: 3px; color: #77786f; font-size: 10px; font-weight: 500; }
 @media(max-width:900px) { .admin-setup-grid { grid-template-columns: 1fr; } .admin-setup-registers { grid-template-columns: 1fr; } }
+
+.admin-setup-form input[type="color"] { min-height: 38px; padding: 3px; cursor: pointer; }
+.admin-setup-form .admin-captain-check { display: flex; grid-template-columns: auto 1fr; align-items: center; gap: 9px; padding: 8px 0; }
+.admin-setup-form .admin-captain-check input { width: 16px; min-height: 16px; accent-color: #e96831; }
+.admin-team-registers { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.admin-setup-form > small { color: #77786f; font-size: 10px; line-height: 1.5; }
+@media(max-width:900px) { .admin-team-registers { grid-template-columns: 1fr; } }
