@@ -1,9 +1,9 @@
 # Open Play — Continuous Development Status
 
-**Last verified:** 7 November 2026, 23:06 UTC  
+**Last verified:** 7 November 2026, 23:09 UTC  
 **Repository:** `openplayfootballleague/OPENPLAYNEW`  
 **Supabase project:** `ghnrsysvrlgkjmdlwdmp` — Open Play New only  
-**Applied database migrations:** 48
+**Applied database migrations:** 50
 
 ## Implemented in this repository and Supabase project
 
@@ -45,7 +45,7 @@
 - Email and in-app notifications default on; SMS defaults off and requires explicit opt-in. SMS consent and revocation timestamps/version are stored and preference changes are audited. Direct client table updates are revoked; preferences are changed through the RPC.
 - Database triggers enqueue notifications for team/member approvals, fixture scheduling/status changes and published/corrected results.
 - The notification outbox tracks attempts, backoff, provider errors, holds, one manual retry, and unconfirmed delivery outcomes. Admin actions are audited.
-- A JWT-verified Supabase Edge Function `deliver-notifications` is deployed (version 3). It supports Resend email and Twilio SMS, checks admin/service-role access, claims only configured channels and avoids blindly retrying a provider-accepted but unconfirmed message.
+- A JWT-verified Supabase Edge Function `deliver-notifications` is deployed (version 5). It supports Resend email and Twilio SMS, checks admin/service-role access, claims only configured channels, distinguishes permanent provider/recipient errors from transient failures, and avoids blindly retrying a provider-accepted but unconfirmed message. Player ban/unban changes also generate notifications.
 - A `pg_cron` job named `open-play-fixture-reminders` is active every 15 minutes. It enqueues idempotent 24-hour and 3-hour fixture reminders and cancels stale queued/in-app reminders when a fixture is moved or cancelled.
 
 ## Verification evidence
@@ -60,7 +60,7 @@
 - The performance advisor reports unused indexes and permissive-policy notices. Do not drop indexes or weaken RLS without workload and access-model review.
 - Reminder enqueue smoke test returned 0, as expected: there are no fixtures or users in this project.
 - Current database counts: 0 Auth users, 0 players, 0 fixtures, 0 notification preferences and 0 notification events. No demo or production data has been inserted.
-- The latest admin player-detail UI build initially failed on nullable RPC argument types. The latest commit changes those arguments to typed strings; its GitHub Actions run is queued and must pass before this UI change is treated as verified.
+- The admin player-detail UI build initially failed on nullable RPC argument types. The latest fix changed those arguments to typed strings; GitHub Actions run [42423640387](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42423640387) then passed all 12 domain tests, TypeScript check, production build and Cloudflare Worker dry run. Later notification/template/type changes are under a subsequent CI run.
 - Notification delivery has not been end-to-end tested. No Resend/Twilio credentials have been configured in this session, no real email/SMS has been sent, and automated dispatch scheduling is not configured. The 15-minute cron job enqueues reminders only; an administrator can invoke the delivery worker after provider secrets are configured.
 
 ## Environment boundary
