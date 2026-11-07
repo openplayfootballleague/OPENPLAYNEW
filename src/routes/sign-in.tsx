@@ -17,7 +17,7 @@ function SignInPage() {
     try {
       const { error: authError } = await getSupabaseClient().auth.signInWithPassword({ email: email.trim(), password });
       if (authError) throw authError;
-      await navigate({ to: "/register-player" });
+      await navigate({ to: "/player" });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to sign in. Please try again.");
     } finally { setBusy(false); }
