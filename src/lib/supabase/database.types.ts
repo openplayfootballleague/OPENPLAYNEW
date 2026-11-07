@@ -1299,6 +1299,26 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_set_location_active: {
+        Args: { p_is_active: boolean; p_location_id: string; p_reason: string }
+        Returns: {
+          address: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          region: string
+          slug: string
+          town: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "locations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_set_player_genuine: {
         Args: { p_is_genuine: boolean; p_reason: string; p_user_id: string }
         Returns: {
