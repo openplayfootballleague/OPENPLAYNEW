@@ -669,6 +669,83 @@ export type Database = {
           },
         ]
       }
+      player_transfer_requests: {
+        Row: {
+          created_at: string
+          destination_season_team_id: string
+          id: string
+          reason: string
+          requested_at: string
+          resolution_reason: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_membership_id: string
+          source_season_team_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          destination_season_team_id: string
+          id?: string
+          reason: string
+          requested_at?: string
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_membership_id: string
+          source_season_team_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          destination_season_team_id?: string
+          id?: string
+          reason?: string
+          requested_at?: string
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_membership_id?: string
+          source_season_team_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_transfer_requests_destination_season_team_id_fkey"
+            columns: ["destination_season_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_transfer_requests_source_membership_id_fkey"
+            columns: ["source_membership_id"]
+            isOneToOne: false
+            referencedRelation: "team_memberships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_transfer_requests_source_season_team_id_fkey"
+            columns: ["source_season_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_transfer_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       players: {
         Row: {
           banned_at: string | null
@@ -971,6 +1048,7 @@ export type Database = {
           season_team_id: string
           squad_number: number | null
           status: Database["public"]["Enums"]["membership_status"]
+          transfer_request_id: string | null
           updated_at: string
           user_id: string
         }
@@ -983,6 +1061,7 @@ export type Database = {
           season_team_id: string
           squad_number?: number | null
           status?: Database["public"]["Enums"]["membership_status"]
+          transfer_request_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -995,6 +1074,7 @@ export type Database = {
           season_team_id?: string
           squad_number?: number | null
           status?: Database["public"]["Enums"]["membership_status"]
+          transfer_request_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1004,6 +1084,13 @@ export type Database = {
             columns: ["season_team_id"]
             isOneToOne: false
             referencedRelation: "season_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_memberships_transfer_request_id_fkey"
+            columns: ["transfer_request_id"]
+            isOneToOne: false
+            referencedRelation: "player_transfer_requests"
             referencedColumns: ["id"]
           },
           {
@@ -1135,6 +1222,7 @@ export type Database = {
           season_team_id: string
           squad_number: number | null
           status: Database["public"]["Enums"]["membership_status"]
+          transfer_request_id: string | null
           updated_at: string
           user_id: string
         }
@@ -1336,6 +1424,23 @@ export type Database = {
         }[]
       }
       admin_get_player_detail: { Args: { p_user_id: string }; Returns: Json }
+      admin_get_transfer_requests: {
+        Args: { p_status?: string }
+        Returns: {
+          destination_team_id: string
+          destination_team_name: string
+          id: string
+          league_name: string
+          player_name: string
+          reason: string
+          requested_at: string
+          season_name: string
+          source_membership_id: string
+          source_team_name: string
+          status: string
+          user_id: string
+        }[]
+      }
       admin_record_fixture_result: {
         Args: {
           p_away_score: number
@@ -1382,6 +1487,30 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "fixture_results"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_resolve_player_transfer_request: {
+        Args: { p_decision: string; p_reason: string; p_request_id: string }
+        Returns: {
+          created_at: string
+          destination_season_team_id: string
+          id: string
+          reason: string
+          requested_at: string
+          resolution_reason: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_membership_id: string
+          source_season_team_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "player_transfer_requests"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1606,6 +1735,30 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      cancel_player_transfer_request: {
+        Args: { p_request_id: string }
+        Returns: {
+          created_at: string
+          destination_season_team_id: string
+          id: string
+          reason: string
+          requested_at: string
+          resolution_reason: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_membership_id: string
+          source_season_team_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "player_transfer_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       claim_notification_events: {
         Args: { p_channels?: string[]; p_limit?: number }
@@ -1861,6 +2014,33 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_my_transfer_destinations: {
+        Args: never
+        Returns: {
+          destination_team_id: string
+          destination_team_name: string
+          league_name: string
+          season_id: string
+          season_name: string
+          source_membership_id: string
+          source_team_id: string
+          source_team_name: string
+        }[]
+      }
+      get_my_transfer_requests: {
+        Args: never
+        Returns: {
+          destination_team_name: string
+          id: string
+          reason: string
+          requested_at: string
+          resolution_reason: string
+          resolved_at: string
+          season_name: string
+          source_team_name: string
+          status: string
+        }[]
+      }
       has_finance_access: { Args: never; Returns: boolean }
       has_platform_role: { Args: never; Returns: boolean }
       is_active_team_captain: {
@@ -1970,6 +2150,34 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      request_player_transfer: {
+        Args: {
+          p_destination_season_team_id: string
+          p_reason: string
+          p_source_membership_id: string
+        }
+        Returns: {
+          created_at: string
+          destination_season_team_id: string
+          id: string
+          reason: string
+          requested_at: string
+          resolution_reason: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_membership_id: string
+          source_season_team_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "player_transfer_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       request_team_membership: {
         Args: { p_season_team_id: string }
         Returns: {
@@ -1981,6 +2189,7 @@ export type Database = {
           season_team_id: string
           squad_number: number | null
           status: Database["public"]["Enums"]["membership_status"]
+          transfer_request_id: string | null
           updated_at: string
           user_id: string
         }
@@ -2026,6 +2235,7 @@ export type Database = {
           season_team_id: string
           squad_number: number | null
           status: Database["public"]["Enums"]["membership_status"]
+          transfer_request_id: string | null
           updated_at: string
           user_id: string
         }
@@ -2099,6 +2309,7 @@ export type Database = {
           season_team_id: string
           squad_number: number | null
           status: Database["public"]["Enums"]["membership_status"]
+          transfer_request_id: string | null
           updated_at: string
           user_id: string
         }
