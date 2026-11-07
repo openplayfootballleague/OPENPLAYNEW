@@ -1298,6 +1298,27 @@ export type Database = {
         Args: { p_fixture_id: string; p_season_team_id: string }
         Returns: { already_paid: boolean; amount_pence: number; currency: string; payment_record_id: string }[]
       }
+      get_admin_stripe_payments: {
+        Args: { p_season_id?: string | null }
+        Returns: {
+          amount_pence: number
+          amount_refunded_pence: number
+          created_at: string
+          currency: string
+          fixture_id: string | null
+          gameweek: number | null
+          net_amount_pence: number | null
+          paid_at: string | null
+          payment_record_id: string
+          player_name: string | null
+          scheduled_at: string | null
+          season_id: string
+          season_name: string
+          status: Database["public"]["Enums"]["payment_status"]
+          stripe_fee_pence: number | null
+          team_name: string
+        }[]
+      }
       get_my_fixture_payments: {
         Args: never
         Returns: {
