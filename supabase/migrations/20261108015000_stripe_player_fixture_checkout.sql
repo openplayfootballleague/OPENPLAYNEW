@@ -215,3 +215,62 @@ $$;
 
 revoke all on function public.get_admin_stripe_payments(uuid) from public, anon;
 grant execute on function public.get_admin_stripe_payments(uuid) to authenticated;
+
+
+-- Finance roles configure the per-player fee that is snapshotted when checkout starts.
+create or replace function public.admin_set_player_fixture_fee(
+  p_season_id uuid,
+  p_player_fee_pence integer,
+  p_effective_from_gameweek integer,
+  p_reason text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_id uuid;
+begin
+  if not public.has_finance_access() then
+    raise exception 'Finance access required';
+  end if;
+  if p_player_fee_pence < 1 or p_player_fee_pence > 100000000 then
+    raise exception 'Player fee must be between 1p and £1,000,000';
+  end if;
+  if p_effective_from_gameweek < 1 or p_effective_from_gameweek > 100 then
+    raise exception 'Effective gameweek must be between 1 and 100';
+  end if;
+  if length(btrim(coalesce(p_reason, ''))) < 5 or length(p_reason) > 500 then
+    raise exception 'A reason of at least five characters is required';
+  end if;
+  if not exists (select 1 from public.seasons s where s.id = p_season_id) then
+    raise exception 'Season not found';
+  end if;
+
+  insert into public.season_fee_configs(
+    season_id, team_fee_pence, player_fee_pence,
+    effective_from_gameweek, reason, changed_by
+  ) values (
+    p_season_id, 0, p_player_fee_pence,
+    p_effective_from_gameweek, btrim(p_reason), auth.uid()
+  ) returning id into v_id;
+
+  insert into public.audit_log(
+    actor_user_id, action, entity_type, entity_id, after_data, reason
+  ) values (
+    auth.uid(), 'player_fixture_fee_configured', 'season_fee_config',
+    v_id::text,
+    jsonb_build_object(
+      'season_id', p_season_id,
+      'player_fee_pence', p_player_fee_pence,
+      'effective_from_gameweek', p_effective_from_gameweek
+    ),
+    btrim(p_reason)
+  );
+  return v_id;
+end;
+$$;
+
+revoke all on function public.admin_set_player_fixture_fee(uuid,integer,integer,text) from public, anon;
+grant execute on function public.admin_set_player_fixture_fee(uuid,integer,integer,text) to authenticated;
