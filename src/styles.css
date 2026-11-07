@@ -241,3 +241,8 @@ a { color: inherit; text-decoration: none; }
 .admin-result-review p { margin: 0; color: #55564f; font-size: 11px; line-height: 1.65; overflow-wrap: anywhere; }
 .admin-result-review p strong { color: #171c18; }
 .admin-result-review .captain-actions { margin-top: 4px; }
+
+.admin-genuine-form { display: grid; gap: 10px; margin: 12px 0; padding: 14px; background: #e7e5dc; }
+.admin-genuine-form > strong { color: #171c18; font-size: 11px; }
+.admin-genuine-form label { display: grid; gap: 5px; color: #55564f; font-size: 10px; font-weight: 750; }
+.admin-genuine-form textarea { box-sizing: border-box; width: 100%; padding: 9px 10px; border: 1px solid #cfcec5; background: #fffefa; color: #171c18; font: inherit; font-size: 12px; }
