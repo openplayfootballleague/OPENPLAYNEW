@@ -346,3 +346,19 @@ a { color: inherit; text-decoration: none; }
 
 .admin-finance-link a { display:inline-flex; gap:10px; align-items:center; color:#e96831; font-size:11px; font-weight:800; letter-spacing:.08em; }
 .admin-finance-link { margin:10px 0 22px; }
+
+.admin-help-page { align-items:start; padding-top:24px; padding-bottom:24px; }
+.admin-help-panel { width:min(100%,1080px); padding:clamp(24px,4vw,48px); }
+.admin-help-panel .notice-brand { margin-bottom:28px; }
+.admin-help-panel h1 { font-size:clamp(58px,8vw,90px); }
+.admin-help-intro { max-width:680px; color:#686960; line-height:1.75; margin:18px 0 30px; }
+.admin-help-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1px; background:#d6d4cb; border:1px solid #d6d4cb; }
+.admin-help-card { display:grid; grid-template-columns:38px 1fr; gap:14px; padding:20px; background:#f2f0e9; }
+.admin-help-card > span { color:#e96831; font-family:"Barlow Condensed",sans-serif; font-size:25px; font-weight:900; }
+.admin-help-card h2 { margin:0 0 8px; font-size:23px; line-height:1; }
+.admin-help-card p { margin:0; color:#686960; font-size:12px; line-height:1.75; }
+.admin-help-warning { margin:26px 0; padding:20px; background:#e7e5dc; }
+.admin-help-warning h2 { margin:0 0 8px; font-size:25px; }
+.admin-help-warning p { margin:0; color:#55564f; font-size:12px; line-height:1.75; }
+.admin-help-panel .captain-actions { display:flex; flex-wrap:wrap; align-items:center; gap:16px; }
+@media(max-width:700px) { .admin-help-grid { grid-template-columns:1fr; } .admin-help-panel { padding:24px 18px; } }
