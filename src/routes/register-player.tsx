@@ -19,7 +19,7 @@ function RegisterPlayerPage() {
     event.preventDefault();setError("");setMessage("");setBusy(true);
     try{
       if(!session?.user.email) throw new Error("Please sign in with a verified email address first.");
-      const {data,error:rpcError}=await getSupabaseClient().rpc("register_player",{p_full_name:name.trim(),p_phone:phone.trim(),p_email:session.user.email,p_date_of_birth:dob});
+      const {error:rpcError}=await getSupabaseClient().rpc("register_player",{p_full_name:name.trim(),p_phone:phone.trim(),p_email:session.user.email,p_date_of_birth:dob});
       if(rpcError) throw rpcError;
       setMessage("Your player registration has been submitted. If it needs a manual identity check, it will remain pending review. Your account and player registration are separate from joining a team.");
       setName("");setPhone("");setDob("");
