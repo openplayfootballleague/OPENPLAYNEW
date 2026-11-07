@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { PermanentDeliveryError, providerHttpError } from "../../../src/lib/notifications/delivery-errors.ts";
 
 type EventRow = {
   id: string;
@@ -71,7 +72,7 @@ function renderMessage(event: EventRow): RenderedMessage {
     case "fixture.result_corrected":
       return { subject: `Open Play – corrected result: ${home} ${score} ${away}`, text: `The result has been corrected – ${gameweek}: ${home} ${score} ${away}.` };
     default:
-      throw new Error(`Unsupported notification template: ${event.event_type}`);
+      throw new PermanentDeliveryError(`Unsupported notification template: ${event.event_type}`);
   }
 }
 
@@ -91,7 +92,7 @@ async function sendEmail(apiKey: string, from: string, to: string, message: Rend
     body: JSON.stringify({ from, to: [to], subject: message.subject, text: message.text }),
   });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(`Resend returned ${response.status}: ${JSON.stringify(body).slice(0, 800)}`);
+  if (!response.ok) throw providerHttpError("Resend", response.status, body);
   return String(body.id ?? "");
 }
 
@@ -106,7 +107,7 @@ async function sendSms(accountSid: string, authToken: string, from: string, to: 
     body: payload,
   });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(`Twilio returned ${response.status}: ${JSON.stringify(result).slice(0, 800)}`);
+  if (!response.ok) throw providerHttpError("Twilio", response.status, result);
   return String(result.sid ?? "");
 }
 
@@ -194,13 +195,15 @@ Deno.serve(async (req: Request) => {
 
       if (event.channel === "email") {
         const email = String(player?.email ?? "").trim();
-        if (!email || !resendKey || !resendFrom) throw new Error("Recipient email or Resend configuration is missing");
+        if (!email) throw new PermanentDeliveryError("Recipient email is missing");
+        if (!resendKey || !resendFrom) throw new Error("Resend configuration is missing");
         providerReference = await sendEmail(resendKey, resendFrom, email, message);
         providerAccepted = true;
       } else {
         const rawPhone = String(player?.phone ?? profile?.phone ?? "").trim();
         const phone = normaliseUkPhone(rawPhone);
-        if (!phone || !twilioSid || !twilioToken || !twilioFrom) throw new Error("Recipient phone or Twilio configuration is missing/invalid");
+        if (!phone) throw new PermanentDeliveryError("Recipient phone is missing or invalid");
+        if (!twilioSid || !twilioToken || !twilioFrom) throw new Error("Twilio configuration is incomplete");
         providerReference = await sendSms(twilioSid, twilioToken, twilioFrom, phone, message.text);
         providerAccepted = true;
       }
