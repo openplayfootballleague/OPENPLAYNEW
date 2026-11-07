@@ -272,3 +272,6 @@ a { color: inherit; text-decoration: none; }
 .admin-notification-list .admin-queue-row small { color: #77786f; font-size: 9px; line-height: 1.5; }
 .admin-notification-list .admin-queue-row .notification-error { color: #a33b2c; }
 .admin-notification-list .admin-queue-row .captain-actions { flex-wrap: wrap; }
+
+.admin-process-notifications { margin: 12px 0; min-height: 38px; padding: 0 14px; border: 1px solid #171c18; background: #171c18; color: #fffefa; font-size: 9px; font-weight: 850; letter-spacing: .05em; cursor: pointer; }
+.admin-process-notifications:disabled { opacity: .5; cursor: wait; }
