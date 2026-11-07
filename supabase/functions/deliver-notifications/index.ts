@@ -210,6 +210,9 @@ Deno.serve(async (req: Request) => {
       if (providerAccepted) {
         await service.rpc("mark_notification_event_unconfirmed", { p_event_id: event.id, p_error: errorText });
         summary.unconfirmed += 1;
+      } else if (cause instanceof PermanentDeliveryError) {
+        await service.rpc("fail_notification_event_permanent", { p_event_id: event.id, p_error: errorText });
+        summary.failed += 1;
       } else {
         await service.rpc("fail_notification_event", { p_event_id: event.id, p_error: errorText });
         summary.failed += 1;
