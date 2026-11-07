@@ -1008,6 +1008,35 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      register_team: {
+        Args: {
+          p_primary_colour?: string
+          p_season_id: string
+          p_secondary_colour?: string
+          p_team_name: string
+        }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          badge_path: string | null
+          created_at: string
+          id: string
+          name: string
+          primary_colour: string | null
+          registration_status: Database["public"]["Enums"]["registration_status"]
+          season_id: string
+          secondary_colour: string | null
+          slug: string
+          team_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "season_teams"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       request_team_membership: {
         Args: { p_season_team_id: string }
         Returns: {
@@ -1073,6 +1102,34 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      resolve_team_registration: {
+        Args: {
+          p_decision: string
+          p_reason?: string
+          p_season_team_id: string
+        }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          badge_path: string | null
+          created_at: string
+          id: string
+          name: string
+          primary_colour: string | null
+          registration_status: Database["public"]["Enums"]["registration_status"]
+          season_id: string
+          secondary_colour: string | null
+          slug: string
+          team_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "season_teams"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       competition_format: "six_a_side" | "seven_a_side"
@@ -1083,7 +1140,12 @@ export type Database = {
         | "postponed"
         | "cancelled"
       lineup_role: "starter" | "substitute"
-      membership_status: "pending" | "active" | "suspended" | "left"
+      membership_status:
+        | "pending"
+        | "active"
+        | "suspended"
+        | "left"
+        | "rejected"
       payment_status:
         | "pending"
         | "processing"
@@ -1236,7 +1298,7 @@ export const Constants = {
         "cancelled",
       ],
       lineup_role: ["starter", "substitute"],
-      membership_status: ["pending", "active", "suspended", "left"],
+      membership_status: ["pending", "active", "suspended", "left", "rejected"],
       payment_status: [
         "pending",
         "processing",
