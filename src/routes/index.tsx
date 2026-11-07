@@ -17,8 +17,8 @@ function HomePage() {
           <a href="#about">About</a>
         </nav>
         <div className="header-actions">
-          <a className="login-link" href="#sign-in">Log in</a>
-          <a className="button button-small" href="#join">Join Open Play</a>
+          <a className="login-link" href="/sign-in">Log in</a>
+          <a className="button button-small" href="/join">Join Open Play</a>
         </div>
       </header>
 
