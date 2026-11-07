@@ -96,27 +96,41 @@ async function sendSms(accountSid: string, authToken: string, from: string, to: 
   return String(result.sid ?? "");
 }
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req: Request) => {
-  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
 
   const authorization = req.headers.get("Authorization") ?? "";
   const token = authorization.replace(/^Bearer\s+/i, "");
-  if (!token) return Response.json({ error: "Authentication required" }, { status: 401 });
+  if (!token) return jsonResponse({ error: "Authentication required" }, 401);
 
   const role = jwtRole(token);
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceKey) return Response.json({ error: "Worker service configuration is incomplete" }, { status: 503 });
+  if (!supabaseUrl || !serviceKey) return jsonResponse({ error: "Worker service configuration is incomplete" }, 503);
 
   if (role !== "service_role") {
-    if (!anonKey) return Response.json({ error: "Admin verification is unavailable" }, { status: 503 });
+    if (!anonKey) return jsonResponse({ error: "Admin verification is unavailable" }, 503);
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: `Bearer ${token}` } },
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const { error: adminError } = await userClient.rpc("get_admin_dashboard");
-    if (adminError) return Response.json({ error: "Administrator permission required" }, { status: 403 });
+    if (adminError) return jsonResponse({ error: "Administrator permission required" }, 403);
   }
 
   const resendKey = Deno.env.get("RESEND_API_KEY");
@@ -128,7 +142,7 @@ Deno.serve(async (req: Request) => {
   if (resendKey && resendFrom) channels.push("email");
   if (twilioSid && twilioToken && twilioFrom) channels.push("sms");
   if (channels.length === 0) {
-    return Response.json({ error: "No delivery provider is configured. Add Resend and/or Twilio secrets before processing the queue." }, { status: 503 });
+    return jsonResponse({ error: "No delivery provider is configured. Add Resend and/or Twilio secrets before processing the queue." }, 503);
   }
 
   let batchSize = 25;
@@ -144,13 +158,13 @@ Deno.serve(async (req: Request) => {
   });
 
   const { error: staleError } = await service.rpc("mark_stale_notification_events_unconfirmed");
-  if (staleError) return Response.json({ error: "Unable to reconcile stale notification attempts" }, { status: 500 });
+  if (staleError) return jsonResponse({ error: "Unable to reconcile stale notification attempts" }, 500);
 
   const { data: claimed, error: claimError } = await service.rpc("claim_notification_events", {
     p_limit: batchSize,
     p_channels: channels,
   });
-  if (claimError) return Response.json({ error: "Unable to claim notification events" }, { status: 500 });
+  if (claimError) return jsonResponse({ error: "Unable to claim notification events" }, 500);
 
   const summary = { claimed: (claimed ?? []).length, sent: 0, failed: 0, unconfirmed: 0 };
   for (const event of (claimed ?? []) as EventRow[]) {
@@ -195,5 +209,5 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  return Response.json(summary, { status: 200 });
+  return jsonResponse(summary, 200);
 });
