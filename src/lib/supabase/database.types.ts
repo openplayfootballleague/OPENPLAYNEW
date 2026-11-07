@@ -431,36 +431,75 @@ export type Database = {
       }
       notification_events: {
         Row: {
+          attempt_count: number
           channel: string
           created_at: string
+          dedupe_key: string | null
           event_type: string
+          held_at: string | null
+          held_by: string | null
+          hold_reason: string | null
           id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          locked_at: string | null
+          manual_retry_used: boolean
+          next_attempt_at: string
           payload: Json
           provider_reference: string | null
+          read_at: string | null
           sent_at: string | null
           status: string
+          unconfirmed_at: string | null
+          updated_at: string
           user_id: string | null
         }
         Insert: {
+          attempt_count?: number
           channel: string
           created_at?: string
+          dedupe_key?: string | null
           event_type: string
+          held_at?: string | null
+          held_by?: string | null
+          hold_reason?: string | null
           id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          locked_at?: string | null
+          manual_retry_used?: boolean
+          next_attempt_at?: string
           payload?: Json
           provider_reference?: string | null
+          read_at?: string | null
           sent_at?: string | null
           status?: string
+          unconfirmed_at?: string | null
+          updated_at?: string
           user_id?: string | null
         }
         Update: {
+          attempt_count?: number
           channel?: string
           created_at?: string
+          dedupe_key?: string | null
           event_type?: string
+          held_at?: string | null
+          held_by?: string | null
+          hold_reason?: string | null
           id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          locked_at?: string | null
+          manual_retry_used?: boolean
+          next_attempt_at?: string
           payload?: Json
           provider_reference?: string | null
+          read_at?: string | null
           sent_at?: string | null
           status?: string
+          unconfirmed_at?: string | null
+          updated_at?: string
           user_id?: string | null
         }
         Relationships: [
@@ -468,6 +507,38 @@ export type Database = {
             foreignKeyName: "notification_events_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          email_enabled: boolean
+          in_app_enabled: boolean
+          sms_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          email_enabled?: boolean
+          in_app_enabled?: boolean
+          sms_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          email_enabled?: boolean
+          in_app_enabled?: boolean
+          sms_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1228,6 +1299,30 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_get_notification_events: {
+        Args: { p_limit?: number; p_offset?: number; p_status?: string }
+        Returns: {
+          attempt_count: number
+          channel: string
+          created_at: string
+          event_type: string
+          held_at: string
+          hold_reason: string
+          id: string
+          last_attempt_at: string
+          last_error: string
+          manual_retry_used: boolean
+          next_attempt_at: string
+          payload: Json
+          read_at: string
+          recipient_email: string
+          recipient_name: string
+          recipient_phone: string
+          sent_at: string
+          status: string
+          user_id: string
+        }[]
+      }
       admin_record_fixture_result: {
         Args: {
           p_away_score: number
@@ -1248,6 +1343,39 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "fixture_results"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_retry_notification: {
+        Args: { p_event_id: string; p_reason: string }
+        Returns: {
+          attempt_count: number
+          channel: string
+          created_at: string
+          dedupe_key: string | null
+          event_type: string
+          held_at: string | null
+          held_by: string | null
+          hold_reason: string | null
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          locked_at: string | null
+          manual_retry_used: boolean
+          next_attempt_at: string
+          payload: Json
+          provider_reference: string | null
+          read_at: string | null
+          sent_at: string | null
+          status: string
+          unconfirmed_at: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_events"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1299,6 +1427,59 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_set_location_active: {
+        Args: { p_is_active: boolean; p_location_id: string; p_reason: string }
+        Returns: {
+          address: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          region: string
+          slug: string
+          town: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "locations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_set_notification_hold: {
+        Args: { p_event_id: string; p_hold: boolean; p_reason?: string }
+        Returns: {
+          attempt_count: number
+          channel: string
+          created_at: string
+          dedupe_key: string | null
+          event_type: string
+          held_at: string | null
+          held_by: string | null
+          hold_reason: string | null
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          locked_at: string | null
+          manual_retry_used: boolean
+          next_attempt_at: string
+          payload: Json
+          provider_reference: string | null
+          read_at: string | null
+          sent_at: string | null
+          status: string
+          unconfirmed_at: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_set_player_genuine: {
         Args: { p_is_genuine: boolean; p_reason: string; p_user_id: string }
         Returns: {
@@ -1345,6 +1526,109 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "seasons"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      claim_notification_events: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempt_count: number
+          channel: string
+          created_at: string
+          dedupe_key: string | null
+          event_type: string
+          held_at: string | null
+          held_by: string | null
+          hold_reason: string | null
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          locked_at: string | null
+          manual_retry_used: boolean
+          next_attempt_at: string
+          payload: Json
+          provider_reference: string | null
+          read_at: string | null
+          sent_at: string | null
+          status: string
+          unconfirmed_at: string | null
+          updated_at: string
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notification_events"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      complete_notification_event: {
+        Args: { p_event_id: string; p_provider_reference?: string }
+        Returns: {
+          attempt_count: number
+          channel: string
+          created_at: string
+          dedupe_key: string | null
+          event_type: string
+          held_at: string | null
+          held_by: string | null
+          hold_reason: string | null
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          locked_at: string | null
+          manual_retry_used: boolean
+          next_attempt_at: string
+          payload: Json
+          provider_reference: string | null
+          read_at: string | null
+          sent_at: string | null
+          status: string
+          unconfirmed_at: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      enqueue_notification_event: {
+        Args: { p_event_type: string; p_payload: Json; p_user_id: string }
+        Returns: undefined
+      }
+      fail_notification_event: {
+        Args: { p_error: string; p_event_id: string }
+        Returns: {
+          attempt_count: number
+          channel: string
+          created_at: string
+          dedupe_key: string | null
+          event_type: string
+          held_at: string | null
+          held_by: string | null
+          hold_reason: string | null
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          locked_at: string | null
+          manual_retry_used: boolean
+          next_attempt_at: string
+          payload: Json
+          provider_reference: string | null
+          read_at: string | null
+          sent_at: string | null
+          status: string
+          unconfirmed_at: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_events"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1447,6 +1731,22 @@ export type Database = {
           substitutes: string[]
         }[]
       }
+      get_my_notification_preferences: {
+        Args: never
+        Returns: {
+          email_enabled: boolean
+          in_app_enabled: boolean
+          sms_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_preferences"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_finance_access: { Args: never; Returns: boolean }
       has_platform_role: { Args: never; Returns: boolean }
       is_active_team_captain: {
@@ -1456,6 +1756,14 @@ export type Database = {
       is_active_team_member: {
         Args: { p_season_team_id: string }
         Returns: boolean
+      }
+      mark_notification_read: {
+        Args: { p_event_id: string }
+        Returns: undefined
+      }
+      mark_stale_notification_events_unconfirmed: {
+        Args: never
+        Returns: number
       }
       register_player: {
         Args: {
@@ -1674,6 +1982,26 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "fixture_team_sheets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_my_notification_preferences: {
+        Args: {
+          p_email_enabled: boolean
+          p_in_app_enabled: boolean
+          p_sms_enabled: boolean
+        }
+        Returns: {
+          email_enabled: boolean
+          in_app_enabled: boolean
+          sms_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_preferences"
           isOneToOne: true
           isSetofReturn: false
         }
