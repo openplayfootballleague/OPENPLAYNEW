@@ -92,6 +92,64 @@ export type Database = {
           },
         ]
       }
+      fixture_goal_records: {
+        Row: {
+          created_at: string
+          created_by: string
+          fixture_id: string
+          id: string
+          scorer_user_id: string
+          season_team_id: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          fixture_id: string
+          id?: string
+          scorer_user_id: string
+          season_team_id: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          fixture_id?: string
+          id?: string
+          scorer_user_id?: string
+          season_team_id?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixture_goal_records_fixture_id_fkey"
+            columns: ["fixture_id"]
+            isOneToOne: false
+            referencedRelation: "fixtures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixture_goal_records_scorer_user_id_fkey"
+            columns: ["scorer_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixture_goal_records_season_team_id_fkey"
+            columns: ["season_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fixture_results: {
         Row: {
           away_score: number
@@ -1170,8 +1228,10 @@ export type Database = {
       admin_record_fixture_result: {
         Args: {
           p_away_score: number
+          p_away_scorers?: string[]
           p_fixture_id: string
           p_home_score: number
+          p_home_scorers?: string[]
           p_reason?: string
         }
         Returns: {
@@ -1264,6 +1324,10 @@ export type Database = {
       }
       get_admin_competition_setup: { Args: never; Returns: Json }
       get_admin_dashboard: { Args: never; Returns: Json }
+      get_admin_fixture_scorer_options: {
+        Args: { p_fixture_id: string }
+        Returns: Json
+      }
       get_admin_player_register: {
         Args: {
           p_limit?: number
