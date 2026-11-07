@@ -111,3 +111,10 @@ export function canTransitionFixtureStatus(
 export function isValidFixtureScore(score: number): boolean {
   return Number.isInteger(score) && score >= 0 && score <= 32767;
 }
+
+/** A scorer is selected once per goal; duplicate IDs are allowed for hat-tricks. */
+export function hasOneScorerPerGoal(score: number, scorerIds: readonly string[]): boolean {
+  return isValidFixtureScore(score) &&
+    scorerIds.length === score &&
+    scorerIds.every((id) => typeof id === "string" && id.trim().length > 0);
+}
