@@ -1264,6 +1264,25 @@ export type Database = {
       }
       get_admin_competition_setup: { Args: never; Returns: Json }
       get_admin_dashboard: { Args: never; Returns: Json }
+      get_admin_player_register: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+        }
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          is_banned: boolean
+          phone: string
+          preferred_position: string
+          registration_status: string
+          team_names: string[]
+          user_id: string
+        }[]
+      }
       get_admin_team_sheets: {
         Args: never
         Returns: {
