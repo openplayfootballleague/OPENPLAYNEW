@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
 
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: record, error: recordError } = await admin.from("payment_records")
-    .select("id,amount_pence,currency,status,stripe_checkout_session_id")
+    .select("id,amount_pence,currency,status,stripe_checkout_session_id,checkout_attempt")
     .eq("id", payment.payment_record_id).single();
   if (recordError || !record) return json({ error: "Payment record could not be loaded" }, 500);
   if (record.status === "paid") return json({ paid: true, message: "This fixture has already been paid." });
@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
     headers: {
       Authorization: `Bearer ${stripeKey}`,
       "Content-Type": "application/x-www-form-urlencoded",
-      "Idempotency-Key": `openplay-checkout-${record.id}`,
+      "Idempotency-Key": `openplay-checkout-${record.id}-${record.checkout_attempt}`,
     },
     body: form,
   });
