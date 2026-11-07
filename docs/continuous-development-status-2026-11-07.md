@@ -32,7 +32,13 @@
 - Result corrections require a reason, preserve prior goals as voided history, and are audited.
 - The admin result editor has a review screen before publication.
 
-### Player transfers\n- Players can request a move to another approved team in the same open/active season. Transfer requests require a reason and are visible to the player in their Player Hub. Players can cancel pending requests.\n- Captains cannot transfer until a replacement captain is appointed. Transfers are blocked while the player appears on a locked upcoming team sheet; an administrator must amend that sheet first.\n- Administrators can approve or reject transfers with a reason. Approval closes the source membership and activates the destination membership atomically; transfer actions are audited and notify the player.\n- Direct client writes to transfer requests are revoked; player and admin actions go through role-guarded RPCs.\n\n### Player database and statistics
+### Player transfers
+- Players can request a move to another approved team in the same open/active season. Transfer requests require a reason and are visible to the player in their Player Hub. Players can cancel pending requests.
+- Captains cannot transfer until a replacement captain is appointed. Transfers are blocked while the player appears on a locked upcoming team sheet; an administrator must amend that sheet first.
+- Administrators can approve or reject transfers with a reason. Approval closes the source membership and activates the destination membership atomically; transfer actions are audited and notify the player.
+- Direct client writes to transfer requests are revoked; player and admin actions go through role-guarded RPCs.
+
+### Player database and statistics
 - The admin player register supports search by name, email and phone, registration-status filtering and pagination. The routine register omits date of birth and emergency-contact fields.
 - Administrators can open a private player detail panel containing date of birth, emergency contact information and team membership history.
 - Player name/contact/position corrections require an audit reason. Date of birth is read-only in this workflow.
@@ -52,7 +58,9 @@
 
 - GitHub Actions run [42422744988](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42422744988) passed all 12 domain tests, TypeScript check, production build and Cloudflare Worker dry run for the season-statistics dashboard.
 - GitHub Actions run [42422509183](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42422509183) passed all 12 domain tests, TypeScript check, production build and Cloudflare Worker dry run for scorer validation and result review.
-- Earlier team-sheet, RLS, admin setup and fixture changes also passed their respective CI runs.\n- GitHub Actions run [42424034083](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424034083) passed all 12 domain tests, TypeScript check, production build and Cloudflare Worker dry run after correcting a literal newline escape in the admin route introduced during transfer-queue work.\n- GitHub Actions run [42424065363](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424065363) passed all 12 domain tests, TypeScript check, production build and Cloudflare Worker dry run for Player Hub transfer decision notification copy. The successful run includes the player transfer UI, admin review queue and notification rendering.
+- Earlier team-sheet, RLS, admin setup and fixture changes also passed their respective CI runs.
+- GitHub Actions run [42424034083](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424034083) passed all 12 domain tests, TypeScript check, production build and Cloudflare Worker dry run after correcting a literal newline escape in the admin route introduced during transfer-queue work.
+- GitHub Actions run [42424065363](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424065363) passed all 12 domain tests, TypeScript check, production build and Cloudflare Worker dry run for Player Hub transfer decision notification copy. The successful run includes the player transfer UI, admin review queue and notification rendering.
 - The season-statistics SQL was executed against the empty project and returned the expected empty result sets/zero summary. Real-data calculations still need acceptance testing.
 - Supabase health advisor: no findings.
 - Supabase security advisor: no anonymous-callable SECURITY DEFINER warnings remain. It now reports 51 authenticated-callable SECURITY DEFINER functions; the six transfer RPCs added later each check the caller identity and, for administrator operations, platform role. The broader authenticated function set still requires periodic guard review. Keep a manual review of those guards in the launch security checklist.
