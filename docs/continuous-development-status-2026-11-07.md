@@ -1,9 +1,9 @@
 # Open Play — Continuous Development Status
 
-**Last verified:** 7 November 2026, 23:09 UTC  
+**Last verified:** 7 November 2026, 23:12 UTC  
 **Repository:** `openplayfootballleague/OPENPLAYNEW`  
 **Supabase project:** `ghnrsysvrlgkjmdlwdmp` — Open Play New only  
-**Applied database migrations:** 50
+**Applied database migrations:** 52
 
 ## Implemented in this repository and Supabase project
 
@@ -32,7 +32,7 @@
 - Result corrections require a reason, preserve prior goals as voided history, and are audited.
 - The admin result editor has a review screen before publication.
 
-### Player database and statistics
+### Player transfers\n- Players can request a move to another approved team in the same open/active season. Transfer requests require a reason and are visible to the player in their Player Hub. Players can cancel pending requests.\n- Captains cannot transfer until a replacement captain is appointed. Transfers are blocked while the player appears on a locked upcoming team sheet; an administrator must amend that sheet first.\n- Administrators can approve or reject transfers with a reason. Approval closes the source membership and activates the destination membership atomically; transfer actions are audited and notify the player.\n- Direct client writes to transfer requests are revoked; player and admin actions go through role-guarded RPCs.\n\n### Player database and statistics
 - The admin player register supports search by name, email and phone, registration-status filtering and pagination. The routine register omits date of birth and emergency-contact fields.
 - Administrators can open a private player detail panel containing date of birth, emergency contact information and team membership history.
 - Player name/contact/position corrections require an audit reason. Date of birth is read-only in this workflow.
@@ -45,7 +45,7 @@
 - Email and in-app notifications default on; SMS defaults off and requires explicit opt-in. SMS consent and revocation timestamps/version are stored and preference changes are audited. Direct client table updates are revoked; preferences are changed through the RPC.
 - Database triggers enqueue notifications for team/member approvals, fixture scheduling/status changes and published/corrected results.
 - The notification outbox tracks attempts, backoff, provider errors, holds, one manual retry, and unconfirmed delivery outcomes. Admin actions are audited.
-- A JWT-verified Supabase Edge Function `deliver-notifications` is deployed (version 5). It supports Resend email and Twilio SMS, checks admin/service-role access, claims only configured channels, distinguishes permanent provider/recipient errors from transient failures, and avoids blindly retrying a provider-accepted but unconfirmed message. Player ban/unban changes also generate notifications.
+- A JWT-verified Supabase Edge Function `deliver-notifications` is deployed (version 6). It supports Resend email and Twilio SMS, checks admin/service-role access, claims only configured channels, distinguishes permanent provider/recipient errors from transient failures, and avoids blindly retrying a provider-accepted but unconfirmed message. Player ban/unban changes also generate notifications.
 - A `pg_cron` job named `open-play-fixture-reminders` is active every 15 minutes. It enqueues idempotent 24-hour and 3-hour fixture reminders and cancels stale queued/in-app reminders when a fixture is moved or cancelled.
 
 ## Verification evidence
@@ -60,7 +60,7 @@
 - The performance advisor reports unused indexes and permissive-policy notices. Do not drop indexes or weaken RLS without workload and access-model review.
 - Reminder enqueue smoke test returned 0, as expected: there are no fixtures or users in this project.
 - Current database counts: 0 Auth users, 0 players, 0 fixtures, 0 notification preferences and 0 notification events. No demo or production data has been inserted.
-- The admin player-detail UI build initially failed on nullable RPC argument types. The latest fix changed those arguments to typed strings; GitHub Actions run [42423640387](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42423640387) then passed all 12 domain tests, TypeScript check, production build and Cloudflare Worker dry run. Later notification/template/type changes are under a subsequent CI run.
+- GitHub Actions run [42424034083](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424034083) passed all 12 domain tests, TypeScript check, production build and Cloudflare Worker dry run for the player transfer request UI and administrator review queue. The transfer notification-copy follow-up is currently in CI.
 - Notification delivery has not been end-to-end tested. No Resend/Twilio credentials have been configured in this session, no real email/SMS has been sent, and automated dispatch scheduling is not configured. The 15-minute cron job enqueues reminders only; an administrator can invoke the delivery worker after provider secrets are configured.
 
 ## Environment boundary
@@ -69,13 +69,13 @@ Separate Open Play reports in the Library document substantial Stage 2–4 work 
 
 ## Remaining launch blockers
 
-1. Complete the current admin player-detail build and run browser acceptance tests for player detail, correction, ban/unban and genuine classification.
+1. Complete the current transfer-notification UI build and run browser acceptance tests for player detail, correction, ban/unban, genuine classification and player transfers.
 2. Obtain an owner-approved non-production test identity, an approved admin test identity and an accessible mailbox. Do not self-appoint an administrator or create test accounts without authorization.
 3. Test the complete sign-up, email verification, sign-in, password reset, player registration, team registration, membership request and captain approval journey.
 4. Test saved team-sheet drafts, goalkeeper selection, final submission/locking, admin amendment and result publication/correction with realistic test fixtures.
 5. Configure Resend and Twilio credentials, verify sender/domain and SMS sender configuration, then test consent, delivery, failure, retry, hold, unconfirmed and opt-out handling with approved test recipients. The Supabase Vault currently contains no secrets; provider credentials and the service-role invocation secret are not configured.
 6. Configure an automatic delivery invocation schedule. The current cron schedule enqueues fixture reminders but does not dispatch email/SMS.
-7. Test 24-hour and 3-hour reminders with fixtures and users; verify rescheduling/cancellation invalidates stale reminders.
+7. Test 24-hour and 3-hour reminders with fixtures and users; verify rescheduling/cancellation invalidates stale reminders. Test the transfer request/approval/rejection flow with two approved teams in one test season.
 8. Finish remaining admin operations and the full matchday lifecycle, payments/Stripe and verified webhooks, reconciliation/refunds, and comprehensive security/acceptance testing.
 9. Merge/reconcile the PWA and official OP branding changes, then complete real-device install/cache testing.
 10. Owner-verify Bideford league, season, venue, team and fixture data before any production seeding. Bideford is the only launch location; Barnstaple and Torrington remain inactive.
