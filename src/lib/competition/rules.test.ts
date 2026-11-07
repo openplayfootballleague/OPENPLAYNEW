@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canTransitionFixtureStatus, getTeamSheetLimits, hasOneScorerPerGoal, isValidFixtureScore, validateTeamSheet, type TeamSheetPlayer } from "./rules";
+import { canTransitionFixtureStatus, getTeamSheetLimits, hasOneScorerPerGoal, hasOnlyAppearedScorers, isValidFixtureScore, validateTeamSheet, type TeamSheetPlayer } from "./rules";
 
 function starters(count: number): TeamSheetPlayer[] {
   return Array.from({ length: count }, (_, index) => ({
@@ -100,5 +100,28 @@ describe("fixture goalscorer validation", () => {
     expect(hasOneScorerPerGoal(1, [""])).toBe(false);
     expect(hasOneScorerPerGoal(-1, [])).toBe(false);
     expect(hasOneScorerPerGoal(1.5, ["player-a"])).toBe(false);
+  });
+});
+
+describe("match appearance validation", () => {
+  it("allows goalscorers who started or came on as substitutes", () => {
+    expect(hasOnlyAppearedScorers(
+      ["starter-a", "sub-a", "starter-a"],
+      ["starter-a", "starter-b"],
+      ["sub-a"],
+    )).toBe(true);
+  });
+
+  it("rejects substitutes who did not appear and players outside the team sheet", () => {
+    expect(hasOnlyAppearedScorers(
+      ["starter-a", "unused-sub"],
+      ["starter-a"],
+      [],
+    )).toBe(false);
+    expect(hasOnlyAppearedScorers(["unknown"], ["starter-a"], ["sub-a"])).toBe(false);
+  });
+
+  it("rejects blank scorer IDs", () => {
+    expect(hasOnlyAppearedScorers([""], ["starter-a"], [])).toBe(false);
   });
 });
