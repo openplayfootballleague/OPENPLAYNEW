@@ -131,6 +131,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_goalkeeper: boolean
           role: Database["public"]["Enums"]["lineup_role"]
           squad_number_snapshot: number | null
           team_sheet_id: string
@@ -139,6 +140,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_goalkeeper?: boolean
           role: Database["public"]["Enums"]["lineup_role"]
           squad_number_snapshot?: number | null
           team_sheet_id: string
@@ -147,6 +149,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_goalkeeper?: boolean
           role?: Database["public"]["Enums"]["lineup_role"]
           squad_number_snapshot?: number | null
           team_sheet_id?: string
@@ -1194,6 +1197,7 @@ export type Database = {
       submit_team_sheet: {
         Args: {
           p_fixture_id: string
+          p_goalkeeper_membership_id?: string
           p_season_team_id: string
           p_starters: string[]
           p_substitutes?: string[]
