@@ -130,3 +130,5 @@ a { color: inherit; text-decoration: none; }
 .hub-team-row .status-active { color:#28623a; font-weight:800; }
 .hub-team-row .status-pending { color:#9a5725; font-weight:800; }
 @media(max-width:520px){.hub-empty,.hub-profile,.hub-memberships{padding:18px;}}
+
+.hub-profile-head{display:flex;align-items:center;gap:16px;margin:16px 0 8px}.hub-profile-head h2{margin:0 0 5px}.hub-profile-head p{margin:0}.hub-avatar{width:68px;height:68px;border-radius:50%;object-fit:cover;background:#d1cfc5}.hub-avatar-empty{display:grid;place-items:center;color:#171c18;font-size:28px;font-weight:800}.avatar-upload{display:inline-flex;align-items:center;gap:10px;margin:10px 0;color:#b94b22;font-size:11px;font-weight:800;cursor:pointer}.avatar-upload input{max-width:210px;font-size:10px}.hub-edit-form{padding-top:18px;border-top:1px solid #cfcec5}.hub-edit-form .button{justify-self:start}
