@@ -246,3 +246,16 @@ a { color: inherit; text-decoration: none; }
 .admin-genuine-form > strong { color: #171c18; font-size: 11px; }
 .admin-genuine-form label { display: grid; gap: 5px; color: #55564f; font-size: 10px; font-weight: 750; }
 .admin-genuine-form textarea { box-sizing: border-box; width: 100%; padding: 9px 10px; border: 1px solid #cfcec5; background: #fffefa; color: #171c18; font: inherit; font-size: 12px; }
+
+.admin-stat-summary { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; margin: 14px 0 18px; }
+.admin-stat-summary > div { display: grid; gap: 4px; padding: 12px; background: #e7e5dc; }
+.admin-stat-summary strong { color: #171c18; font-size: 20px; font-weight: 850; }
+.admin-stat-summary span { color: #77786f; font-size: 9px; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; }
+.admin-stat-block { margin-top: 18px; }
+.admin-stat-block h3 { margin: 0 0 10px; color: #171c18; font-size: 12px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }
+.admin-stats-scroll { overflow-x: auto; }
+.admin-stats-table { width: 100%; min-width: 620px; border-collapse: collapse; color: #171c18; font-size: 10px; text-align: left; }
+.admin-stats-table th { padding: 9px 8px; background: #171c18; color: #fffefa; font-size: 8px; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.admin-stats-table td { padding: 9px 8px; border-bottom: 1px solid #d8d7ce; white-space: nowrap; }
+.admin-stats-table tbody tr:nth-child(even) { background: #f1f0e9; }
+@media(max-width:620px) { .admin-stat-summary { grid-template-columns: repeat(2,minmax(0,1fr)); } }
