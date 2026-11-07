@@ -188,6 +188,7 @@ export type Database = {
       fixture_team_sheet_players: {
         Row: {
           created_at: string
+          did_appear: boolean
           id: string
           is_goalkeeper: boolean
           role: Database["public"]["Enums"]["lineup_role"]
@@ -197,6 +198,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          did_appear?: boolean
           id?: string
           is_goalkeeper?: boolean
           role: Database["public"]["Enums"]["lineup_role"]
@@ -206,6 +208,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          did_appear?: boolean
           id?: string
           is_goalkeeper?: boolean
           role?: Database["public"]["Enums"]["lineup_role"]
@@ -516,6 +519,9 @@ export type Database = {
         Row: {
           email_enabled: boolean
           in_app_enabled: boolean
+          sms_consent_revoked_at: string | null
+          sms_consent_version: string | null
+          sms_consented_at: string | null
           sms_enabled: boolean
           updated_at: string
           user_id: string
@@ -523,6 +529,9 @@ export type Database = {
         Insert: {
           email_enabled?: boolean
           in_app_enabled?: boolean
+          sms_consent_revoked_at?: string | null
+          sms_consent_version?: string | null
+          sms_consented_at?: string | null
           sms_enabled?: boolean
           updated_at?: string
           user_id: string
@@ -530,6 +539,9 @@ export type Database = {
         Update: {
           email_enabled?: boolean
           in_app_enabled?: boolean
+          sms_consent_revoked_at?: string | null
+          sms_consent_version?: string | null
+          sms_consented_at?: string | null
           sms_enabled?: boolean
           updated_at?: string
           user_id?: string
@@ -1323,6 +1335,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_get_player_detail: { Args: { p_user_id: string }; Returns: Json }
       admin_record_fixture_result: {
         Args: {
           p_away_score: number
@@ -1330,6 +1343,32 @@ export type Database = {
           p_fixture_id: string
           p_home_score: number
           p_home_scorers?: string[]
+          p_reason?: string
+        }
+        Returns: {
+          away_score: number
+          confirmed_at: string | null
+          confirmed_by: string | null
+          fixture_id: string
+          home_score: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fixture_results"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_record_fixture_result_with_appearances: {
+        Args: {
+          p_away_score: number
+          p_away_scorers?: string[]
+          p_away_substitute_appearances?: string[]
+          p_fixture_id: string
+          p_home_score: number
+          p_home_scorers?: string[]
+          p_home_substitute_appearances?: string[]
           p_reason?: string
         }
         Returns: {
@@ -1480,6 +1519,30 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_set_player_ban: {
+        Args: { p_is_banned: boolean; p_reason: string; p_user_id: string }
+        Returns: {
+          banned_at: string | null
+          banned_reason: string | null
+          created_at: string
+          date_of_birth: string
+          email: string
+          full_name: string
+          id: string
+          is_banned: boolean
+          is_genuine: boolean
+          phone: string
+          registration_status: Database["public"]["Enums"]["player_registration_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "players"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_set_player_genuine: {
         Args: { p_is_genuine: boolean; p_reason: string; p_user_id: string }
         Returns: {
@@ -1530,8 +1593,22 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_update_player_profile: {
+        Args: {
+          p_display_name: string
+          p_emergency_contact_name: string
+          p_emergency_contact_phone: string
+          p_first_name: string
+          p_last_name: string
+          p_phone: string
+          p_preferred_position: string
+          p_reason: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       claim_notification_events: {
-        Args: { p_limit?: number }
+        Args: { p_channels?: string[]; p_limit?: number }
         Returns: {
           attempt_count: number
           channel: string
@@ -1596,6 +1673,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      enqueue_fixture_reminders: { Args: never; Returns: number }
       enqueue_notification_event: {
         Args: { p_event_type: string; p_payload: Json; p_user_id: string }
         Returns: undefined
@@ -1736,6 +1814,9 @@ export type Database = {
         Returns: {
           email_enabled: boolean
           in_app_enabled: boolean
+          sms_consent_revoked_at: string | null
+          sms_consent_version: string | null
+          sms_consented_at: string | null
           sms_enabled: boolean
           updated_at: string
           user_id: string
@@ -1756,6 +1837,39 @@ export type Database = {
       is_active_team_member: {
         Args: { p_season_team_id: string }
         Returns: boolean
+      }
+      mark_notification_event_unconfirmed: {
+        Args: { p_error: string; p_event_id: string }
+        Returns: {
+          attempt_count: number
+          channel: string
+          created_at: string
+          dedupe_key: string | null
+          event_type: string
+          held_at: string | null
+          held_by: string | null
+          hold_reason: string | null
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          locked_at: string | null
+          manual_retry_used: boolean
+          next_attempt_at: string
+          payload: Json
+          provider_reference: string | null
+          read_at: string | null
+          sent_at: string | null
+          status: string
+          unconfirmed_at: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       mark_notification_read: {
         Args: { p_event_id: string }
@@ -1995,6 +2109,9 @@ export type Database = {
         Returns: {
           email_enabled: boolean
           in_app_enabled: boolean
+          sms_consent_revoked_at: string | null
+          sms_consent_version: string | null
+          sms_consented_at: string | null
           sms_enabled: boolean
           updated_at: string
           user_id: string
