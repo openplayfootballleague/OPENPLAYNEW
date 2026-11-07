@@ -53,6 +53,11 @@
 - Added an Admin Dashboard link to the new Finance Ledger page, with season/team filters, summary totals and manual entry form. No card processing, Stripe integration or automatic payment collection has been added.
 - Database remains empty: finance ledger contains 0 rows. Finance role acceptance testing needs an owner-approved test identity; do not grant finance roles or create accounts without approval.
 
+### Administrator help and guided walkthrough
+- Added a platform-admin-only operations guide at `/admin-help`, linked from the Admin Dashboard.
+- The guide covers competition setup, player/team registration review, memberships, fixtures, team sheets/results, corrections, transfers, finance, notifications and audit history.
+- Added an interactive 11-step guided walkthrough with progress, next/back, finish and exit controls. Access is checked through the protected platform-role helper; failed checks show a restricted state.
+
 ### Administrator audit history
 - Added a searchable, paginated audit-history reader for platform administrators.
 - The UI shows event action, entity type/ID, actor ID, timestamp and reason. It deliberately omits private `before_data` and `after_data` payloads.
@@ -78,6 +83,7 @@
 - GitHub Actions run [42424344218](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424344218) passed all 15 domain tests, TypeScript check, production build and Cloudflare Worker dry run for match appearance capture and goalscorer eligibility.
 - GitHub Actions run [42424703489](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424703489) passed all 20 tests, TypeScript check, production build and Cloudflare Worker dry run for the finance ledger. The follow-up sign-in navigation link is in a separate CI run.
 - GitHub Actions run [42424849096](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424849096) passed the 20-test suite, TypeScript check, production build and Cloudflare Worker dry run for the administrator audit-history UI.
+- GitHub Actions run [42425103732](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42425103732) passed all 20 tests, TypeScript check, production build and Cloudflare Worker dry run for the guided admin help walkthrough and access-check error handling.
 - The season-statistics SQL was executed against the empty project and returned the expected empty result sets/zero summary. Real-data calculations still need acceptance testing.
 - Supabase health advisor: no findings.
 - Transfer and membership write-surface verification: anonymous transfer-table SELECT is denied; authenticated direct INSERT/UPDATE on transfer requests and team memberships is denied. Authenticated users can SELECT transfer requests under owner/admin RLS, and must use guarded RPCs to request, cancel, resolve or amend memberships.
@@ -95,18 +101,18 @@ Separate Open Play reports in the Library document substantial Stage 2–4 work 
 
 ## Remaining launch blockers
 
-1. Complete browser acceptance tests for player detail, correction, ban/unban, genuine classification, player transfers, finance ledger and admin audit history.
+1. Complete browser acceptance tests for player detail, correction, ban/unban, genuine classification, player transfers, finance ledger, admin audit history and the help walkthrough.
 2. Obtain an owner-approved non-production test identity, an approved admin test identity and an accessible mailbox. Do not self-appoint an administrator or create test accounts without authorization.
 3. Test the complete sign-up, email verification, sign-in, password reset, player registration, team registration, membership request and captain approval journey.
 4. Test saved team-sheet drafts, goalkeeper selection, final submission/locking, admin amendment and result publication/correction with realistic test fixtures.
 5. Configure Resend and Twilio credentials, verify sender/domain and SMS sender configuration, then test consent, delivery, failure, retry, hold, unconfirmed and opt-out handling with approved test recipients. The Supabase Vault currently contains no secrets; provider credentials and the service-role invocation secret are not configured.
 6. Configure an automatic delivery invocation schedule. The current cron schedule enqueues fixture reminders but does not dispatch email/SMS.
 7. Test 24-hour and 3-hour reminders with fixtures and users; verify rescheduling/cancellation invalidates stale reminders. Test the transfer request/approval/rejection flow with two approved teams in one test season.
-8. Finish remaining admin operations and the full matchday lifecycle. Obtain owner approval on whether online card payments are in scope; the current finance v1 is manual record keeping only. Complete finance-role acceptance, reconciliation/refund controls and comprehensive security testing.
+8. Finish remaining admin operations and the full matchday lifecycle. The admin help guide and step-by-step walkthrough are now implemented; contextual in-dashboard tours beyond the help page remain optional. Obtain owner approval on whether online card payments are in scope; the current finance v1 is manual record keeping only. Complete finance-role acceptance, reconciliation/refund controls and comprehensive security testing.
 9. Merge/reconcile the PWA and official OP branding changes, then complete real-device install/cache testing.
 10. Owner-verify Bideford league, season, venue, team and fixture data before any production seeding. Bideford is the only launch location; Barnstaple and Torrington remain inactive.
 11. Configure production environment variables, Auth redirects, email confirmation, hosting and monitoring. Production deployment has not occurred; CI has only run a Cloudflare Worker dry run.
 
 ## Next execution priority
 
-Complete approved finance-role, audit-history and player-database acceptance tests. Continue with the full matchday lifecycle and authenticated end-to-end tests. Keep production deployment blocked until the owner-approved test identities, provider configuration, real Bideford data and launch checks are complete.
+Complete approved finance-role, audit-history, admin-help and player-database acceptance tests. Continue with the full matchday lifecycle and authenticated end-to-end tests. Keep production deployment blocked until the owner-approved test identities, provider configuration, real Bideford data and launch checks are complete.
