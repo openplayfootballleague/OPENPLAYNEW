@@ -48,6 +48,10 @@ function renderMessage(event: EventRow): RenderedMessage {
       return { subject: "Open Play – team registration update", text: `Your team registration for ${p.team_name ?? "Open Play"} was not approved. Contact Open Play if you need help.` };
     case "fixture.scheduled":
       return { subject: `Open Play – ${gameweek} fixture scheduled`, text: `${gameweek}: ${home} v ${away}. ${when}.` };
+    case "fixture.reminder_24h":
+      return { subject: `Open Play – ${gameweek} fixture tomorrow`, text: `Reminder: ${gameweek}: ${home} v ${away} is scheduled for ${when}, about 24 hours from now.` };
+    case "fixture.reminder_3h":
+      return { subject: `Open Play – ${gameweek} fixture in 3 hours`, text: `Reminder: ${gameweek}: ${home} v ${away} is scheduled for ${when}, about 3 hours from now.` };
     case "fixture.rescheduled":
       return { subject: `Open Play – ${gameweek} fixture rescheduled`, text: `${gameweek}: ${home} v ${away} has been rescheduled. New time: ${when}.` };
     case "fixture.status_changed":
