@@ -75,3 +75,81 @@ Deno.serve(async (req) => {
       resolvedPaymentId = linkedPayment?.id ?? "";
     }
   }
+
+  const paymentEvents = new Set([
+    "checkout.session.completed",
+    "checkout.session.async_payment_succeeded",
+    "checkout.session.async_payment_failed",
+    "checkout.session.expired",
+    "charge.refunded",
+  ]);
+  if (paymentEvents.has(eventType) && !resolvedPaymentId) {
+    await admin.from("stripe_webhook_events").update({
+      processing_error: "No matching Open Play payment record",
+    }).eq("id", eventId);
+    return new Response("Payment record not found", { status: 500 });
+  }
+
+  if (paymentEvents.has(eventType)) {
+    const patch: Record<string, unknown> = {
+      last_stripe_event_at: new Date(Number(event.created ?? Date.now() / 1000) * 1000).toISOString(),
+    };
+
+    if (eventType.startsWith("checkout.session.")) {
+      const sessionId = typeof object?.id === "string" ? object.id : null;
+      const intentId = typeof object?.payment_intent === "string" ? object.payment_intent : null;
+      if (sessionId) patch.stripe_checkout_session_id = sessionId;
+      if (intentId) patch.stripe_payment_intent_id = intentId;
+
+      if (eventType === "checkout.session.completed") {
+        if (object?.payment_status === "paid") {
+          patch.status = "paid";
+          patch.paid_at = new Date().toISOString();
+        } else {
+          patch.status = "processing";
+        }
+      } else if (eventType === "checkout.session.async_payment_succeeded") {
+        patch.status = "paid";
+        patch.paid_at = new Date().toISOString();
+      } else if (eventType === "checkout.session.async_payment_failed") {
+        patch.status = "failed";
+      } else if (eventType === "checkout.session.expired") {
+        patch.status = "cancelled";
+      }
+    } else if (eventType === "charge.refunded") {
+      const refunded = Number(object?.amount_refunded ?? 0);
+      const total = Number(object?.amount ?? 0);
+      if (!Number.isSafeInteger(refunded) || !Number.isSafeInteger(total) || refunded < 0 || total <= 0 || refunded > total) {
+        await admin.from("stripe_webhook_events").update({
+          processing_error: "Invalid refund amounts in Stripe event",
+        }).eq("id", eventId);
+        return new Response("Invalid refund amounts", { status: 400 });
+      }
+      patch.amount_refunded_pence = refunded;
+      patch.status = refunded >= total ? "refunded" : "partially_refunded";
+      if (refunded >= total) patch.refunded_at = new Date().toISOString();
+      if (typeof object?.payment_intent === "string") patch.stripe_payment_intent_id = object.payment_intent;
+    }
+
+    const { error: paymentUpdateError } = await admin.from("payment_records")
+      .update(patch).eq("id", resolvedPaymentId);
+    if (paymentUpdateError) {
+      await admin.from("stripe_webhook_events").update({
+        processing_error: paymentUpdateError.message,
+      }).eq("id", eventId);
+      return new Response("Could not update payment record", { status: 500 });
+    }
+    await admin.from("stripe_webhook_events").update({
+      payment_record_id: resolvedPaymentId,
+      processed_at: new Date().toISOString(),
+      processing_error: null,
+    }).eq("id", eventId);
+  } else {
+    await admin.from("stripe_webhook_events").update({
+      processed_at: new Date().toISOString(),
+      processing_error: null,
+    }).eq("id", eventId);
+  }
+
+  return Response.json({ received: true });
+});
