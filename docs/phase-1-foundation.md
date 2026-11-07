@@ -8,8 +8,8 @@
 - [x] Add product and engineering guardrails for future contributors.
 - [x] Add the first responsive public homepage direction.
 - [ ] Add the official Open Play logo asset supplied by the owner.
-- [ ] Generate and commit the dependency lockfile.
-- [ ] Run npm install, type-check and production build in a real build environment.
+- [x] Generate and commit the dependency lockfile through the first successful CI run.
+- [x] Run dependency installation, type-check and production build in GitHub Actions.
 - [ ] Verify a Cloudflare Workers dry-run without deploying publicly.
 
 ## Current limitations
