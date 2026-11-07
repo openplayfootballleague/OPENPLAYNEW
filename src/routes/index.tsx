@@ -9,6 +9,13 @@ function HomePage() {
     <main className="site-shell">
       <header className="site-header">
         <a className="wordmark" href="/" aria-label="Open Play home">
+          <img
+            className="wordmark-icon"
+            src="/icons/open-play-192.png"
+            alt=""
+            width={34}
+            height={34}
+          />
           <span>OPEN PLAY</span>
         </a>
         <nav className="header-nav" aria-label="Main navigation">
@@ -86,6 +93,13 @@ function HomePage() {
 
       <footer className="site-footer">
         <a className="wordmark" href="/" aria-label="Open Play home">
+          <img
+            className="wordmark-icon"
+            src="/icons/open-play-192.png"
+            alt=""
+            width={32}
+            height={32}
+          />
           <span>OPEN PLAY</span>
         </a>
         <span>PLAY HARD. RESPECT ALWAYS.</span>
