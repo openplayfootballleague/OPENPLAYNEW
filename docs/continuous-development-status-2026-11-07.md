@@ -1,6 +1,6 @@
 # Open Play — Continuous Development Status
 
-**Last verified:** 7 November 2026, 23:35 UTC  
+**Last verified:** 7 November 2026, 23:36 UTC  
 **Repository:** `openplayfootballleague/OPENPLAYNEW`  
 **Supabase project:** `ghnrsysvrlgkjmdlwdmp` — Open Play New only  
 **Applied database migrations:** 66
@@ -89,6 +89,7 @@
 - GitHub Actions run [42425449833](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42425449833) passed all 32 tests, Deno type-check for the notification Edge Function, TypeScript check, production build and Cloudflare Worker dry run. The corrected notification worker was deployed to the separate Open Play New Supabase project as version 8 with JWT verification still enabled.
 - GitHub Actions run [42425666119](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42425666119) passed all 32 tests, Deno Edge Function type-check, TypeScript check, production build and Cloudflare Worker dry run for the guarded automatic-dispatch controls.
 - GitHub Actions run [42425770535](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42425770535) passed all 32 tests, Deno Edge Function type-check, TypeScript check, production build and Cloudflare Worker dry run after adding an explicit deny-all RLS policy to the final sensitive goal-record table.
+- GitHub Actions run [42425944340](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42425944340) passed all 32 tests, Deno Edge Function type-check, TypeScript check, production build and Cloudflare Worker dry run after updating the administrator guide with the exact Vault and provider secret names.
 - GitHub Actions run [42424849096](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424849096) passed the 20-test suite, TypeScript check, production build and Cloudflare Worker dry run for the administrator audit-history UI.
 - GitHub Actions run [42425103732](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42425103732) passed all 20 tests, TypeScript check, production build and Cloudflare Worker dry run for the guided admin help walkthrough and access-check error handling.
 - The season-statistics SQL was executed against the empty project and returned the expected empty result sets/zero summary. Real-data calculations still need acceptance testing.
