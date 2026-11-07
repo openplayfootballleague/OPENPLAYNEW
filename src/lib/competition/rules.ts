@@ -118,3 +118,13 @@ export function hasOneScorerPerGoal(score: number, scorerIds: readonly string[])
     scorerIds.length === score &&
     scorerIds.every((id) => typeof id === "string" && id.trim().length > 0);
 }
+
+/** Every recorded goalscorer must be a starter or a substitute marked as having appeared. */
+export function hasOnlyAppearedScorers(
+  scorerIds: readonly string[],
+  starterIds: readonly string[],
+  substituteAppearanceIds: readonly string[],
+): boolean {
+  const appeared = new Set([...starterIds, ...substituteAppearanceIds]);
+  return scorerIds.every((id) => typeof id === "string" && id.trim().length > 0 && appeared.has(id));
+}
