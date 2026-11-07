@@ -1,0 +1,11 @@
+create index if not exists finance_entries_created_by_idx on public.finance_entries(created_by);
+create index if not exists fixture_goal_records_created_by_idx on public.fixture_goal_records(created_by);
+create index if not exists fixture_goal_records_season_team_id_idx on public.fixture_goal_records(season_team_id);
+create index if not exists fixture_goal_records_voided_by_idx on public.fixture_goal_records(voided_by);
+create index if not exists notification_dispatch_settings_updated_by_idx on public.notification_dispatch_settings(updated_by);
+create index if not exists notification_events_held_by_idx on public.notification_events(held_by);
+create index if not exists player_transfer_requests_destination_team_idx on public.player_transfer_requests(destination_season_team_id);
+create index if not exists player_transfer_requests_resolved_by_idx on public.player_transfer_requests(resolved_by);
+create index if not exists player_transfer_requests_source_membership_idx on public.player_transfer_requests(source_membership_id);
+create index if not exists player_transfer_requests_source_team_idx on public.player_transfer_requests(source_season_team_id);
+create index if not exists team_memberships_transfer_request_id_idx on public.team_memberships(transfer_request_id);
