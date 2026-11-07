@@ -50,6 +50,10 @@ function renderMessage(event: EventRow): RenderedMessage {
       return { subject: "Open Play – player eligibility suspended", text: `Your Open Play player account has been suspended from future team sheets. Reason: ${p.reason ?? "Contact Open Play for details."} Contact Open Play if you believe this is incorrect.` };
     case "player.unbanned":
       return { subject: "Open Play – player eligibility restored", text: "Your Open Play player account is no longer suspended and can be considered for future team sheets." };
+    case "player.transfer_approved":
+      return { subject: "Open Play – transfer approved", text: `Your move from ${p.source_team_name ?? "your previous team"} to ${p.team_name ?? "your new team"} has been approved.` };
+    case "player.transfer_rejected":
+      return { subject: "Open Play – transfer request update", text: `Your request to move from ${p.source_team_name ?? "your current team"} to ${p.team_name ?? "the destination team"} was not approved. Reason: ${p.reason ?? "Contact Open Play for details."}` };
     case "fixture.scheduled":
       return { subject: `Open Play – ${gameweek} fixture scheduled`, text: `${gameweek}: ${home} v ${away}. ${when}.` };
     case "fixture.reminder_24h":
