@@ -976,6 +976,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_add_player_to_team: {
+        Args: {
+          p_make_captain?: boolean
+          p_season_team_id: string
+          p_user_id: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          is_captain: boolean
+          joined_at: string | null
+          left_at: string | null
+          season_team_id: string
+          squad_number: number | null
+          status: Database["public"]["Enums"]["membership_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_memberships"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_amend_team_sheet: {
         Args: {
           p_goalkeeper_membership_id?: string
@@ -1077,6 +1102,35 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "seasons"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_create_season_team: {
+        Args: {
+          p_primary_colour?: string
+          p_season_id: string
+          p_secondary_colour?: string
+          p_team_name: string
+        }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          badge_path: string | null
+          created_at: string
+          id: string
+          name: string
+          primary_colour: string | null
+          registration_status: Database["public"]["Enums"]["registration_status"]
+          season_id: string
+          secondary_colour: string | null
+          slug: string
+          team_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "season_teams"
           isOneToOne: true
           isSetofReturn: false
         }
