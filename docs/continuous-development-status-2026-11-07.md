@@ -1,6 +1,6 @@
 # Open Play — Continuous Development Status
 
-**Last verified:** 7 November 2026, 22:34 UTC  
+**Last verified:** 7 November 2026, 22:35 UTC  
 **Repository:** `openplayfootballleague/OPENPLAYNEW`  
 **Supabase project:** `ghnrsysvrlgkjmdlwdmp` (Open Play New only)
 
@@ -19,7 +19,7 @@
 ## Verification evidence
 
 - GitHub Actions run [42420063051](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42420063051) passed domain tests, TypeScript check, production build, and Cloudflare Worker dry run.
-- GitHub Actions run [42420671012](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42420671012), for the client-privilege migration commit, passed domain tests, TypeScript check, production build, and Cloudflare Worker dry run.\n- GitHub Actions run [42420918796](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42420918796), for the captain team-sheet confirmation UI and route syntax fix, passed all seven domain tests, TypeScript check, production build, and Cloudflare Worker dry run.\n- GitHub Actions run [42421058216](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42421058216), for saved-draft UI and database types, passed all seven domain tests, TypeScript check, production build, and Cloudflare Worker dry run.\n- GitHub Actions run [42421189978](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42421189978), for the admin amendment UI, passed all seven domain tests, TypeScript check, production build, and Cloudflare Worker dry run.
+- GitHub Actions run [42420671012](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42420671012), for the client-privilege migration commit, passed domain tests, TypeScript check, production build, and Cloudflare Worker dry run.\n- GitHub Actions run [42420918796](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42420918796), for the captain team-sheet confirmation UI and route syntax fix, passed all seven domain tests, TypeScript check, production build, and Cloudflare Worker dry run.\n- GitHub Actions run [42421058216](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42421058216), for saved-draft UI and database types, passed all seven domain tests, TypeScript check, production build, and Cloudflare Worker dry run.\n- GitHub Actions run [42421189978](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42421189978), for the admin amendment UI and styling, passed all seven domain tests, TypeScript check, production build, and Cloudflare Worker dry run.
 - Seven domain tests cover 6-a-side/7-a-side starter and substitute limits, duplicate players, goalkeeper selection, and optional/unique/range-checked squad numbers.
 - Supabase migration history confirms 24 migrations applied.
 - The Supabase security advisor still reports generic SECURITY DEFINER warnings. The three anonymous-callable helpers are used by RLS policies, have a fixed empty search path, and return false when `auth.uid()` is null. Application RPCs have their own identity/role checks. Keep this in the launch security review; do not blindly revoke helper execution.
