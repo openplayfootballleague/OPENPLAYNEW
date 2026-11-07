@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPermanentProviderStatus, PermanentDeliveryError, providerHttpError } from "../../../supabase/functions/_shared/delivery-errors";
+import { isPermanentProviderStatus, PermanentDeliveryError, providerHttpError } from "../../../supabase/functions/deliver-notifications/shared/delivery-errors.ts";
 
 describe("notification provider error classification", () => {
   it.each([400, 401, 403, 404, 422])("treats non-retryable provider status %i as permanent", status => {
