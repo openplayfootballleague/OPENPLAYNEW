@@ -50,6 +50,69 @@ export type Database = {
         }
         Relationships: []
       }
+      finance_entries: {
+        Row: {
+          amount_pence: number
+          created_at: string
+          created_by: string
+          description: string
+          due_at: string | null
+          entry_type: string
+          fixture_id: string | null
+          id: string
+          notes: string | null
+          occurred_at: string
+          payment_method: string | null
+          reference: string | null
+          season_team_id: string
+        }
+        Insert: {
+          amount_pence: number
+          created_at?: string
+          created_by: string
+          description: string
+          due_at?: string | null
+          entry_type: string
+          fixture_id?: string | null
+          id?: string
+          notes?: string | null
+          occurred_at?: string
+          payment_method?: string | null
+          reference?: string | null
+          season_team_id: string
+        }
+        Update: {
+          amount_pence?: number
+          created_at?: string
+          created_by?: string
+          description?: string
+          due_at?: string | null
+          entry_type?: string
+          fixture_id?: string | null
+          id?: string
+          notes?: string | null
+          occurred_at?: string
+          payment_method?: string | null
+          reference?: string | null
+          season_team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_entries_fixture_id_fkey"
+            columns: ["fixture_id"]
+            isOneToOne: false
+            referencedRelation: "fixtures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_entries_season_team_id_fkey"
+            columns: ["season_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fixture_availability: {
         Row: {
           fixture_id: string
@@ -1257,6 +1320,40 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_create_finance_entry: {
+        Args: {
+          p_amount_pence: number
+          p_description: string
+          p_due_at?: string
+          p_entry_type: string
+          p_fixture_id?: string
+          p_notes?: string
+          p_payment_method?: string
+          p_reference?: string
+          p_season_team_id: string
+        }
+        Returns: {
+          amount_pence: number
+          created_at: string
+          created_by: string
+          description: string
+          due_at: string | null
+          entry_type: string
+          fixture_id: string | null
+          id: string
+          notes: string | null
+          occurred_at: string
+          payment_method: string | null
+          reference: string | null
+          season_team_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "finance_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_create_fixture: {
         Args: {
           p_away_team_id: string
@@ -2015,6 +2112,54 @@ export type Database = {
           starters: string[]
           submitted_at: string
           substitutes: string[]
+        }[]
+      }
+      get_finance_ledger: {
+        Args: { p_season_id?: string; p_team_id?: string }
+        Returns: {
+          amount_pence: number
+          created_at: string
+          created_by: string
+          description: string
+          due_at: string
+          entry_type: string
+          fixture_id: string
+          gameweek: number
+          id: string
+          notes: string
+          occurred_at: string
+          payment_method: string
+          reference: string
+          season_id: string
+          season_name: string
+          season_team_id: string
+          team_balance_pence: number
+          team_name: string
+        }[]
+      }
+      get_finance_options: {
+        Args: never
+        Returns: {
+          league_name: string
+          season_id: string
+          season_name: string
+          season_status: string
+          team_id: string
+          team_name: string
+        }[]
+      }
+      get_finance_summary: {
+        Args: { p_season_id?: string }
+        Returns: {
+          charges_pence: number
+          credits_pence: number
+          fines_pence: number
+          outstanding_pence: number
+          payments_pence: number
+          refunds_pence: number
+          season_id: string
+          season_name: string
+          teams_with_entries: number
         }[]
       }
       get_my_notification_preferences: {
