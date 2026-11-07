@@ -17,6 +17,8 @@
 - Players request to join an approved team. Membership remains pending until an active captain or platform administrator approves it.
 - Rejected membership requests use a distinct `rejected` state. A player may submit a fresh request after rejection; voluntary departures remain `left`.
 - The Captains Hub reads a restricted database projection that returns only team roster names and membership workflow fields. It does not expose email, phone, date of birth or emergency contacts.
+- Captains can submit fixture team sheets through a server-side RPC. The database validates the fixture/team pairing, captain authority, active and approved player memberships, exact starter count, substitute limit and duplicate player selection. Team sheets cannot be changed after locking.
+- Squad numbers are optional. Active players in the same season team cannot share a squad number.
 
 ## Profile pictures
 
