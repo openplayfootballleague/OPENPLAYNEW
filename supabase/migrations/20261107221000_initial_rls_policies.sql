@@ -13,9 +13,24 @@ as $$
     select 1
     from public.user_roles ur
     where ur.user_id = (select auth.uid())
-      and ur.role in ('admin', 'super_admin', 'league_admin', 'finance_admin')
+      and ur.role in ('admin', 'super_admin', 'league_admin')
   );
 $$;
+
+create or replace function public.has_finance_access()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select exists (
+    select 1
+    from public.user_roles ur
+    where ur.user_id = (select auth.uid())
+      and ur.role in ('admin', 'super_admin', 'finance_admin')
+  );
+$;
 
 create or replace function public.is_active_team_captain(p_season_team_id uuid)
 returns boolean
@@ -50,9 +65,10 @@ as $$
   );
 $$;
 
-grant execute on function public.has_platform_role() to authenticated;
-grant execute on function public.is_active_team_captain(uuid) to authenticated;
-grant execute on function public.is_active_team_member(uuid) to authenticated;
+grant execute on function public.has_platform_role() to anon, authenticated;
+grant execute on function public.has_finance_access() to authenticated;
+grant execute on function public.is_active_team_captain(uuid) to anon, authenticated;
+grant execute on function public.is_active_team_member(uuid) to anon, authenticated;
 
 -- Profiles: private contact and emergency details are owner/admin only.
 create policy profiles_select_self_or_admin on public.profiles
@@ -263,12 +279,26 @@ using (
 
 create policy fixture_availability_insert_self on public.fixture_availability
 for insert to authenticated
-with check (user_id = (select auth.uid()));
+with check (
+  user_id = (select auth.uid())
+  and exists (
+    select 1 from public.fixtures f
+    where f.id = fixture_availability.fixture_id
+      and (public.is_active_team_member(f.home_team_id) or public.is_active_team_member(f.away_team_id))
+  )
+);
 
 create policy fixture_availability_update_self on public.fixture_availability
 for update to authenticated
 using (user_id = (select auth.uid()))
-with check (user_id = (select auth.uid()));
+with check (
+  user_id = (select auth.uid())
+  and exists (
+    select 1 from public.fixtures f
+    where f.id = fixture_availability.fixture_id
+      and (public.is_active_team_member(f.home_team_id) or public.is_active_team_member(f.away_team_id))
+  )
+);
 
 create policy fixture_availability_admin_manage on public.fixture_availability
 for all to authenticated
@@ -292,20 +322,20 @@ with check (public.has_platform_role());
 -- Finance data is not public. Captains can inspect their own team's payment status.
 create policy season_fee_configs_admin_only on public.season_fee_configs
 for all to authenticated
-using (public.has_platform_role())
-with check (public.has_platform_role());
+using (public.has_finance_access())
+with check (public.has_finance_access());
 
 create policy payment_records_select_captain_or_admin on public.payment_records
 for select to authenticated
 using (
-  public.has_platform_role()
+  public.has_finance_access()
   or public.is_active_team_captain(season_team_id)
 );
 
 create policy payment_records_admin_manage on public.payment_records
 for all to authenticated
-using (public.has_platform_role())
-with check (public.has_platform_role());
+using (public.has_finance_access())
+with check (public.has_finance_access());
 
 create policy notification_events_select_owner_or_admin on public.notification_events
 for select to authenticated
