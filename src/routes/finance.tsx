@@ -34,7 +34,7 @@ function FinancePage(){
   const [{data:optionRows,error:optionError},{data:summaryRows,error:summaryError},{data:entryRows,error:entryError}]=await Promise.all([
    getSupabaseClient().rpc("get_finance_options"),
    getSupabaseClient().rpc("get_finance_summary",{p_season_id:seasonFilter||undefined}),
-   getSupabaseClient().rpc("get_finance_ledger",{p_season_id:seasonFilter||null,p_team_id:teamFilter||undefined}),
+   getSupabaseClient().rpc("get_finance_ledger",{p_season_id:seasonFilter||undefined,p_team_id:teamFilter||undefined}),
   ]);
   if(optionError||summaryError||entryError){setError(optionError?.message??summaryError?.message??entryError?.message??"Unable to load finance records.");}
   else{setOptions((optionRows??[]) as unknown as FinanceOption[]);setSummary((summaryRows??[]) as unknown as FinanceSummary[]);setEntries((entryRows??[]) as unknown as FinanceEntry[]);}
