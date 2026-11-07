@@ -153,6 +153,7 @@ Deno.serve(async (req: Request) => {
 
   const summary = { claimed: (claimed ?? []).length, sent: 0, failed: 0, unconfirmed: 0 };
   for (const event of (claimed ?? []) as EventRow[]) {
+    let providerAccepted = false;
     try {
       const [{ data: player, error: playerError }, { data: profile, error: profileError }] = await Promise.all([
         service.from("players").select("full_name,email,phone").eq("user_id", event.user_id).maybeSingle(),
@@ -165,12 +166,14 @@ Deno.serve(async (req: Request) => {
       if (event.channel === "email") {
         const email = String(player?.email ?? "").trim();
         if (!email || !resendKey || !resendFrom) throw new Error("Recipient email or Resend configuration is missing");
-        providerReference = await sendEmail(resendKey, resendFrom, email, message);\n        providerAccepted = true;
+        providerReference = await sendEmail(resendKey, resendFrom, email, message);
+        providerAccepted = true;
       } else {
         const rawPhone = String(player?.phone ?? profile?.phone ?? "").trim();
         const phone = normaliseUkPhone(rawPhone);
         if (!phone || !twilioSid || !twilioToken || !twilioFrom) throw new Error("Recipient phone or Twilio configuration is missing/invalid");
-        providerReference = await sendSms(twilioSid, twilioToken, twilioFrom, phone, message.text);\n        providerAccepted = true;
+        providerReference = await sendSms(twilioSid, twilioToken, twilioFrom, phone, message.text);
+        providerAccepted = true;
       }
 
       const { error: completeError } = await service.rpc("complete_notification_event", {
@@ -181,8 +184,13 @@ Deno.serve(async (req: Request) => {
       summary.sent += 1;
     } catch (cause) {
       const errorText = cause instanceof Error ? cause.message : "Unknown notification delivery error";
-      await service.rpc("fail_notification_event", { p_event_id: event.id, p_error: errorText });
-      summary.failed += 1;
+      if (providerAccepted) {
+        await service.rpc("mark_notification_event_unconfirmed", { p_event_id: event.id, p_error: errorText });
+        summary.unconfirmed += 1;
+      } else {
+        await service.rpc("fail_notification_event", { p_event_id: event.id, p_error: errorText });
+        summary.failed += 1;
+      }
     }
   }
 
