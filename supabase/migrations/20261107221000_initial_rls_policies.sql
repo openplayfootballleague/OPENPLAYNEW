@@ -332,10 +332,7 @@ using (
   or public.is_active_team_captain(season_team_id)
 );
 
-create policy payment_records_admin_manage on public.payment_records
-for all to authenticated
-using (public.has_finance_access())
-with check (public.has_finance_access());
+-- Payment writes are service-side only; finance users receive read access above.
 
 create policy notification_events_select_owner_or_admin on public.notification_events
 for select to authenticated
