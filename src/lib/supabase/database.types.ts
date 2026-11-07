@@ -1298,6 +1298,10 @@ export type Database = {
         Args: { p_fixture_id: string; p_season_team_id: string }
         Returns: { already_paid: boolean; amount_pence: number; currency: string; payment_record_id: string }[]
       }
+      admin_set_player_fixture_fee: {
+        Args: { p_effective_from_gameweek: number; p_player_fee_pence: number; p_reason: string; p_season_id: string }
+        Returns: string
+      }
       get_admin_stripe_payments: {
         Args: { p_season_id?: string | null }
         Returns: {
