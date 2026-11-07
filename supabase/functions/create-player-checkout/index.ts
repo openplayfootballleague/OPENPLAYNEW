@@ -91,10 +91,10 @@ Deno.serve(async (req) => {
     return json({ error: "Stripe could not create a Checkout session" }, 502);
   }
 
+  // Do not overwrite a webhook that may have completed while Checkout was being created.
   const { error: updateError } = await admin.from("payment_records").update({
-    status: "processing",
     stripe_checkout_session_id: session.id,
-  }).eq("id", record.id).in("status", ["pending", "processing"]);
+  }).eq("id", record.id);
   if (updateError) return json({ error: "Checkout was created but payment state could not be saved. Contact Open Play before retrying." }, 500);
 
   return json({ checkout_url: session.url, payment_record_id: record.id });
