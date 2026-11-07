@@ -4,6 +4,7 @@ export type TeamSheetPlayer = {
   playerId: string;
   role: "starter" | "substitute";
   squadNumber?: number | null;
+  isGoalkeeper?: boolean;
 };
 
 export type TeamSheetValidation = {
@@ -23,9 +24,9 @@ const TEAM_SHEET_LIMITS: Record<
 
 /**
  * Validates a submitted team sheet against the competition format.
- * Squad numbers are optional; when supplied they must be unique and 1–99.
- * This is shared domain validation only. The server must also verify that
- * every player has an active membership of the submitting season team.
+ * Exactly one starter must be designated as goalkeeper. Squad numbers are
+ * optional; when supplied they must be unique and 1–99. The server must also
+ * verify that every player has an active membership of the submitting team.
  */
 export function validateTeamSheet(
   format: CompetitionFormat,
@@ -35,6 +36,7 @@ export function validateTeamSheet(
   const errors: string[] = [];
   const starters = players.filter((player) => player.role === "starter");
   const substitutes = players.filter((player) => player.role === "substitute");
+  const goalkeepers = players.filter((player) => player.isGoalkeeper === true);
 
   if (starters.length !== limits.starters) {
     errors.push(
@@ -46,6 +48,12 @@ export function validateTeamSheet(
     errors.push(
       `Select no more than ${limits.substitutes} substitutes; ${substitutes.length} selected.`,
     );
+  }
+
+  if (goalkeepers.length !== 1) {
+    errors.push("Select exactly one goalkeeper from the starting players.");
+  } else if (goalkeepers[0].role !== "starter") {
+    errors.push("The goalkeeper must be one of the starting players.");
   }
 
   const playerIds = players.map((player) => player.playerId);
