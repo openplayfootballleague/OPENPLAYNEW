@@ -17,7 +17,7 @@ create table public.players (
   banned_reason text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint players_dob_reasonable check (date_of_birth <= current_date and date_of_birth >= date '1900-01-01'),
+  constraint players_dob_reasonable check (date_of_birth >= date '1900-01-01'),
   constraint players_ban_metadata check (
     (is_banned = false and banned_at is null)
     or (is_banned = true and banned_at is not null)
@@ -141,7 +141,9 @@ begin
     exists (select 1 from public.players p where lower(trim(p.email)) = lower(trim(p_email)))
   into v_name_match, v_phone_match, v_email_match;
 
-  v_match_count := v_name_match::int + v_phone_match::int + v_email_match::int;
+  v_match_count := (case when v_name_match then 1 else 0 end)
+    + (case when v_phone_match then 1 else 0 end)
+    + (case when v_email_match then 1 else 0 end);
 
   select coalesce(array_agg(distinct p.id), '{}'::uuid[])
   into v_matched_ids
