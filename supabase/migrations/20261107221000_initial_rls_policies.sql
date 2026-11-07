@@ -23,14 +23,14 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select exists (
     select 1
     from public.user_roles ur
     where ur.user_id = (select auth.uid())
       and ur.role in ('admin', 'super_admin', 'finance_admin')
   );
-$;
+$$;
 
 create or replace function public.is_active_team_captain(p_season_team_id uuid)
 returns boolean
