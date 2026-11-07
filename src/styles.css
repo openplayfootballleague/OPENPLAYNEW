@@ -112,3 +112,21 @@ a { color: inherit; text-decoration: none; }
 .auth-colours { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .form-note { margin: 12px 0; color: #686960; font-size: 12px; line-height: 1.7; }
 @media (max-width: 520px) { .auth-colours { grid-template-columns: 1fr; } .auth-mode-switch button { font-size: 9px; } }
+
+.hub-panel { width: min(100%, 760px); }
+.hub-top { display:flex; justify-content:space-between; align-items:center; }
+.hub-top .notice-brand { margin-bottom: 42px; }
+.hub-email { margin-top: 14px !important; font-size: 12px !important; }
+.hub-kicker { color:#77786f; font-size:9px; font-weight:800; letter-spacing:.15em; }
+.hub-empty, .hub-profile, .hub-memberships { margin-top:32px; padding:24px; background:#e7e5dc; }
+.hub-empty h2, .hub-profile h2 { margin:12px 0 8px; font-size:34px; line-height:1; }
+.hub-empty p, .hub-profile p { color:#686960; font-size:13px; line-height:1.7; }
+.hub-empty .button, .hub-profile .button { margin-top:12px; }
+.hub-section-heading { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+.hub-team-row { display:flex; justify-content:space-between; align-items:center; gap:15px; padding:16px 0; border-top:1px solid #cfcec5; }
+.hub-team-row div { display:grid; gap:5px; }
+.hub-team-row strong { font-size:13px; }
+.hub-team-row div span, .hub-team-row > span { color:#686960; font-size:10px; text-transform:capitalize; }
+.hub-team-row .status-active { color:#28623a; font-weight:800; }
+.hub-team-row .status-pending { color:#9a5725; font-weight:800; }
+@media(max-width:520px){.hub-empty,.hub-profile,.hub-memberships{padding:18px;}}
