@@ -42,6 +42,8 @@ function renderMessage(event: EventRow): RenderedMessage {
       return { subject: "Open Play – team request approved", text: `Your request to join ${p.team_name ?? "the team"} has been approved.` };
     case "team.membership_rejected":
       return { subject: "Open Play – team request update", text: `Your request to join ${p.team_name ?? "the team"} was not approved. Contact Open Play if you need help.` };
+    case "team.membership_removed":
+      return { subject: "Open Play – team membership update", text: `Your membership with ${p.team_name ?? "the team"} has been ended by an administrator. Reason: ${p.reason ?? "Contact Open Play for details."}` };
     case "team.registration_approved":
       return { subject: "Open Play – team approved", text: `Your team ${p.team_name ?? ""} has been approved for Open Play.` };
     case "team.registration_rejected":
