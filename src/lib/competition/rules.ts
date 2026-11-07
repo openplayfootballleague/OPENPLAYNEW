@@ -84,3 +84,30 @@ export function validateTeamSheet(
 export function getTeamSheetLimits(format: CompetitionFormat) {
   return TEAM_SHEET_LIMITS[format];
 }
+
+export type FixtureStatus =
+  | "scheduled"
+  | "in_progress"
+  | "completed"
+  | "postponed"
+  | "cancelled";
+
+const FIXTURE_TRANSITIONS: Record<FixtureStatus, readonly FixtureStatus[]> = {
+  scheduled: ["in_progress", "postponed", "cancelled"],
+  in_progress: ["postponed", "cancelled"],
+  completed: [],
+  postponed: ["scheduled", "cancelled"],
+  cancelled: [],
+};
+
+export function canTransitionFixtureStatus(
+  current: FixtureStatus,
+  next: FixtureStatus,
+): boolean {
+  return FIXTURE_TRANSITIONS[current].includes(next);
+}
+
+/** PostgreSQL stores fixture scores as non-negative SMALLINT values. */
+export function isValidFixtureScore(score: number): boolean {
+  return Number.isInteger(score) && score >= 0 && score <= 32767;
+}
