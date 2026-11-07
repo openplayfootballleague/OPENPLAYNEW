@@ -1,9 +1,9 @@
 # Open Play — Continuous Development Status
 
-**Last verified:** 7 November 2026, 23:32 UTC  
+**Last verified:** 7 November 2026, 23:33 UTC  
 **Repository:** `openplayfootballleague/OPENPLAYNEW`  
 **Supabase project:** `ghnrsysvrlgkjmdlwdmp` — Open Play New only  
-**Applied database migrations:** 64
+**Applied database migrations:** 65
 
 ## Implemented in this repository and Supabase project
 
@@ -71,6 +71,7 @@
 - The notification outbox tracks attempts, backoff, provider errors, holds, one manual retry, and unconfirmed delivery outcomes. Admin actions are audited.
 - A JWT-verified Supabase Edge Function `deliver-notifications` is deployed (version 8; `verify_jwt=true`). It supports Resend email and Twilio SMS, checks admin/service-role access, claims only configured channels, distinguishes permanent provider/recipient errors from transient failures (non-retryable 4xx are terminal; 408/429/5xx remain retryable), and avoids blindly retrying a provider-accepted but unconfirmed message. The permanent-error classifier is shared with unit tests and the Edge Function is Deno type-checked in CI. Player ban/unban changes also generate notifications.
 - A `pg_cron` job named `open-play-fixture-reminders` is active every 15 minutes. It enqueues idempotent 24-hour and 3-hour fixture reminders and cancels stale queued/in-app reminders when a fixture is moved or cancelled.
+- A separate `open-play-notification-dispatch` minute job uses `pg_net` to invoke the Edge Function, but is **inactive by default**. Its database setting is `enabled=false`; the dispatcher function returns `NULL` without queuing an HTTP request while disabled. The Admin Dashboard exposes a guarded control to enable/disable it. Enabling requires Vault secrets `open_play_supabase_url` and `open_play_service_role_key`, a reason, and an explicit confirmation that Resend/Twilio provider secrets are configured and approved. Current Vault secret count is zero; cron is inactive; notification outbox is empty; no messages were sent.
 - Added `pg_net` and a second minute-level `pg_cron` job, `open-play-notification-dispatch`, which invokes the Edge Function through a server-side worker. It is deliberately inactive by default; the settings row is `enabled=false` and the cron job is `active=false`.
 - The Admin Dashboard now shows dispatch readiness and offers an audited enable/disable control. Enabling requires both `open_play_supabase_url` and `open_play_service_role_key` in Supabase Vault, a 10-character reason, and an explicit confirmation that Resend/Twilio Edge Function secrets are configured and approved for real delivery. Only platform administrators can change it.
 - Verified the worker function returns `NULL` while disabled (no HTTP request queued), the cron job is inactive, Vault currently contains zero secrets, and the notification outbox contains zero events. No email or SMS was sent.
@@ -92,8 +93,8 @@
 - The season-statistics SQL was executed against the empty project and returned the expected empty result sets/zero summary. Real-data calculations still need acceptance testing.
 - Supabase health advisor: no findings.
 - Transfer and membership write-surface verification: anonymous transfer-table SELECT is denied; authenticated direct INSERT/UPDATE on transfer requests and team memberships is denied. Authenticated users can SELECT transfer requests under owner/admin RLS, and must use guarded RPCs to request, cancel, resolve or amend memberships.
-- Supabase security advisor: no anonymous-callable SECURITY DEFINER warnings remain. It reports 57 authenticated-callable SECURITY DEFINER functions; these require periodic manual guard review because the linter flags all such functions regardless of internal role checks. The four finance-facing RPCs explicitly check `has_finance_access()` before returning or changing finance data. The admin audit-history RPC checks `has_platform_role()` and omits private audit payload columns.
-- One RLS INFO finding remains for `fixture_goal_records`: RLS is enabled with no direct client policies intentionally; goal history is accessed through role-guarded admin/statistics RPCs. The finance ledger and audit log have explicit deny-all RLS policies; their equivalent direct-access warnings were cleared.
+- Supabase security advisor: no anonymous-callable SECURITY DEFINER warnings and no RLS-without-policy INFO findings remain. It reports 59 authenticated-callable SECURITY DEFINER functions; the linter flags these regardless of internal guards. A structural review found all `admin_*` RPCs check `has_platform_role()` or `has_finance_access()`, while self-service/captain RPCs scope to `auth.uid()` or active captain membership. The four finance RPCs check `has_finance_access()`; the audit-history and dispatch-control RPCs check `has_platform_role()`.
+- Sensitive tables `fixture_goal_records`, `finance_entries`, and `audit_log` all have explicit deny-all direct-client RLS policies and no anon/authenticated table grants; privileged reads/writes occur through guarded RPCs.
 - The performance advisor reports unused indexes and permissive-policy notices. Do not drop indexes or weaken RLS without workload and access-model review.
 - Reminder enqueue smoke test returned 0, as expected: there are no fixtures or users in this project.
 - Current database counts: 0 Auth users, 0 players, 0 fixtures, 0 notification preferences and 0 notification events. No demo or production data has been inserted.
