@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
   }
 
   let resolvedPaymentId = paymentId;
-  if (!resolvedPaymentId && eventType === "charge.refunded") {
+  if (!resolvedPaymentId && (eventType === "charge.refunded" || eventType === "charge.succeeded")) {
     const intentId = typeof object?.payment_intent === "string" ? object.payment_intent : "";
     if (intentId) {
       const { data: linkedPayment, error: lookupError } = await admin.from("payment_records")
@@ -116,6 +116,32 @@ Deno.serve(async (req) => {
       } else if (eventType === "checkout.session.expired") {
         patch.status = "cancelled";
       }
+    } else if (eventType === "charge.succeeded") {
+      const balanceTransaction = object?.balance_transaction;
+      const balanceTransactionId = typeof balanceTransaction === "string"
+        ? balanceTransaction
+        : typeof balanceTransaction === "object" && balanceTransaction !== null && typeof (balanceTransaction as Record<string, unknown>).id === "string"
+          ? String((balanceTransaction as Record<string, unknown>).id)
+          : "";
+      if (!balanceTransactionId) {
+        await admin.from("stripe_webhook_events").update({
+          processing_error: "Charge has no balance transaction yet",
+        }).eq("id", eventId);
+        return new Response("Balance transaction not available", { status: 500 });
+      }
+      const balanceResponse = await fetch(`https://api.stripe.com/v1/balance_transactions/${encodeURIComponent(balanceTransactionId)}`, {
+        headers: { Authorization: `Bearer ${stripeKey}` },
+      });
+      const balance = await balanceResponse.json().catch(() => ({}));
+      if (!balanceResponse.ok || !Number.isSafeInteger(balance?.fee) || !Number.isSafeInteger(balance?.net) || balance.fee < 0 || balance.net < 0) {
+        await admin.from("stripe_webhook_events").update({
+          processing_error: "Could not verify Stripe balance transaction fee and net",
+        }).eq("id", eventId);
+        return new Response("Balance transaction lookup failed", { status: 500 });
+      }
+      patch.stripe_fee_pence = balance.fee;
+      patch.net_amount_pence = balance.net;
+      if (typeof object?.payment_intent === "string") patch.stripe_payment_intent_id = object.payment_intent;
     } else if (eventType === "charge.refunded") {
       const refunded = Number(object?.amount_refunded ?? 0);
       const total = Number(object?.amount ?? 0);
