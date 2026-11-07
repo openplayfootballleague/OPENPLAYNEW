@@ -2,8 +2,6 @@
 -- Test-mode credentials are configured separately as Supabase Edge Function secrets.
 -- Never place Stripe secrets in client code or migrations.
 
-alter type public.payment_status add value if not exists 'partially_refunded';
-
 alter table public.season_fee_configs
   add column if not exists player_fee_pence integer
   check (player_fee_pence is null or player_fee_pence between 1 and 100000000);
