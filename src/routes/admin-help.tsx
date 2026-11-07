@@ -6,6 +6,8 @@ export const Route=createFileRoute("/admin-help")({component:AdminHelpPage});
 function AdminHelpPage(){
  const [allowed,setAllowed]=useState<boolean|null>(null);
  const [error,setError]=useState("");
+ const [tourActive,setTourActive]=useState(false);
+ const [tourStep,setTourStep]=useState(0);
  useEffect(()=>{let active=true;void getSupabaseClient().rpc("has_platform_role").then(({data,error:rpcError})=>{if(!active)return;if(rpcError){setError(rpcError.message);setAllowed(false);}else setAllowed(Boolean(data));});return()=>{active=false;};},[]);
  if(allowed===null)return <main className="notice-page"><section className="notice-panel"><p className="eyebrow eyebrow-dark">ADMIN HELP</p><h1>Loading<br/><em>guide.</em></h1></section></main>;
  if(!allowed)return <main className="notice-page"><section className="notice-panel"><Link className="notice-brand" to="/">OPEN PLAY</Link><p className="eyebrow eyebrow-dark">RESTRICTED</p><h1>Admin<br/><em>access.</em></h1><p className="form-error">{error||"This guide is available to approved platform administrators only."}</p><Link className="auth-switch" to="/sign-in">Sign in</Link></section></main>;
@@ -26,6 +28,9 @@ function AdminHelpPage(){
   <Link className="notice-brand" to="/admin">OPEN PLAY · ADMIN</Link>
   <p className="eyebrow eyebrow-dark">OPERATIONS GUIDE</p><h1>Run the<br/><em>league.</em></h1>
   <p className="admin-help-intro">A practical guide to the main administration workflows. Use the protected workflows in the dashboard; do not bypass them with direct database edits.</p>
+  <section className="admin-help-tour">
+   {!tourActive?<><span className="hub-kicker">GUIDED WALKTHROUGH</span><h2>Take a quick tour of the admin workflows.</h2><p>Work through each stage in order, from setting up a season to checking the audit history.</p><button type="button" className="button" onClick={()=>{setTourStep(0);setTourActive(true);}}>START GUIDED TOUR <span>↗</span></button></>:<><div className="admin-help-tour-progress"><span>STEP {tourStep+1} OF {steps.length}</span><span>{Math.round(((tourStep+1)/steps.length)*100)}%</span></div><div className="admin-help-tour-track"><span style={{width:((tourStep+1)/steps.length*100)+"%"}}/></div><p className="eyebrow eyebrow-dark">{steps[tourStep][0]} · ADMIN WORKFLOW</p><h2>{steps[tourStep][1]}</h2><p>{steps[tourStep][2]}</p><div className="captain-actions"><button type="button" disabled={tourStep===0} onClick={()=>setTourStep(s=>Math.max(0,s-1))}>BACK</button><button type="button" onClick={()=>{if(tourStep===steps.length-1){setTourActive(false);setTourStep(0);}else setTourStep(s=>s+1);}}>{tourStep===steps.length-1?"FINISH TOUR":"NEXT STEP"}</button><button type="button" className="reject" onClick={()=>{setTourActive(false);setTourStep(0);}}>EXIT</button></div></>}
+  </section>
   <div className="admin-help-grid">{steps.map(([number,title,body])=><article className="admin-help-card" key={number}><span>{number}</span><div><h2>{title}</h2><p>{body}</p></div></article>)}</div>
   <section className="admin-help-warning"><h2>Before going live</h2><p>Do not publish privacy notices, create production test accounts, send real email/SMS, grant new administrator roles or seed Bideford records without the required owner approval. Keep Barnstaple and Torrington inactive until separately approved.</p></section>
   <div className="captain-actions"><Link className="button" to="/admin">BACK TO ADMIN DASHBOARD <span>↗</span></Link><Link className="auth-switch" to="/finance">Open Finance Ledger</Link></div>
