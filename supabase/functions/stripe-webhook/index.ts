@@ -65,61 +65,13 @@ Deno.serve(async (req) => {
     // An earlier attempt failed before completion. Continue processing the same event.
   }
 
-  if (!paymentId && eventType === "charge.refunded") {
+  let resolvedPaymentId = paymentId;
+  if (!resolvedPaymentId && eventType === "charge.refunded") {
     const intentId = typeof object?.payment_intent === "string" ? object.payment_intent : "";
     if (intentId) {
-      const { data: linkedPayment } = await admin.from("payment_records")
+      const { data: linkedPayment, error: lookupError } = await admin.from("payment_records")
         .select("id").eq("stripe_payment_intent_id", intentId).maybeSingle();
-      if (linkedPayment) {
-        // Use the persisted payment mapping; never trust a refund amount from the browser.
-        metadata && (metadata.payment_record_id = linkedPayment.id);
-      }
+      if (lookupError) return new Response("Could not map refund to payment", { status: 500 });
+      resolvedPaymentId = linkedPayment?.id ?? "";
     }
   }
-  const resolvedPaymentId = String(metadata?.payment_record_id ?? paymentId);
-
-  if (!resolvedPaymentId) {
-    await admin.from("stripe_webhook_events").update({ processed_at: new Date().toISOString() }).eq("id", eventId);
-    return Response.json({ received: true, ignored: true });
-  }
-
-  const { data: payment, error: paymentError } = await admin.from("payment_records")
-    .select("id,status,amount_pence,amount_refunded_pence")
-    .eq("id", resolvedPaymentId).maybeSingle();
-  if (paymentError || !payment) {
-    await admin.from("stripe_webhook_events").update({ processing_error: "Payment record not found" }).eq("id", eventId);
-    return new Response("Payment record not found", { status: 500 });
-  }
-
-  const updates: Record<string, unknown> = { last_stripe_event_at: new Date().toISOString() };
-  const sessionOrIntentId = String(object?.payment_intent ?? object?.id ?? "");
-  if (eventType === "checkout.session.completed" || eventType === "checkout.session.async_payment_succeeded") {
-    if (object?.payment_status === "paid" || eventType.endsWith("async_payment_succeeded")) {
-      updates.status = "paid";
-      updates.paid_at = new Date().toISOString();
-      if (sessionOrIntentId.startsWith("pi_")) updates.stripe_payment_intent_id = sessionOrIntentId;
-    } else {
-      updates.status = "processing";
-    }
-  } else if (eventType === "checkout.session.async_payment_failed" || eventType === "checkout.session.expired") {
-    if (payment.status !== "paid") updates.status = "failed";
-  } else if (eventType === "charge.refunded") {
-    const refunded = Number(object?.amount_refunded ?? 0);
-    updates.amount_refunded_pence = refunded;
-    updates.status = refunded >= Number(payment.amount_pence) ? "refunded" : refunded > 0 ? "partially_refunded" : payment.status;
-    if (updates.status === "refunded") updates.refunded_at = new Date().toISOString();
-    const intent = object?.payment_intent;
-    if (typeof intent === "string" && intent.startsWith("pi_")) updates.stripe_payment_intent_id = intent;
-  } else {
-    await admin.from("stripe_webhook_events").update({ processed_at: new Date().toISOString() }).eq("id", eventId);
-    return Response.json({ received: true, ignored: true });
-  }
-
-  const { error: updateError } = await admin.from("payment_records").update(updates).eq("id", resolvedPaymentId);
-  if (updateError) {
-    await admin.from("stripe_webhook_events").update({ processing_error: updateError.message }).eq("id", eventId);
-    return new Response("Payment update failed", { status: 500 });
-  }
-  await admin.from("stripe_webhook_events").update({ processed_at: new Date().toISOString() }).eq("id", eventId);
-  return Response.json({ received: true });
-});
