@@ -22,6 +22,10 @@ npm run dev
 
 Open the local URL printed by Vite (normally http://localhost:3000).
 
+## Automated verification
+
+GitHub Actions installs the locked dependencies, runs TypeScript and production builds, then validates the Cloudflare Worker bundle with a dry run. The dry run does not publish a deployment.
+
 ## Build and preview
 
 ```bash
