@@ -26,8 +26,8 @@ $$;
 
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
-  first_name text not null,
-  last_name text not null,
+  first_name text,
+  last_name text,
   display_name text,
   date_of_birth date,
   phone text,
@@ -37,8 +37,8 @@ create table public.profiles (
   avatar_path text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint profiles_first_name_length check (char_length(trim(first_name)) between 1 and 80),
-  constraint profiles_last_name_length check (char_length(trim(last_name)) between 1 and 80)
+  constraint profiles_first_name_length check (first_name is null or char_length(trim(first_name)) between 1 and 80),
+  constraint profiles_last_name_length check (last_name is null or char_length(trim(last_name)) between 1 and 80)
 );
 
 create table public.user_roles (
@@ -312,3 +312,29 @@ alter table public.season_fee_configs enable row level security;
 alter table public.payment_records enable row level security;
 alter table public.notification_events enable row level security;
 alter table public.audit_log enable row level security;
+
+
+-- Account creation is separate from player registration. Create an empty profile
+-- automatically so an unregistered account can still browse and complete onboarding later.
+create or replace function public.handle_new_auth_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  insert into public.profiles (id, first_name, last_name, display_name)
+  values (
+    new.id,
+    nullif(trim(new.raw_user_meta_data ->> 'first_name'), ''),
+    nullif(trim(new.raw_user_meta_data ->> 'last_name'), ''),
+    nullif(trim(new.raw_user_meta_data ->> 'display_name'), '')
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute function public.handle_new_auth_user();
