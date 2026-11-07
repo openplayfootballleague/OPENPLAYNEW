@@ -596,6 +596,7 @@ export type Database = {
           full_name: string
           id: string
           is_banned: boolean
+          is_genuine: boolean
           phone: string
           registration_status: Database["public"]["Enums"]["player_registration_status"]
           updated_at: string
@@ -610,6 +611,7 @@ export type Database = {
           full_name: string
           id?: string
           is_banned?: boolean
+          is_genuine?: boolean
           phone: string
           registration_status: Database["public"]["Enums"]["player_registration_status"]
           updated_at?: string
@@ -624,6 +626,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_banned?: boolean
+          is_genuine?: boolean
           phone?: string
           registration_status?: Database["public"]["Enums"]["player_registration_status"]
           updated_at?: string
@@ -1296,6 +1299,30 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_set_player_genuine: {
+        Args: { p_is_genuine: boolean; p_reason: string; p_user_id: string }
+        Returns: {
+          banned_at: string | null
+          banned_reason: string | null
+          created_at: string
+          date_of_birth: string
+          email: string
+          full_name: string
+          id: string
+          is_banned: boolean
+          is_genuine: boolean
+          phone: string
+          registration_status: Database["public"]["Enums"]["player_registration_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "players"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_transition_season: {
         Args: {
           p_next_status: Database["public"]["Enums"]["season_status"]
@@ -1340,12 +1367,17 @@ export type Database = {
           email: string
           full_name: string
           is_banned: boolean
+          is_genuine: boolean
           phone: string
           preferred_position: string
           registration_status: string
           team_names: string[]
           user_id: string
         }[]
+      }
+      get_admin_season_statistics: {
+        Args: { p_season_id: string }
+        Returns: Json
       }
       get_admin_team_sheets: {
         Args: never
@@ -1441,6 +1473,7 @@ export type Database = {
           full_name: string
           id: string
           is_banned: boolean
+          is_genuine: boolean
           phone: string
           registration_status: Database["public"]["Enums"]["player_registration_status"]
           updated_at: string
@@ -1514,6 +1547,7 @@ export type Database = {
           full_name: string
           id: string
           is_banned: boolean
+          is_genuine: boolean
           phone: string
           registration_status: Database["public"]["Enums"]["player_registration_status"]
           updated_at: string
