@@ -37,7 +37,7 @@ function HomePage() {
           </p>
           <div className="hero-actions">
             <a className="button" href="/join">Find your league <span aria-hidden="true">↗</span></a>
-            <a className="text-link" href="#match-centre">Explore match centre <span aria-hidden="true">→</span></a>
+            <a className="text-link" href="/match-centre">Explore match centre <span aria-hidden="true">→</span></a>
           </div>
         </div>
         <div className="hero-foot">
@@ -58,7 +58,7 @@ function HomePage() {
       </section>
 
       <section className="feature-grid" aria-label="Platform features">
-        <a className="feature-card feature-dark" id="match-centre" href="#match-centre">
+        <a className="feature-card feature-dark" href="/match-centre">
           <span className="feature-index">01 / FOLLOW</span>
           <span className="feature-icon" aria-hidden="true">↗</span>
           <div>
@@ -66,7 +66,7 @@ function HomePage() {
             <p>Fixtures, live updates, results and league tables.</p>
           </div>
         </a>
-        <a className="feature-card feature-orange" id="leagues" href="#leagues">
+        <a className="feature-card feature-orange" href="/teams">
           <span className="feature-index">02 / DISCOVER</span>
           <span className="feature-icon" aria-hidden="true">＋</span>
           <div>
@@ -74,7 +74,7 @@ function HomePage() {
             <p>Discover a competition and get involved.</p>
           </div>
         </a>
-        <a className="feature-card feature-light" id="join" href="#join">
+        <a className="feature-card feature-light" href="/player">
           <span className="feature-index">03 / BELONG</span>
           <span className="feature-icon" aria-hidden="true">◎</span>
           <div>
