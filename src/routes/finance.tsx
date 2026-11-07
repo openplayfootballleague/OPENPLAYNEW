@@ -1,13 +1,13 @@
 import { useCallback,useEffect,useMemo,useState } from "react";
 import { Link,createFileRoute } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { poundsToPence } from "../lib/finance/ledger";
 
 type FinanceOption={season_id:string;season_name:string;team_id:string;team_name:string;league_name:string;season_status:string};
 type FinanceEntry={id:string;season_team_id:string;team_name:string;season_id:string;season_name:string;fixture_id:string|null;gameweek:number|null;entry_type:"charge"|"payment"|"refund"|"credit"|"fine";amount_pence:number;description:string;due_at:string|null;occurred_at:string;payment_method:string|null;reference:string|null;notes:string|null;created_by:string;created_at:string;team_balance_pence:number};
 type FinanceSummary={season_id:string;season_name:string;teams_with_entries:number;charges_pence:number;payments_pence:number;refunds_pence:number;credits_pence:number;fines_pence:number;outstanding_pence:number};
 const money=(pence:number)=>new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format(pence/100);
 const dateTime=(value:string|null)=>value?new Date(value).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"}):"—";
-function poundsToPence(value:string):number|null{if(!/^\d+(\.\d{1,2})?$/.test(value.trim()))return null;const [whole,decimal=""]=value.trim().split(".");return Number(whole)*100+Number((decimal+"00").slice(0,2));}
 
 export const Route=createFileRoute("/finance")({component:FinancePage});
 function FinancePage(){
