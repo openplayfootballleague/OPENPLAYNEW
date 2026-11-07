@@ -57,18 +57,35 @@ Deno.serve(async (req) => {
     .insert({ id: eventId, event_type: eventType, payment_record_id: paymentId || null, livemode: false })
     .select("id").single();
   if (eventInsertError) {
-    if (eventInsertError.code === "23505") return Response.json({ received: true, duplicate: true });
-    return new Response("Could not record webhook event", { status: 500 });
+    if (eventInsertError.code !== "23505") return new Response("Could not record webhook event", { status: 500 });
+    const { data: priorEvent, error: priorError } = await admin.from("stripe_webhook_events")
+      .select("processed_at").eq("id", eventId).maybeSingle();
+    if (priorError) return new Response("Could not inspect webhook retry state", { status: 500 });
+    if (priorEvent?.processed_at) return Response.json({ received: true, duplicate: true });
+    // An earlier attempt failed before completion. Continue processing the same event.
   }
 
-  if (!paymentId) {
+  if (!paymentId && eventType === "charge.refunded") {
+    const intentId = typeof object?.payment_intent === "string" ? object.payment_intent : "";
+    if (intentId) {
+      const { data: linkedPayment } = await admin.from("payment_records")
+        .select("id").eq("stripe_payment_intent_id", intentId).maybeSingle();
+      if (linkedPayment) {
+        // Use the persisted payment mapping; never trust a refund amount from the browser.
+        metadata && (metadata.payment_record_id = linkedPayment.id);
+      }
+    }
+  }
+  const resolvedPaymentId = String(metadata?.payment_record_id ?? paymentId);
+
+  if (!resolvedPaymentId) {
     await admin.from("stripe_webhook_events").update({ processed_at: new Date().toISOString() }).eq("id", eventId);
     return Response.json({ received: true, ignored: true });
   }
 
   const { data: payment, error: paymentError } = await admin.from("payment_records")
     .select("id,status,amount_pence,amount_refunded_pence")
-    .eq("id", paymentId).maybeSingle();
+    .eq("id", resolvedPaymentId).maybeSingle();
   if (paymentError || !payment) {
     await admin.from("stripe_webhook_events").update({ processing_error: "Payment record not found" }).eq("id", eventId);
     return new Response("Payment record not found", { status: 500 });
@@ -98,7 +115,7 @@ Deno.serve(async (req) => {
     return Response.json({ received: true, ignored: true });
   }
 
-  const { error: updateError } = await admin.from("payment_records").update(updates).eq("id", paymentId);
+  const { error: updateError } = await admin.from("payment_records").update(updates).eq("id", resolvedPaymentId);
   if (updateError) {
     await admin.from("stripe_webhook_events").update({ processing_error: updateError.message }).eq("id", eventId);
     return new Response("Payment update failed", { status: 500 });
