@@ -17,7 +17,7 @@ alter table public.payment_records
     check (stripe_fee_pence is null or stripe_fee_pence >= 0),
   add column if not exists net_amount_pence integer
     check (net_amount_pence is null or net_amount_pence >= 0),
-  add column if not exists last_stripe_event_at timestamptz;
+  add column if not exists last_stripe_event_at timestamptz,\n  add column if not exists checkout_attempt integer not null default 0 check (checkout_attempt >= 0);
 
 create unique index if not exists payment_records_player_fixture_unique
   on public.payment_records(player_user_id, fixture_id)
@@ -136,3 +136,36 @@ grant execute on function public.create_player_fixture_payment(uuid,uuid) to aut
 revoke all on public.payment_records from anon;
 revoke insert, update, delete on public.payment_records from authenticated;
 grant select on public.payment_records to authenticated;
+
+
+-- A player can view only their own payment history without exposing payment rows to other players.
+create or replace function public.get_my_fixture_payments()
+returns table(
+  payment_record_id uuid,
+  fixture_id uuid,
+  gameweek integer,
+  scheduled_at timestamptz,
+  season_team_id uuid,
+  amount_pence integer,
+  currency text,
+  status public.payment_status,
+  amount_refunded_pence integer,
+  paid_at timestamptz,
+  created_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select pr.id, pr.fixture_id, f.gameweek, f.scheduled_at, pr.season_team_id,
+         pr.amount_pence, pr.currency, pr.status, pr.amount_refunded_pence,
+         pr.paid_at, pr.created_at
+  from public.payment_records pr
+  left join public.fixtures f on f.id = pr.fixture_id
+  where pr.player_user_id = auth.uid()
+  order by pr.created_at desc;
+$$;
+
+revoke all on function public.get_my_fixture_payments() from public, anon;
+grant execute on function public.get_my_fixture_payments() to authenticated;
