@@ -1,6 +1,6 @@
 # Open Play — Continuous Development Status
 
-**Last verified:** 7 November 2026, 22:36 UTC  
+**Last verified:** 7 November 2026, 22:37 UTC  
 **Repository:** `openplayfootballleague/OPENPLAYNEW`  
 **Supabase project:** `ghnrsysvrlgkjmdlwdmp` (Open Play New only)
 
@@ -29,9 +29,9 @@
 
 - No controlled end-to-end sign-up, email verification, sign-in, password reset, player registration, team request, captain approval, squad-number, saved-draft, or admin-amendment browser test has been completed. The new Supabase project currently has zero Auth users and zero assigned roles; a controlled test account, approved administrator test identity and accessible mailbox are required.
 - No admin user has been appointed; do not self-grant or seed an administrator without explicit owner authorization and an audited process.
-- No production Cloudflare deployment has occurred. CI performs a dry run only.
+- No production Cloudflare deployment has occurred. CI performs a dry run only. The PWA PR is also explicitly not deployed.
 - Production environment variables, SMTP delivery, email-confirmation settings and Supabase Auth redirect allow-list still need to be configured and verified in the hosting/Supabase dashboards.
-- Official OP logo asset still needs to be placed in the application repository without recreating it.
+- Open draft PR [#1](https://github.com/openplayfootballleague/OPENPLAYNEW/pull/1) contains the supplied OP icon assets, PWA manifest, service worker and install guidance. Its CI passes, but it is not merged and currently reports non-mergeable against the latest main; it must be synchronized/rebased and reviewed before merge. Real-device PWA install/cache checks remain outstanding.
 - Real Bideford league, season, venue, team and fixture data must be owner-verified before seeding. Do not add demo records to production. Bideford is the only launch location; Barnstaple and Torrington remain inactive.
 - Admin amendments are implemented in code and database but still require an authenticated administrator end-to-end test. The complete matchday lifecycle (including reminder delivery) remains outstanding.\n- Finance/Stripe, verified webhook processing, payment reconciliation/refunds, email/SMS notifications, full admin operations, transfer workflows, and comprehensive acceptance/security tests remain outstanding.
 
