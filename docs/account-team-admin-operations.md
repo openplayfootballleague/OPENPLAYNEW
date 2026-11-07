@@ -40,7 +40,7 @@ Do not expose a public bootstrap endpoint or grant administrator privileges from
 1. Enable email/password authentication and email confirmation.
 2. Set the production Site URL to the production Open Play origin.
 3. Add local development and production origins to the redirect allow-list.
-4. Ensure the email confirmation link redirects to `/player` and password recovery redirects to `/sign-in`.
+4. Ensure the email confirmation link redirects to `/player` and password recovery redirects to `/reset-password`, where the new password is set.
 5. Configure a branded, deliverable SMTP provider before public launch; the default test mail service is not a production mail solution.
 
 ## Current release data requirements
