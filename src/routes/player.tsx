@@ -6,7 +6,8 @@ import { getSupabaseClient } from "../lib/supabase/client";
 type Player = { id:string; full_name:string; registration_status:"registered"|"pending_review"|"rejected"; is_banned:boolean };
 type Profile = { first_name:string|null; last_name:string|null; display_name:string|null; phone:string|null; preferred_position:string|null; avatar_path:string|null };
 type Membership = { id:string; season_team_id:string; status:"pending"|"active"|"suspended"|"left"|"rejected"; is_captain:boolean; squad_number:number|null; joined_at:string|null };
-type Team = { id:string; name:string; season_id:string };\ntype PlayerFixture={id:string;gameweek:number;scheduled_at:string|null;home_team_id:string;away_team_id:string};type Availability={fixture_id:string;is_available:boolean};
+type Team = { id:string; name:string; season_id:string };
+type PlayerFixture={id:string;gameweek:number;scheduled_at:string|null;home_team_id:string;away_team_id:string};type Availability={fixture_id:string;is_available:boolean};
 
 export const Route=createFileRoute("/player")({component:PlayerHubPage});
 
