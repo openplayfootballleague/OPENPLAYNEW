@@ -21,7 +21,7 @@ function AdminHelpPage(){
   ["07","Correct results safely","Use the result correction workflow rather than editing scores elsewhere. Give a clear reason. Previous goal records remain in the audit trail as voided history."],
   ["08","Review player transfers","A transfer request must be reviewed by an administrator. Confirm the destination and eligibility; the approval operation moves the active membership atomically. Do not simulate a transfer by deleting a player's history."],
   ["09","Record team finances","Use the Finance Ledger for manual charges, payments received, fines, refunds and credits. It does not collect card payments. Entries are append-only; record a correcting entry instead of editing history."],
-  ["10","Monitor notifications","The outbox records delivery attempts and failures. The fixture reminder scheduler queues reminders; it does not itself send email or SMS. Provider credentials and an automatic delivery invocation must be configured before relying on external delivery."],
+  ["10","Monitor notifications","The outbox records delivery attempts and failures. Fixture reminders are queued automatically. The separate minute delivery schedule is off by default; configure the Supabase URL and service-role JWT in Vault plus Resend/Twilio Edge Function secrets, run controlled tests, then enable it from Admin Dashboard → Notification Outbox only with explicit owner approval."],
   ["11","Use the audit history","Search the audit history by action, record ID or reason. The page shows metadata only; private before/after payloads are intentionally not exposed there."],
  ];
  return <main className="notice-page admin-help-page"><section className="notice-panel admin-help-panel">
