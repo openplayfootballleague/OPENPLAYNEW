@@ -30,7 +30,7 @@ begin
     'membership_requests',coalesce((select jsonb_agg(jsonb_build_object(
       'membership_id',tm.id,'team_name',st.name,'player_name',p.full_name,'created_at',tm.created_at
     ) order by tm.created_at) from public.team_memberships tm join public.season_teams st on st.id=tm.season_team_id
-      join public.players p on p.user_id=tm.user_id where tm.status='pending'),'[]'::jsonb)
+      join public.players p on p.user_id=tm.user_id where tm.status='pending' and st.registration_status='approved'),'[]'::jsonb)
   ) into v_result;
   return v_result;
 end;
