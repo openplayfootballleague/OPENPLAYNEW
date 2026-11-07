@@ -2,7 +2,7 @@ import { useCallback,useEffect,useState } from "react";
 import { Link,createFileRoute } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 type CaptainRow={season_team_id:string;team_name:string;membership_id:string;player_name:string;membership_status:string;is_captain:boolean;squad_number:number|null;requested_at:string};
-type CaptainFixture={fixture_id:string;season_team_id:string;team_name:string;opponent_name:string;gameweek:number;scheduled_at:string|null;competition_format:"six_a_side"|"seven_a_side"};
+type CaptainFixture={fixture_id:string;season_team_id:string;team_name:string;opponent_name:string;gameweek:number;scheduled_at:string|null;competition_format:string};
 export const Route=createFileRoute("/captain")({component:CaptainsHubPage});
 function CaptainsHubPage(){
  const [rows,setRows]=useState<CaptainRow[]>([]);const [fixtures,setFixtures]=useState<CaptainFixture[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [message,setMessage]=useState("");const [busyId,setBusyId]=useState("");const [selectedFixture,setSelectedFixture]=useState("");const [starters,setStarters]=useState<string[]>([]);const [subs,setSubs]=useState<string[]>([]);
