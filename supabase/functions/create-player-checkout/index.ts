@@ -65,8 +65,8 @@ Deno.serve(async (req) => {
 
   const form = new URLSearchParams();
   form.set("mode", "payment");
-  form.set("success_url", `${appOrigin}/payment/success?session_id={CHECKOUT_SESSION_ID}`);
-  form.set("cancel_url", `${appOrigin}/payment/cancelled?payment_id=${record.id}`);
+  form.set("success_url", `${appOrigin}/player?checkout=success`);
+  form.set("cancel_url", `${appOrigin}/player?checkout=cancelled`);
   form.set("client_reference_id", record.id);
   form.set("line_items[0][quantity]", "1");
   form.set("line_items[0][price_data][currency]", record.currency);
