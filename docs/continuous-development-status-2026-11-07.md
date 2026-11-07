@@ -3,7 +3,7 @@
 **Last verified:** 7 November 2026, 23:18 UTC  
 **Repository:** `openplayfootballleague/OPENPLAYNEW`  
 **Supabase project:** `ghnrsysvrlgkjmdlwdmp` — Open Play New only  
-**Applied database migrations:** 60
+**Applied database migrations:** 63
 
 ## Implemented in this repository and Supabase project
 
@@ -53,6 +53,12 @@
 - Added an Admin Dashboard link to the new Finance Ledger page, with season/team filters, summary totals and manual entry form. No card processing, Stripe integration or automatic payment collection has been added.
 - Database remains empty: finance ledger contains 0 rows. Finance role acceptance testing needs an owner-approved test identity; do not grant finance roles or create accounts without approval.
 
+### Administrator audit history
+- Added a searchable, paginated audit-history reader for platform administrators.
+- The UI shows event action, entity type/ID, actor ID, timestamp and reason. It deliberately omits private `before_data` and `after_data` payloads.
+- Direct `SELECT` on `audit_log` has been revoked from anonymous and authenticated clients, and an explicit deny-all RLS policy blocks direct access. The metadata RPC checks `has_platform_role()`; its execute grant is authenticated-only.
+- The permission check confirms anonymous direct read and RPC execution are denied, authenticated direct read is denied, and authenticated RPC execution is granted. Actual admin-session page acceptance still needs an owner-approved test identity.
+
 ### Notifications
 - Player Hub includes an in-app notification feed and notification preferences.
 - Email and in-app notifications default on; SMS defaults off and requires explicit opt-in. SMS consent and revocation timestamps/version are stored and preference changes are audited. Direct client table updates are revoked; preferences are changed through the RPC.
@@ -71,11 +77,12 @@
 - GitHub Actions run [42424234675](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424234675) passed all 12 domain tests, TypeScript check, production build and Cloudflare Worker dry run for admin membership removal.
 - GitHub Actions run [42424344218](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424344218) passed all 15 domain tests, TypeScript check, production build and Cloudflare Worker dry run for match appearance capture and goalscorer eligibility.
 - GitHub Actions run [42424703489](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424703489) passed all 20 tests, TypeScript check, production build and Cloudflare Worker dry run for the finance ledger. The follow-up sign-in navigation link is in a separate CI run.
+- GitHub Actions run [42424849096](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424849096) passed the 20-test suite, TypeScript check, production build and Cloudflare Worker dry run for the administrator audit-history UI.
 - The season-statistics SQL was executed against the empty project and returned the expected empty result sets/zero summary. Real-data calculations still need acceptance testing.
 - Supabase health advisor: no findings.
 - Transfer and membership write-surface verification: anonymous transfer-table SELECT is denied; authenticated direct INSERT/UPDATE on transfer requests and team memberships is denied. Authenticated users can SELECT transfer requests under owner/admin RLS, and must use guarded RPCs to request, cancel, resolve or amend memberships.
-- Supabase security advisor: no anonymous-callable SECURITY DEFINER warnings remain. It reports 56 authenticated-callable SECURITY DEFINER functions; these require periodic manual guard review because the linter flags all such functions regardless of internal role checks. The four finance-facing RPCs explicitly check `has_finance_access()` before returning or changing finance data.
-- One RLS INFO finding remains for `fixture_goal_records`: RLS is enabled with no direct client policies intentionally; goal history is accessed through role-guarded admin/statistics RPCs. The finance ledger's equivalent direct-access warning was cleared by an explicit deny-all RLS policy.
+- Supabase security advisor: no anonymous-callable SECURITY DEFINER warnings remain. It reports 57 authenticated-callable SECURITY DEFINER functions; these require periodic manual guard review because the linter flags all such functions regardless of internal role checks. The four finance-facing RPCs explicitly check `has_finance_access()` before returning or changing finance data. The admin audit-history RPC checks `has_platform_role()` and omits private audit payload columns.
+- One RLS INFO finding remains for `fixture_goal_records`: RLS is enabled with no direct client policies intentionally; goal history is accessed through role-guarded admin/statistics RPCs. The finance ledger and audit log have explicit deny-all RLS policies; their equivalent direct-access warnings were cleared.
 - The performance advisor reports unused indexes and permissive-policy notices. Do not drop indexes or weaken RLS without workload and access-model review.
 - Reminder enqueue smoke test returned 0, as expected: there are no fixtures or users in this project.
 - Current database counts: 0 Auth users, 0 players, 0 fixtures, 0 notification preferences and 0 notification events. No demo or production data has been inserted.
@@ -88,7 +95,7 @@ Separate Open Play reports in the Library document substantial Stage 2–4 work 
 
 ## Remaining launch blockers
 
-1. Complete browser acceptance tests for player detail, correction, ban/unban, genuine classification, player transfers and the new finance ledger.
+1. Complete browser acceptance tests for player detail, correction, ban/unban, genuine classification, player transfers, finance ledger and admin audit history.
 2. Obtain an owner-approved non-production test identity, an approved admin test identity and an accessible mailbox. Do not self-appoint an administrator or create test accounts without authorization.
 3. Test the complete sign-up, email verification, sign-in, password reset, player registration, team registration, membership request and captain approval journey.
 4. Test saved team-sheet drafts, goalkeeper selection, final submission/locking, admin amendment and result publication/correction with realistic test fixtures.
@@ -102,4 +109,4 @@ Separate Open Play reports in the Library document substantial Stage 2–4 work 
 
 ## Next execution priority
 
-Complete finance ledger CI verification, then run approved finance-role and player-database acceptance tests. Continue with the full matchday lifecycle and authenticated end-to-end tests. Keep production deployment blocked until the owner-approved test identities, provider configuration, real Bideford data and launch checks are complete.
+Complete approved finance-role, audit-history and player-database acceptance tests. Continue with the full matchday lifecycle and authenticated end-to-end tests. Keep production deployment blocked until the owner-approved test identities, provider configuration, real Bideford data and launch checks are complete.
