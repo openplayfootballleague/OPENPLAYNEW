@@ -131,5 +131,8 @@ $$;
 revoke all on function public.create_player_fixture_payment(uuid,uuid) from public, anon;
 grant execute on function public.create_player_fixture_payment(uuid,uuid) to authenticated;
 
--- Only service-role webhook processing may update Stripe-backed payment state.
-revoke all on public.payment_records from anon, authenticated;
+-- Keep the existing finance/captain SELECT policy usable while preventing client-side writes.
+-- Payment rows are created only through the SECURITY DEFINER RPC and updated by the service role.
+revoke all on public.payment_records from anon;
+revoke insert, update, delete on public.payment_records from authenticated;
+grant select on public.payment_records to authenticated;
