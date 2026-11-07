@@ -33,8 +33,8 @@ function FinancePage(){
   setLoading(true);setError("");
   const [{data:optionRows,error:optionError},{data:summaryRows,error:summaryError},{data:entryRows,error:entryError}]=await Promise.all([
    getSupabaseClient().rpc("get_finance_options"),
-   getSupabaseClient().rpc("get_finance_summary",{p_season_id:seasonFilter||null}),
-   getSupabaseClient().rpc("get_finance_ledger",{p_season_id:seasonFilter||null,p_team_id:teamFilter||null}),
+   getSupabaseClient().rpc("get_finance_summary",{p_season_id:seasonFilter||undefined}),
+   getSupabaseClient().rpc("get_finance_ledger",{p_season_id:seasonFilter||null,p_team_id:teamFilter||undefined}),
   ]);
   if(optionError||summaryError||entryError){setError(optionError?.message??summaryError?.message??entryError?.message??"Unable to load finance records.");}
   else{setOptions((optionRows??[]) as unknown as FinanceOption[]);setSummary((summaryRows??[]) as unknown as FinanceSummary[]);setEntries((entryRows??[]) as unknown as FinanceEntry[]);}
@@ -49,9 +49,9 @@ function FinancePage(){
   try{
    const {error:rpcError}=await getSupabaseClient().rpc("admin_create_finance_entry",{
     p_season_team_id:teamId,p_entry_type:entryType,p_amount_pence:pence,p_description:description.trim(),
-    p_due_at:dueDate?new Date(dueDate+"T00:00:00").toISOString():null,
-    p_payment_method:entryType==="payment"?paymentMethod:null,
-    p_reference:reference.trim()||null,p_notes:notes.trim()||null,
+    p_due_at:dueDate?new Date(dueDate+"T00:00:00").toISOString():undefined,
+    p_payment_method:entryType==="payment"?paymentMethod:undefined,
+    p_reference:reference.trim()||undefined,p_notes:notes.trim()||undefined,
    });
    if(rpcError)throw rpcError;
    setNotice("Finance entry recorded and audit logged. Ledger entries cannot be edited or deleted; add a correcting entry if needed.");
