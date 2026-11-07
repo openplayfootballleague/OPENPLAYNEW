@@ -235,3 +235,9 @@ a { color: inherit; text-decoration: none; }
 .admin-goal-scorers h4 { margin: 8px 0 0; color: #55564f; font-family: "DM Sans",sans-serif; font-size: 9px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
 .admin-goal-scorers label { display: grid; gap: 5px; color: #55564f; font-size: 10px; font-weight: 750; }
 .admin-goal-scorers select { box-sizing: border-box; width: 100%; min-height: 38px; padding: 8px 10px; border: 1px solid #cfcec5; background: #fffefa; color: #171c18; font: inherit; font-size: 12px; }
+
+.admin-result-review { display: grid; gap: 12px; padding: 16px; background: #e7e5dc; }
+.admin-result-review h4 { margin: 0; color: #55564f; font-family: "DM Sans",sans-serif; font-size: 10px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.admin-result-review p { margin: 0; color: #55564f; font-size: 11px; line-height: 1.65; overflow-wrap: anywhere; }
+.admin-result-review p strong { color: #171c18; }
+.admin-result-review .captain-actions { margin-top: 4px; }
