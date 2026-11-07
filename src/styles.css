@@ -76,3 +76,11 @@ a { color: inherit; text-decoration: none; }
   .site-footer { flex-wrap: wrap; }
   .site-footer > span:nth-child(2) { order: 3; width: 100%; }
 }
+
+.notice-page { min-height: 100svh; display: grid; place-items: center; padding: 32px 22px; background: #111411; color: #f6f5f0; }
+.notice-panel { width: min(100%, 620px); padding: clamp(30px, 7vw, 68px); background: #f2f0e9; color: #111411; }
+.notice-brand { display: inline-block; margin-bottom: 70px; font-size: 13px; font-weight: 800; letter-spacing: .13em; }
+.notice-panel h1 { margin: 0; font-size: clamp(62px, 10vw, 100px); line-height: .86; letter-spacing: -.03em; }
+.notice-panel h1 em { color: #e96831; font-style: normal; }
+.notice-panel > p:not(.eyebrow) { max-width: 430px; margin: 25px 0 30px; color: #686960; font-size: 14px; line-height: 1.8; }
+.notice-panel .button { margin-top: 8px; }
