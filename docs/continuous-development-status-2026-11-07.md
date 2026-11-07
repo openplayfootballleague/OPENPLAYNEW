@@ -1,9 +1,9 @@
 # Open Play — Continuous Development Status
 
-**Last verified:** 7 November 2026, 23:34 UTC  
+**Last verified:** 7 November 2026, 23:35 UTC  
 **Repository:** `openplayfootballleague/OPENPLAYNEW`  
 **Supabase project:** `ghnrsysvrlgkjmdlwdmp` — Open Play New only  
-**Applied database migrations:** 65
+**Applied database migrations:** 66
 
 ## Implemented in this repository and Supabase project
 
@@ -105,6 +105,11 @@
 ## Environment boundary
 
 Separate Open Play reports in the Library document substantial Stage 2–4 work in an isolated Lovable draft, including prior admin screens and notification flows. Those reports are not proof that those changes exist in this GitHub repository or Supabase project. This `OPENPLAYNEW` project is a separate empty environment; no production records or draft test data have been copied. The live Lovable app and this repository must not be treated as interchangeable.
+
+## Performance review
+- Added covering indexes for all 11 foreign-key columns flagged by the Supabase performance advisor. The `unindexed_foreign_keys` finding is now clear.
+- The advisor still reports 50 unused indexes because this project is empty and has no production workload; retain them until real query usage is available rather than removing planned indexes prematurely.
+- 15 multiple-permissive-policy warnings remain where admin-manage policies overlap with self/public/captain access policies. These were left unchanged to avoid altering RLS semantics before authenticated acceptance tests; review consolidation once test identities and representative data are available.
 
 ## Remaining launch blockers
 
