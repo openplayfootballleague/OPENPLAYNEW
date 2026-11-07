@@ -8,12 +8,14 @@
 - [x] Add product and engineering guardrails for future contributors.
 - [x] Add the first responsive public homepage direction.
 - [ ] Add the official Open Play logo asset supplied by the owner.
-- [x] Generate and commit the dependency lockfile through the first successful CI run.
-- [x] Run dependency installation, type-check and production build in GitHub Actions.
-- [ ] Verify a Cloudflare Workers dry-run without deploying publicly.
+- [x] Generate and commit the dependency lockfile.
+- [x] Run dependency installation, Supabase Edge Function type-check, domain tests, TypeScript check and production build in GitHub Actions.
+- [x] Verify a Cloudflare Workers dry-run without deploying publicly.
 
 ## Current limitations
-The new Supabase project is not yet visible to the connected Supabase account, so no database, Auth, Storage or secret configuration has been created against a backend. The homepage currently uses clearly provisional presentation content and does not claim to provide live league data or working account actions.
+The application foundation is in place and automated build verification is passing. The official owner-supplied Open Play logo asset has not yet been added to this repository, so the public brand mark is not considered final. A successful Cloudflare dry-run validates the Worker bundle but does not publish a deployment.
+
+The public homepage and application routes are implemented in the repository. Their live user journeys still require browser acceptance testing against approved test accounts and real, owner-approved league data.
 
 ## Completion criteria
-Phase 1 is complete only when the repository installs reproducibly, type-checks, builds successfully, and passes a Cloudflare dry-run. The official logo asset must be added before the public brand mark is considered final.
+Phase 1 foundation criteria are met for repository setup, reproducible dependency installation, type-checking, production build and Cloudflare dry-run. Brand completion remains open until the official logo asset is supplied and integrated. Production release remains a separate gated milestone requiring environment configuration, acceptance testing and explicit owner approval.
