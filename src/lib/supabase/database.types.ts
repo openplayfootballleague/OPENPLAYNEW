@@ -1025,6 +1025,38 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_create_fixture: {
+        Args: {
+          p_away_team_id: string
+          p_fixture_number: number
+          p_gameweek: number
+          p_home_team_id: string
+          p_notes?: string
+          p_scheduled_at?: string
+          p_season_id: string
+          p_venue_id?: string
+        }
+        Returns: {
+          away_team_id: string
+          created_at: string
+          fixture_number: number
+          gameweek: number
+          home_team_id: string
+          id: string
+          notes: string | null
+          scheduled_at: string | null
+          season_id: string
+          status: Database["public"]["Enums"]["fixture_status"]
+          updated_at: string
+          venue_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fixtures"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_create_league: {
         Args: {
           p_description?: string
@@ -1131,6 +1163,55 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "season_teams"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_record_fixture_result: {
+        Args: {
+          p_away_score: number
+          p_fixture_id: string
+          p_home_score: number
+          p_reason?: string
+        }
+        Returns: {
+          away_score: number
+          confirmed_at: string | null
+          confirmed_by: string | null
+          fixture_id: string
+          home_score: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fixture_results"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_set_fixture_status: {
+        Args: {
+          p_fixture_id: string
+          p_next_status: Database["public"]["Enums"]["fixture_status"]
+          p_reason?: string
+        }
+        Returns: {
+          away_team_id: string
+          created_at: string
+          fixture_number: number
+          gameweek: number
+          home_team_id: string
+          id: string
+          notes: string | null
+          scheduled_at: string | null
+          season_id: string
+          status: Database["public"]["Enums"]["fixture_status"]
+          updated_at: string
+          venue_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fixtures"
           isOneToOne: true
           isSetofReturn: false
         }
