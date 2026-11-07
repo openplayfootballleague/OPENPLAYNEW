@@ -9,7 +9,6 @@ function HomePage() {
     <main className="site-shell">
       <header className="site-header">
         <a className="wordmark" href="/" aria-label="Open Play home">
-          <span className="wordmark-mark">OP</span>
           <span>OPEN PLAY</span>
         </a>
         <nav className="header-nav" aria-label="Main navigation">
