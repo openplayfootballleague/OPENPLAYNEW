@@ -1711,6 +1711,39 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      fail_notification_event_permanent: {
+        Args: { p_error: string; p_event_id: string }
+        Returns: {
+          attempt_count: number
+          channel: string
+          created_at: string
+          dedupe_key: string | null
+          event_type: string
+          held_at: string | null
+          held_by: string | null
+          hold_reason: string | null
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          locked_at: string | null
+          manual_retry_used: boolean
+          next_attempt_at: string
+          payload: Json
+          provider_reference: string | null
+          read_at: string | null
+          sent_at: string | null
+          status: string
+          unconfirmed_at: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_admin_competition_setup: { Args: never; Returns: Json }
       get_admin_dashboard: { Args: never; Returns: Json }
       get_admin_fixture_scorer_options: {
