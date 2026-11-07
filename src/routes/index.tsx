@@ -86,7 +86,6 @@ function HomePage() {
 
       <footer className="site-footer">
         <a className="wordmark" href="/" aria-label="Open Play home">
-          <span className="wordmark-mark">OP</span>
           <span>OPEN PLAY</span>
         </a>
         <span>PLAY HARD. RESPECT ALWAYS.</span>
