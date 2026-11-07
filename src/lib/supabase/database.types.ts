@@ -976,7 +976,48 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_amend_team_sheet: {
+        Args: {
+          p_goalkeeper_membership_id?: string
+          p_reason?: string
+          p_starters: string[]
+          p_substitutes?: string[]
+          p_team_sheet_id: string
+        }
+        Returns: {
+          draft_saved_at: string | null
+          fixture_id: string
+          id: string
+          is_locked: boolean
+          season_team_id: string
+          submitted_at: string | null
+          submitted_by: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fixture_team_sheets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_admin_dashboard: { Args: never; Returns: Json }
+      get_admin_team_sheets: {
+        Args: never
+        Returns: {
+          competition_format: Database["public"]["Enums"]["competition_format"]
+          fixture_id: string
+          gameweek: number
+          is_locked: boolean
+          opponent_name: string
+          players: Json
+          roster: Json
+          scheduled_at: string
+          season_team_id: string
+          submitted_at: string
+          team_name: string
+          team_sheet_id: string
+        }[]
+      }
       get_captain_availability: {
         Args: never
         Returns: {
