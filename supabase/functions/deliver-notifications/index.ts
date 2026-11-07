@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { PermanentDeliveryError, providerHttpError } from "../_shared/delivery-errors.ts";
+import { PermanentDeliveryError, providerHttpError } from "./shared/delivery-errors.ts";
 
 type EventRow = {
   id: string;
