@@ -52,7 +52,7 @@ export function validateTeamSheet(
 
   if (goalkeepers.length !== 1) {
     errors.push("Select exactly one goalkeeper from the starting players.");
-  } else if (goalkeepers[0].role !== "starter") {
+  } else if (goalkeepers.some((player) => player.role !== "starter")) {
     errors.push("The goalkeeper must be one of the starting players.");
   }
 
