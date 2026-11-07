@@ -11,7 +11,7 @@ type Team = { id:string; name:string; season_id:string };
 export const Route=createFileRoute("/player")({component:PlayerHubPage});
 
 function PlayerHubPage(){
- const navigate=useNavigate();const [session,setSession]=useState<Session|null>(null);const [player,setPlayer]=useState<Player|null>(null);const [profile,setProfile]=useState<Profile|null>(null);const [memberships,setMemberships]=useState<Membership[]>([]);const [editing,setEditing]=useState(false);const [saving,setSaving]=useState(false);const [firstName,setFirstName]=useState("");const [lastName,setLastName]=useState("");const [displayName,setDisplayName]=useState("");const [phone,setPhone]=useState("");const [position,setPosition]=useState("");const [avatarUrl,setAvatarUrl]=useState("");const [teams,setTeams]=useState<Team[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");
+ const navigate=useNavigate();const [session,setSession]=useState<Session|null>(null);const [player,setPlayer]=useState<Player|null>(null);const [profile,setProfile]=useState<Profile|null>(null);const [memberships,setMemberships]=useState<Membership[]>([]);const [editing,setEditing]=useState(false);const [saving,setSaving]=useState(false);const [firstName,setFirstName]=useState("");const [lastName,setLastName]=useState("");const [displayName,setDisplayName]=useState("");const [phone,setPhone]=useState("");const [position,setPosition]=useState("");const [avatarUrl,setAvatarUrl]=useState("");const [isAdmin,setIsAdmin]=useState(false);const [teams,setTeams]=useState<Team[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");
  useEffect(()=>{let alive=true;const supabase=getSupabaseClient();
   async function load(){const {data:{session:current}}=await supabase.auth.getSession();if(!alive)return;setSession(current);
    if(!current){setLoading(false);return;}
@@ -47,6 +47,6 @@ function PlayerHubPage(){
     {memberships.length===0?<p className="form-note">You are not currently linked to a team. Once your player registration is approved, you can request to join one or register a team.</p>:memberships.map(m=><article className="hub-team-row" key={m.id}><div><strong>{teamName(m.season_team_id)}</strong><span>{m.is_captain?"Captain":m.status==="active"?"Player":m.status.replace("_"," ")}</span></div><span className={m.status==="active"?"status-active":"status-pending"}>{m.status.replace("_"," ")}</span></article>)}
    </section>
   </>}
-  <Link className="auth-switch" to="/">Back to Open Play</Link>
+  {isAdmin&&<Link className="button button-small admin-link" to="/admin">OPEN ADMIN DASHBOARD <span>↗</span></Link>}<Link className="auth-switch" to="/">Back to Open Play</Link>
  </section></main>;
 }
