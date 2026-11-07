@@ -322,7 +322,7 @@ begin
   where id=p_event_id returning * into v_event;
   insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
   values(v_actor,'notification.manual_retry','notification_event',p_event_id::text,btrim(p_reason),
-    jsonb_build_object('status','failed','attempt_count',v_event.attempt_count),
+    jsonb_build_object('status',v_previous,'attempt_count',v_event.attempt_count),
     jsonb_build_object('status','queued','manual_retry_used',true));
   return v_event;
 end;
@@ -343,7 +343,7 @@ begin
   if not found then raise exception 'Notification event not found'; end if;
   v_previous:=v_event.status;
   if p_hold then
-    if v_event.status not in ('queued','failed','unconfirmed') then raise exception 'Only queued, failed or unconfirmed events can be held'; end if;
+    if v_event.status<>'queued' then raise exception 'Only queued events can be held'; end if;
     if p_reason is null or length(btrim(p_reason))<5 then raise exception 'Enter a reason of at least 5 characters'; end if;
     update public.notification_events set status='held',held_at=now(),held_by=v_actor,hold_reason=btrim(p_reason),updated_at=now()
     where id=p_event_id returning * into v_event;
