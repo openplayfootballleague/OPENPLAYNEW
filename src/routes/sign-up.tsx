@@ -14,9 +14,9 @@ function SignUpPage() {
     if(password!==confirm){setError("Your passwords do not match.");return;}
     setBusy(true);
     try {
-      const {data,error:authError}=await getSupabaseClient().auth.signUp({email:email.trim(),password,options:{emailRedirectTo:window.location.origin+"/register-player"}});
+      const {data,error:authError}=await getSupabaseClient().auth.signUp({email:email.trim(),password,options:{emailRedirectTo:window.location.origin+"/player"}});
       if(authError) throw authError;
-      if(data.session) await navigate({to:"/register-player"});
+      if(data.session) await navigate({to:"/player"});
       else setMessage("Your account request is in. Check your inbox to verify your email before signing in. Creating an account does not register you as a player or make you a captain.");
     } catch(cause){setError(cause instanceof Error?cause.message:"Unable to create your account. Please try again.");}
     finally{setBusy(false);}
