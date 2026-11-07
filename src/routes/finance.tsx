@@ -15,7 +15,7 @@ function FinancePage(){
  const [options,setOptions]=useState<FinanceOption[]>([]);
  const [entries,setEntries]=useState<FinanceEntry[]>([]);
  const [summary,setSummary]=useState<FinanceSummary[]>([]);
- const [stripePayments,setStripePayments]=useState<StripePayment[]>([]);
+ const [stripePayments,setStripePayments]=useState<StripePayment[]>([]);\n const [feeSeasonId,setFeeSeasonId]=useState("");\n const [playerFee,setPlayerFee]=useState("");\n const [feeGameweek,setFeeGameweek]=useState("1");\n const [feeReason,setFeeReason]=useState("");
  const [seasonFilter,setSeasonFilter]=useState("");
  const [teamFilter,setTeamFilter]=useState("");
  const [teamId,setTeamId]=useState("");
@@ -44,6 +44,16 @@ function FinancePage(){
   setLoading(false);
  },[seasonFilter,teamFilter]);
  useEffect(()=>{void load();},[load]);
+ async function savePlayerFee(event:React.FormEvent<HTMLFormElement>){
+  event.preventDefault();const pence=poundsToPence(playerFee);
+  if(!feeSeasonId){setError("Choose a season for the player fee.");return;}
+  if(pence===null||pence<1||pence>100000000){setError("Enter a player fee between £0.01 and £1,000,000.00.");return;}
+  const gameweek=Number(feeGameweek);if(!Number.isInteger(gameweek)||gameweek<1||gameweek>100){setError("Enter a valid effective gameweek.");return;}
+  setSaving(true);setError("");setNotice("");
+  try{const {error:feeError}=await getSupabaseClient().rpc("admin_set_player_fixture_fee",{p_season_id:feeSeasonId,p_player_fee_pence:pence,p_effective_from_gameweek:gameweek,p_reason:feeReason.trim()});if(feeError)throw feeError;setNotice("Player fixture fee saved. New checkouts will use this fee from the selected gameweek; existing payment snapshots remain unchanged.");setPlayerFee("");setFeeReason("");await load();}
+  catch(cause){setError(cause instanceof Error?cause.message:"Unable to save player fixture fee.");}
+  finally{setSaving(false);}
+ }
  async function createEntry(event:React.FormEvent<HTMLFormElement>){
   event.preventDefault();const pence=poundsToPence(amount);
   if(!teamId){setError("Choose a team.");return;}
@@ -80,6 +90,17 @@ function FinancePage(){
    <article><span>Fines</span><strong>{money(total("fines_pence"))}</strong></article>
    <article><span>Outstanding</span><strong>{money(total("outstanding_pence"))}</strong></article>
   </div>
+  <section className="finance-section">
+   <div className="hub-section-heading"><span className="hub-kicker">PLAYER MATCH FEE SETTINGS</span><span>Season-specific</span></div>
+   <form className="finance-entry-form" onSubmit={savePlayerFee}>
+    <label>Season<select required value={feeSeasonId} onChange={e=>setFeeSeasonId(e.target.value)}><option value="">Choose season</option>{Array.from(new Map(options.map(o=>[o.season_id,o.season_name])).entries()).map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label>
+    <label>Player fee (£)<input required inputMode="decimal" value={playerFee} onChange={e=>setPlayerFee(e.target.value)} placeholder="e.g. 3.00"/></label>
+    <label>Effective from gameweek<input required type="number" min="1" max="100" value={feeGameweek} onChange={e=>setFeeGameweek(e.target.value)}/></label>
+    <label className="finance-notes">Reason / audit note<textarea required minLength={5} maxLength={500} rows={2} value={feeReason} onChange={e=>setFeeReason(e.target.value)} placeholder="Why is this player fee being set or changed?"/></label>
+    <button className="button" type="submit" disabled={saving||options.length===0}>{saving?"SAVING…":"SAVE PLAYER FEE"}</button>
+   </form>
+   <p className="form-note">Fee changes are effective from the selected gameweek and audit logged. Existing checkout amounts are never changed retroactively.</p>
+  </section>
   <section className="finance-section">
    <div className="hub-section-heading"><span className="hub-kicker">PLAYER CARD PAYMENTS · STRIPE</span><span>{stripePayments.length} records</span></div>
    {stripePayments.length===0?<p className="form-note">No Stripe player payments have been recorded yet. This list updates from verified Stripe webhook events.</p>:<div className="finance-table-wrap"><table className="finance-table"><thead><tr><th>Player / Team</th><th>Fixture</th><th>Amount</th><th>Status</th><th>Refunded</th><th>Paid at</th></tr></thead><tbody>{stripePayments.map(p=><tr key={p.payment_record_id}><td><strong>{p.player_name??"Player account"}</strong><small>{p.team_name} · {p.season_name}</small></td><td>{p.gameweek?"Gameweek "+p.gameweek:"Fixture"}<small>{dateTime(p.scheduled_at)}</small></td><td>{money(p.amount_pence)}</td><td><span className={"finance-type finance-"+p.status}>{p.status.replaceAll("_"," ")}</span></td><td>{money(p.amount_refunded_pence)}</td><td>{dateTime(p.paid_at)}</td></tr>)}</tbody></table></div>}
