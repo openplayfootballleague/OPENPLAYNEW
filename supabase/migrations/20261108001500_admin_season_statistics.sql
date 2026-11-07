@@ -2,6 +2,8 @@
 alter table public.players
   add column if not exists is_genuine boolean not null default false;
 
+drop function if exists public.get_admin_player_register(text,text,integer,integer);
+
 create or replace function public.get_admin_player_register(
   p_search text default null,
   p_status text default null,
