@@ -8,7 +8,8 @@
     "preview": "vite preview",
     "deploy": "npm run build && wrangler deploy",
     "cf-typegen": "wrangler types",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.46",
@@ -25,6 +26,7 @@
     "@vitejs/plugin-react": "6.2.1",
     "typescript": "5.9.3",
     "vite": "8.3.6",
-    "wrangler": "4.158.0"
+    "wrangler": "4.158.0",
+    "vitest": "3.2.4"
   }
 }
