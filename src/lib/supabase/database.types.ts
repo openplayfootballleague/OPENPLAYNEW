@@ -970,6 +970,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_captain_dashboard: {
+        Args: never
+        Returns: {
+          is_captain: boolean
+          membership_id: string
+          membership_status: string
+          player_name: string
+          requested_at: string
+          season_team_id: string
+          squad_number: number
+          team_name: string
+        }[]
+      }
       has_finance_access: { Args: never; Returns: boolean }
       has_platform_role: { Args: never; Returns: boolean }
       is_active_team_captain: {
