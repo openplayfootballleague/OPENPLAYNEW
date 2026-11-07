@@ -15,7 +15,8 @@ alter table public.payment_records
     check (stripe_fee_pence is null or stripe_fee_pence >= 0),
   add column if not exists net_amount_pence integer
     check (net_amount_pence is null or net_amount_pence >= 0),
-  add column if not exists last_stripe_event_at timestamptz,\n  add column if not exists checkout_attempt integer not null default 0 check (checkout_attempt >= 0);
+  add column if not exists last_stripe_event_at timestamptz,
+  add column if not exists checkout_attempt integer not null default 0 check (checkout_attempt >= 0);
 
 create unique index if not exists payment_records_player_fixture_unique
   on public.payment_records(player_user_id, fixture_id)
