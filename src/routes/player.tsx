@@ -15,12 +15,18 @@ function PlayerHubPage(){
  useEffect(()=>{let alive=true;const supabase=getSupabaseClient();
   async function load(){const {data:{session:current}}=await supabase.auth.getSession();if(!alive)return;setSession(current);
    if(!current){setLoading(false);return;}
-   const [{data:playerData,error:playerError},{data:membershipData,error:membershipError}]=await Promise.all([
+   const [{data:playerData,error:playerError},{data:membershipData,error:membershipError},{data:profileData,error:profileError},{data:roleData}]=await Promise.all([
     supabase.from("players").select("id,full_name,registration_status,is_banned").eq("user_id",current.user.id).maybeSingle(),
     supabase.from("team_memberships").select("id,season_team_id,status,is_captain,squad_number,joined_at").eq("user_id",current.user.id).order("created_at",{ascending:false}),
+    supabase.from("profiles").select("first_name,last_name,display_name,phone,preferred_position,avatar_path").eq("id",current.user.id).maybeSingle(),
+    supabase.from("user_roles").select("role").eq("user_id",current.user.id),
    ]);
-   if(!alive)return;if(playerError||membershipError)setError(playerError?.message??membershipError?.message??"Unable to load your player hub.");
-   setPlayer(playerData);const ms=membershipData??[];setMemberships(ms);
+   if(!alive)return;
+   if(playerError||membershipError||profileError)setError(playerError?.message??membershipError?.message??profileError?.message??"Unable to load your player hub.");
+   setPlayer(playerData);setProfile(profileData);setFirstName(profileData?.first_name??"");setLastName(profileData?.last_name??"");setDisplayName(profileData?.display_name??"");setPhone(profileData?.phone??"");setPosition(profileData?.preferred_position??"");
+   if(profileData?.avatar_path)setAvatarUrl(supabase.storage.from("profile-avatars").getPublicUrl(profileData.avatar_path).data.publicUrl);
+   setIsAdmin((roleData??[]).some(r=>["admin","super_admin","league_admin"].includes(r.role)));
+   const ms=membershipData??[];setMemberships(ms);
    if(ms.length){const {data:teamData}=await supabase.from("season_teams").select("id,name,season_id").in("id",ms.map(m=>m.season_team_id));if(alive)setTeams(teamData??[]);}
    if(alive)setLoading(false);
   }
