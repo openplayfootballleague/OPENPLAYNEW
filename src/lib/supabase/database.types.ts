@@ -1294,6 +1294,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_player_fixture_payment: {
+        Args: { p_fixture_id: string; p_season_team_id: string }
+        Returns: { already_paid: boolean; amount_pence: number; currency: string; payment_record_id: string }[]
+      }
+      get_my_fixture_payments: {
+        Args: never
+        Returns: {
+          amount_pence: number
+          amount_refunded_pence: number
+          created_at: string
+          currency: string
+          fixture_id: string | null
+          gameweek: number | null
+          paid_at: string | null
+          payment_record_id: string
+          scheduled_at: string | null
+          season_team_id: string
+          status: Database["public"]["Enums"]["payment_status"]
+        }[]
+      }
       admin_add_player_to_team: {
         Args: {
           p_make_captain?: boolean
