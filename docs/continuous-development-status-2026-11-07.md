@@ -1,6 +1,6 @@
 # Open Play — Continuous Development Status
 
-**Last verified:** 7 November 2026, 23:33 UTC  
+**Last verified:** 7 November 2026, 23:34 UTC  
 **Repository:** `openplayfootballleague/OPENPLAYNEW`  
 **Supabase project:** `ghnrsysvrlgkjmdlwdmp` — Open Play New only  
 **Applied database migrations:** 65
@@ -88,6 +88,7 @@
 - GitHub Actions run [42424703489](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424703489) passed all 20 tests, TypeScript check, production build and Cloudflare Worker dry run for the finance ledger. The follow-up sign-in navigation link is in a separate CI run.
 - GitHub Actions run [42425449833](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42425449833) passed all 32 tests, Deno type-check for the notification Edge Function, TypeScript check, production build and Cloudflare Worker dry run. The corrected notification worker was deployed to the separate Open Play New Supabase project as version 8 with JWT verification still enabled.
 - GitHub Actions run [42425666119](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42425666119) passed all 32 tests, Deno Edge Function type-check, TypeScript check, production build and Cloudflare Worker dry run for the guarded automatic-dispatch controls.
+- GitHub Actions run [42425770535](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42425770535) passed all 32 tests, Deno Edge Function type-check, TypeScript check, production build and Cloudflare Worker dry run after adding an explicit deny-all RLS policy to the final sensitive goal-record table.
 - GitHub Actions run [42424849096](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424849096) passed the 20-test suite, TypeScript check, production build and Cloudflare Worker dry run for the administrator audit-history UI.
 - GitHub Actions run [42425103732](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42425103732) passed all 20 tests, TypeScript check, production build and Cloudflare Worker dry run for the guided admin help walkthrough and access-check error handling.
 - The season-statistics SQL was executed against the empty project and returned the expected empty result sets/zero summary. Real-data calculations still need acceptance testing.
@@ -99,7 +100,7 @@
 - Reminder enqueue smoke test returned 0, as expected: there are no fixtures or users in this project.
 - Current database counts: 0 Auth users, 0 players, 0 fixtures, 0 notification preferences and 0 notification events. No demo or production data has been inserted.
 - GitHub Actions run [42424034083](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424034083) passed all 12 domain tests, TypeScript check, production build and Cloudflare Worker dry run for the player transfer request UI and administrator review queue. The transfer notification-copy follow-up is currently in CI.
-- Notification delivery has not been end-to-end tested. No Resend/Twilio credentials have been configured in this session, no real email/SMS has been sent, and automated dispatch scheduling is not configured. The 15-minute cron job enqueues reminders only; an administrator can invoke the delivery worker after provider secrets are configured.
+- Notification delivery has not been end-to-end tested. No Resend/Twilio credentials or Supabase Vault invocation secrets are configured and no real email/SMS has been sent. The 15-minute cron job enqueues reminders; a separate minute-level dispatch job is installed but deliberately inactive until an authorised platform administrator enables it after credential setup and explicit confirmation.
 
 ## Environment boundary
 
@@ -112,7 +113,7 @@ Separate Open Play reports in the Library document substantial Stage 2–4 work 
 3. Test the complete sign-up, email verification, sign-in, password reset, player registration, team registration, membership request and captain approval journey.
 4. Test saved team-sheet drafts, goalkeeper selection, final submission/locking, admin amendment and result publication/correction with realistic test fixtures.
 5. Configure Resend and Twilio credentials, verify sender/domain and SMS sender configuration, then test consent, delivery, failure, retry, hold, unconfirmed and opt-out handling with approved test recipients. The Supabase Vault currently contains no secrets; provider credentials and the service-role invocation secret are not configured.
-6. Configure an automatic delivery invocation schedule. The current cron schedule enqueues fixture reminders but does not dispatch email/SMS.
+6. Configure the Resend/Twilio Edge Function secrets and the two Supabase Vault invocation secrets, run controlled delivery tests, then obtain explicit owner approval to enable the minute-level dispatch job. The schedule is implemented but remains inactive by default.
 7. Test 24-hour and 3-hour reminders with fixtures and users; verify rescheduling/cancellation invalidates stale reminders. Test the transfer request/approval/rejection flow with two approved teams in one test season.
 8. Finish remaining admin operations and the full matchday lifecycle. The admin help guide and step-by-step walkthrough are now implemented; contextual in-dashboard tours beyond the help page remain optional. Obtain owner approval on whether online card payments are in scope; the current finance v1 is manual record keeping only. Complete finance-role acceptance, reconciliation/refund controls and comprehensive security testing.
 9. Merge/reconcile the PWA and official OP branding changes, then complete real-device install/cache testing.
