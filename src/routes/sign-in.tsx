@@ -27,7 +27,7 @@ function SignInPage() {
     setBusy(true); setError(""); setMessage("");
     try {
       if (!email.trim()) throw new Error("Enter your email address first.");
-      const { error: resetError } = await getSupabaseClient().auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin + "/sign-in" });
+      const { error: resetError } = await getSupabaseClient().auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin + "/reset-password" });
       if (resetError) throw resetError;
       setMessage("If an account exists for that address, a password reset email has been sent.");
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to request a password reset."); }
