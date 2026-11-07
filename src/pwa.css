@@ -1,0 +1,21 @@
+.wordmark-icon {
+  display: block;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  object-fit: contain;
+  mix-blend-mode: screen;
+}
+
+.site-footer .wordmark-icon {
+  width: 32px;
+  height: 32px;
+}
+
+@media (max-width: 520px) {
+  .wordmark-icon {
+    width: 30px;
+    height: 30px;
+  }
+}

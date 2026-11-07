@@ -33,6 +33,14 @@ npm run build
 npm run preview
 ```
 
+## Install Open Play as an app
+
+The site includes a web app manifest, install icons and a service worker.
+
+- On iPhone or iPad, open the site in Safari, use **Share**, then choose **Add to Home Screen**.
+- On supported Android and desktop browsers, use the browser's **Install app** action.
+- The service worker caches the public home page and static brand assets only. It does not cache sign-in, account, API or other private page responses.
+
 ## Cloudflare
 
 The project is configured for Cloudflare Workers through the official Cloudflare Vite plugin.
