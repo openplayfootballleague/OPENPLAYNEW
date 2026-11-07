@@ -172,3 +172,6 @@ a { color: inherit; text-decoration: none; }
 .team-sheet-form .captain-actions button { flex: 1; min-height: 46px; }
 .team-sheet-form .captain-actions .button { margin: 0; }
 @media(max-width:520px) { .sheet-player { align-items: flex-start; flex-direction: column; } .sheet-player > div { width: 100%; flex-wrap: wrap; } .team-sheet-form .captain-actions { flex-direction: column; } }
+
+.team-sheet-form .draft-save { flex: 1; min-height: 46px; border: 1px solid #171c18; background: transparent; color: #171c18; font-size: 10px; font-weight: 800; letter-spacing: .04em; cursor: pointer; }
+.team-sheet-form .draft-save:disabled { opacity: .55; cursor: wait; }
