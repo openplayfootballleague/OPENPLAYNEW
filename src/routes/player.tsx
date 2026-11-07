@@ -24,7 +24,7 @@ function PlayerHubPage(){
     supabase.from("profiles").select("first_name,last_name,display_name,phone,preferred_position,avatar_path").eq("id",current.user.id).maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id",current.user.id),
     supabase.rpc("get_my_notification_preferences"),
-    supabase.from("notification_events").select("id,event_type,payload,created_at,read_at").eq("user_id",current.user.id).eq("channel","in_app").order("created_at",{ascending:false}).limit(20),
+    supabase.from("notification_events").select("id,event_type,payload,created_at,read_at").eq("user_id",current.user.id).eq("channel","in_app").eq("status","sent").order("created_at",{ascending:false}).limit(20),
    ]);
    if(!alive)return;
    if(playerError||membershipError||profileError||notificationPrefsError||notificationRowsError)setError(playerError?.message??membershipError?.message??profileError?.message??notificationPrefsError?.message??notificationRowsError?.message??"Unable to load your player hub.");
