@@ -984,6 +984,18 @@ export type Database = {
           team_name: string
         }[]
       }
+      get_captain_fixtures: {
+        Args: never
+        Returns: {
+          competition_format: string
+          fixture_id: string
+          gameweek: number
+          opponent_name: string
+          scheduled_at: string
+          season_team_id: string
+          team_name: string
+        }[]
+      }
       has_finance_access: { Args: never; Returns: boolean }
       has_platform_role: { Args: never; Returns: boolean }
       is_active_team_captain: {
@@ -1140,6 +1152,28 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "season_teams"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      submit_team_sheet: {
+        Args: {
+          p_fixture_id: string
+          p_season_team_id: string
+          p_starters: string[]
+          p_substitutes?: string[]
+        }
+        Returns: {
+          fixture_id: string
+          id: string
+          is_locked: boolean
+          season_team_id: string
+          submitted_at: string
+          submitted_by: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fixture_team_sheets"
           isOneToOne: true
           isSetofReturn: false
         }
