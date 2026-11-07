@@ -1000,6 +1000,88 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_create_league: {
+        Args: {
+          p_description?: string
+          p_format: Database["public"]["Enums"]["competition_format"]
+          p_location_id: string
+          p_name: string
+        }
+        Returns: {
+          created_at: string
+          description: string | null
+          format: Database["public"]["Enums"]["competition_format"]
+          id: string
+          is_published: boolean
+          location_id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "leagues"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_create_location: {
+        Args: {
+          p_address?: string
+          p_name: string
+          p_region?: string
+          p_town: string
+        }
+        Returns: {
+          address: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          region: string
+          slug: string
+          town: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "locations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_create_season: {
+        Args: {
+          p_ends_on?: string
+          p_league_id: string
+          p_name: string
+          p_registration_closes_at?: string
+          p_registration_opens_at?: string
+          p_season_number?: number
+          p_starts_on?: string
+        }
+        Returns: {
+          created_at: string
+          ends_on: string | null
+          id: string
+          is_public: boolean
+          league_id: string
+          name: string
+          registration_closes_at: string | null
+          registration_opens_at: string | null
+          season_number: number | null
+          starts_on: string | null
+          status: Database["public"]["Enums"]["season_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "seasons"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_admin_competition_setup: { Args: never; Returns: Json }
       get_admin_dashboard: { Args: never; Returns: Json }
       get_admin_team_sheets: {
         Args: never
