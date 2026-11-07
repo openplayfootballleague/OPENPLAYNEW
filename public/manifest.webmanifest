@@ -1,0 +1,28 @@
+{
+  "id": "/",
+  "name": "Open Play — Football, organised",
+  "short_name": "Open Play",
+  "description": "The home of Open Play — fixtures, results, teams and league management.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#111411",
+  "theme_color": "#111411",
+  "categories": ["sports", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/open-play-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/open-play-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
