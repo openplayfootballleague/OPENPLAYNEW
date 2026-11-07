@@ -68,7 +68,7 @@ function FinancePage(){
   <p className="finance-intro">Record team charges, fines, payments, refunds and credits. This is an internal ledger only — it does not take card payments or connect to Stripe.</p>
   {error&&<p className="form-error" role="alert">{error}</p>}{notice&&<p className="form-success" role="status">{notice}</p>}
   <div className="finance-filters">
-   <label>Season<select value={seasonFilter} onChange={e=>{setSeasonFilter(e.target.value);setTeamFilter("");}}><option value="">All seasons</option>{Array.from(new Map(options.map(o=>[o.season_id,o.season_name])).entries()).map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label>
+   <label>Season<select value={seasonFilter} onChange={e=>{setSeasonFilter(e.target.value);setTeamFilter("");setTeamId("");}}><option value="">All seasons</option>{Array.from(new Map(options.map(o=>[o.season_id,o.season_name])).entries()).map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label>
    <label>Team<select value={teamFilter} onChange={e=>setTeamFilter(e.target.value)}><option value="">All teams</option>{filteredOptions.map(o=><option key={o.team_id} value={o.team_id}>{o.team_name} · {o.season_name}</option>)}</select></label>
   </div>
   <div className="finance-summary-grid">
@@ -80,7 +80,7 @@ function FinancePage(){
   <section className="finance-section">
    <div className="hub-section-heading"><span className="hub-kicker">RECORD A FINANCE ENTRY</span><span>Manual only</span></div>
    <form className="finance-entry-form" onSubmit={createEntry}>
-    <label>Team<select required value={teamId} onChange={e=>setTeamId(e.target.value)}><option value="">Choose team</option>{options.map(o=><option key={o.team_id} value={o.team_id}>{o.team_name} · {o.season_name}</option>)}</select></label>
+    <label>Team<select required value={teamId} onChange={e=>setTeamId(e.target.value)}><option value="">Choose team</option>{filteredOptions.map(o=><option key={o.team_id} value={o.team_id}>{o.team_name} · {o.season_name}</option>)}</select></label>
     <label>Entry type<select value={entryType} onChange={e=>setEntryType(e.target.value as FinanceEntry["entry_type"])}><option value="charge">Charge</option><option value="payment">Payment received</option><option value="fine">Fine</option><option value="refund">Refund issued</option><option value="credit">Credit</option></select></label>
     <label>Amount (£)<input required inputMode="decimal" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="0.00"/></label>
     {entryType==="payment"&&<label>Payment method<select value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value)}><option value="bank_transfer">Bank transfer</option><option value="cash">Cash</option><option value="card_terminal">Card terminal</option><option value="other">Other</option></select></label>}
