@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getTeamSheetLimits, validateTeamSheet, type TeamSheetPlayer } from "./rules";
+import { canTransitionFixtureStatus, getTeamSheetLimits, isValidFixtureScore, validateTeamSheet, type TeamSheetPlayer } from "./rules";
 
 function starters(count: number): TeamSheetPlayer[] {
   return Array.from({ length: count }, (_, index) => ({
@@ -63,5 +63,24 @@ describe("team sheet competition rules", () => {
     expect(errors).toContain("Squad numbers must be whole numbers from 1 to 99.");
     expect(errors).toContain("Squad numbers must be unique within the team sheet.");
     expect(validateTeamSheet("six_a_side", starters(6)).valid).toBe(true);
+  });
+});
+
+describe("fixture lifecycle rules", () => {
+  it("allows only the supported fixture status transitions", () => {
+    expect(canTransitionFixtureStatus("scheduled", "in_progress")).toBe(true);
+    expect(canTransitionFixtureStatus("scheduled", "postponed")).toBe(true);
+    expect(canTransitionFixtureStatus("postponed", "scheduled")).toBe(true);
+    expect(canTransitionFixtureStatus("in_progress", "completed")).toBe(false);
+    expect(canTransitionFixtureStatus("completed", "scheduled")).toBe(false);
+    expect(canTransitionFixtureStatus("cancelled", "in_progress")).toBe(false);
+  });
+
+  it("accepts non-negative integer scores within the database SMALLINT range", () => {
+    expect(isValidFixtureScore(0)).toBe(true);
+    expect(isValidFixtureScore(12)).toBe(true);
+    expect(isValidFixtureScore(-1)).toBe(false);
+    expect(isValidFixtureScore(1.5)).toBe(false);
+    expect(isValidFixtureScore(32768)).toBe(false);
   });
 });
