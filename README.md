@@ -8,7 +8,7 @@ This repository is the clean foundation for the Open Play platform.
 
 - **Framework:** TanStack Start (React + TypeScript)
 - **Hosting target:** Cloudflare Workers
-- **Backend target:** Supabase (connected in a later phase)
+- **Backend:** Supabase Auth + Postgres (new Open Play project)
 - **Repository:** openplayfootballleague/OPENPLAYNEW
 
 ## Local development
@@ -24,7 +24,7 @@ Open the local URL printed by Vite (normally http://localhost:3000).
 
 ## Automated verification
 
-GitHub Actions installs the locked dependencies, runs TypeScript and production builds, then validates the Cloudflare Worker bundle with a dry run. The dry run does not publish a deployment.
+GitHub Actions installs the locked dependencies, runs domain tests, TypeScript and production builds, then validates the Cloudflare Worker bundle with a dry run. The dry run does not publish a deployment.
 
 ## Build and preview
 
@@ -45,7 +45,14 @@ Deployment requires Cloudflare authentication and the project to be configured i
 
 ## Environment
 
-Copy `.env.example` to `.env` when Supabase is connected. Never commit real credentials.
+Copy `.env.example` to `.env` for local development. It contains only the public Supabase URL and publishable key. Configure server-only secrets in Cloudflare Worker secrets; never commit service-role or secret keys.
+
+## Account onboarding
+
+- `/sign-up` creates an authenticated account and requires email verification when enabled in Supabase Auth.
+- `/sign-in` supports email/password sign-in and password-reset email requests.
+- `/register-player` calls the `register_player` database RPC for a signed-in user. Account creation alone does not create a player or grant a team role.
+- Configure the Supabase Auth site URL and redirect allow-list to include the deployed Open Play origin and local development origin before testing email links.
 
 ## Project principles
 
