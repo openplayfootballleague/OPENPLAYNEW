@@ -971,6 +971,20 @@ export type Database = {
     }
     Functions: {
       get_admin_dashboard: { Args: never; Returns: Json }
+      get_captain_availability: {
+        Args: never
+        Returns: {
+          fixture_id: string
+          gameweek: number
+          is_available: boolean
+          player_name: string
+          responded_at: string
+          response_note: string
+          scheduled_at: string
+          season_team_id: string
+          team_name: string
+        }[]
+      }
       get_captain_dashboard: {
         Args: never
         Returns: {
