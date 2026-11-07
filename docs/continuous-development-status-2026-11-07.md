@@ -52,7 +52,7 @@
 
 - GitHub Actions run [42422744988](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42422744988) passed all 12 domain tests, TypeScript check, production build and Cloudflare Worker dry run for the season-statistics dashboard.
 - GitHub Actions run [42422509183](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42422509183) passed all 12 domain tests, TypeScript check, production build and Cloudflare Worker dry run for scorer validation and result review.
-- Earlier team-sheet, RLS, admin setup and fixture changes also passed their respective CI runs.
+- Earlier team-sheet, RLS, admin setup and fixture changes also passed their respective CI runs.\n- GitHub Actions run [42424034083](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42424034083) passed all 12 domain tests, TypeScript check, production build and Cloudflare Worker dry run after correcting a literal newline escape in the admin route introduced during transfer-queue work.\n- A subsequent CI run for transfer decision notification copy is pending; the admin transfer queue itself is included in the successful run above.
 - The season-statistics SQL was executed against the empty project and returned the expected empty result sets/zero summary. Real-data calculations still need acceptance testing.
 - Supabase health advisor: no findings.
 - Supabase security advisor: no anonymous-callable SECURITY DEFINER warnings remain. It reports 45 authenticated-callable SECURITY DEFINER functions; a source scan confirmed each includes an identity, role or service-role check. Keep a manual review of those guards in the launch security checklist.
@@ -76,11 +76,11 @@ Separate Open Play reports in the Library document substantial Stage 2–4 work 
 5. Configure Resend and Twilio credentials, verify sender/domain and SMS sender configuration, then test consent, delivery, failure, retry, hold, unconfirmed and opt-out handling with approved test recipients.
 6. Configure an automatic delivery invocation schedule. The current cron schedule enqueues fixture reminders but does not dispatch email/SMS.
 7. Test 24-hour and 3-hour reminders with fixtures and users; verify rescheduling/cancellation invalidates stale reminders.
-8. Finish admin operations and transfer workflows, full matchday lifecycle, payments/Stripe and verified webhooks, reconciliation/refunds, and comprehensive security/acceptance testing.
+8. Finish remaining admin operations and the full matchday lifecycle, payments/Stripe and verified webhooks, reconciliation/refunds, and comprehensive security/acceptance testing.
 9. Merge/reconcile the PWA and official OP branding changes, then complete real-device install/cache testing.
 10. Owner-verify Bideford league, season, venue, team and fixture data before any production seeding. Bideford is the only launch location; Barnstaple and Torrington remain inactive.
 11. Configure production environment variables, Auth redirects, email confirmation, hosting and monitoring. Production deployment has not occurred; CI has only run a Cloudflare Worker dry run.
 
 ## Next execution priority
 
-Finish and verify the current admin player-detail UI build. Then add the remaining player-database acceptance tests and continue with authenticated end-to-end tests. Keep production deployment blocked until the owner-approved test identities, provider configuration, real Bideford data and launch checks are complete.
+Finish and verify the current Player Hub transfer notification build. Then add player-database acceptance tests and continue with authenticated end-to-end tests. Keep production deployment blocked until the owner-approved test identities, provider configuration, real Bideford data and launch checks are complete.
