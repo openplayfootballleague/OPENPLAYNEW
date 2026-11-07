@@ -375,3 +375,10 @@ a { color: inherit; text-decoration: none; }
 .admin-help-tour-progress { display:flex; justify-content:space-between; gap:12px; color:#ff8b5d; font-size:10px; font-weight:800; letter-spacing:.1em; }
 .admin-help-tour-track { height:4px; margin-top:10px; background:#3c403a; }
 .admin-help-tour-track span { display:block; height:100%; background:#ff6b2c; transition:width .2s ease; }
+
+.notification-dispatch-control { margin:18px 0 22px; padding:18px; border:1px solid #d6d4cb; background:#f2f0e9; }
+.notification-dispatch-control .hub-section-heading { margin-bottom:12px; }
+.notification-dispatch-control .admin-genuine-form { margin-top:14px; padding-top:14px; border-top:1px solid #d6d4cb; }
+.notification-dispatch-control .admin-genuine-form > button { margin-top:12px; }
+.notification-dispatch-control .sheet-confirm-check { display:flex; align-items:flex-start; gap:9px; margin-top:12px; color:#45463f; font-size:11px; line-height:1.5; }
+.notification-dispatch-control .sheet-confirm-check input { flex:0 0 auto; margin-top:2px; }
