@@ -495,6 +495,30 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_dispatch_settings: {
+        Row: {
+          enabled: boolean
+          id: boolean
+          reason: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          enabled?: boolean
+          id?: boolean
+          reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          id?: boolean
+          reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       notification_events: {
         Row: {
           attempt_count: number
@@ -1496,6 +1520,17 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_get_notification_dispatch_status: {
+        Args: never
+        Returns: {
+          enabled: boolean
+          reason: string
+          schedule_active: boolean
+          updated_at: string
+          updated_by: string
+          vault_credentials_configured: boolean
+        }[]
+      }
       admin_get_notification_events: {
         Args: { p_limit?: number; p_offset?: number; p_status?: string }
         Returns: {
@@ -1734,6 +1769,21 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_set_notification_dispatch_enabled: {
+        Args: {
+          p_confirm_provider_configuration?: boolean
+          p_enabled: boolean
+          p_reason: string
+        }
+        Returns: {
+          enabled: boolean
+          reason: string
+          schedule_active: boolean
+          updated_at: string
+          updated_by: string
+          vault_credentials_configured: boolean
+        }[]
+      }
       admin_set_notification_hold: {
         Args: { p_event_id: string; p_hold: boolean; p_reason?: string }
         Returns: {
@@ -1945,6 +1995,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      dispatch_notification_worker: { Args: never; Returns: number }
       enqueue_fixture_reminders: { Args: never; Returns: number }
       enqueue_notification_event: {
         Args: { p_event_type: string; p_payload: Json; p_user_id: string }
