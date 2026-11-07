@@ -362,3 +362,16 @@ a { color: inherit; text-decoration: none; }
 .admin-help-warning p { margin:0; color:#55564f; font-size:12px; line-height:1.75; }
 .admin-help-panel .captain-actions { display:flex; flex-wrap:wrap; align-items:center; gap:16px; }
 @media(max-width:700px) { .admin-help-grid { grid-template-columns:1fr; } .admin-help-panel { padding:24px 18px; } }
+
+.admin-help-tour { margin:26px 0 30px; padding:24px; background:#171c18; color:#f5f3ec; }
+.admin-help-tour h2 { margin:12px 0 10px; color:#f5f3ec; font-size:clamp(26px,4vw,36px); }
+.admin-help-tour > p:not(.eyebrow) { max-width:720px; color:#c8c7be; font-size:12px; line-height:1.75; }
+.admin-help-tour .eyebrow { color:#b7b6ad; margin:18px 0 8px; }
+.admin-help-tour .button { margin-top:10px; border:0; cursor:pointer; }
+.admin-help-tour .captain-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+.admin-help-tour .captain-actions button { min-height:42px; padding:0 14px; border:1px solid #6a6b63; background:transparent; color:#f5f3ec; font-size:10px; font-weight:800; cursor:pointer; }
+.admin-help-tour .captain-actions button:disabled { opacity:.4; cursor:not-allowed; }
+.admin-help-tour .captain-actions button:last-child { color:#ff8b5d; }
+.admin-help-tour-progress { display:flex; justify-content:space-between; gap:12px; color:#ff8b5d; font-size:10px; font-weight:800; letter-spacing:.1em; }
+.admin-help-tour-track { height:4px; margin-top:10px; background:#3c403a; }
+.admin-help-tour-track span { display:block; height:100%; background:#ff6b2c; transition:width .2s ease; }
