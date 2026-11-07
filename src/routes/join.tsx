@@ -74,7 +74,7 @@ function JoinPage() {
     event.preventDefault();setError("");setMessage("");setBusy(true);
     try{
       if(!seasonId)throw new Error("There is no open season available for team registration.");
-      const {data,error:rpcError}=await getSupabaseClient().rpc("register_team",{p_season_id:seasonId,p_team_name:teamName.trim(),p_primary_colour:primaryColour||null,p_secondary_colour:secondaryColour||null});
+      const {data,error:rpcError}=await getSupabaseClient().rpc("register_team",{p_season_id:seasonId,p_team_name:teamName.trim(),p_primary_colour:primaryColour||undefined,p_secondary_colour:secondaryColour||undefined});
       if(rpcError)throw rpcError;
       setMessage(`Your application for ${data.name} has been submitted for administrator approval. You will become its captain only after approval.`);
       setTeamName("");setPrimaryColour("");setSecondaryColour("");
