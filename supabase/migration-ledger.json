@@ -1,0 +1,122 @@
+{
+  "project_ref": "ghnrsysvrlgkjmdlwdmp",
+  "snapshot_date": "2026-11-07",
+  "migrations": [
+    {
+      "version": "20261107214404",
+      "name": "20261107220000_initial_platform_schema"
+    },
+    {
+      "version": "20261107214406",
+      "name": "20261107221000_initial_rls_policies"
+    },
+    {
+      "version": "20261107214409",
+      "name": "20261107222000_player_registration_workflows"
+    },
+    {
+      "version": "20261107214624",
+      "name": "20261107223000_rpc_security_hardening"
+    },
+    {
+      "version": "20261107215659",
+      "name": "integrity_and_foreign_key_indexes"
+    },
+    {
+      "version": "20261107215723",
+      "name": "team_registration_and_membership_hardening"
+    },
+    {
+      "version": "20261107215956",
+      "name": "profile_avatar_storage"
+    },
+    {
+      "version": "20261107220045",
+      "name": "captain_dashboard_projection"
+    },
+    {
+      "version": "20261107220139",
+      "name": "admin_dashboard_projection"
+    },
+    {
+      "version": "20261107220520",
+      "name": "team_approval_consistency"
+    },
+    {
+      "version": "20261107220548",
+      "name": "admin_queue_consistency"
+    },
+    {
+      "version": "20261107220639",
+      "name": "captain_team_sheet_submission"
+    },
+    {
+      "version": "20261107220725",
+      "name": "team_sheet_membership_identifiers"
+    },
+    {
+      "version": "20261107220739",
+      "name": "captain_fixture_list"
+    },
+    {
+      "version": "20261107220838",
+      "name": "unique_active_squad_numbers"
+    },
+    {
+      "version": "20261107221445",
+      "name": "public_registration_scope"
+    },
+    {
+      "version": "20261107221644",
+      "name": "captain_availability_privacy"
+    },
+    {
+      "version": "20261107221658",
+      "name": "captain_availability_dashboard"
+    },
+    {
+      "version": "20261107221843",
+      "name": "captain_squad_number_management"
+    },
+    {
+      "version": "20261107222710",
+      "name": "client_table_privileges"
+    },
+    {
+      "version": "20261107222810",
+      "name": "lock_submitted_team_sheets"
+    },
+    {
+      "version": "20261107222901",
+      "name": "team_sheet_goalkeeper_confirmation"
+    },
+    {
+      "version": "20261107223135",
+      "name": "team_sheet_drafts"
+    },
+    {
+      "version": "20261107223312",
+      "name": "admin_team_sheet_amendments"
+    },
+    {
+      "version": "20261107223535",
+      "name": "restrict_anonymous_auth_helpers"
+    },
+    {
+      "version": "20261107223608",
+      "name": "admin_team_sheet_active_memberships"
+    },
+    {
+      "version": "20261107223733",
+      "name": "admin_competition_setup"
+    },
+    {
+      "version": "20261107223909",
+      "name": "admin_team_roster_setup"
+    },
+    {
+      "version": "20261107224104",
+      "name": "admin_publication_lifecycle"
+    }
+  ]
+}
