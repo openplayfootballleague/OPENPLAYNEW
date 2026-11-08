@@ -29,7 +29,7 @@ export default defineConfig({
       VITE_POSTHOG_HOST: "https://eu.i.posthog.com",
       VITE_POSTHOG_PRIVACY_SETTINGS_VERIFIED: "true",
       VITE_SUPABASE_URL: "http://127.0.0.1:54321",
-      VITE_SUPABASE_ANON_KEY: "test-anon-key",
+      VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_browser_test_only",
     },
   },
 });
