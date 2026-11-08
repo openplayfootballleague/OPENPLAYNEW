@@ -49,11 +49,20 @@ export function summarizeFinanceForAnalytics(
 
   for (const entry of entries) {
     const occurredAt = Date.parse(entry.occurredAt);
-    if (!Number.isFinite(occurredAt) || occurredAt < start || occurredAt >= end) continue;
+    if (!Number.isFinite(occurredAt) || occurredAt >= end) continue;
     if (!entry.teamId || !Number.isSafeInteger(entry.amountPence) || entry.amountPence <= 0) {
       throw new RangeError("Analytics finance entries require a team and positive integer pence.");
     }
 
+    // Outstanding balance is a point-in-time balance as at the end of the
+    // reporting period, so it must include earlier ledger entries too.
+    const impact = entry.entryType === "charge" || entry.entryType === "fine"
+      ? entry.amountPence
+      : -entry.amountPence;
+    teamBalances.set(entry.teamId, (teamBalances.get(entry.teamId) ?? 0) + impact);
+
+    // Flow metrics are limited to the selected half-open reporting window.
+    if (occurredAt < start) continue;
     switch (entry.entryType) {
       case "charge":
         chargesPence += entry.amountPence;
@@ -71,11 +80,6 @@ export function summarizeFinanceForAnalytics(
         creditsPence += entry.amountPence;
         break;
     }
-
-    const impact = entry.entryType === "charge" || entry.entryType === "fine"
-      ? entry.amountPence
-      : -entry.amountPence;
-    teamBalances.set(entry.teamId, (teamBalances.get(entry.teamId) ?? 0) + impact);
   }
 
   return {
