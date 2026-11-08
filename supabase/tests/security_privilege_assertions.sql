@@ -99,3 +99,4 @@ select
   (select pg_get_functiondef('public.get_my_team_request_statuses()'::regprocedure) ilike '%auth.uid() is not null%'
     and pg_get_functiondef('public.get_my_team_request_statuses()'::regprocedure) ilike '%tm.user_id = auth.uid()%'
     and pg_get_functiondef('public.get_my_team_request_statuses()'::regprocedure) ilike '%limit 100%') as team_request_status_rpc_is_self_scoped_and_bounded;
+  ,(select count(*) = 0 from public.get_my_team_request_statuses()) as team_request_status_rpc_returns_no_rows_without_auth_claim;
