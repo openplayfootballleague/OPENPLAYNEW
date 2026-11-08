@@ -204,3 +204,9 @@ This is a **deployment blocker**: do not run `supabase db push` or treat the cur
 
 ## Canonical OP logo asset integration blocker
 The exact canonical orange connected OP monogram is present in the user's Library as `Vivid Orange Sporty Op Monogram.png` (1254×1254, transparent background); I inspected the original asset and confirmed it is the single intended OP mark. The current repository `public/open-play-logo.png` remains an older horizontal asset (208×115), so the app header/PWA branding is not yet verified against the canonical source. The available GitHub file-creation action accepts text/base64 strings, but the file connector exposes the materialized image only as an opaque image pointer; there is no safe binary pass-through to the repository in this session. I have not redrawn, approximated, recompressed or substituted the logo. Exact binary upload is still required before branding acceptance.
+
+
+## Public Gallery implementation and hosted verification — 8 November 2026
+PR #6 now includes the public Gallery route, admin upload/publish controls, and a `public-gallery` Edge Function. The hosted function is deployed as version 2 with `verify_jwt=true`; its deployed source was compared with the current PR branch and is identical. Read-only Supabase checks confirm the `open-play-gallery` bucket is private, limited to 10 MB and JPG/PNG/WebP, with storage policies allowing public reads only for published gallery items and assigned-admin access to location-scoped objects. The two gallery migrations are present in the live 98-row ledger.
+
+The project currently has **zero active locations and zero gallery items**, so real public gallery content/URL acceptance cannot yet be exercised. No images were uploaded and no location was activated. The gallery migration local filename prefixes do not yet match their actual ledger versions; this is covered by the migration deployability blocker above.
