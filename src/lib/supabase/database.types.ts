@@ -1362,6 +1362,10 @@ export type Database = {
         Args: { p_location_id?: string | null; p_league_id?: string | null; p_season_id?: string | null }
         Returns: Json
       }
+      admin_search_location_admin_candidates: {
+        Args: { p_query: string }
+        Returns: { user_id: string; email: string; display_name: string }[]
+      }
       admin_list_location_assignments: {
         Args: { p_location_id?: string | null }
         Returns: { assignment_id: string; user_id: string; location_id: string; location_name: string; assigned_at: string }[]
