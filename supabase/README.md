@@ -20,7 +20,7 @@ supabase stop --no-backup
 
 These commands start and reset only the local Docker-backed Supabase stack. The `--local` flag is intentional. Do not substitute `--linked`, `--remote`, or a hosted database URL for clean replay or routine tests.
 
-CI runs the full migration replay on an isolated local database, then executes catalog-level security assertions. A successful replay proves the committed migration set can construct a fresh local schema; it does not by itself prove production equivalence, authenticated multi-user behaviour, backup recovery, or release readiness.
+CI runs the full migration replay on an isolated local database, then executes catalog-level security assertions. A successful replay proves the committed migration set can construct a fresh local schema; it does not by itself prove production equivalence, authenticated multi-user behaviour, backup recovery, or release readiness. The same job runs synthetic player/captain/location-admin/global-admin/finance-admin role checks, membership/location/finance authorization regressions, and finance-ledger balance tests covering charges, payments, refunds, credits, fines and overpaid teams.
 
 ## Applying migrations
 
