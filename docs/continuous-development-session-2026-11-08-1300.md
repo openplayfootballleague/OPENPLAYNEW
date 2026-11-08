@@ -105,3 +105,8 @@ A fresh read-only `list_migrations` call returned **98 rows and 98 unique versio
 ### PR #22 timestamp review correction
 
 The initial review flagged the `20261108290000` migration prefix as an invalid hour. A subsequent check of the target feature branch found existing ordered migration filenames using `20261108270000` and `20261108280000`. The repository therefore appears to use extended numeric ordering labels in this sequence; the earlier timestamp concern is **not a confirmed defect** and was corrected in a follow-up PR comment. The actual blockers remain missing CI, clean replay/SQL compilation and authenticated role-matrix evidence.
+
+
+### Role-provisioning owner decision — issue #24
+
+A personal-context review found no exact owner-approved grant/revoke authority matrix, bootstrap identity-verification rule, or final-super-admin-removal safeguard. A comment was added to issue #24 recording this as an approval dependency. No role or Auth user was created. Do not infer who may grant or revoke `admin`, `super_admin`, `finance_admin` or `league_admin`; continue with independent work until that decision is supplied.
