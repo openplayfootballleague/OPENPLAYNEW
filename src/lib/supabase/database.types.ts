@@ -646,46 +646,67 @@ export type Database = {
       payment_records: {
         Row: {
           amount_pence: number
+          amount_refunded_pence: number
+          checkout_attempt: number
           created_at: string
           currency: string
           fee_snapshot: Json
           fixture_id: string | null
           id: string
+          last_stripe_event_at: string | null
+          net_amount_pence: number | null
           paid_at: string | null
+          player_user_id: string | null
           refunded_at: string | null
           season_team_id: string
           status: Database["public"]["Enums"]["payment_status"]
           stripe_checkout_session_id: string | null
+          stripe_customer_id: string | null
+          stripe_fee_pence: number | null
           stripe_payment_intent_id: string | null
           updated_at: string
         }
         Insert: {
           amount_pence: number
+          amount_refunded_pence?: number
+          checkout_attempt?: number
           created_at?: string
           currency?: string
           fee_snapshot: Json
           fixture_id?: string | null
           id?: string
+          last_stripe_event_at?: string | null
+          net_amount_pence?: number | null
           paid_at?: string | null
+          player_user_id?: string | null
           refunded_at?: string | null
           season_team_id: string
           status?: Database["public"]["Enums"]["payment_status"]
           stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_fee_pence?: number | null
           stripe_payment_intent_id?: string | null
           updated_at?: string
         }
         Update: {
           amount_pence?: number
+          amount_refunded_pence?: number
+          checkout_attempt?: number
           created_at?: string
           currency?: string
           fee_snapshot?: Json
           fixture_id?: string | null
           id?: string
+          last_stripe_event_at?: string | null
+          net_amount_pence?: number | null
           paid_at?: string | null
+          player_user_id?: string | null
           refunded_at?: string | null
           season_team_id?: string
           status?: Database["public"]["Enums"]["payment_status"]
           stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_fee_pence?: number | null
           stripe_payment_intent_id?: string | null
           updated_at?: string
         }
