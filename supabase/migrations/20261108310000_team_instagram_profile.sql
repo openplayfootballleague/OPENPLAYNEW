@@ -179,7 +179,7 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select st.id, st.name, s.id, s.name, s.starts_on,
          st.primary_colour, st.secondary_colour, t.instagram_profile_url
   from public.season_teams st
@@ -192,7 +192,7 @@ as $
     and l.is_published=true
     and (p_season_team_id is null or st.id=p_season_team_id)
   order by s.starts_on desc, s.name, st.name;
-$;
+$$;
 
 revoke all on function public.get_public_team_directory(uuid) from public, anon;
 grant execute on function public.get_public_team_directory(uuid) to anon, authenticated;
