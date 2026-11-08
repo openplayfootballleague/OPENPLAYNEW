@@ -116,3 +116,51 @@ $profile_self_service_permissions$;
 -- 3. User A cannot update User B's profile row.
 -- 4. User A can upload/replace/delete only objects in User A's UUID folder.
 -- 5. User A cannot upload/replace/delete objects in User B's UUID folder.
+
+
+-- Runtime ownership test: avatar replacement is allowed only on the caller's row.
+do $profile_self_service_runtime$
+declare
+  v_user_a uuid := '00000000-0000-4000-8000-000000000301';
+  v_user_b uuid := '00000000-0000-4000-8000-000000000302';
+  v_rows integer;
+  v_denied boolean := false;
+begin
+  insert into auth.users (id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
+  values
+    (v_user_a,'authenticated','authenticated','ci-profile-a@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    (v_user_b,'authenticated','authenticated','ci-profile-b@openplay.invalid','','{}'::jsonb,now(),now(),now());
+
+  insert into public.profiles(id,first_name,last_name,display_name,phone,preferred_position,created_at,updated_at)
+  values
+    (v_user_a,'Profile','Owner A','Owner A','+447700900301','Defender',now(),now()),
+    (v_user_b,'Profile','Owner B','Owner B','+447700900302','Forward',now(),now())
+  on conflict (id) do nothing;
+
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_user_a::text,true);
+
+  update public.profiles set avatar_path=v_user_a::text||'/avatar.png' where id=v_user_a;
+  get diagnostics v_rows = row_count;
+  if v_rows <> 1 then
+    raise exception 'A player must be able to update their own avatar path';
+  end if;
+
+  begin
+    update public.profiles set first_name='Unauthorized' where id=v_user_a;
+  exception when insufficient_privilege then
+    v_denied := true;
+  end;
+  if not v_denied then
+    raise exception 'A player must not update their own identity fields directly';
+  end if;
+
+  update public.profiles set avatar_path=v_user_a::text||'/other-user.png' where id=v_user_b;
+  get diagnostics v_rows = row_count;
+  if v_rows <> 0 then
+    raise exception 'A player must not update another user's avatar path';
+  end if;
+
+  execute 'reset role';
+end;
+$profile_self_service_runtime$;
