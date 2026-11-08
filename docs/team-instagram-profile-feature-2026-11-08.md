@@ -53,3 +53,13 @@ Latest workflow run `42469768931` for commit `d341295ad9d9f7ae8f88200e5b42e7f5c8
 The previous failures were corrected: duplicate RPC type declarations were removed, and the generated database types now keep `admin_create_season_team` separate from the extended `register_team` signature.
 
 A hosted Supabase development branch was not created: the Supabase tool requires explicit cost confirmation before provisioning. No production migration was applied. SQL migration execution and role/row-level behaviour therefore remain unverified.
+
+## Follow-up: individual team profile route — 8 November 2026
+
+The initial implementation exposed the conditional Instagram link on each team directory card. Review confirmed this branch did not yet contain an individual public team-profile route, despite the intended acceptance behaviour referring to an in-app team profile. Added:
+- `src/routes/teams.$teamId.tsx`: public profile for an approved season-team entry, limited to public active/completed seasons.
+- Directory team names now link to their individual profile.
+- Instagram link is displayed on the profile only when the team-level URL exists; no URL means no icon or link.
+- Profile CSS preserves the established visual system.
+
+This is an additional code change awaiting CI. It has not been deployed. Database/RLS behaviour and real-device navigation remain unverified. The profile route intentionally uses the same public-season and approved-team filters as the directory; it does not expose player/member records.
