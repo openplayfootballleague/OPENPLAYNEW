@@ -79,7 +79,7 @@ function FinancePage(){
  }
  const total=(key:"charges_pence"|"payments_pence"|"refunds_pence"|"credits_pence"|"fines_pence"|"outstanding_pence")=>summary.reduce((n,s)=>n+Number(s[key]??0),0);
  return <main className="notice-page finance-page"><section className="notice-panel finance-panel">
-  <Link className="notice-brand" to="/admin">OPEN PLAY · ADMIN</Link>
+  <Link className="notice-brand" to="/player"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link>
   <p className="eyebrow eyebrow-dark">FINANCE · LEDGER & CARD PAYMENTS</p>
   <h1>Money<br/><em>matters.</em></h1>
   <p className="finance-intro">Manage the internal team ledger and review player fixture payments processed through the separately configured Stripe Checkout service.</p>
