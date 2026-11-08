@@ -187,3 +187,14 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - The user supplied the exact connected orange OP mark again in this session (1254×1254 RGBA PNG, 459,212 bytes). It is confirmed as the canonical logo reference. The asset is not yet in the Git repository: the available GitHub binary blob API accepts base64 text but this execution environment does not expose the local uploaded file bytes to that connector action. No lossy recreation or external-host substitution was made.
 - The bottom-navigation component commit `fa5418a9377479ece2637c9e8da90211b44ea861` passed CI run 42429786708. The first route integrations passed CI runs 42429794337 (Teams), 42429804062 (Captain Hub) and the initial CSS run was pending at time of writing. Remaining route/style CI runs: 42429813808, 42429821498 and 42429828850; confirm before declaring the entire navigation change green.
 - Browser-based visual acceptance has not yet been performed. Public marketing homepage and Admin Dashboard remain unchanged.
+
+
+## 8 November 2026 — navigation CI and database advisor review
+
+- Confirmed the documentation commit for the shared navigation passed CI run 42429873263.
+- Completed the shared navigation integration on sign-in, sign-up, player-registration and password-reset routes. Latest commits: `191c6689f58fed8bb5f7cbf65df304949d3b7830` and `1b1b534043b161b90c6c318861b80e489e148348`. These final two route commits are awaiting their own CI runs at the time of this update.
+- Supabase security and performance advisors were run against development project `ghnrsysvrlgkjmdlwdmp`.
+- Security advisor reported 63 SECURITY DEFINER functions executable by authenticated users. Inspection of representative definitions confirms they include explicit in-function authorization checks (e.g. `has_platform_role()`, `has_finance_access()`, `is_active_team_captain()`, or `auth.uid()` ownership checks); the linter warning is not by itself proof of an authorization bypass. Anonymous execution was false for the inspected function set. A full per-function authorization review is still required before production.
+- Performance advisor reports multiple permissive RLS policies on 15 tables and 51 unused indexes. These are review candidates, not safe automatic cleanup: several permissive policies deliberately combine admin management with player/captain access, and unused indexes may be useful under real workload. No policies or indexes were changed.
+- A first attempt to call the advisor without its required `type` parameter failed validation and made no database changes; both subsequent typed advisor calls succeeded.
+- No production configuration, live payments, or production data were changed.
