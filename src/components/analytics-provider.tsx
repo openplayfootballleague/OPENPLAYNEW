@@ -253,6 +253,7 @@ function AnalyticsE2EDiagnostics({
       data-consent-allowed={String(allowed)}
       data-sdk-ready={String(sdkReady)}
       data-posthog-loaded={String(posthog.__loaded)}
+      data-posthog-opted-out={String(posthog.has_opted_out_capturing())}
       data-posthog-capturing={String(allowed && sdkReady)}
       data-posthog-opted-in={String(allowed && sdkReady)}
       data-posthog-token={tokenConfigured ? "present" : "missing"}
