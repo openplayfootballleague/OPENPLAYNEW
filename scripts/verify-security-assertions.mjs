@@ -21,12 +21,14 @@ BEGIN
 ${source}
   ) AS assertions;
 
-  SELECT
-    string_agg(key, ', ' ORDER BY key),
-    count(*)::integer
-  INTO failed_assertions, assertion_count
+  SELECT string_agg(key, ', ' ORDER BY key)
+  INTO failed_assertions
   FROM jsonb_each(to_jsonb(assertion_results))
   WHERE value IS DISTINCT FROM 'true'::jsonb;
+
+  SELECT count(*)::integer
+  INTO assertion_count
+  FROM jsonb_each(to_jsonb(assertion_results));
 
   IF failed_assertions IS NOT NULL THEN
     RAISE EXCEPTION 'Security assertions failed: %', failed_assertions;
