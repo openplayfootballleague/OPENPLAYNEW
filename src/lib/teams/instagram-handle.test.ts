@@ -6,6 +6,11 @@ describe("Instagram team handle validation", () => {
     expect(normalizeInstagramHandle("@Open.Play_01")).toBe("Open.Play_01");
     expect(normalizeInstagramHandle("OpenPlay")).toBe("OpenPlay");
   });
+  it("accepts a maximum-length username with an optional @ prefix", () => {
+    const username = "a".repeat(30);
+    expect(normalizeInstagramHandle(username)).toBe(username);
+    expect(normalizeInstagramHandle(`@${username}`)).toBe(username);
+  });
   it("treats an omitted handle as no handle", () => {
     expect(normalizeInstagramHandle("")).toBeNull();
     expect(normalizeInstagramHandle(null)).toBeNull();
