@@ -5,6 +5,21 @@ const POSTHOG_ORIGIN = "https://eu.i.posthog.com";
 const CONSENT_KEY = "open-play.analytics-consent.v1";
 
 async function interceptPostHog(page: Page, requests: string[]) {
+  // PostHog may use sendBeacon, which is not intercepted by page.route.
+  // Stub it before app code runs and record the URL without network egress.
+  await page.addInitScript(() => {
+    (window as typeof window & { __openPlayPostHogBeacons?: string[] }).__openPlayPostHogBeacons = [];
+    const originalSendBeacon = navigator.sendBeacon?.bind(navigator);
+    navigator.sendBeacon = (url, data) => {
+      const href = String(url);
+      if (new URL(href, location.href).hostname.toLowerCase().endsWith("posthog.com")) {
+        (window as typeof window & { __openPlayPostHogBeacons?: string[] }).__openPlayPostHogBeacons?.push(href);
+        return true;
+      }
+      return originalSendBeacon ? originalSendBeacon(url, data) : false;
+    };
+  });
+
   await page.route("**/*", async (route) => {
     const url = route.request().url();
     const hostname = new URL(url).hostname.toLowerCase();
@@ -27,6 +42,13 @@ async function interceptPostHog(page: Page, requests: string[]) {
   });
 }
 
+async function observedPostHogRequests(page: Page, routedRequests: string[]) {
+  const beacons = await page.evaluate(() =>
+    (window as typeof window & { __openPlayPostHogBeacons?: string[] }).__openPlayPostHogBeacons?.length ?? 0
+  );
+  return routedRequests.length + beacons;
+}
+
 test("does not contact PostHog before opt-in and stops after same-tab revocation", async ({ page }) => {
   const requests: string[] = [];
   await interceptPostHog(page, requests);
@@ -36,7 +58,7 @@ test("does not contact PostHog before opt-in and stops after same-tab revocation
   await expect(page.getByRole("complementary", { name: "Optional analytics preferences" })).toBeVisible();
   await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
   await page.waitForTimeout(300);
-  expect(requests).toHaveLength(0);
+  expect(await observedPostHogRequests(page, requests)).toBe(0);
 
   await page.locator(".account-security-section").getByRole("button", { name: "ALLOW OPTIONAL ANALYTICS" }).click();
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("granted");
@@ -54,9 +76,9 @@ test("does not contact PostHog before opt-in and stops after same-tab revocation
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("denied");
   await expect(page.getByText("Declined on this device")).toBeVisible();
   await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
-  const requestsAfterRevocation = requests.length;
+  const requestsAfterRevocation = await observedPostHogRequests(page, requests);
   await page.waitForTimeout(300);
-  expect(requests).toHaveLength(requestsAfterRevocation);
+  expect(await observedPostHogRequests(page, requests)).toBe(requestsAfterRevocation);
 
   await page.reload();
   await expect(page.getByText("Declined on this device")).toBeVisible();
@@ -108,13 +130,13 @@ test("cross-tab opt-in and revocation update the other tab", async ({ page, cont
   await expect(firstTabProbe).toHaveAttribute("data-posthog-capturing", "true");
   await expect(firstTabProbe).toHaveAttribute("data-posthog-opted-in", "true");
   await firstTabProbe.click();
-  await expect.poll(() => firstTabRequests.length, { timeout: 10_000 }).toBeGreaterThan(0);
+  await expect.poll(() => observedPostHogRequests(page, firstTabRequests), { timeout: 10_000 }).toBeGreaterThan(0);
 
   await secondTab.evaluate((key) => localStorage.setItem(key, "denied"), CONSENT_KEY);
   await expect(firstTabProbe).toHaveCount(0);
-  const requestsAfterCrossTabRevocation = firstTabRequests.length;
+  const requestsAfterCrossTabRevocation = await observedPostHogRequests(page, firstTabRequests);
   await page.waitForTimeout(300);
-  expect(firstTabRequests).toHaveLength(requestsAfterCrossTabRevocation);
+  expect(await observedPostHogRequests(page, firstTabRequests)).toBe(requestsAfterCrossTabRevocation);
 
   await page.reload();
   await expect(page.getByText("Declined on this device")).toBeVisible();
