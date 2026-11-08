@@ -26,3 +26,12 @@ Continued work on the existing draft pull request #13. No merge, deployment, pro
 
 ## Next task
 Obtain a CI result for the current branch head and review the shared navigation in a real browser at phone, tablet, and desktop widths. Then continue with the original logo asset transfer path without altering the source image.
+
+## Follow-up correction — account-state navigation
+A review of the full application audit and definitive 6 November account-state addendum found that a simple role-link list was insufficient. The shared navigation was revised to derive the primary Home destination from the signed-in state and to distinguish an approved player from an unregistered account:
+- Visitor: Home → public home; Match Centre; Teams; Join Open Play; sign-in.
+- Signed-in account without an approved player registration: Home → Player Hub; Match Centre; Teams; Join Open Play; My account.
+- Approved player: Home → Player Hub; Match Centre; Teams; My account. Join is removed.
+- Approved captain: same player destinations plus Matchday, only when an active captain membership exists.
+- Admin and Finance links remain independently role-gated, so admin access does not depend on a player link.
+This is a source-level implementation only. The required complete five-tab shell (including More), the account-state transition tests, and actual browser/device acceptance remain open. No fake More route was added.
