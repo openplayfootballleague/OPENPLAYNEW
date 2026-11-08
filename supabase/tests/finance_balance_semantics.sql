@@ -61,7 +61,7 @@ begin
   from public.get_finance_summary('00000000-0000-4000-8000-000000000030');
 
   if v_summary.charges_pence <> 10000
-     or v_summary.payments_pence <> 3000
+     or v_summary.payments_pence <> 8000
      or v_summary.refunds_pence <> 2000
      or v_summary.credits_pence <> 500
      or v_summary.fines_pence <> 1000
@@ -69,12 +69,25 @@ begin
     raise exception 'Unexpected finance summary for season A: %',row_to_json(v_summary);
   end if;
 
+  -- The overpaid second team retains its own negative balance. Its credit
+  -- must not offset the first team's positive debt in the season roll-up.
+  select max(team_balance_pence)
+  into v_balance
+  from public.get_finance_ledger(
+    '00000000-0000-4000-8000-000000000030',
+    '00000000-0000-4000-8000-000000000052'
+  );
+
+  if v_balance <> -5000 then
+    raise exception 'Expected the overpaid team's individual balance to be -5000 pence, got %',v_balance;
+  end if;
+
   select * into v_summary
   from public.get_finance_summary('00000000-0000-4000-8000-000000000030');
 
-  if v_summary.payments_pence <> 5000
-     or v_summary.outstanding_pence <> 0 then
-    raise exception 'Overpaid team should have zero outstanding and must not offset another season: %',row_to_json(v_summary);
+  if v_summary.payments_pence <> 8000
+     or v_summary.outstanding_pence <> 9500 then
+    raise exception 'Overpaid team must not offset another team's positive debt: %',row_to_json(v_summary);
   end if;
 
   execute 'reset role';
