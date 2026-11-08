@@ -23,7 +23,7 @@ function SignUpPage() {
     finally{setBusy(false);}
   }
   return <main className="notice-page player-facing"><section className="notice-panel auth-panel">
-    <Link className="notice-brand" to="/">OPEN PLAY</Link><p className="eyebrow eyebrow-dark">JOIN THE COMMUNITY</p>
+    <Link className="notice-brand" to="/player"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link><p className="eyebrow eyebrow-dark">JOIN THE COMMUNITY</p>
     <h1>Create<br/><em>account.</em></h1><p>Start with your account. You can register as a player separately after verifying your email.</p>
     <form className="auth-form" onSubmit={submit}>
       <label>Email address<input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label>
