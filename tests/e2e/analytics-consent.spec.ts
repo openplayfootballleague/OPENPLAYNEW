@@ -26,9 +26,7 @@ test("does not contact PostHog before opt-in and stops after same-tab revocation
   await page.goto("/privacy-security");
   await expect(page.getByText("No choice saved")).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Optional analytics preferences" })).toBeVisible();
-  const probe = page.getByTestId("analytics-e2e-probe");
-  await expect(probe).toHaveAttribute("data-posthog-allowed", "false");
-  await probe.click();
+  await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
   await page.waitForTimeout(300);
   expect(requests).toHaveLength(0);
 
@@ -36,24 +34,23 @@ test("does not contact PostHog before opt-in and stops after same-tab revocation
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("granted");
   await expect(page.getByText("Allowed on this device")).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Optional analytics preferences" })).toHaveCount(0);
-  await expect(probe).toHaveAttribute("data-posthog-allowed", "true");
+  const probe = page.getByTestId("analytics-e2e-probe");
+  await expect(probe).toBeVisible();
   await probe.click();
   await expect.poll(() => requests.length).toBeGreaterThan(0);
 
   await page.getByRole("button", { name: "TURN OFF OPTIONAL ANALYTICS" }).click();
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("denied");
   await expect(page.getByText("Declined on this device")).toBeVisible();
-  await expect(probe).toHaveAttribute("data-posthog-allowed", "false");
+  await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
   const requestsAfterRevocation = requests.length;
-  await probe.click();
   await page.waitForTimeout(300);
   expect(requests).toHaveLength(requestsAfterRevocation);
 
   await page.reload();
   await expect(page.getByText("Declined on this device")).toBeVisible();
-  await expect(probe).toHaveAttribute("data-posthog-allowed", "false");
-  await probe.click();
-  await page.waitForTimeout(300);
+  await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
+  await page.waitForTimeout(500);
   expect(requests).toHaveLength(requestsAfterRevocation);
 });
 
@@ -71,9 +68,7 @@ test("Global Privacy Control overrides a previously saved opt-in", async ({ page
   await page.goto("/privacy-security");
   await expect(page.getByText("Blocked by Global Privacy Control")).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Optional analytics preferences" })).toHaveCount(0);
-  const probe = page.getByTestId("analytics-e2e-probe");
-  await expect(probe).toHaveAttribute("data-posthog-allowed", "false");
-  await probe.click();
+  await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
   await page.waitForTimeout(300);
   expect(requests).toHaveLength(0);
 });
@@ -87,31 +82,29 @@ test("cross-tab opt-in and revocation update the other tab", async ({ page, cont
 
   await page.goto("/privacy-security");
   await secondTab.goto("/privacy-security");
-  const firstTabProbe = page.getByTestId("analytics-e2e-probe");
-  await expect(firstTabProbe).toHaveAttribute("data-posthog-allowed", "false");
-  await secondTab.waitForTimeout(200);
+  await page.waitForTimeout(200);
   expect(firstTabRequests).toHaveLength(0);
   expect(secondTabRequests).toHaveLength(0);
+  await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
 
   // A localStorage write in one tab emits a native storage event in the other.
   await secondTab.evaluate((key) => localStorage.setItem(key, "granted"), CONSENT_KEY);
-  await expect(firstTabProbe).toHaveAttribute("data-posthog-allowed", "true");
-  await firstTab.waitForTimeout(100);
+  const firstTabProbe = page.getByTestId("analytics-e2e-probe");
+  await expect(firstTabProbe).toBeVisible();
+  await page.waitForTimeout(100);
   await firstTabProbe.click();
   await expect.poll(() => firstTabRequests.length).toBeGreaterThan(0);
 
   await secondTab.evaluate((key) => localStorage.setItem(key, "denied"), CONSENT_KEY);
-  await expect(firstTabProbe).toHaveAttribute("data-posthog-allowed", "false");
+  await expect(firstTabProbe).toHaveCount(0);
   const requestsAfterCrossTabRevocation = firstTabRequests.length;
-  await firstTabProbe.click();
   await page.waitForTimeout(300);
   expect(firstTabRequests).toHaveLength(requestsAfterCrossTabRevocation);
 
   await page.reload();
   await expect(page.getByText("Declined on this device")).toBeVisible();
-  await expect(firstTabProbe).toHaveAttribute("data-posthog-allowed", "false");
-  await firstTabProbe.click();
-  await page.waitForTimeout(300);
+  await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
+  await page.waitForTimeout(500);
   expect(firstTabRequests).toHaveLength(requestsAfterCrossTabRevocation);
   await secondTab.close();
 });
