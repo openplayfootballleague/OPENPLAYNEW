@@ -36,7 +36,7 @@ function SignInPage() {
   }
 
   return <main className="notice-page player-facing"><section className="notice-panel auth-panel">
-    <Link className="notice-brand" to="/">OPEN PLAY</Link><p className="eyebrow eyebrow-dark">PLAYER ACCESS</p>
+    <Link className="notice-brand" to="/player"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link><p className="eyebrow eyebrow-dark">PLAYER ACCESS</p>
     <h1>Welcome<br/><em>back.</em></h1><p>Sign in to access your Open Play account.</p>
     <form className="auth-form" onSubmit={signIn}>
       <label>Email address<input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} /></label>
