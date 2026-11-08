@@ -27,12 +27,13 @@ export function validateInitialSquad(
   const maximumSubstitutes = format === 6 ? 3 : 4;
   const maximumSquad = requiredStarters + maximumSubstitutes;
 
-  if (!applicantUserId.trim()) errors.push("The applicant identity is missing.");
+  const applicantId = applicantUserId.trim().toLowerCase();
+  if (!applicantId) errors.push("The applicant identity is missing.");
   if (members.length > maximumSquad) {
     errors.push(`A ${format}-a-side squad can contain no more than ${maximumSquad} players.`);
   }
 
-  const ids = members.map((member) => member.playerId.trim());
+  const ids = members.map((member) => member.playerId.trim().toLowerCase());
   if (ids.some((id) => !id)) errors.push("Every squad member must have a player identity.");
   if (new Set(ids).size !== ids.length) errors.push("A player can only appear once in the initial squad.");
 
@@ -48,7 +49,7 @@ export function validateInitialSquad(
   const captains = members.filter((member) => member.isCaptain);
   if (captains.length !== 1) {
     errors.push("The initial squad must identify exactly one captain.");
-  } else if (captains[0].playerId !== applicantUserId) {
+  } else if (captains[0].playerId.trim().toLowerCase() !== applicantId) {
     errors.push("The team applicant must be the nominated captain.");
   }
 
