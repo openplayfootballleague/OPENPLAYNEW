@@ -96,6 +96,7 @@ function AnalyticsE2EDiagnostics({
   host: string | undefined;
   error: string | null;
 }) {
+  const [captureCalled, setCaptureCalled] = useState(false);
   if (import.meta.env.VITE_OPENPLAY_ANALYTICS_E2E !== "true") return null;
 
   return (
@@ -110,15 +111,19 @@ function AnalyticsE2EDiagnostics({
       data-posthog-token={tokenConfigured ? "present" : "missing"}
       data-posthog-host={host ?? "missing"}
       data-posthog-error={error ?? ""}
+      data-posthog-capture-called={String(captureCalled)}
     >
       <button
         type="button"
         data-testid="analytics-e2e-probe"
-        onClick={() => posthog.capture(
-          "openplay_e2e_consent_probe",
-          { test_mode: true },
-          { send_instantly: true, transport: "fetch" },
-        )}
+        onClick={() => {
+          setCaptureCalled(true);
+          posthog.capture(
+            "openplay_e2e_consent_probe",
+            { test_mode: true },
+            { send_instantly: true, transport: "fetch" },
+          );
+        }}
       >
         Send analytics test probe
       </button>
