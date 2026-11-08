@@ -93,3 +93,25 @@ The PostHog SDK, UI, aggregate reporting, exports, and end-to-end acceptance rem
 15. Added comparison-window helpers for immediately preceding equal-duration periods and previous-calendar-year periods, including safe leap-day handling. Added boundary and invalid-range tests.
 16. CI passed for both registration-growth commits `4953719497dd04963e6c46d8c1fa52cc608a4e03` and `ce251f412aaf8eede5812825cdefba3a75aa85cb`. This verifies the growth implementation and its tests.
 17. Added comparison-period helper files `src/lib/analytics/periods.ts` and `src/lib/analytics/periods.test.ts`. CI for this latest addition is queued/in progress and not yet verified.
+
+## Continuous execution follow-up — 8 November 2026, 10:xx UTC
+
+18. Rechecked the 98-row hosted Supabase migration ledger and repository branch ancestry. Current SQL source-file counts: production ledger 98 records, Stripe checkout branch 94 files, main 62 files, visual-refresh branch 63 files. PR #2 (migration reconciliation), PR #6 (Stripe checkout), PR #8 (audit docs) and PR #13 (visual refresh) remain open/unmerged. PR #13 is based on main, not the Stripe branch. This is a material integration gap; do not merge branches independently or assume migration filenames alone resolve it. Updated `docs/supabase-migration-source-recovery-2026-11-08.md` on the recovery branch with this evidence. Six missing applied source files and three unmatched files remain unresolved from the previous recovery audit.
+19. Added public individual team profiles at `src/routes/teams.$teamId.tsx`. Public directory names link to the matching season-team profile. The profile filters to approved entries in public active/completed seasons and conditionally renders the team Instagram link only when the validated team URL exists. Added responsive-compatible profile styling. No player/member data is exposed by this route.
+20. Updated `docs/team-instagram-profile-feature-2026-11-08.md` to record the individual profile route and its remaining acceptance checks.
+
+### Verification and blockers
+
+- Existing baseline CI at commit `d341295ad9d9f7ae8f88200e5b42e7f5c87d10f2` passed: 61 tests, Supabase Edge Function type-check, TypeScript/production build and Cloudflare Worker dry run.
+- New team profile route commits `241d8a6`, `e30cc67`, and `a4accbb` have not yet passed CI. Three workflow attempts failed at the Deno setup step before application tests ran; this is an infrastructure setup failure, not evidence of a code failure. The latest docs-triggered run `42470183329` has been re-run (attempt 2) and is pending.
+- No Supabase dev branch was provisioned because the connector requires cost confirmation. No production migration was applied.
+- No PR was merged and no deployment occurred.
+- Database migration reconciliation, the six original SQL sources, three unmatched source mappings, SQL execution and live role tests remain outstanding.
+- The individual team profile has not yet been browser-tested or verified against production RLS.
+
+### Next execution order
+
+1. Complete CI for the individual team profile route; fix any code failures.
+2. Continue authoritative migration-source recovery and branch integration planning. Do not synthesize missing originals or merge PRs without preserving the reviewed migration set.
+3. Once migration history is reconciled and a safe isolated DB is available, fix security issue #9, then #10 and #11 with role-based regression tests.
+4. Continue PostHog SDK/consent integration and Section 48 Analytics UI/data contracts.
