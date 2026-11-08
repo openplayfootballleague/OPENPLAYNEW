@@ -214,3 +214,12 @@ The project currently has **zero active locations and zero gallery items**, so r
 - Follow-up: the `player_team_request_status_rpc` migration source has been restored on PR #6 under the actual live ledger version `20261108020706_player_team_request_status_rpc.sql`, replacing the mismatched `20261108021000_...` filename. This raises exact prefix alignment on that branch from zero to one; the other mismatches and nine duplicate prefixes remain open.
 
 - PR #6 latest head `0754c34f9d3b2f1bdaed79c9d0905145b26d6ba8` passed CI run `42437517983`: Deno type-check, 74 tests across 7 files, TypeScript/Vite build and Cloudflare Worker dry-run. The earlier type-check failures in the new admin context selector and team-request status types were corrected; current head is green.
+
+
+## Latest Supabase advisor and RPC security spot-check — 8 November 2026
+Fresh security/performance/health advisor results:
+- 3 tables remain RLS-enabled with no direct policies: `admin_context_preferences`, `gallery_items`, `location_admin_assignments`. A direct privilege check confirms **anon and authenticated have no SELECT/INSERT/UPDATE/DELETE table privileges** on these tables. They are accessed through guarded RPCs/service-role paths; the advisor finding is informational, not a direct table-exposure issue.
+- 80 authenticated-executable `SECURITY DEFINER` functions are flagged for review. This is a warning requiring a full function-by-function guard/search-path audit, not proof of a bypass.
+- 52 unused-index notices and 15 multiple-permissive-policy notices remain. Do not drop indexes or consolidate policies without workload and semantic tests.
+- Health advisor returned no lints.
+- Read-only source inspection confirms `admin_register_gallery_item` and `admin_set_gallery_item_published` call `assert_admin_location_context`; `get_admin_gallery_items` checks platform role and `can_administer_location`; `get_my_team_request_statuses` filters strictly to `auth.uid()`. These new RPCs are executable by `authenticated` and `postgres`, not `anon`.
