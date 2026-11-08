@@ -104,3 +104,8 @@ Implemented on `integration/complete-product-build`:
 - `docs/player-club-matchday-workflow.md` records completed/cancelled/postponed/in-progress progression semantics and post-match admin correction rules.
 
 Verification status: **implemented, not yet verified**. The repository CI workflow does not execute `supabase/tests/*.sql`; the SQL regression file requires replay against an isolated Supabase/PostgreSQL database. The GitHub Actions run lookup for the latest branch head has not yet returned a run. No hosted migration, merge or deployment has been performed.
+
+
+## Stage 1 — app-wide account foundations
+
+The authoritative Stage 1 scope and live completion checklist is maintained in [`docs/stage-1-account-foundations.md`](stage-1-account-foundations.md). It covers the entire application: account lifecycle, player identity, profile privacy, role/location permissions, protected route/data access, session handling and operational privacy/security policy. Password recovery has been improved so expired links can request a fresh email. Stage 1 remains in progress; unresolved Auth provider configuration, anti-abuse settings, super-admin bootstrap, role matrix and privacy/policy decisions are explicitly tracked. No paid test infrastructure, hosted migration, merge or deployment is authorised.
