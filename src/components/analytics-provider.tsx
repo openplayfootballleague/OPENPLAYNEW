@@ -85,11 +85,15 @@ function AnalyticsE2EDiagnostics({
   configured,
   allowed,
   sdkReady,
+  tokenConfigured,
+  host,
   error,
 }: {
   configured: boolean;
   allowed: boolean;
   sdkReady: boolean;
+  tokenConfigured: boolean;
+  host: string | undefined;
   error: string | null;
 }) {
   if (import.meta.env.VITE_OPENPLAY_ANALYTICS_E2E !== "true") return null;
@@ -350,6 +354,8 @@ export function ConsentAwareAnalytics({ children }: { children: ReactNode }) {
         configured={configured}
         allowed={allowed}
         sdkReady={sdkReady}
+        tokenConfigured={Boolean(projectToken)}
+        host={projectHost}
         error={sdkError}
       />
     </AnalyticsCaptureContext.Provider>
