@@ -4,6 +4,8 @@ export const OPEN_PLAY_ANALYTICS_EVENTS = [
   "account_signup_started",
   "account_signup_completed",
   "account_verification_completed",
+  "player_registration_started",
+  "player_registration_submitted",
   "player_profile_completed",
   "onboarding_completed",
   "team_registration_started",
