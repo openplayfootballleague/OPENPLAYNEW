@@ -1,0 +1,36 @@
+import { defineConfig } from "@playwright/test";
+
+const baseURL = "http://127.0.0.1:4173";
+
+export default defineConfig({
+  testDir: "./tests/e2e",
+  fullyParallel: false,
+  forbidOnly: Boolean(process.env.CI),
+  retries: process.env.CI ? 1 : 0,
+  workers: 1,
+  timeout: 45_000,
+  expect: { timeout: 5_000 },
+  reporter: "list",
+  use: {
+    baseURL,
+    browserName: "chromium",
+    headless: true,
+    serviceWorkers: "block",
+    trace: "retain-on-failure",
+  },
+  webServer: {
+    command: "npm run dev -- --config vite.analytics-e2e.config.ts --host 127.0.0.1 --port 4173",
+    url: `${baseURL}/privacy-security`,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+    env: {
+      ...process.env,
+      VITE_POSTHOG_PROJECT_TOKEN: "phc_openplay_browser_test_only",
+      VITE_POSTHOG_HOST: "https://eu.i.posthog.com",
+      VITE_POSTHOG_PRIVACY_SETTINGS_VERIFIED: "true",
+      VITE_OPENPLAY_ANALYTICS_E2E: "true",
+      VITE_SUPABASE_URL: "http://127.0.0.1:54321",
+      VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_browser_test_only",
+    },
+  },
+});
