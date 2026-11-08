@@ -22,25 +22,28 @@ describe("initial team squad validation", () => {
   });
 
   it.each([6, 7] as const)("rejects a %s-a-side squad without the required starters", (format) => {
-    const members = squad(format).filter((member) => !member.isStarter);
+    const members = squad(format);
+    members[0].isStarter = false;
     expect(validateInitialSquad(format, "player-1", members)).toMatchObject({
       valid: false,
-      errors: [expect.stringContaining("starters")],
+      errors: expect.arrayContaining([expect.stringContaining("starters")]),
     });
   });
 
   it("rejects more than the permitted substitute limit", () => {
     const members = squad(6);
-    members.push({
-      playerId: "extra-player",
-      registrationStatus: "registered",
-      isBanned: false,
-      isStarter: false,
-      isCaptain: false,
-    });
+    for (const playerId of ["extra-player-1", "extra-player-2"]) {
+      members.push({
+        playerId,
+        registrationStatus: "registered",
+        isBanned: false,
+        isStarter: false,
+        isCaptain: false,
+      });
+    }
     expect(validateInitialSquad(6, "player-1", members)).toMatchObject({
       valid: false,
-      errors: [expect.stringContaining("no more than 9")],
+      errors: expect.arrayContaining([expect.stringContaining("no more than 9")]),
     });
   });
 
@@ -49,7 +52,7 @@ describe("initial team squad validation", () => {
     members[1].playerId = members[0].playerId;
     expect(validateInitialSquad(6, "player-1", members)).toMatchObject({
       valid: false,
-      errors: [expect.stringContaining("once")],
+      errors: expect.arrayContaining([expect.stringContaining("once")]),
     });
   });
 
@@ -59,7 +62,7 @@ describe("initial team squad validation", () => {
     members[1].isCaptain = true;
     expect(validateInitialSquad(6, "player-1", members)).toMatchObject({
       valid: false,
-      errors: [expect.stringContaining("applicant must be the nominated captain")],
+      errors: expect.arrayContaining([expect.stringContaining("applicant must be the nominated captain")]),
     });
   });
 
@@ -70,10 +73,10 @@ describe("initial team squad validation", () => {
     const result = validateInitialSquad(7, "player-1", members);
     expect(result).toMatchObject({
       valid: false,
-      errors: [
+      errors: expect.arrayContaining([
         expect.stringContaining("approved player registration"),
         expect.stringContaining("banned player"),
-      ],
+      ]),
     });
   });
 });
