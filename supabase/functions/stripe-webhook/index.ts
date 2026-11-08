@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { isRefundedPaymentStatus, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "../../../src/lib/payments/stripe-settlement.ts";
+import { isRefundedPaymentStatus, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "../../../src/lib/payments/stripe-settlement.ts";
 
 function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
@@ -99,10 +99,7 @@ Deno.serve(async (req) => {
         });
         const intent = await intentResponse.json().catch(() => ({}));
         if (!intentResponse.ok) return new Response("Could not retrieve Stripe PaymentIntent", { status: 500 });
-        const intentMetadata = intent?.metadata as Record<string, unknown> | undefined;
-        const metadataPaymentId = typeof intentMetadata?.payment_record_id === "string"
-          ? intentMetadata.payment_record_id
-          : "";
+        const metadataPaymentId = paymentRecordIdFromIntentMetadata(intent?.metadata) ?? "";
         if (metadataPaymentId) {
           const { data: metadataPayment, error: metadataLookupError } = await admin.from("payment_records")
             .select("id").eq("id", metadataPaymentId).maybeSingle();
