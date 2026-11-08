@@ -74,7 +74,7 @@ begin
       v_successor_name := null;
       v_appearance_count := 0;
 
-      select tm.*, p.full_name, coalesce(app.appearances,0)
+      select row(tm.*)::public.team_memberships, p.full_name, coalesce(app.appearances,0)
       into v_successor, v_successor_name, v_appearance_count
       from public.team_memberships tm
       join public.players p on p.user_id = tm.user_id
@@ -156,7 +156,7 @@ begin
       banned_reason = case when p_is_banned then btrim(p_reason) else null end,
       registration_status = case
         when p_is_banned then registration_status
-        when is_banned then 'pending_review'::public.player_registration_status
+        when is_banned then 'rejected'::public.player_registration_status
         else registration_status
       end,
       updated_at = now()
