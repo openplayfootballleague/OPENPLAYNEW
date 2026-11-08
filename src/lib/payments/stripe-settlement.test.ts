@@ -122,3 +122,37 @@ describe("Stripe checkout attempt metadata", () => {
     expect(checkoutAttemptFromIntentMetadata(null)).toBeNull();
   });
 });
+
+describe("Stripe retry attempt isolation", () => {
+  const retryRecord: PaymentSettlementRecord = {
+    ...record,
+    stripe_checkout_session_id: null,
+    stripe_payment_intent_id: null,
+    checkout_attempt: 1,
+  };
+
+  it("accepts the current attempt even before its session id is persisted", () => {
+    expect(validateCheckoutSettlement(retryRecord, {
+      id: "cs_test_attempt_1",
+      client_reference_id: "payment-1",
+      metadata: { payment_record_id: "payment-1", checkout_attempt: "1" },
+    })).toEqual({ ok: true });
+  });
+
+  it("rejects a delayed event from the previous attempt", () => {
+    expect(validateCheckoutSettlement(retryRecord, {
+      id: "cs_test_attempt_0",
+      client_reference_id: "payment-1",
+      metadata: { payment_record_id: "payment-1", checkout_attempt: "0" },
+    }).ok).toBe(false);
+  });
+
+  it("rejects a charge from the previous PaymentIntent attempt", () => {
+    expect(validateChargeSettlement(retryRecord, {
+      payment_intent: "pi_old",
+      amount: 350,
+      currency: "gbp",
+      paid: true,
+    }, { payment_record_id: "payment-1", checkout_attempt: "0" }).ok).toBe(false);
+  });
+});
