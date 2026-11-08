@@ -48,6 +48,13 @@ select
   (select pg_get_functiondef('public.admin_resolve_player_transfer_request(uuid,text,text)'::regprocedure) ilike '%pg_advisory_xact_lock%' and pg_get_functiondef('public.admin_resolve_player_transfer_request(uuid,text,text)'::regprocedure) ilike '%v_source.user_id<>v_request.user_id%' and pg_get_functiondef('public.admin_resolve_player_transfer_request(uuid,text,text)'::regprocedure) ilike '%tm.id<>v_source.id%') as transfer_approval_is_serialized_and_source_scoped,
   (select pg_get_functiondef('public.resolve_team_registration(uuid,text,text)'::regprocedure) ilike '%pg_advisory_xact_lock%' and pg_get_functiondef('public.resolve_team_registration(uuid,text,text)'::regprocedure) ilike '%v_player.is_banned%' and pg_get_functiondef('public.resolve_team_registration(uuid,text,text)'::regprocedure) ilike '%tm.season_team_id<>p_season_team_id%') as team_registration_captain_is_eligible_and_unique,
   (not has_function_privilege('anon','public.handover_team_captain(uuid,uuid)','EXECUTE') and has_function_privilege('authenticated','public.handover_team_captain(uuid,uuid)','EXECUTE') and (select pg_get_functiondef('public.handover_team_captain(uuid,uuid)'::regprocedure) ilike '%is_active_team_captain(p_season_team_id)%' and pg_get_functiondef('public.handover_team_captain(uuid,uuid)'::regprocedure) ilike '%team.captain.handed_over%')) as captain_handover_is_authenticated_captain_only_and_audited,
+  ((select not public from storage.buckets where id='open-play-gallery')
+    and (select relrowsecurity from pg_class where oid='public.gallery_items'::regclass)
+    and not has_table_privilege('anon','public.gallery_items','SELECT')
+    and not has_table_privilege('authenticated','public.gallery_items','SELECT')
+    and not has_function_privilege('anon','public.get_admin_gallery_items(uuid)','EXECUTE')
+    and not has_function_privilege('anon','public.admin_register_gallery_item(uuid,text,text)','EXECUTE')
+    and not has_function_privilege('anon','public.admin_set_gallery_item_published(uuid,boolean)','EXECUTE')) as gallery_uploads_are_private_and_rpc_controlled,
   not exists(select 1 from pg_proc p where p.oid in (
     'public.get_admin_audit_history(text,integer,integer)'::regprocedure,
     'public.admin_get_notification_events(text,integer,integer)'::regprocedure,
