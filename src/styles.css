@@ -888,3 +888,28 @@ a { color: inherit; text-decoration: none; }
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
+
+/* Canonical connected OP logo supplied by Open Play */
+.notice-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  text-decoration: none;
+}
+.open-play-logo {
+  display: block;
+  width: 112px;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+.site-header .wordmark .open-play-logo { width: 126px; }
+.site-footer .wordmark .open-play-logo { width: 104px; }
+.player-facing .notice-brand .open-play-logo { width: 112px; }
+@media (max-width: 520px) {
+  .site-header .wordmark .open-play-logo { width: 104px; }
+  .site-footer .wordmark .open-play-logo { width: 96px; }
+  .player-facing .notice-brand .open-play-logo { width: 100px; }
+}
