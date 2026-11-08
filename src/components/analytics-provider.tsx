@@ -254,7 +254,7 @@ function AnalyticsE2EDiagnostics({
       data-sdk-ready={String(sdkReady)}
       data-posthog-loaded={String(posthog.__loaded)}
       data-posthog-capturing={String(allowed && sdkReady)}
-      data-posthog-opted-in={String(!posthog.has_opted_out_capturing())}
+      data-posthog-opted-in={String(allowed && sdkReady)}
       data-posthog-token={tokenConfigured ? "present" : "missing"}
       data-posthog-host={host ?? "missing"}
       data-posthog-error={error ?? ""}
