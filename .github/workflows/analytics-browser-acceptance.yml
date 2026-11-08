@@ -7,6 +7,7 @@ on:
       - "src/lib/analytics/**"
       - "src/routes/privacy-security.tsx"
       - "playwright.config.ts"
+      - "vite.analytics-e2e.config.ts"
       - "tests/e2e/**"
   workflow_dispatch:
 
