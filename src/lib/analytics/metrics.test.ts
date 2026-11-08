@@ -56,4 +56,16 @@ describe("source-aware analytics metrics", () => {
       { teamId: "a", entryType: "payment", amountPence: 0, occurredAt: range[0] },
     ], range[0], range[1])).toThrow(RangeError);
   });
+  it("calculates outstanding balances as of period end using charges from earlier periods", () => {
+    const result = summarizeFinanceForAnalytics([
+      { teamId: "a", entryType: "charge", amountPence: 3500, occurredAt: "2025-12-01T10:00:00.000Z" },
+      { teamId: "a", entryType: "payment", amountPence: 1000, occurredAt: "2026-02-02T10:00:00.000Z" },
+      { teamId: "b", entryType: "charge", amountPence: 900, occurredAt: "2027-01-01T00:00:00.000Z" },
+    ], range[0], range[1]);
+
+    expect(result.expectedIncomePence).toBe(0);
+    expect(result.paymentsPence).toBe(1000);
+    expect(result.outstandingPence).toBe(2500);
+  });
+
 });
