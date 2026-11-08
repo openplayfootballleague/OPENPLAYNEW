@@ -7,7 +7,8 @@ const CONSENT_KEY = "open-play.analytics-consent.v1";
 async function interceptPostHog(page: Page, requests: string[]) {
   await page.route("**/*", async (route) => {
     const url = route.request().url();
-    if (!url.toLowerCase().includes("posthog")) {
+    const hostname = new URL(url).hostname.toLowerCase();
+    if (!hostname.endsWith("posthog.com")) {
       await route.continue();
       return;
     }
@@ -67,13 +68,14 @@ test("does not contact PostHog before opt-in and stops after same-tab revocation
 test("Global Privacy Control overrides a previously saved opt-in", async ({ page }) => {
   const requests: string[] = [];
   await interceptPostHog(page, requests);
-  await page.addInitScript((key) => {
-    localStorage.setItem(key, "granted");
+  await page.goto("/");
+  await page.evaluate((key) => localStorage.setItem(key, "granted"), CONSENT_KEY);
+  await page.addInitScript(() => {
     Object.defineProperty(navigator, "globalPrivacyControl", {
       configurable: true,
       value: true,
     });
-  }, CONSENT_KEY);
+  });
 
   await page.goto("/privacy-security");
   await expect(page.getByText("Blocked by Global Privacy Control")).toBeVisible();
