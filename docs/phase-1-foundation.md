@@ -1,5 +1,3 @@
-# Phase 1 — Foundation and setup
-
 # Phase 1 — Account and player-registration foundation
 
 ## Scope
@@ -20,7 +18,7 @@
 
 ## Database release
 - [x] Reconcile the 98 applied migration versions to canonical source files and Git blob SHAs.
-- [ ] Consolidate outstanding forward-only corrections into one release migration.
+- [x] Consolidate outstanding forward-only corrections into one release migration.
 - [ ] Clean local Supabase replay and all SQL authorization/identity regression tests must pass.
 - [ ] Apply the reviewed consolidated migration to the dedicated Open Play New Supabase project.
 

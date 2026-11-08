@@ -868,4 +868,11 @@ grant select on table public.player_registration_reviews to authenticated;
 -- Phase 1 profile self-service is picture-only, as confirmed in issue #25.
 -- Verified email/phone changes and administrator corrections use separate guarded workflows.
 revoke update on table public.profiles from authenticated;
+revoke update (
+  first_name,
+  last_name,
+  display_name,
+  phone,
+  preferred_position
+) on table public.profiles from authenticated;
 grant update (avatar_path) on table public.profiles to authenticated;
