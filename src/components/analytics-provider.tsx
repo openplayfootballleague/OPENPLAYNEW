@@ -65,27 +65,38 @@ function PostHogConsentInitializer() {
     };
 
     syncConsent();
-    return subscribeToBrowserAnalyticsConsent(syncConsent);
+    const testProbe = () => {
+      if (
+        import.meta.env.VITE_OPENPLAY_ANALYTICS_E2E === "true"
+        && isAnalyticsAllowed(readBrowserAnalyticsConsent(), isGlobalPrivacyControlEnabled())
+      ) {
+        posthog.capture("openplay_e2e_consent_probe", { test_mode: true });
+      }
+    };
+    window.addEventListener("openplay:analytics-e2e-probe", testProbe);
+    const unsubscribe = subscribeToBrowserAnalyticsConsent(syncConsent);
+    return () => {
+      window.removeEventListener("openplay:analytics-e2e-probe", testProbe);
+      unsubscribe();
+    };
   }, [posthog]);
 
   return null;
 }
 
 /**
- * A deterministic browser-test probe. It is compiled into the dedicated
- * analytics E2E Vite mode only and never appears in normal dev or production.
- * The browser test intercepts its request before it can leave the runner.
+ * This button exists only in the dedicated browser-test Vite mode. It dispatches
+ * a probe event; only the consent-mounted PostHog provider can send it.
  */
-function PostHogE2EProbe() {
-  const posthog = usePostHog();
-
+function AnalyticsE2EProbe({ allowed }: { allowed: boolean }) {
   if (import.meta.env.VITE_OPENPLAY_ANALYTICS_E2E !== "true") return null;
 
   return (
     <button
       type="button"
       data-testid="analytics-e2e-probe"
-      onClick={() => posthog.capture("openplay_e2e_consent_probe", { test_mode: true })}
+      data-posthog-allowed={String(allowed)}
+      onClick={() => window.dispatchEvent(new Event("openplay:analytics-e2e-probe"))}
     >
       Send analytics test probe
     </button>
@@ -291,6 +302,7 @@ export function ConsentAwareAnalytics({ children }: { children: ReactNode }) {
         </PostHogProvider>
       ) : children}
       <AnalyticsConsentBanner enabled={configured} />
+      <AnalyticsE2EProbe allowed={configured && allowed} />
     </AnalyticsCaptureContext.Provider>
   );
 }
