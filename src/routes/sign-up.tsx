@@ -21,7 +21,7 @@ function SignUpPage() {
     } catch(cause){setError(cause instanceof Error?cause.message:"Unable to create your account. Please try again.");}
     finally{setBusy(false);}
   }
-  return <main className="notice-page"><section className="notice-panel auth-panel">
+  return <main className="notice-page player-facing"><section className="notice-panel auth-panel">
     <Link className="notice-brand" to="/">OPEN PLAY</Link><p className="eyebrow eyebrow-dark">JOIN THE COMMUNITY</p>
     <h1>Create<br/><em>account.</em></h1><p>Start with your account. You can register as a player separately after verifying your email.</p>
     <form className="auth-form" onSubmit={submit}>
