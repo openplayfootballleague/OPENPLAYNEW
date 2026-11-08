@@ -103,11 +103,11 @@ function AdminDashboardPage(){
     <a href="#admin-team-sheets">09 Team Sheets</a>
     <a href="#admin-results">10 Results &amp; Match Events</a>
     <Link to="/finance">11 Finance</Link>
-    <a href="#admin-player-statistics">11 Player Statistics</a>
-   <a href="#admin-reports">12 Analytics &amp; Reports</a>
-    {isGlobalAdmin?<a href="#admin-communications">13 Communications</a>:<span className="admin-nav-disabled" aria-disabled="true" title="Communications controls are restricted to platform administrators">13 Communications</span>}
-    <a href="#admin-gallery">14 Gallery</a>
-    <a href="#admin-settings">15 Settings &amp; Feature Management</a>
+    <a href="#admin-player-statistics">12 Player Statistics</a>
+   <a href="#admin-reports">13 Analytics &amp; Reports</a>
+    {isGlobalAdmin?<a href="#admin-communications">14 Communications</a>:<span className="admin-nav-disabled" aria-disabled="true" title="Communications controls are restricted to platform administrators">14 Communications</span>}
+    <a href="#admin-gallery">15 Gallery</a>
+    <a href="#admin-settings">16 Settings &amp; Feature Management</a>
    </nav>
    <div className="admin-workspace-utility-nav" aria-label="Additional administrative tools">
     <a href="#admin-transfers">Transfer queue</a>
