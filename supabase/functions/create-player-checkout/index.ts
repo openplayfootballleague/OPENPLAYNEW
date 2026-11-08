@@ -75,9 +75,6 @@ Deno.serve(async (req) => {
     if (existingSession.status === "open" && typeof existingSession.url === "string") {
       return json({ checkout_url: existingSession.url, payment_record_id: record.id });
     }
-    if (existingSession.status === "complete" && existingSession.payment_status === "paid") {
-      return json({ paid: true, message: "This fixture has already been paid." });
-    }
     const sessionAction = classifyExistingCheckoutSession(record.status, String(existingSession.status ?? ""), String(existingSession.payment_status ?? ""));
     if (sessionAction !== "retry") return json({ error: "This Checkout is still processing. Refresh the Player Hub shortly." }, 409);
   } else if (classifyCheckoutWithoutSession(record.status) === "blocked") {
