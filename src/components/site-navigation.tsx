@@ -140,7 +140,7 @@ export function SiteNavigation() {
                 </div>
                 <Link to="/player" onClick={() => setAccountOpen(false)}>My Account</Link>
                 <a href="/inbox" onClick={() => setAccountOpen(false)}>Inbox {account.unread > 0 && <span className="op-account-count">{account.unread}</span>}</a>
-                {access.approvedPlayer && <Link to="/player#teams" onClick={() => setAccountOpen(false)}>My Teams</Link>}
+                {access.approvedPlayer && <a href="/player#teams" onClick={() => setAccountOpen(false)}>My Teams</a>}
                 <a href="/notifications" onClick={() => setAccountOpen(false)}>Notifications</a>
                 <a href="/privacy-security" onClick={() => setAccountOpen(false)}>Privacy &amp; Security</a>
                 <a href="/support" onClick={() => setAccountOpen(false)}>Help &amp; Support</a>
