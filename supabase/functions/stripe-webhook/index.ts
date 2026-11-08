@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "../../../src/lib/payments/stripe-settlement.ts";
 
 function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
@@ -114,49 +115,20 @@ Deno.serve(async (req) => {
       return new Response("Could not inspect payment record", { status: 500 });
     }
 
-    // Never let an event for a different session/intent or a different amount
-    // settle this payment record. A mismatch is retained for finance review.
-    if (eventType.startsWith("checkout.session.")) {
-      const sessionId = typeof object?.id === "string" ? object.id : "";
-      const sessionMetadata = object?.metadata as Record<string, unknown> | undefined;
-      const metadataPaymentId = String(sessionMetadata?.payment_record_id ?? object?.client_reference_id ?? "");
-      if (!sessionId || currentPayment.stripe_checkout_session_id !== sessionId || metadataPaymentId !== resolvedPaymentId) {
-        await admin.from("stripe_webhook_events").update({
-          payment_record_id: resolvedPaymentId,
-          processing_error: "Checkout session identity mismatch; held for finance review",
-          processing_started_at: null,
-        }).eq("id", eventId);
-        return new Response("Checkout session identity mismatch", { status: 409 });
-      }
-      if (eventType === "checkout.session.completed" || eventType === "checkout.session.async_payment_succeeded") {
-        const amountTotal = object?.amount_total;
-        const currency = String(object?.currency ?? "").toLowerCase();
-        const intentId = typeof object?.payment_intent === "string" ? object.payment_intent : "";
-        if (!Number.isSafeInteger(amountTotal) || Number(amountTotal) !== currentPayment.amount_pence ||
-          currency !== String(currentPayment.currency).toLowerCase() ||
-          (currentPayment.stripe_payment_intent_id && intentId && currentPayment.stripe_payment_intent_id !== intentId)) {
-          await admin.from("stripe_webhook_events").update({
-            payment_record_id: resolvedPaymentId,
-            processing_error: "Checkout amount, currency or payment intent mismatch; held for finance review",
-            processing_started_at: null,
-          }).eq("id", eventId);
-          return new Response("Checkout payment details mismatch", { status: 409 });
-        }
-      }
-    } else if (eventType === "charge.succeeded") {
-      const intentId = typeof object?.payment_intent === "string" ? object.payment_intent : "";
-      const amount = object?.amount;
-      const currency = String(object?.currency ?? "").toLowerCase();
-      if (!intentId || (currentPayment.stripe_payment_intent_id && currentPayment.stripe_payment_intent_id !== intentId) ||
-        !Number.isSafeInteger(amount) || Number(amount) !== currentPayment.amount_pence ||
-        currency !== String(currentPayment.currency).toLowerCase() || object?.paid !== true) {
-        await admin.from("stripe_webhook_events").update({
-          payment_record_id: resolvedPaymentId,
-          processing_error: "Charge amount, currency or payment intent mismatch; held for finance review",
-          processing_started_at: null,
-        }).eq("id", eventId);
-        return new Response("Charge payment details mismatch", { status: 409 });
-      }
+    // Reject mismatched settlement events without mutating the payment ledger.
+    const settlementRecord = currentPayment as PaymentSettlementRecord;
+    const settlementValidation = eventType.startsWith("checkout.session.")
+      ? validateCheckoutSettlement(settlementRecord, object ?? {})
+      : eventType === "charge.succeeded"
+        ? validateChargeSettlement(settlementRecord, object ?? {})
+        : { ok: true as const };
+    if (!settlementValidation.ok) {
+      await admin.from("stripe_webhook_events").update({
+        payment_record_id: resolvedPaymentId,
+        processing_error: settlementValidation.reason,
+        processing_started_at: null,
+      }).eq("id", eventId);
+      return new Response("Payment details mismatch", { status: 409 });
     }
 
     const previousEventTime = currentPayment.last_stripe_event_at
