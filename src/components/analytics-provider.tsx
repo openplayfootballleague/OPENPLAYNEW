@@ -8,6 +8,8 @@ import {
   isAnalyticsAllowed,
   readBrowserAnalyticsConsent,
   writeBrowserAnalyticsConsent,
+  shouldMountPostHog,
+  subscribeToBrowserAnalyticsConsent,
 } from "../lib/analytics/consent";
 import {
   captureOpenPlayEvent,
@@ -64,14 +66,7 @@ function PostHogConsentInitializer() {
     };
 
     syncConsent();
-    window.addEventListener(ANALYTICS_CONSENT_EVENT, syncConsent);
-    window.addEventListener("storage", syncConsent);
-    document.addEventListener("visibilitychange", syncConsent);
-    return () => {
-      window.removeEventListener(ANALYTICS_CONSENT_EVENT, syncConsent);
-      window.removeEventListener("storage", syncConsent);
-      document.removeEventListener("visibilitychange", syncConsent);
-    };
+    return subscribeToBrowserAnalyticsConsent(syncConsent);
   }, [posthog]);
 
   return null;
@@ -216,14 +211,7 @@ export function AnalyticsConsentBanner({ enabled }: { enabled: boolean }) {
       setVisible(enabled && !gpc && consent === "unset");
     };
     refresh();
-    window.addEventListener(ANALYTICS_CONSENT_EVENT, refresh);
-    window.addEventListener("storage", refresh);
-    document.addEventListener("visibilitychange", refresh);
-    return () => {
-      window.removeEventListener(ANALYTICS_CONSENT_EVENT, refresh);
-      window.removeEventListener("storage", refresh);
-      document.removeEventListener("visibilitychange", refresh);
-    };
+    return subscribeToBrowserAnalyticsConsent(refresh);
   }, [enabled]);
 
   function choose(consent: "granted" | "denied") {
@@ -263,21 +251,15 @@ export function ConsentAwareAnalytics({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const refresh = () => {
-      setAllowed(isAnalyticsAllowed(
+      setAllowed(shouldMountPostHog(
+        configured,
         readBrowserAnalyticsConsent(),
         isGlobalPrivacyControlEnabled(),
       ));
     };
     refresh();
-    window.addEventListener(ANALYTICS_CONSENT_EVENT, refresh);
-    window.addEventListener("storage", refresh);
-    document.addEventListener("visibilitychange", refresh);
-    return () => {
-      window.removeEventListener(ANALYTICS_CONSENT_EVENT, refresh);
-      window.removeEventListener("storage", refresh);
-      document.removeEventListener("visibilitychange", refresh);
-    };
-  }, []);
+    return subscribeToBrowserAnalyticsConsent(refresh);
+  }, [configured]);
 
   return (
     <AnalyticsCaptureContext.Provider value={noOpCapture}>
