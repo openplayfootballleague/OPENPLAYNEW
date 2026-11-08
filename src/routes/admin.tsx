@@ -106,7 +106,7 @@ function AdminDashboardPage(){
     <a href="#admin-reports">12 Analytics &amp; Reports</a>
     {isGlobalAdmin?<a href="#admin-communications">13 Communications</a>:<span className="admin-nav-disabled" aria-disabled="true" title="Communications controls are restricted to platform administrators">13 Communications</span>}
     <a href="#admin-gallery">14 Gallery</a>
-    <span className="admin-nav-disabled" aria-disabled="true" title="Settings and feature management are not yet implemented">15 Settings &amp; Feature Management</span>
+    <a href="#admin-settings">15 Settings &amp; Feature Management</a>
    </nav>
    <div className="admin-workspace-utility-nav" aria-label="Additional administrative tools">
     <a href="#admin-transfers">Transfer queue</a>
@@ -183,6 +183,20 @@ function AdminDashboardPage(){
    {auditLoading&&auditEvents.length===0?<p className="form-note">Loading audit history…</p>:auditEvents.length===0?<p className="form-note">No audit events match this search.</p>:auditEvents.map(event=><article className="admin-queue-row" key={event.id}><div><strong>{event.action}</strong><span>{event.entity_type}{event.entity_id?" · "+event.entity_id:""}</span><small>{event.actor_user_id?"Actor "+event.actor_user_id:"System"} · {new Date(event.created_at).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"})}</small>{event.reason&&<small>Reason: {event.reason}</small>}</div></article>)}
    {auditHasMore&&<button type="button" disabled={auditLoading} onClick={()=>void loadAuditHistory(auditOffset+50,auditSearch)}>{auditLoading?"LOADING…":"LOAD MORE HISTORY"}</button>}
    <p className="form-note">This view exposes audit metadata only. Private before/after payloads are deliberately withheld.</p>
-  </section> : null}<Link className="auth-switch" to="/player">Back to Player Hub</Link>
+  </section> : null}
+  <section id="admin-settings" className="admin-queue admin-settings">
+   <div className="hub-section-heading"><span className="hub-kicker">SETTINGS &amp; FEATURE MANAGEMENT</span><span>Available controls only</span></div>
+   <p className="form-note">Use the existing, permission-checked workspaces below to manage current platform settings. This page does not expose unfinished feature switches or configuration controls.</p>
+   <div className="admin-setup-grid">
+    <article className="admin-setup-form"><h3>Competition &amp; season configuration</h3><p className="form-note">Manage locations, leagues, seasons, team setup and the existing competition lifecycle. Changes remain subject to your assigned location permissions.</p><a className="admin-inline-action" href="#admin-competitions">OPEN COMPETITION SETUP</a></article>
+    <article className="admin-setup-form"><h3>Fixture operations</h3><p className="form-note">Schedule fixtures, manage fixture status, review submitted team sheets and record verified match results.</p><a className="admin-inline-action" href="#admin-fixtures">OPEN FIXTURE WORKSPACE</a></article>
+    <article className="admin-setup-form"><h3>Finance</h3><p className="form-note">Open the existing finance ledger for authorised finance users. Finance permissions are checked by the finance workspace and its database functions.</p><Link className="admin-inline-action" to="/finance">OPEN FINANCE</Link></article>
+    <article className="admin-setup-form"><h3>Gallery management</h3><p className="form-note">Manage location-scoped image uploads and publication. New uploads remain private and unpublished until deliberately published.</p><a className="admin-inline-action" href="#admin-gallery">OPEN GALLERY</a></article>
+    {isGlobalAdmin&&<article className="admin-setup-form"><h3>Administrator access</h3><p className="form-note">Assign existing league administrators to locations. This does not create accounts or grant a platform-wide administrator role.</p><a className="admin-inline-action" href="#admin-competitions">MANAGE LOCATION ASSIGNMENTS</a></article>}
+    {isGlobalAdmin&&<article className="admin-setup-form"><h3>Notifications &amp; delivery</h3><p className="form-note">Review the notification outbox and automatic delivery controls. Delivery remains disabled until provider and Vault configuration is verified.</p><a className="admin-inline-action" href="#admin-communications">OPEN COMMUNICATIONS</a></article>}
+    {isGlobalAdmin&&<article className="admin-setup-form"><h3>Audit history</h3><p className="form-note">Search administrative audit metadata. Private before/after payloads remain withheld from this view.</p><a className="admin-inline-action" href="#admin-audit">OPEN AUDIT HISTORY</a></article>}
+   </div>
+   <div className="admin-setup-form"><h3>Not yet configurable here</h3><p className="form-note">Global feature flags, branding controls, role creation, advanced competition-rule overrides and central security settings are not yet backed by a complete settings workflow. They are deliberately not presented as editable controls. Existing permissions, database safeguards and audit controls remain in force.</p></div>
+  </section><Link className="auth-switch" to="/player">Back to Player Hub</Link>
  </section></main>;
 }
