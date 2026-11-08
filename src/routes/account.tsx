@@ -81,13 +81,13 @@ function AccountPage() {
     <div className="account-stat-grid">
       <a href="/inbox"><strong>{data.unreadMessages ?? "—"}</strong><span>Inbox messages</span></a>
       <a href="/player#teams"><strong>{data.memberships}</strong><span>Current teams</span></a>
-      <a href="/player#notifications"><strong>{data.unreadNotifications}</strong><span>Unread alerts</span></a>
+      <a href="/notifications"><strong>{data.unreadNotifications}</strong><span>Unread alerts</span></a>
     </div>
     <div className="account-section-grid">
       <a href="/edit-profile"><strong>Edit Profile</strong><span>Change your profile picture</span></a>
       <a href="/inbox"><strong>Inbox</strong><span>Messages and announcements</span></a>
       <a href="/player#teams"><strong>My Teams</strong><span>Current and previous memberships</span></a>
-      <a href="/player#notifications"><strong>Notifications</strong><span>Alerts and preferences</span></a>
+      <a href="/notifications"><strong>Notifications</strong><span>Alerts and preferences</span></a>
       <a href="/privacy-security"><strong>Privacy &amp; Security</strong><span>Account security and privacy controls</span></a>
       <a href="/support"><strong>Help &amp; Support</strong><span>Get help from Open Play</span></a>
       {data.admin && <Link to="/admin"><strong>Admin Dashboard</strong><span>Authorised administration</span></Link>}
