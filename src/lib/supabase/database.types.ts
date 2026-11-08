@@ -1362,6 +1362,18 @@ export type Database = {
         Args: { p_location_id?: string | null; p_league_id?: string | null; p_season_id?: string | null }
         Returns: Json
       }
+      get_admin_gallery_items: {
+        Args: { p_location_id?: string | null }
+        Returns: { id: string; location_id: string; location_name: string; object_path: string; caption: string; is_published: boolean; created_at: string; published_at: string | null }[]
+      }
+      admin_register_gallery_item: {
+        Args: { p_location_id: string; p_object_path: string; p_caption?: string }
+        Returns: string
+      }
+      admin_set_gallery_item_published: {
+        Args: { p_item_id: string; p_is_published: boolean }
+        Returns: undefined
+      }
       admin_search_location_admin_candidates: {
         Args: { p_query: string }
         Returns: { user_id: string; email: string; display_name: string }[]
