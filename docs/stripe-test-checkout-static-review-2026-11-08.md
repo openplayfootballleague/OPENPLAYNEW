@@ -75,3 +75,13 @@ The hosted sources are older than the current PR #6 branch changes: the deployed
 PR #6 current head `1b6b0fa412aed40f6a9c45ec05263a8a22ba82d3` passed workflow `42436207960`. The workflow completed all steps successfully: Edge Function type-check, domain tests, TypeScript/build and Cloudflare Worker dry-run. The settlement helper suite now has 12 tests, including missing amount on paid Checkout sessions, PaymentIntent metadata mapping and preservation of full/partial refund states. This is not a Stripe API integration test or browser acceptance run.
 
 The remaining checkout retry transition still needs a safe atomic attempt increment and distinct idempotency key after an expired/failed session. No new migration was fabricated; no database schema was changed. The latest hosted Edge Function versions remain checkout v1 and webhook v5, so these branch fixes are not deployed.
+
+
+## Retry lifecycle implementation — 8 November 2026
+The earlier retry blocker has now been implemented on PR #6 without a new migration. The Edge Function reuses an existing open Checkout session, recognizes completed paid sessions as pending webhook confirmation, and uses an atomic compare-and-set update on `payment_records.checkout_attempt` and current status/session to claim exactly one new attempt after an expired or failed/cancelled session. It clears the old session/PaymentIntent references, increments the attempt once, and uses a distinct Stripe idempotency key. A failed attempt can safely be retried with the existing schema column.
+
+Both Checkout Session and PaymentIntent metadata now include the attempt number. The webhook validates payment-record identity, attempt, session/PaymentIntent, amount and currency. It uses a compare-and-set update against the captured payment status, attempt, session id and last event timestamp so a retry cannot race with a delayed webhook. Events from prior attempts are acknowledged as stale without changing the current payment; late failures/successes cannot downgrade paid/refunded states.
+
+PR #6 current code-bearing head `d15f48f59e3693c517a139ea0cb54920696a477c` passed CI run `42436764026`: Deno Edge Function type-check, TypeScript/Vite build, Cloudflare dry-run, and 67 total Vitest tests across 6 files (27 Stripe-specific tests). This is automated test/build evidence; the retry path has not yet been exercised against a real Stripe test account/session because test secrets and an approved disposable test identity are not configured.
+
+The remaining Stripe blockers are test-mode end-to-end acceptance, admin refund controls, payout reconciliation, and deployment after review. Hosted functions remain checkout v1/webhook v5; branch fixes are not deployed.
