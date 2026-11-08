@@ -86,3 +86,7 @@ export function classifyCheckoutWithoutSession(recordStatus: string): CheckoutWi
 export function nextCheckoutAttempt(attempt: number): number | null {
   return Number.isSafeInteger(attempt) && attempt >= 0 && attempt < Number.MAX_SAFE_INTEGER ? attempt + 1 : null;
 }
+
+export function isFinalizedPaymentStatus(status: string): boolean {
+  return status === "paid" || status === "partially_refunded" || status === "refunded";
+}
