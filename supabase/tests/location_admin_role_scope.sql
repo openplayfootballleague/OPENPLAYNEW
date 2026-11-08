@@ -12,7 +12,8 @@ begin
    ('00000000-0000-4000-8000-000000000002','authenticated','authenticated','ci-captain-a@openplay.invalid','','{}'::jsonb,now(),now()),
    ('00000000-0000-4000-8000-000000000003','authenticated','authenticated','ci-player-b@openplay.invalid','','{}'::jsonb,now(),now()),
    ('00000000-0000-4000-8000-000000000004','authenticated','authenticated','ci-location-admin@openplay.invalid','','{}'::jsonb,now(),now()),
-   ('00000000-0000-4000-8000-000000000005','authenticated','authenticated','ci-global-admin@openplay.invalid','','{}'::jsonb,now(),now());
+   ('00000000-0000-4000-8000-000000000005','authenticated','authenticated','ci-global-admin@openplay.invalid','','{}'::jsonb,now(),now()),
+   ('00000000-0000-4000-8000-000000000006','authenticated','authenticated','ci-player-c@openplay.invalid','','{}'::jsonb,now(),now());
 
   insert into public.locations (id,name,slug,town,region,is_active)
   values
@@ -32,10 +33,10 @@ begin
    ('00000000-0000-4000-8000-000000000020','00000000-0000-4000-8000-000000000010','CI League A','ci-league-a',false),
    ('00000000-0000-4000-8000-000000000021','00000000-0000-4000-8000-000000000011','CI League B','ci-league-b',false);
 
-  insert into public.seasons (id,league_id,name,season_number,is_public)
+  insert into public.seasons (id,league_id,name,season_number,is_public,status)
   values
-   ('00000000-0000-4000-8000-000000000030','00000000-0000-4000-8000-000000000020','CI Season A',1,false),
-   ('00000000-0000-4000-8000-000000000031','00000000-0000-4000-8000-000000000021','CI Season B',1,false);
+   ('00000000-0000-4000-8000-000000000030','00000000-0000-4000-8000-000000000020','CI Season A',1,false,'registration_open'),
+   ('00000000-0000-4000-8000-000000000031','00000000-0000-4000-8000-000000000021','CI Season B',1,false,'registration_open');
 
   insert into public.teams (id,created_by)
   values
@@ -55,13 +56,16 @@ begin
   values
    ('00000000-0000-4000-8000-000000000001','CI Player A','+447700900001','ci-player-a@openplay.invalid',date '1990-01-01','registered'),
    ('00000000-0000-4000-8000-000000000002','CI Captain A','+447700900002','ci-captain-a@openplay.invalid',date '1990-01-02','registered'),
-   ('00000000-0000-4000-8000-000000000003','CI Player B','+447700900003','ci-player-b@openplay.invalid',date '1990-01-03','registered');
+   ('00000000-0000-4000-8000-000000000003','CI Player B','+447700900003','ci-player-b@openplay.invalid',date '1990-01-03','registered'),
+   ('00000000-0000-4000-8000-000000000006','CI Player C','+447700900006','ci-player-c@openplay.invalid',date '1990-01-06','registered');
 
   insert into public.team_memberships (id,season_team_id,user_id,status,is_captain)
   values
    ('00000000-0000-4000-8000-000000000060','00000000-0000-4000-8000-000000000050','00000000-0000-4000-8000-000000000002','active',true),
    ('00000000-0000-4000-8000-000000000061','00000000-0000-4000-8000-000000000050','00000000-0000-4000-8000-000000000001','active',false),
-   ('00000000-0000-4000-8000-000000000062','00000000-0000-4000-8000-000000000052','00000000-0000-4000-8000-000000000003','active',true);
+   ('00000000-0000-4000-8000-000000000062','00000000-0000-4000-8000-000000000052','00000000-0000-4000-8000-000000000003','active',true),
+   ('00000000-0000-4000-8000-000000000063','00000000-0000-4000-8000-000000000050','00000000-0000-4000-8000-000000000006','pending',false),
+   ('00000000-0000-4000-8000-000000000064','00000000-0000-4000-8000-000000000052','00000000-0000-4000-8000-000000000001','pending',false);
 
   insert into public.fixtures (id,season_id,gameweek,fixture_number,home_team_id,away_team_id)
   values
@@ -99,8 +103,11 @@ begin
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000002',true);
   if not public.is_active_team_captain('00000000-0000-4000-8000-000000000050') then raise exception 'Captain membership was not recognised'; end if;
   if public.has_global_admin_role() or public.has_platform_role() then raise exception 'Captain unexpectedly has an admin role'; end if;
-  select count(*) into v_count from public.team_memberships where season_team_id='00000000-0000-4000-8000-000000000050';
-  if v_count <> 2 then raise exception 'Captain cannot see their own team roster'; end if;
+  select count(*) into v_count from public.team_memberships where season_team_id='00000000-0000-4000-8000-000000000050' and status='active';
+  if v_count <> 2 then raise exception 'Captain cannot see their own active team roster'; end if;
+  perform public.resolve_team_membership_request('00000000-0000-4000-8000-000000000063','approved');
+  select count(*) into v_count from public.team_memberships where id='00000000-0000-4000-8000-000000000063' and status='active';
+  if v_count <> 1 then raise exception 'Captain could not approve a pending request for their own team'; end if;
   select count(*) into v_count from public.team_memberships where season_team_id='00000000-0000-4000-8000-000000000052';
   if v_count <> 0 then raise exception 'Captain can see another location roster'; end if;
   select count(*) into v_count from public.fixtures where id='00000000-0000-4000-8000-000000000070';
@@ -165,6 +172,13 @@ begin
     if sqlerrm = 'Global administrator permission required' then v_denied := true; else raise; end if;
   end;
   if not v_denied then raise exception 'Location admin changed a global location assignment'; end if;
+  v_denied := false;
+  begin
+    perform public.resolve_team_membership_request('00000000-0000-4000-8000-000000000064','approved');
+  exception when others then
+    if sqlerrm = 'Captain or assigned location administrator permission required' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin approved a membership request outside their assignment'; end if;
   execute 'reset role';
 
   -- Global admin: global visibility and assignment administration remain available.
@@ -174,9 +188,10 @@ begin
   select count(*) into v_count from public.profiles where id in (
     '00000000-0000-4000-8000-000000000001',
     '00000000-0000-4000-8000-000000000002',
-    '00000000-0000-4000-8000-000000000003'
+    '00000000-0000-4000-8000-000000000003',
+    '00000000-0000-4000-8000-000000000006'
   );
-  if v_count <> 3 then raise exception 'Global admin cannot read all player profiles'; end if;
+  if v_count <> 4 then raise exception 'Global admin cannot read all player profiles'; end if;
   select count(*) into v_count from public.leagues where id in ('00000000-0000-4000-8000-000000000020','00000000-0000-4000-8000-000000000021');
   if v_count <> 2 then raise exception 'Global admin cannot read both private leagues'; end if;
   perform public.admin_set_location_assignment('00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000011',true);
