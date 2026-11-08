@@ -16,7 +16,7 @@ begin
 
   insert into public.locations (id,name,slug,town,region,is_active)
   values
-   ('00000000-0000-4000-8000-000000000010','CI Location A','ci-location-a','Bideford','Devon',false),
+   ('00000000-0000-4000-8000-000000000010','CI Location A','ci-location-a','Bideford','Devon',true),
    ('00000000-0000-4000-8000-000000000011','CI Location B','ci-location-b','CI Test','CI',false);
 
   insert into public.user_roles (user_id,role,granted_by)
