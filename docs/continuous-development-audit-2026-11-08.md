@@ -194,3 +194,9 @@ Latest code-bearing PR #6 head `d15f48f59e3693c517a139ea0cb54920696a477c` passed
 - Security advisors continue to report 3 RLS-enabled tables with no direct policies: `admin_context_preferences`, `gallery_items`, `location_admin_assignments`. A separate read-only `information_schema.table_privileges` query returned no direct `anon`, `authenticated` or `PUBLIC` grants for these tables, consistent with their RPC-only access model. These are INFO findings, not demonstrated direct Data API access.
 - The authenticated SECURITY DEFINER warning count remains 79. This warning alone does not establish a bypass; continue function-by-function authorization review. Do not blanket-revoke intended authenticated RPCs.
 - Performance advisors continue to report unused indexes and multiple permissive RLS policies. No changes made because the hosted database is empty and query workload/semantics have not been established.
+
+
+## New migration deployability blocker — 8 November 2026
+The latest hosted ledger snapshot is 98 rows, not 97. Across all 10 visible branches (129 distinct migration files), 92 ledger rows have a source candidate and six applied SQL sources remain missing. More importantly, 56 of the 92 candidates have a local filename version prefix that differs from the actual ledger version. The current PR #6 branch has 93 migration files, zero matching leading version prefixes and nine duplicate version prefixes. Gallery migrations illustrate the mismatch: live versions `20261108012459`/`20261108012537`, local filenames `20261108270000_...`/`20261108280000_...`.
+
+This is a **deployment blocker**: do not run `supabase db push` or treat the current migration tree as a valid baseline. Do not bulk-rename by name alone; recover authoritative SQL history, map each source to its exact ledger version, resolve duplicates and verify content before creating a unique, ledger-aligned migration directory. No migration rename/re-run or live DB write was performed.
