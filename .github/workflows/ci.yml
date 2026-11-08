@@ -47,14 +47,14 @@ jobs:
         uses: supabase/setup-cli@v3
         with:
           version: 2.84.2
-      - name: Start isolated local Supabase stack
-        run: supabase start -x studio,edge-runtime,logflare,vector
+      - name: Start isolated local Postgres database
+        run: supabase db start
       - name: Replay every migration against a clean local database
         run: supabase db reset --local --no-seed
       - name: Verify profile and avatar privilege assertions
         run: supabase db query --local --file supabase/tests/profile_avatar_only_permissions.sql
       - name: Verify database security assertions
         run: node scripts/verify-security-assertions.mjs
-      - name: Stop local Supabase stack
+      - name: Stop local Supabase database
         if: always()
         run: supabase stop --no-backup
