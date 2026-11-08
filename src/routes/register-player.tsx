@@ -3,11 +3,12 @@ import { SiteNavigation } from "../components/site-navigation";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { useOpenPlayAnalytics } from "../components/analytics-provider";
 
 export const Route = createFileRoute("/register-player")({ component: RegisterPlayerPage });
 
 function RegisterPlayerPage() {
-  const navigate=useNavigate(); const [session,setSession]=useState<Session|null>(null); const [loading,setLoading]=useState(true);
+  const navigate=useNavigate(); const capture=useOpenPlayAnalytics(); const [session,setSession]=useState<Session|null>(null); const [loading,setLoading]=useState(true);
   const [name,setName]=useState(""); const [phone,setPhone]=useState(""); const [dob,setDob]=useState("");
   const [error,setError]=useState(""); const [message,setMessage]=useState(""); const [submitted,setSubmitted]=useState(false); const [busy,setBusy]=useState(false);
   useEffect(()=>{
@@ -20,11 +21,13 @@ function RegisterPlayerPage() {
     event.preventDefault();setError("");setMessage("");setBusy(true);
     try{
       if(!session?.user.email) throw new Error("Please sign in with a verified email address first.");
+      capture("player_registration_started", { route_category: "registration", feature: "player_registration" });
       const {error:rpcError}=await getSupabaseClient().rpc("register_player",{p_full_name:name.trim(),p_phone:phone.trim(),p_email:session.user.email,p_date_of_birth:dob});
       if(rpcError) throw rpcError;
+      capture("player_registration_submitted", { route_category: "registration", feature: "player_registration", outcome: "success" });
       setMessage("Your player registration has been submitted. If it needs a manual identity check, it will remain pending review. Your account and player registration are separate from joining a team.");
       setSubmitted(true);
-    }catch(cause){setError(cause instanceof Error?cause.message:"Unable to submit player registration.");}
+    }catch(cause){capture("workflow_error", { feature: "player_registration", error_code: "unexpected_error", outcome: "failure" });setError(cause instanceof Error?cause.message:"Unable to submit player registration.");}
     finally{setBusy(false);}
   }
   if(loading)return <main className="notice-page"><SiteNavigation /><section className="notice-panel"><p>Checking your account…</p></section></main>;
