@@ -46,13 +46,13 @@ $phone_normalisation$;
 
 do $ban_and_captain_succession$
 declare
-  v_admin constant uuid := '00000000-0000-4000-8000-000000000300';
-  v_target constant uuid := '00000000-0000-4000-8000-000000000301';
-  v_highest constant uuid := '00000000-0000-4000-8000-000000000302';
-  v_tie_zara constant uuid := '00000000-0000-4000-8000-000000000303';
-  v_tie_aaron constant uuid := '00000000-0000-4000-8000-000000000304';
-  v_single constant uuid := '00000000-0000-4000-8000-000000000305';
-  v_pending_captain constant uuid := '00000000-0000-4000-8000-000000000306';
+  v_admin constant uuid := '90000000-0000-4000-8000-000000000300';
+  v_target constant uuid := '90000000-0000-4000-8000-000000000301';
+  v_highest constant uuid := '90000000-0000-4000-8000-000000000302';
+  v_tie_zara constant uuid := '90000000-0000-4000-8000-000000000303';
+  v_tie_aaron constant uuid := '90000000-0000-4000-8000-000000000304';
+  v_single constant uuid := '90000000-0000-4000-8000-000000000305';
+  v_pending_captain constant uuid := '90000000-0000-4000-8000-000000000306';
   v_location uuid;
   v_league uuid;
   v_season uuid;
