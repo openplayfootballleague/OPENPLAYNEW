@@ -14,7 +14,7 @@ The connected PostHog account exposes one project, so there is no project-select
 - Ingestion host: `https://eu.i.posthog.com`
 - Project token: available from the connected PostHog project configuration; do not copy it into Git or documentation.
 - Project timezone: UTC.
-- The project currently has no Open Play app SDK integration in this repository, so the presence of the PostHog project does not mean Open Play app events are being captured.
+- The project currently has an SDK integration in the development branch, but its runtime is deliberately gated off until the project-level console-log capture setting is disabled and verified. The presence of the PostHog project does not mean Open Play app events are being captured.
 
 The active project is the sole project returned by the connected PostHog organization listing. Its name is generic; if a separately named production/staging project is created later, the app environment must be explicitly mapped to the correct project.
 
@@ -130,7 +130,9 @@ Event names and properties must be reviewed against the actual code paths before
 - GitHub Actions run `42483814025` completed successfully for the consent-aware provider/event implementation: 12 test files / 96 tests passed, Deno Edge Function type-check passed, Vite client and SSR production builds passed, TypeScript passed, and Cloudflare Worker dry-run passed.
 - The later direct `posthog-js` dependency/lockfile update was generated with npm in a branch-scoped GitHub Actions workflow; that temporary workflow has been removed.
 - A fresh full CI run is still required for the final lockfile head.
-- Deployment-side `VITE_POSTHOG_PROJECT_TOKEN` and `VITE_POSTHOG_HOST` are not yet configured. Until then the provider and consent banner remain inactive in deployed environments and no Open Play events are sent.
+- Deployment-side `VITE_POSTHOG_PROJECT_TOKEN` and `VITE_POSTHOG_HOST` are not yet configured.
+- The connected PostHog project has `capture_console_log_opt_in=true`. PostHog documentation states project-level console-log capture can enable collection independently of the SDK's local logs option. The project-settings update tool requires user confirmation before changing project settings, so this was not changed.
+- The app now additionally requires `VITE_POSTHOG_PRIVACY_SETTINGS_VERIFIED=true` before mounting the SDK or showing the consent banner. The example value is `false`. Only set it to true after the project-level console-log setting is disabled and independently verified. Until the token, host and privacy gate are configured, no Open Play events are sent.
 - No server-side events are implemented; `posthog-node` is installed for the later server-side integration, which must remain consent/identity gated and must not emit sensitive business data.
 
 ## 8. Verification and release gates
