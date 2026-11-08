@@ -48,6 +48,26 @@ async function observedPostHogRequests(page: Page, routedRequests: string[]) {
   return routedRequests.length + beacons;
 }
 
+async function expectPostHogReady(page: Page) {
+  const diagnostics = page.getByTestId("analytics-e2e-diagnostics");
+  await expect(diagnostics).toHaveAttribute("data-posthog-configured", "true");
+  await expect(diagnostics).toHaveAttribute("data-consent-allowed", "true");
+  await expect(diagnostics).toHaveAttribute("data-sdk-ready", "true");
+  await expect(diagnostics).toHaveAttribute("data-posthog-loaded", "true");
+  await expect(diagnostics).toHaveAttribute("data-posthog-capturing", "true");
+  await expect(diagnostics).toHaveAttribute("data-posthog-opted-in", "true");
+  await expect(diagnostics).toHaveAttribute("data-posthog-token", "present");
+  await expect(diagnostics).toHaveAttribute("data-posthog-host", /posthog\.com/);
+  await expect(diagnostics).toHaveAttribute("data-posthog-error", "");
+}
+
+async function expectPostHogBlocked(page: Page) {
+  const diagnostics = page.getByTestId("analytics-e2e-diagnostics");
+  await expect(diagnostics).toHaveAttribute("data-consent-allowed", "false");
+  await expect(diagnostics).toHaveAttribute("data-sdk-ready", "false");
+  await expect(diagnostics).toHaveAttribute("data-posthog-capturing", "false");
+}
+
 test("does not contact PostHog before opt-in and stops after same-tab revocation", async ({ page }) => {
   const requests: string[] = [];
   await interceptPostHog(page, requests);
@@ -55,34 +75,32 @@ test("does not contact PostHog before opt-in and stops after same-tab revocation
   await page.goto("/privacy-security");
   await expect(page.getByText("No choice saved")).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Optional analytics preferences" })).toBeVisible();
-  await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
+  const probe = page.getByTestId("analytics-e2e-probe");
+  await expect(probe).toBeVisible();
+  await expectPostHogBlocked(page);
+  await probe.click();
   await page.waitForTimeout(300);
   expect(await observedPostHogRequests(page, requests)).toBe(0);
 
   await page.locator(".account-security-section").getByRole("button", { name: "ALLOW OPTIONAL ANALYTICS" }).click();
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("granted");
   await expect(page.getByRole("complementary", { name: "Optional analytics preferences" })).toHaveCount(0);
-  const probe = page.getByTestId("analytics-e2e-probe");
-  await expect(probe).toBeVisible();
-  await expect(probe).toHaveAttribute("data-posthog-loaded", "true");
-  await expect(probe).toHaveAttribute("data-posthog-capturing", "true");
-  await expect(probe).toHaveAttribute("data-posthog-opted-in", "true");
-  await expect(probe).toHaveAttribute("data-posthog-token", "present");
-  await expect(probe).toHaveAttribute("data-posthog-host", /posthog\\.com/);
+  await expectPostHogReady(page);
   await probe.click();
-  await expect(probe).toHaveAttribute("data-posthog-capture-called", "true");
   await expect.poll(() => observedPostHogRequests(page, requests), { timeout: 10_000 }).toBeGreaterThan(0);
 
   await page.getByRole("button", { name: "TURN OFF OPTIONAL ANALYTICS" }).click();
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("denied");
-  await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
+  await expectPostHogBlocked(page);
   const requestsAfterRevocation = await observedPostHogRequests(page, requests);
+  await probe.click();
   await page.waitForTimeout(300);
   expect(await observedPostHogRequests(page, requests)).toBe(requestsAfterRevocation);
 
   await page.reload();
-  await expect(page.getByText("Declined on this device")).toBeVisible();
-  await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
+  await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("denied");
+  await expectPostHogBlocked(page);
+  await probe.click();
   await page.waitForTimeout(500);
   expect(await observedPostHogRequests(page, requests)).toBe(requestsAfterRevocation);
 });
@@ -90,6 +108,7 @@ test("does not contact PostHog before opt-in and stops after same-tab revocation
 test("Global Privacy Control overrides a previously saved opt-in", async ({ page }) => {
   const requests: string[] = [];
   await interceptPostHog(page, requests);
+
   await page.goto("/");
   await page.evaluate((key) => localStorage.setItem(key, "granted"), CONSENT_KEY);
   await page.addInitScript(() => {
@@ -102,7 +121,9 @@ test("Global Privacy Control overrides a previously saved opt-in", async ({ page
   await page.goto("/privacy-security");
   expect(await page.evaluate(() => navigator.globalPrivacyControl)).toBe(true);
   await expect(page.getByRole("complementary", { name: "Optional analytics preferences" })).toHaveCount(0);
-  await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
+  await expectPostHogBlocked(page);
+  const probe = page.getByTestId("analytics-e2e-probe");
+  await probe.click();
   await page.waitForTimeout(300);
   expect(await observedPostHogRequests(page, requests)).toBe(0);
 });
@@ -116,34 +137,29 @@ test("cross-tab opt-in and revocation update the other tab", async ({ page, cont
 
   await page.goto("/privacy-security");
   await secondTab.goto("/privacy-security");
+  const firstTabProbe = page.getByTestId("analytics-e2e-probe");
+  await expectPostHogBlocked(page);
+  await firstTabProbe.click();
   await page.waitForTimeout(200);
   expect(await observedPostHogRequests(page, firstTabRequests)).toBe(0);
   expect(await observedPostHogRequests(secondTab, secondTabRequests)).toBe(0);
-  await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
 
   // A localStorage write in one tab emits a native storage event in the other.
   await secondTab.evaluate((key) => localStorage.setItem(key, "granted"), CONSENT_KEY);
-  const firstTabProbe = page.getByTestId("analytics-e2e-probe");
-  await expect(firstTabProbe).toBeVisible();
-  await page.waitForTimeout(100);
-  await expect(firstTabProbe).toHaveAttribute("data-posthog-loaded", "true");
-  await expect(firstTabProbe).toHaveAttribute("data-posthog-capturing", "true");
-  await expect(firstTabProbe).toHaveAttribute("data-posthog-opted-in", "true");
-  await expect(firstTabProbe).toHaveAttribute("data-posthog-token", "present");
-  await expect(firstTabProbe).toHaveAttribute("data-posthog-host", /posthog\\.com/);
+  await expectPostHogReady(page);
   await firstTabProbe.click();
-  await expect(firstTabProbe).toHaveAttribute("data-posthog-capture-called", "true");
   await expect.poll(() => observedPostHogRequests(page, firstTabRequests), { timeout: 10_000 }).toBeGreaterThan(0);
 
   await secondTab.evaluate((key) => localStorage.setItem(key, "denied"), CONSENT_KEY);
-  await expect(firstTabProbe).toHaveCount(0);
+  await expectPostHogBlocked(page);
   const requestsAfterCrossTabRevocation = await observedPostHogRequests(page, firstTabRequests);
+  await firstTabProbe.click();
   await page.waitForTimeout(300);
   expect(await observedPostHogRequests(page, firstTabRequests)).toBe(requestsAfterCrossTabRevocation);
 
   await page.reload();
-  await expect(page.getByText("Declined on this device")).toBeVisible();
-  await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
+  await expectPostHogBlocked(page);
+  await firstTabProbe.click();
   await page.waitForTimeout(500);
   expect(await observedPostHogRequests(page, firstTabRequests)).toBe(requestsAfterCrossTabRevocation);
   await secondTab.close();
