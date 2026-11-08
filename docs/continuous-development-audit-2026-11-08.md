@@ -440,3 +440,15 @@ This is a deliberate security boundary, but it leaves initial super-admin bootst
 PR #21 restores seven previously missing applied SQL source files from the live migration ledger's stored statements and reports byte-for-byte verification. PR #20 is explicitly superseded and must not be merged. PR #21 remains unmerged into the feature branch; full version mapping and clean isolated replay are still outstanding. The earlier six-missing-source statement in this audit is historical and is superseded by PR #21's recovery evidence.
 
 No live database changes, role grants, account creation, migrations, secrets or deployments were performed in this follow-up.
+
+
+## Authorization regression source-preservation checks — 8 November 2026, 12:29 UTC
+
+A further read-only query independently checked the live source for the business/security invariants that PR #22 is intended to preserve. All 17 source-presence assertions returned true:
+- Membership: authentication guard, pending-request filter, row lock, active-captain team helper, advisory-lock serialization, one-team-per-season guard and audit insert.
+- Location activation: advisory-lock serialization, Bideford-only restriction, single-active-location restriction, safe-deactivation checks and audit insert.
+- Player fees: finance-role guard, player-fee bounds, effective-gameweek bounds, season-existence guard and audit insert.
+
+These are source-shape checks against the currently deployed functions, not execution of PR #22's migration or runtime role tests. They increase confidence that the proposed forward replacement is anchored to the expected live definitions and that key existing controls are present. PR #22 remains unmerged and untested in an isolated database.
+
+Issue #24 now tracks the separate secure role-provisioning and initial super-admin bootstrap workflow. No account or role was created.
