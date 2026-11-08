@@ -4,7 +4,9 @@ import { basename, join } from "node:path";
 
 const manifestPath = "docs/supabase-migration-source-manifest-2026-11-08.md";
 const migrationDirectory = "supabase/migrations";
-const expectedForwardOnly = [];
+const expectedForwardOnly = [
+  "supabase/migrations/20261108201500_secure_role_provisioning.sql",
+];
 
 function fail(message) {
   console.error(`Migration source manifest verification failed: ${message}`);

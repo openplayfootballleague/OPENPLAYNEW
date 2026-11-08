@@ -1,6 +1,6 @@
 # Open Play New — applied Supabase migration source manifest
 
-**Snapshot:** 8 November 2026, 19:48 UTC  
+**Snapshot:** 8 November 2026, 19:58 UTC  
 **Project:** `ghnrsysvrlgkjmdlwdmp`  
 **Branch:** `fix/phase1-player-identity-security-2026-11-08`  
 **Applied ledger rows:** 99  
@@ -115,7 +115,7 @@ This manifest maps every applied ledger version/name to its canonical source pat
 ## Verification notes
 
 - All 99 ledger versions have a corresponding canonical source path in the branch.
-- All 99 migration file prefixes are unique and every source file corresponds to an applied ledger version.
+- All 99 applied migration file prefixes are unique and every applied source file corresponds to a ledger version. The one additional forward-only candidate is declared separately in the source verifier and must not be applied to the hosted project until approved.
 - No duplicate synthetic-prefix copies of applied sources remain in this branch.
 - The canonical files are source artifacts. The consolidated Phase 1 release passed clean local replay and the complete SQL role/identity/authorization regression suite before being applied to the dedicated project.
 - Do not reapply any of the already-recorded versions. Future schema changes must use new forward-only migration versions.
