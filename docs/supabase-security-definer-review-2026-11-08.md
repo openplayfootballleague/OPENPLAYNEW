@@ -51,3 +51,16 @@ These checks support the intended access model for the inspected functions, but 
 ## Next security acceptance task
 
 Create disposable, owner-approved test identities for each role and exercise the full RPC permission matrix, including negative cross-location and cross-user cases. Do not create or promote privileged users without explicit owner approval.
+
+## Live ACL refresh — 8 November 2026, 12:21 UTC
+
+A second read-only catalog query confirmed the current public SECURITY DEFINER inventory and effective EXECUTE ACLs:
+- Public SECURITY DEFINER functions: **95**.
+- All **95** have a configured fixed `search_path`.
+- EXECUTE is granted to `authenticated` on **80**, `postgres` on **95**, and `service_role` on **10**.
+- No EXECUTE grant to `PUBLIC` or `anon` was returned by the expanded ACL inventory.
+- The three RLS-enabled/no-policy RPC-only tables (`admin_context_preferences`, `gallery_items`, `location_admin_assignments`) have no direct grants to `PUBLIC`, `anon` or `authenticated`.
+
+The live Security Advisor still reports 80 authenticated-executable SECURITY DEFINER functions. This is consistent with the ACL count, but remains a warning category rather than a demonstrated exploit. Do not bulk-revoke or convert these functions. Next acceptance step remains owner-approved disposable test identities and a complete role matrix (anonymous, ordinary player, captain, location admin, finance admin and platform admin), including cross-user and cross-location negative cases. Current hosted Auth user count and user_roles count are both zero, so that acceptance cannot yet be performed.
+
+No function definitions, ACLs, policies, table grants, data, secrets or deployment settings were changed in this refresh.
