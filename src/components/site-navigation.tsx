@@ -22,6 +22,7 @@ const signedOut: Access = {
 
 export function SiteNavigation() {
   const [access, setAccess] = useState<Access>({ ...signedOut, loading: true });
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -79,9 +80,28 @@ export function SiteNavigation() {
         <Link to="/teams">Teams</Link>
         {showJoin && <Link to="/join">Join Open Play</Link>}
         {access.captain && <Link to="/captain">Matchday</Link>}
-        {access.admin && <Link to="/admin">Admin</Link>}
-        {access.finance && <Link to="/finance">Finance</Link>}
+        <button
+          type="button"
+          className="op-nav-more-trigger"
+          aria-expanded={moreOpen}
+          aria-controls="op-nav-more-menu"
+          onClick={() => setMoreOpen((open) => !open)}
+        >
+          More <span aria-hidden="true">{moreOpen ? "−" : "+"}</span>
+        </button>
       </nav>
+      {moreOpen && (
+        <div id="op-nav-more-menu" className="op-nav-more-menu" aria-label="More Open Play links">
+          {access.signedIn ? (
+            <Link to="/player" onClick={() => setMoreOpen(false)}>My account</Link>
+          ) : (
+            <Link to="/sign-in" onClick={() => setMoreOpen(false)}>Sign in</Link>
+          )}
+          {access.admin && <Link to="/admin" onClick={() => setMoreOpen(false)}>Admin dashboard</Link>}
+          {access.finance && <Link to="/finance" onClick={() => setMoreOpen(false)}>Finance</Link>}
+          {access.admin && <Link to="/admin-help" onClick={() => setMoreOpen(false)}>Admin help</Link>}
+        </div>
+      )}
       <div className="op-nav-account">
         {access.signedIn ? <Link to="/player">My account</Link> : <Link to="/sign-in">Sign in</Link>}
       </div>
