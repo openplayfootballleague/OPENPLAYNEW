@@ -73,8 +73,7 @@ begin
     where tm.season_team_id = p_season_team_id
       and tm.user_id = v_user
       and tm.status = 'active'
-      and tm.is_captain = true
-  ) then raise exception 'Active captain membership required to manage match-day payments'; end if;
+  ) then raise exception 'Active team membership required'; end if;
 
   select sfc.player_fee_pence into v_fee
   from public.season_fee_configs sfc
@@ -283,49 +282,3 @@ $$;
 
 revoke all on function public.admin_set_player_fixture_fee(uuid,integer,integer,text) from public, anon;
 grant execute on function public.admin_set_player_fixture_fee(uuid,integer,integer,text) to authenticated;
-
-
--- Captains can view only fixture payments for teams they captain.
-create or replace function public.get_captain_fixture_payments(p_season_team_id uuid)
-returns table(
-  payment_record_id uuid,
-  fixture_id uuid,
-  gameweek integer,
-  scheduled_at timestamptz,
-  player_name text,
-  amount_pence integer,
-  currency text,
-  status public.payment_status,
-  amount_refunded_pence integer,
-  paid_at timestamptz,
-  created_at timestamptz
-)
-language plpgsql
-stable
-security definer
-set search_path = ''
-as $$
-begin
-  if not exists (
-    select 1 from public.team_memberships tm
-    where tm.season_team_id = p_season_team_id
-      and tm.user_id = auth.uid()
-      and tm.status = 'active'
-      and tm.is_captain = true
-  ) then
-    raise exception 'Active captain access required';
-  end if;
-  return query
-  select pr.id, pr.fixture_id, f.gameweek, f.scheduled_at,
-         p.full_name, pr.amount_pence, pr.currency, pr.status,
-         pr.amount_refunded_pence, pr.paid_at, pr.created_at
-  from public.payment_records pr
-  left join public.fixtures f on f.id = pr.fixture_id
-  left join public.players p on p.user_id = pr.player_user_id
-  where pr.season_team_id = p_season_team_id
-  order by f.gameweek, p.full_name;
-end;
-$$;
-
-revoke all on function public.get_captain_fixture_payments(uuid) from public, anon;
-grant execute on function public.get_captain_fixture_payments(uuid) to authenticated;
