@@ -55,6 +55,8 @@ jobs:
         run: supabase db query --local --file supabase/tests/profile_self_service_permissions.sql
       - name: Verify database security assertions
         run: node scripts/verify-security-assertions.mjs
+      - name: Verify location-admin and player role matrix
+        run: supabase db query --local --file supabase/tests/location_admin_rls_role_matrix.sql
       - name: Stop local Supabase database
         if: always()
         run: supabase stop --no-backup
