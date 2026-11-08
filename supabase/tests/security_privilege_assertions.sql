@@ -108,6 +108,12 @@ select
     and has_function_privilege('authenticated','public.has_global_admin_role()','EXECUTE')
     and not has_function_privilege('anon','public.has_global_admin_role()','EXECUTE')
   ) as global_admin_rls_helper_is_authenticated_only,
+  (
+    not has_function_privilege('authenticated','public.get_admin_dashboard()','EXECUTE')
+    and not has_function_privilege('authenticated','public.get_admin_player_register(text,text,integer,integer)','EXECUTE')
+    and not has_function_privilege('authenticated','public.get_admin_team_sheets()','EXECUTE')
+    and not has_function_privilege('authenticated','public.admin_get_transfer_requests(text)','EXECUTE')
+  ) as legacy_unscoped_admin_rpcs_are_not_client_executable,
   (exists(select 1 from pg_proc p where p.oid='public.get_my_team_request_statuses()'::regprocedure and p.prosecdef)
     and not has_function_privilege('anon','public.get_my_team_request_statuses()','EXECUTE')) as team_request_status_rpc_is_security_definer_and_denies_anon,
   has_function_privilege('authenticated','public.get_my_team_request_statuses()','EXECUTE') as team_request_status_rpc_allows_authenticated,
