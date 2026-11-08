@@ -87,3 +87,24 @@ Fresh PR metadata/compare checks:
 - The main CI workflow currently installs locked dependencies, type-checks only `supabase/functions/deliver-notifications/index.ts`, runs `npm test`, runs `npm run build`, and performs a Cloudflare Worker dry-run. It does not currently type-check the Stripe Edge Functions on `main`; PR #6 modifies the workflow and must be checked at its latest head before relying on that addition.
 
 **Disposition:** both PR #3 and PR #6 require rebase/conflict resolution and fresh checks before merge. No merge or deployment was performed. The audit branch remains documentation-only.
+
+
+## Further work completed — source inventory and Stripe code review (8 November 2026)
+### Migration source inventory
+- Created and verified `docs/supabase-migration-source-reconciliation-2026-11-08.md` on this documentation branch.
+- Inspected migration directories from `main`, PR #2, PR #3 and PR #6. The union contains 128 file entries across refs (including duplicate copies of the same migration across branches).
+- Name matching covers **91 of the 97 live ledger records**. Six exact-name SQL sources were not found in those inspected trees: `fixture_player_appearance_tracking`, `finance_options_for_finance_roles`, `finance_summary_team_balance_rollup`, `audit_log_explicit_deny_policy`, `fixture_goal_records_explicit_deny_policy`, and `20261108190000_location_admin_assignments`.
+- The two live `admin_fixture_management` versions are represented separately in PR #2's timestamped snapshot. The Bideford-only migration is present in PR #3.
+- The three differently named local migrations (`finance_balance_semantics`, `audit_log_deny_all_policy`, `fixture_goal_records_deny_all`) are still unresolved as semantic equivalents, not counted as replacements.
+- This is **name-level source coverage only**. SQL contents have not yet been hash-compared with the exact applied migrations. No live migration history was edited and no migration was run.
+
+### Stripe static review
+- Created `docs/stripe-test-checkout-static-review-2026-11-08.md` on this documentation branch.
+- Identified three code-level acceptance blockers in PR #6: (1) failed/expired checkout attempts cannot reliably be restarted and `checkout_attempt` is never incremented; (2) the `charge.succeeded` webhook path records fee/net but does not transition the payment to paid; (3) checkout completion does not compare Stripe amount/currency/session identity with the stored payment record before marking it paid.
+- These are static findings, not executed test failures. PR #6 must be corrected and tested before checkout is accepted or enabled.
+
+### Master requirements / previous evidence review
+- The Library contains the full application audit (`Open-Play-Full-Application-Audit-v2.md`), Stage 2 completion evidence, final admin-phase evidence, final acceptance preparation and production-readiness checklist. These are supporting historical reports, not all current-head verification.
+- The audit reinforces that account creation is not player registration; the registration → player → team journey and genuine-data acceptance remain key launch gates. The master prompt itself was not located as a dedicated file in the repository docs inspected so far.
+
+**No code implementation, merge, deployment, Stripe secret configuration, test account creation, or production data change was made in this follow-up.**
