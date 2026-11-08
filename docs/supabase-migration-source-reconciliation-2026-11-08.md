@@ -289,3 +289,16 @@ CI on PR #6 head `a345997ed11e3c96aeacb6f6b242434cc64aece0` passed (7 test files
 PR #7 is now **closed unmerged** because all of its unique changes were ported to PR #6 and the consolidated branch passed workflow `42438352387` at head `8698acc3c6fa5700786a2e4deb1c86eb37b557d2` (7 test files / 78 tests; type-check, build and Cloudflare dry-run all passed). The exact Bideford source blob SHA remains `0f039bc23f94cebf0d5cd9094fd67d13d65f0195`.
 
 The PR #6 migration directory currently has 94 SQL files, two exact leading-version-prefix matches to the 98-row live ledger, and nine duplicate prefixes. Six original applied SQL sources remain unrecovered. PR #6 is draft/unmerged. No migrations were executed.
+
+
+## Live ledger refresh — 8 November 2026, 12:21 UTC
+
+A fresh Supabase `list_migrations` read confirms the live ledger remains at **98 applied records**. The current PR #6 source inventory remains **94 local migration SQL files**, with only **2 exact leading-version-prefix matches**, **9 duplicate local version prefixes**, and **96 live ledger versions without an exact leading-prefix match**. The six unrecovered original applied SQL sources remain:
+- `fixture_player_appearance_tracking`
+- `finance_options_for_finance_roles`
+- `finance_summary_team_balance_rollup`
+- `audit_log_explicit_deny_policy`
+- `fixture_goal_records_explicit_deny_policy`
+- `location_admin_assignments`
+
+The 98 live ledger records are not a deployable migration baseline in the current branch. Preserve the live migration history; do not use `db push`, re-run historical SQL, edit the migration ledger, or rename files merely to force filename parity. Exact source recovery and SQL-content/hash comparison remain required before any migration-tree consolidation is approved.
