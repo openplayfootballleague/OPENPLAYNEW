@@ -157,6 +157,6 @@ function AdminDashboardPage(){
    {auditLoading&&auditEvents.length===0?<p className="form-note">Loading audit history…</p>:auditEvents.length===0?<p className="form-note">No audit events match this search.</p>:auditEvents.map(event=><article className="admin-queue-row" key={event.id}><div><strong>{event.action}</strong><span>{event.entity_type}{event.entity_id?" · "+event.entity_id:""}</span><small>{event.actor_user_id?"Actor "+event.actor_user_id:"System"} · {new Date(event.created_at).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"})}</small>{event.reason&&<small>Reason: {event.reason}</small>}</div></article>)}
    {auditHasMore&&<button type="button" disabled={auditLoading} onClick={()=>void loadAuditHistory(auditOffset+50,auditSearch)}>{auditLoading?"LOADING…":"LOAD MORE HISTORY"}</button>}
    <p className="form-note">This view exposes audit metadata only. Private before/after payloads are deliberately withheld.</p>
-  </section><Link className="auth-switch" to="/player">Back to Player Hub</Link>
+  </section>}<Link className="auth-switch" to="/player">Back to Player Hub</Link>
  </section></main>;
 }
