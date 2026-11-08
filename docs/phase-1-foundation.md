@@ -11,7 +11,7 @@
 - [x] Pending/rejected registration states and global-admin-only identity-review evidence.
 - [x] Player Hub access only for approved registered players or active captains.
 - [x] Player picture upload is the only direct profile self-service edit; storage ownership and database column grants enforce it.
-- [ ] Verify authenticated end-to-end signup, email delivery, reset and registration with disposable test identities.
+- [x] Verify authenticated signup, confirmation-email delivery, verified sign-in, separate player registration, duplicate-registration rejection, password recovery/update and sign-out with disposable local Auth identities (CI run `42519046139`).
 - [ ] Verify the exact original 1619 × 971 OP asset is integrated (the current smaller PNG is not provenance-verified).
 - [ ] Complete browser and real-device accessibility/responsive acceptance.
 - [ ] Complete secure first super-admin bootstrap using an owner-approved identity.
@@ -23,4 +23,4 @@
 - [x] Apply the reviewed consolidated migration to the dedicated Open Play New Supabase project; hosted ledger records version `20261108194831`.
 
 ## Completion criteria
-Phase 1 is complete only when the account and player-registration lifecycle is fully implemented, the consolidated database release has passed clean replay and role-matrix tests, hosted schema is verified at the intended project, and the remaining authenticated/browser acceptance gates have been completed. Implemented, verified and released remain separate states.
+Phase 1 is complete only when the account and player-registration lifecycle is fully implemented, the consolidated database release has passed clean replay and role-matrix tests, hosted schema is verified at the intended project, and the remaining real-browser/device, canonical-logo and owner-approved bootstrap gates have been completed. Implemented, verified and released remain separate states.
