@@ -196,3 +196,6 @@ The Player Hub auth listener now clears player/profile identity, memberships, te
 | Platform admin / super admin | Platform-wide administrative and location access, global identity reviews, sensitive player corrections, notification operations, audit and location-admin assignments | Super-admin bootstrap cannot be self-appointed; first grant requires a controlled owner-approved process |
 
 The location-admin and global-admin boundaries in this matrix describe the target contract after the pending RLS migrations are applied; the hosted project currently retains the two identified role-boundary defects. This is the current intended contract, not a claim that every RPC has passed a positive/negative test for every row. The final matrix must be reconciled against all exposed RPC signatures and direct-table grants, especially legacy/unused RPCs not called by the current route code.
+### CI scope limitation
+
+The repository Build verification workflow runs Deno type checks for Edge Functions, domain unit tests, the TypeScript production build/type check and a Cloudflare Worker dry-run bundle validation. It does not start a Supabase/PostgreSQL instance, apply migration files or execute `supabase/tests/*.sql`. A green workflow therefore verifies application code/build only; it does not validate the new RLS migrations or SQL regression assertions.
