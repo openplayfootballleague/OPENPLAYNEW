@@ -1193,18 +1193,21 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          instagram_handle: string | null
           id: string
           instagram_profile_url: string | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          instagram_handle?: string | null
           id?: string
           instagram_profile_url?: string | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          instagram_handle?: string | null
           id?: string
           instagram_profile_url?: string | null
         }
@@ -2360,6 +2363,7 @@ export type Database = {
           p_season_id: string
           p_secondary_colour?: string
           p_instagram_profile_url: string | null
+          p_instagram_handle: string | null
           p_team_name: string
         }
         Returns: {
