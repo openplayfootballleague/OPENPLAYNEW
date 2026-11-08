@@ -181,8 +181,8 @@ begin
   if v_status <> 'scheduled' or public.captain_next_required_fixture(v_team_id) is distinct from v_fixture_id then
     raise exception 'Only the next required scheduled fixture can be edited by a captain';
   end if;
-  if v_locked then raise exception 'Submitted team sheets are locked'; end if;
-
+  -- The RPC layer enforces the submitted lock before it changes child rows;
+  -- submission itself must be able to replace draft rows after locking the parent.
   if tg_op = 'DELETE' then return old; end if;
   return new;
 end;
