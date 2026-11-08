@@ -114,3 +114,15 @@ Fresh PR metadata/compare checks:
 
 ## Fresh PR #6 CI recheck — 8 November 2026
 A later refresh of PR #6 metadata shows its head at `e69178622ef00a520c4fac0057322062dd0657d0`; GitHub now reports `mergeable=true` (still draft). The exact head has one completed `Build verification` workflow run, **42435119130**, with the single `build` job successful. All recorded steps passed: locked dependency install, Deno setup, Supabase Edge Function type-check, domain tests, TypeScript/build, and Cloudflare Worker dry-run. This supersedes the earlier zero-check-runs observation for the previous head. It does not clear the three static checkout/payment findings documented separately, nor does it constitute end-to-end Stripe acceptance. No merge was performed.
+
+
+## Fresh CI sweep across all six open PR heads — 8 November 2026
+A direct GitHub check-runs lookup on each current PR head returned one completed successful `build` check for every PR:
+- #1 PWA branding/install — success; real-device acceptance remains open.
+- #2 migration filename reconciliation — success; scope remains stale/incomplete against the current 97-record ledger.
+- #3 Bideford-only activation — success; branch remains non-mergeable/diverged and authenticated admin acceptance is pending.
+- #4 foundation/status documentation — success.
+- #5 Needs Attention navigation — success; browser/keyboard acceptance remains open.
+- #6 Stripe checkout — success; static lifecycle/financial-integrity findings and end-to-end payment acceptance remain open.
+
+CI success establishes the current build workflow passed; it does not substitute for real-device, authenticated-role, migration-content, or Stripe integration acceptance. All six PRs remain drafts at this check. No PR was merged.
