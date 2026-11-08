@@ -867,6 +867,16 @@ grant select on table public.player_registration_reviews to authenticated;
 
 -- Phase 1 profile self-service is picture-only, as confirmed in issue #25.
 -- Verified email/phone changes and administrator corrections use separate guarded workflows.
+-- Direct client profile writes are owner-only. Admin corrections remain in
+-- explicitly authorised SECURITY DEFINER RPCs rather than broad table policies.
+drop policy if exists profiles_update_self_or_admin on public.profiles;
+create policy profiles_update_self
+  on public.profiles
+  for update
+  to authenticated
+  using (id = (select auth.uid()))
+  with check (id = (select auth.uid()));
+
 revoke update on table public.profiles from authenticated;
 revoke update (
   first_name,
