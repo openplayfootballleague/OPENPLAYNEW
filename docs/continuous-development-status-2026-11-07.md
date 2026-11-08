@@ -338,3 +338,15 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - Verified current PR #6 head `bba419b5c22cdfc12c0ccbf251bcaa5d84102bc9` has a completed successful GitHub Actions build check (run 42434319995). CI includes Deno Edge Function type-check, domain tests, TypeScript/build and Cloudflare Worker dry-run. This is CI verification only, not browser or authenticated workflow acceptance.
 - PR #6 remains open as draft. No PR was merged, no production deployment was performed, no live Stripe configuration was enabled, and no test users or fictional league data were created.
 - Current blockers remain: authenticated end-to-end acceptance needs an approved test-account and Edge Function secret-management path; Stripe test secrets/webhook registration and payer-model acceptance are unresolved; official OP source PNG transfer into GitHub remains blocked by the available text-only GitHub file write route; real-device PWA and visual checks are outstanding.
+
+
+## 8 November 2026 — player location and season context
+
+- Added a shared player-facing location/season context selector. It reads only active locations, published leagues and public seasons in registration-open, active or completed states through the existing Supabase RLS policies.
+- The selector defaults to the first active location when no preference exists, prefers a registration-open season and then an active season, and persists the player's selection locally across player-facing routes.
+- Added the selector to Player Hub, Match Centre, Team Directory and Join / Register. Match Centre and Team Directory now query only the selected season; Join / Register submits against the selected season and permits applications only while that season is in registration-open status.
+- Player Hub now scopes memberships, upcoming fixtures and transfer destinations to the selected season. Existing player identity, captain and membership permissions remain unchanged.
+- Added responsive styling and consistent location-pin / calendar icons.
+- Added four unit tests for default season selection (registration-open priority, active fallback, completed fallback and empty seasons).
+- The admin competition setup already contains the create-location workflow. No new location row was seeded: the connected database currently has zero locations, and the prior release-safety decision intentionally left location data empty. The selector therefore displays an explicit empty-state message until Bideford is configured and activated through the approved admin workflow.
+- An initial CI build exposed an incorrect relative Supabase client import in the new shared context module. The import was corrected in commit `d7905cba70258bdb711339a738f8ec3bd7ee4fe4`. Full CI verification of the corrected final head is pending.
