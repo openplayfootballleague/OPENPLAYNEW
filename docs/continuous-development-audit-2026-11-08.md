@@ -265,3 +265,31 @@ A read-only catalog query across public functions returned:
 
 ### Execution decision
 Continue with independent application work and verification while keeping the migration and production gates closed. The next database-related action is to obtain an authoritative archive of the six missing original migration SQL files, then perform exact content/version reconciliation; do not reconstruct or backdate them.
+
+
+## Continuous execution session — location guard and hosted-function parity (8 November 2026, 02:18 UTC)
+
+### Bideford activation guard verified against live PostgreSQL
+Read-only inspection of `public.admin_set_location_active(uuid, boolean, text)` and the `locations` constraints/indexes confirms:
+- RPC requires a non-null authenticated actor, `has_platform_role()`, and `can_administer_location(location_id)`.
+- Activation reason is required (5–500 characters).
+- Only a location whose trimmed town is Bideford can be activated.
+- A transaction advisory lock serialises activation changes; a partial unique index permits at most one active location.
+- Deactivation is blocked while the location has a published league or a public, registration-open or active season.
+- Successful changes update `locations` and append before/after values plus reason to `audit_log`.
+- RPC is executable by `authenticated`, not `anon`. The database also has a Bideford-only check constraint.
+- Current live location count remains zero; no location or competition data was seeded.
+
+This verifies the database-side policy shape, not the browser confirmation flow. Admin acceptance still needs an authorised account.
+
+### Hosted Edge Function source parity
+Compared the currently hosted `index.ts` with the PR #6 branch source:
+- `deliver-notifications` v8: exact source match.
+- `public-gallery` v3: exact source match.
+- `create-player-checkout` v1: does not match the current PR #6 source.
+- `stripe-webhook` v5: does not match the current PR #6 source.
+
+The Stripe functions are intentionally not redeployed: test secrets and test-mode webhook registration are not configured, and no real test checkout has been approved. Treat the hosted versions as older than the current branch and do not rely on source parity until a controlled test deployment is approved.
+
+### Player location/season selection regression coverage
+On PR #6, extracted the existing saved-context resolution into a pure helper and added tests for valid saved context, cross-location stale-season rejection, stale-location fallback and empty-location fallback. This is a behaviour-preserving refactor; GitHub Actions workflow `42437938149` for head `31b5615944ddd7665bb47583d27218d35c68622e` was still running at the time of this addendum. No test pass is claimed until that workflow completes.
