@@ -53,7 +53,7 @@ if (!signUpData.user?.id) throw new Error("Signup did not create an Auth user");
 if (signUpData.session) throw new Error("Signup returned a session before email verification");
 
 const confirmationEmail = await waitForEmail(
-  (message) => String(message.subject ?? "").toLowerCase().includes("confirm") || String(message.subject ?? "").toLowerCase().includes("verify"),
+  (message) => String(message.Subject ?? "").toLowerCase().includes("confirm") || String(message.Subject ?? "").toLowerCase().includes("verify"),
   "signup confirmation email",
 );
 const confirmationToken = extractTokenHash(confirmationEmail);
@@ -86,7 +86,7 @@ const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
 });
 if (resetError) throw resetError;
 const recoveryEmail = await waitForEmail(
-  (message) => String(message.subject ?? "").toLowerCase().includes("password") || String(message.subject ?? "").toLowerCase().includes("reset"),
+  (message) => String(message.Subject ?? "").toLowerCase().includes("password") || String(message.Subject ?? "").toLowerCase().includes("reset"),
   "password recovery email",
 );
 const recoveryToken = extractTokenHash(recoveryEmail);
