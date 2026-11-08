@@ -16,7 +16,7 @@ export function validateCheckoutSettlement(record: PaymentSettlementRecord, obje
   if (!sessionId || record.stripe_checkout_session_id !== sessionId || paymentId !== record.id) {
     return { ok: false, reason: "Checkout session identity mismatch; held for finance review" };
   }
-  if (object.amount_total !== undefined) {
+  if (object.payment_status === "paid" || object.amount_total !== undefined) {
     const amount = object.amount_total;
     const currency = String(object.currency ?? "").toLowerCase();
     const intentId = typeof object.payment_intent === "string" ? object.payment_intent : "";
