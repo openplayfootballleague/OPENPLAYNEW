@@ -27,13 +27,16 @@ The inspected application uses TanStack Start with React, Vite, Supabase and Clo
 - no PostHog environment variables were present.
 
 The repository now has:
+- `@posthog/react`, `posthog-js` and `posthog-node` installed through npm with a committed lockfile;
 - `VITE_POSTHOG_PROJECT_TOKEN` placeholder in `.env.example`;
 - `VITE_POSTHOG_HOST=https://eu.i.posthog.com` in `.env.example`;
 - a local-device consent helper in `src/lib/analytics/consent.ts`;
-- seven unit tests in `src/lib/analytics/consent.test.ts`;
-- a user-facing preference control in Privacy & Security.
+- seven consent unit tests in `src/lib/analytics/consent.test.ts`;
+- an allow-listed event contract and property sanitizer in `src/lib/analytics/events.ts`, with tests;
+- a consent banner for visitors and a preference control in Privacy & Security;
+- a conditional `PostHogProvider` at the TanStack root in `src/components/analytics-provider.tsx`.
 
-No project token has been committed. No SDK dependency has been added yet because the available execution environment cannot reach npm/GitHub to generate and verify the lockfile; the package manager install must be completed in a network-enabled development environment.
+No project token has been committed and no production environment variable has been configured. The provider stays unmounted unless the EU host and project token are present and the user has explicitly opted in.
 
 ## 3. Consent implementation
 
@@ -48,7 +51,7 @@ Rules:
 6. The Privacy & Security screen explains that the preference is stored on this device.
 7. The screen states clearly that analytics capture is not yet active in this build.
 
-The helper deliberately does not initialise PostHog. It is the prerequisite consent gate; the SDK must be mounted/initialised only after the helper confirms an explicit grant and GPC is absent. Revocation must immediately stop capture, opt the user out, and reset any identified session state.
+The root now mounts `PostHogProvider` only when the EU host/token are configured and the local preference is explicitly granted with GPC absent. It sets `opt_out_capturing_by_default` and then opts in only from the consent-aware child. Revocation broadcasts a same-tab event; the active SDK opts out before the provider is unmounted. Cross-tab storage changes and page visibility changes are also rechecked. No user identification is performed.
 
 ## 4. Data collection policy
 
@@ -77,16 +80,21 @@ Do not identify users with email, name, phone or other direct identifiers. Any f
 
 The connected PostHog project settings currently show session recording, heatmaps, web-vitals, console-log and performance collection as enabled/opted-in at the project level. This repository does not currently initialise the SDK, so these settings alone are not evidence that Open Play app data is being captured.
 
-When the SDK is installed:
-- do not initialise the provider before explicit consent;
-- disable autocapture by default;
-- disable session replay, heatmaps, console logs and performance capture unless a separate purpose, consent and masking review explicitly approves them;
-- never capture message/support content or private registration forms;
-- exclude all privileged administrator and finance screens from product analytics;
-- disable automatic exception capture unless the event payload is demonstrably free of personal/sensitive data;
-- do not use session replay as a default or silently enable it through PostHog project defaults.
+The current provider explicitly configures:
+- `autocapture: false`;
+- `capture_pageview: false` and `capture_pageleave: false` (navigation is tracked only through the allow-listed custom event);
+- `capture_dead_clicks: false` and `rageclick: false`;
+- `capture_exceptions: false`;
+- `capture_heatmaps: false`;
+- `capture_performance: false` (disables web-vitals and network timing);
+- `disable_session_recording: true`;
+- `logs.captureConsoleLogs: false`;
+- `opt_out_capturing_by_default: true`;
+- feature flags, surveys, product tours and conversations disabled until required.
 
-The initial integration should use minimal custom events only and should not turn on session replay or broad autocapture.
+The initial route tracker emits only `navigation_section_viewed`, using a fixed route-category allow-list. It resolves the actor from Supabase: anonymous visitors and approved, non-banned players may be included after consent; admin, super_admin, finance_admin, league_admin and unresolved actors are excluded. The event helper drops unknown properties, direct identifiers, arbitrary URLs and free-form error text.
+
+Do not enable session replay, heatmaps, web vitals, console logs, exception capture or broad autocapture by changing project defaults. Any future change requires a separate privacy purpose, consent and masking review.
 
 ## 6. Planned SDK setup
 
@@ -115,6 +123,15 @@ Candidate minimal events:
 - `notification_preferences_updated`.
 
 Event names and properties must be reviewed against the actual code paths before capture is added. Do not treat account creation as player registration. Do not record event properties containing personal data or private IDs.
+
+
+## 9. Latest implementation verification
+
+- GitHub Actions run `42483814025` completed successfully for the consent-aware provider/event implementation: 12 test files / 96 tests passed, Deno Edge Function type-check passed, Vite client and SSR production builds passed, TypeScript passed, and Cloudflare Worker dry-run passed.
+- The later direct `posthog-js` dependency/lockfile update was generated with npm in a branch-scoped GitHub Actions workflow; that temporary workflow has been removed.
+- A fresh full CI run is still required for the final lockfile head.
+- Deployment-side `VITE_POSTHOG_PROJECT_TOKEN` and `VITE_POSTHOG_HOST` are not yet configured. Until then the provider and consent banner remain inactive in deployed environments and no Open Play events are sent.
+- No server-side events are implemented; `posthog-node` is installed for the later server-side integration, which must remain consent/identity gated and must not emit sensitive business data.
 
 ## 8. Verification and release gates
 
