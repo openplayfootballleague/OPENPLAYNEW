@@ -447,7 +447,7 @@ The earlier status snapshot above is historical (its 69-migration count and Stri
 - Added a public Edge Function that only reads published items belonging to active locations, creates short-lived signed image URLs from the private `open-play-gallery` bucket, and never returns raw storage object paths.
 - The function accepts GET/OPTIONS only, validates optional location IDs, caps each response at 48 items, and returns no-store responses.
 - Added the new function to the CI Deno type-check command.
-- Deployed to the **development** project only. Latest verified function state: ACTIVE, version 2, `verify_jwt=true`. The frontend uses the legacy JWT anon key, so public anonymous calls can retain gateway JWT verification.
+- Deployed to the **development** project only. Latest verified function state: ACTIVE, version 3, `verify_jwt=false` by design. The public route uses `VITE_SUPABASE_PUBLISHABLE_KEY`, which is not a JWT; the endpoint is intentionally anonymous and returns only published items from active locations, using short-lived signed URLs from the private bucket. It accepts no object path or mutation input.
 - Confirmed deployed function source matches the repository branch.
 
 **Stripe webhook type safety**
@@ -475,3 +475,11 @@ The earlier status snapshot above is historical (its 69-migration count and Stri
 4. Complete the full Settings workspace and remaining admin information-architecture requirements; the current Settings page is an overview, not the full settings implementation.
 5. Transfer the exact canonical logo binary through an approved file-upload path.
 6. Continue remaining player, captain, finance, notification, reporting and production-readiness work. Production remains blocked until seeded acceptance, external provider configuration, regression testing and deployment checks are complete.
+
+
+### Further admin navigation verification — 8 November 2026
+
+- Added the missing **11 Player Statistics** navigation item, anchored directly to the existing verified player-statistics table within the season analytics workspace.
+- The admin navigation now contains all 15 numbered sections. A static check verified every in-page navigation target exists; no broken anchor targets were found.
+- Full Settings functionality remains incomplete; the current page is a permission-aware index into existing workspaces.
+- Finance/Stripe schema audit: `payment_records`, `finance_entries` and `stripe_webhook_events` all have RLS enabled. `stripe_webhook_events` has no client table grants and an explicit deny-all client policy. The development database enforces `livemode = false` for Stripe webhook events. Payment rows are readable only under the captain-or-finance policy; direct client writes are denied. Checkout session and payment-intent identifiers are unique, and refund totals cannot exceed the original amount.
