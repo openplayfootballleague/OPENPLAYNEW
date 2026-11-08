@@ -330,3 +330,38 @@ Port the reviewed consent-aware PostHog provider and actor-resolver hardening on
 - No Supabase branch, migration, production data/DDL change, role provisioning, payment, notification dispatch or production deployment occurred. The no-cost-until-development-end boundary remains in force.
 
 Precise next task: finish browser-level consent/network verification for PR #29, then port the role-scope correction to the active core integration branch only after isolated migration replay and an executable positive/negative role matrix can be run safely. In parallel, inventory SECURITY DEFINER internal guards against the role matrix; do not blanket-revoke authenticated EXECUTE.
+
+## 13. Consolidated migration manifest and core PostHog port — 8 November 2026, 14:05 UTC
+
+### All applied migration sources consolidated into one branch
+
+- Draft PR #28 now contains the full 98/98 canonical source set: 35 sources from the PR #2 recovery set, six distinct sources from PR #21, 33 previously reconciled core sources, and the final 24 sources recovered directly from the live applied ledger.
+- Renamed/replaced 34 synthetic-prefix copies for the PR #2 source set, retained both distinct applied admin_fixture_management migrations, and added six PR #21 sources. Replaced two synthetic deny-policy duplicates and removed the duplicate synthetic goal-audit source.
+- The branch has 99 migration files: all 98 applied ledger versions exactly once, plus one separate forward-only file, 20261108014200_finance_balance_semantics.sql.
+- Added the 98-row manifest docs/supabase-migration-source-manifest-2026-11-08.md, recording the live ledger version/name, canonical path and Git blob SHA for every applied source.
+- Added scripts/verify-migration-source-manifest.mjs and wired it into CI. It computes Git blob SHA-1 values from the files, verifies all 98 manifest rows, unique prefixes, and the one declared forward-only file.
+- Latest PR #28 CI run https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42487951462 passed: manifest verification (98 applied sources / 99 unique files / 1 forward-only migration), 8 test files / 80 tests, Deno Edge Function type-check, production build and Worker dry-run.
+- PR #28 remains draft. No migration was applied and no isolated replay has been performed.
+
+### Consent-gated PostHog foundation ported onto core
+
+- Draft PR #29 now ports the consent helper, typed event allow-list, actor resolver, PostHog provider and associated unit tests onto the active core branch, without importing the unrelated visual refresh/admin dashboard work.
+- Mounted the provider at the app root while preserving existing PWA manifest and service-worker registration; added EU-host environment placeholders without adding a project token or secret.
+- Added a Privacy & Security page with local grant/deny/revoke controls, GPC precedence and same-tab/cross-tab/foreground preference refresh; linked it from the Player Hub.
+- Added actor-resolution hardening: check Supabase configuration before client construction; synchronous initialisation errors and rejected auth/database lookups fail closed to unknown; unknown and privileged actors do not capture route events.
+- Instrumented account sign-up, player registration, team registration and team join-request flows using allow-listed event names and non-PII properties.
+- Added SDK mount-gate and browser-consent subscription unit tests. Latest PR #29 CI run https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42487842044 passed: 11 test files / 107 tests, Deno Edge Function type-check, production build and Worker dry-run.
+- Earlier CI failures in this branch were traced to a missing Vitest vi import and an obsolete unused consent-event import; both were corrected and the latest run is green.
+- Browser-level proof of zero PostHog network traffic before opt-in, real cross-tab revocation/GPC behavior, and PostHog project privacy settings remain outstanding. No project token is configured and no PostHog capture is active.
+
+### Current blockers and safety state
+
+- PR #28 migration source reconciliation still requires an isolated full replay and security/role matrix before merge or release. The single forward-only finance semantics migration needs independent logic review and replay.
+- PR #22 authorization changes still need a genuine authenticated positive/negative role matrix; static SQL catalog assertions do not prove role behavior.
+- Initial Super Admin provisioning remains blocked on explicit owner approval of the authority matrix and confirmation of the first trusted owner Auth identity. No account or role was created.
+- PR #13/PR #27 remains highly divergent and must not be merged wholesale. PR #29 is the small reviewed PostHog port onto the active core branch.
+- No Supabase branch was created, no production migration or write occurred, no role/user was provisioned, no payment was triggered, and no production deployment occurred. The agreed no-cost-until-development-end boundary remains intact.
+
+### Precise next task
+
+Build browser-level acceptance for PR #29: prove that the PostHog SDK does not initialize or send network requests before explicit opt-in; prove same-tab and cross-tab revocation immediately opt out and unmount the provider; prove GPC always overrides saved opt-in. Use a browser test harness only if it can run reliably in CI; otherwise add a documented manual browser-network acceptance procedure and keep the release gate blocked. Then continue isolated migration replay/role-matrix planning without creating a Supabase branch or incurring the agreed cost before the development-complete stage.
