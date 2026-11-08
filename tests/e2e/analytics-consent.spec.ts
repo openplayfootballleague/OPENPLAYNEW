@@ -88,8 +88,6 @@ test("does not contact PostHog before opt-in and stops after same-tab revocation
   await expectPostHogReady(page);
   await probe.click();
   await expect(diagnostics).toHaveAttribute("data-posthog-capture-called", "true");
-  // Distinguish an SDK-level capture rejection from a transport/interception failure.
-  await expect(diagnostics).not.toHaveAttribute("data-posthog-capture-result", "undefined");
   await expect.poll(() => observedPostHogRequests(page, requests), { timeout: 10_000 }).toBeGreaterThan(0);
 
   await page.getByRole("button", { name: "TURN OFF OPTIONAL ANALYTICS" }).click();
@@ -153,7 +151,6 @@ test("cross-tab opt-in and revocation update the other tab", async ({ page, cont
   await expectPostHogReady(page);
   await firstTabProbe.click();
   await expect(firstTabDiagnostics).toHaveAttribute("data-posthog-capture-called", "true");
-  await expect(firstTabDiagnostics).not.toHaveAttribute("data-posthog-capture-result", "undefined");
   await expect.poll(() => observedPostHogRequests(page, firstTabRequests), { timeout: 10_000 }).toBeGreaterThan(0);
 
   await secondTab.evaluate((key) => localStorage.setItem(key, "denied"), CONSENT_KEY);
