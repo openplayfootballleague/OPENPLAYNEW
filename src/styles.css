@@ -1218,3 +1218,8 @@ a { color: inherit; text-decoration: none; }
 .analytics-consent-actions .button{white-space:nowrap}
 .analytics-consent-actions .auth-text-button{white-space:nowrap;color:#e5e7df}
 @media(max-width:640px){.analytics-consent-banner{inset-inline:10px;bottom:calc(10px + env(safe-area-inset-bottom));width:auto;display:grid;gap:12px;padding:15px}.analytics-consent-actions{display:flex;flex-wrap:wrap;gap:10px}.analytics-consent-actions .button{flex:1 1 auto}.analytics-consent-actions .auth-text-button{padding:10px}}
+
+
+.account-security-section{display:grid;gap:12px;margin-top:24px;padding-top:20px;border-top:1px solid rgba(20,25,20,.14)}
+.account-security-section h2{margin:0;font-size:1rem;letter-spacing:.02em}
+.account-security-section p{margin:0;line-height:1.6}
