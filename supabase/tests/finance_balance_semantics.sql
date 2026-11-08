@@ -18,30 +18,30 @@ begin
 
   -- Charge + fine + refund increase the balance owed. Payment + credit reduce it.
   perform public.admin_create_finance_entry(
-    '00000000-0000-4000-8000-000000000021',
+    '00000000-0000-4000-8000-000000000050',
     'charge',10000,'CI finance charge'
   );
   perform public.admin_create_finance_entry(
-    '00000000-0000-4000-8000-000000000021',
+    '00000000-0000-4000-8000-000000000050',
     'payment',3000,'CI finance payment',
     null,null,'cash'
   );
   perform public.admin_create_finance_entry(
-    '00000000-0000-4000-8000-000000000021',
+    '00000000-0000-4000-8000-000000000050',
     'refund',2000,'CI finance refund'
   );
   perform public.admin_create_finance_entry(
-    '00000000-0000-4000-8000-000000000021',
+    '00000000-0000-4000-8000-000000000050',
     'credit',500,'CI finance credit'
   );
   perform public.admin_create_finance_entry(
-    '00000000-0000-4000-8000-000000000021',
+    '00000000-0000-4000-8000-000000000050',
     'fine',1000,'CI finance fine'
   );
 
   -- An overpaid team must not offset another team's positive debt.
   perform public.admin_create_finance_entry(
-    '00000000-0000-4000-8000-000000000022',
+    '00000000-0000-4000-8000-000000000052',
     'payment',5000,'CI finance overpayment',
     null,null,'cash'
   );
@@ -49,8 +49,8 @@ begin
   select max(team_balance_pence)
   into v_balance
   from public.get_finance_ledger(
-    '00000000-0000-4000-8000-000000000031',
-    '00000000-0000-4000-8000-000000000021'
+    '00000000-0000-4000-8000-000000000030',
+    '00000000-0000-4000-8000-000000000050'
   );
 
   if v_balance <> 9500 then
@@ -58,7 +58,7 @@ begin
   end if;
 
   select * into v_summary
-  from public.get_finance_summary('00000000-0000-4000-8000-000000000031');
+  from public.get_finance_summary('00000000-0000-4000-8000-000000000030');
 
   if v_summary.charges_pence <> 10000
      or v_summary.payments_pence <> 3000
@@ -70,7 +70,7 @@ begin
   end if;
 
   select * into v_summary
-  from public.get_finance_summary('00000000-0000-4000-8000-000000000032');
+  from public.get_finance_summary('00000000-0000-4000-8000-000000000031');
 
   if v_summary.payments_pence <> 5000
      or v_summary.outstanding_pence <> 0 then
