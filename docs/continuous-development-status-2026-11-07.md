@@ -277,3 +277,13 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - Ran four direct storage configuration assertions; all returned true. No storage policy changes were needed.
 - The captain-only fixture-payment migration and its updated security regression assertion are applied and verified in development. This enforces the existing Match Day / Club captain-only access rule at the RPC layer, not just in UI.
 - CI runs for the captain payment migration, its security assertion update, and the profile permission migration/documentation are being checked separately; no pending run is being marked passed prematurely.
+
+
+## 8 November 2026 — team membership approval and assignment concurrency
+
+- Extended the SECURITY DEFINER review to the membership lifecycle. Found that `resolve_team_membership_request` previously activated a pending membership without rechecking the player's current registration/ban status or whether they had become active in another team in the same season since the request was submitted.
+- Added and applied `20261108080000_validate_team_membership_approval.sql`. Approval now revalidates approved team, open/active season, registered and non-banned player, and no other active team membership in the same season. A transaction-scoped advisory lock keyed by player and season serializes competing approvals.
+- Found the same check-then-insert race in admin assignment: two administrators acting concurrently could assign the same player to different teams in one season after both saw no existing active membership.
+- Added and applied `20261108090000_serialize_admin_player_team_assignment.sql`. Admin assignment now validates eligible player/team/season and uses the same player/season advisory lock before checking other active memberships.
+- Verified both development function definitions contain the locks and eligibility checks. Extended the SQL security assertions to cover both paths; all nine assertions returned true.
+- CI for the captain payment and its preceding migrations completed successfully. Latest membership-approval and admin-assignment migrations plus their assertion/docs updates are queued/running and will be checked before claiming CI success.
