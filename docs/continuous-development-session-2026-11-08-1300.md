@@ -110,3 +110,8 @@ The initial review flagged the `20261108290000` migration prefix as an invalid h
 ### Role-provisioning owner decision — issue #24
 
 A personal-context review found no exact owner-approved grant/revoke authority matrix, bootstrap identity-verification rule, or final-super-admin-removal safeguard. A comment was added to issue #24 recording this as an approval dependency. No role or Auth user was created. Do not infer who may grant or revoke `admin`, `super_admin`, `finance_admin` or `league_admin`; continue with independent work until that decision is supplied.
+
+
+### Live project baseline refresh
+
+Read-only counts on the connected Supabase project returned **0 Auth users, 0 user-role rows, 0 locations and 0 team memberships**. This is consistent with the current unbootstrapped state. It also means no real owner/admin/captain/ordinary-player session exists for live role acceptance; do not create one without the approved bootstrap and test plan. The profile column-grant issue is therefore a latent permission gap to close before onboarding, not evidence that a current user account was modified.
