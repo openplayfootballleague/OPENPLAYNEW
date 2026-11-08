@@ -42,6 +42,7 @@ select
     where p.oid='public.create_player_fixture_payment(uuid,uuid)'::regprocedure
       and pg_get_functiondef(p.oid) ilike '%pg_advisory_xact_lock%'
   ) as player_fixture_payment_creation_is_serialized,
+  (select pg_get_functiondef('public.create_player_fixture_payment(uuid,uuid)'::regprocedure) ilike '%is_active_team_captain(p_season_team_id)%') as fixture_payment_requires_active_captain,
   has_column_privilege('authenticated','public.profiles','first_name','UPDATE')
     and has_column_privilege('authenticated','public.profiles','last_name','UPDATE')
     and has_column_privilege('authenticated','public.profiles','display_name','UPDATE')
