@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getSupabaseClient } from "./supabase/client";
+import { getSupabaseClient } from "../supabase/client";
 
 export type PlayerLocationOption = {
   id: string;
