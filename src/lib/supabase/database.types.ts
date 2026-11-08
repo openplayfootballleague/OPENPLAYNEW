@@ -1326,6 +1326,13 @@ export type Database = {
         Args: { p_effective_from_gameweek: number; p_player_fee_pence: number; p_reason: string; p_season_id: string }
         Returns: string
       }
+      get_admin_player_register_contextual: {
+        Args: { p_search?: string | null; p_status?: string | null; p_limit?: number; p_offset?: number; p_location_id?: string | null; p_league_id?: string | null; p_season_id?: string | null }
+        Returns: {
+          user_id: string; full_name: string; email: string; phone: string; registration_status: string;
+          is_banned: boolean; is_genuine: boolean; created_at: string; preferred_position: string | null; team_names: string[]
+        }[]
+      }
       get_admin_dashboard_contextual: {
         Args: { p_location_id?: string | null; p_league_id?: string | null; p_season_id?: string | null }
         Returns: Json
