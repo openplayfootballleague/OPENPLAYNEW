@@ -67,7 +67,8 @@ begin
    ('00000000-0000-4000-8000-000000000061','00000000-0000-4000-8000-000000000050','00000000-0000-4000-8000-000000000001','active',false),
    ('00000000-0000-4000-8000-000000000062','00000000-0000-4000-8000-000000000052','00000000-0000-4000-8000-000000000003','active',true),
    ('00000000-0000-4000-8000-000000000063','00000000-0000-4000-8000-000000000050','00000000-0000-4000-8000-000000000006','pending',false),
-   ('00000000-0000-4000-8000-000000000064','00000000-0000-4000-8000-000000000052','00000000-0000-4000-8000-000000000001','pending',false);
+   ('00000000-0000-4000-8000-000000000064','00000000-0000-4000-8000-000000000052','00000000-0000-4000-8000-000000000001','pending',false),
+   ('00000000-0000-4000-8000-000000000065','00000000-0000-4000-8000-000000000050','00000000-0000-4000-8000-000000000003','pending',false);
 
   insert into public.fixtures (id,season_id,gameweek,fixture_number,home_team_id,away_team_id)
   values
@@ -110,6 +111,25 @@ begin
   perform public.resolve_team_membership_request('00000000-0000-4000-8000-000000000063','approved');
   select count(*) into v_count from public.team_memberships where id='00000000-0000-4000-8000-000000000063' and status='active';
   if v_count <> 1 then raise exception 'Captain could not approve a pending request for their own team'; end if;
+
+  perform public.resolve_team_membership_request('00000000-0000-4000-8000-000000000065','rejected');
+  select count(*) into v_count from public.team_memberships where id='00000000-0000-4000-8000-000000000065' and status='rejected';
+  if v_count <> 1 then raise exception 'Captain could not reject a pending request for their own team'; end if;
+
+  v_denied := false;
+  begin
+    perform public.resolve_team_membership_request('00000000-0000-4000-8000-000000000064','approved');
+  exception when others then
+    if sqlerrm = 'Captain or assigned location administrator permission required' then
+      v_denied := true;
+    else
+      raise;
+    end if;
+  end;
+  if not v_denied then raise exception 'Captain unexpectedly resolved a different team request'; end if;
+  select count(*) into v_count from public.team_memberships where id='00000000-0000-4000-8000-000000000064' and status='pending';
+  if v_count <> 1 then raise exception 'Cross-team request changed despite authorization denial'; end if;
+
   select count(*) into v_count from public.team_memberships where season_team_id='00000000-0000-4000-8000-000000000052';
   if v_count <> 0 then raise exception 'Captain can see another location roster'; end if;
   select count(*) into v_count from public.fixtures where id='00000000-0000-4000-8000-000000000070';
