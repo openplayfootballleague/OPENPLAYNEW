@@ -6,6 +6,7 @@ const manifestPath = "docs/supabase-migration-source-manifest-2026-11-08.md";
 const migrationDirectory = "supabase/migrations";
 const expectedForwardOnly = [
   "supabase/migrations/20261108014200_finance_balance_semantics.sql",
+  "supabase/migrations/20261109002000_profiles_avatar_only_permissions.sql",
 ];
 
 function fail(message) {
@@ -54,4 +55,4 @@ const actualFiles = new Set(migrationFiles);
 for (const path of expectedFiles) if (!actualFiles.has(path)) fail(`expected migration file is missing: ${path}`);
 for (const path of actualFiles) if (!expectedFiles.has(path)) fail(`unmanifested migration file found: ${path}`);
 
-console.log(`Verified ${rows.length} applied migration sources, ${migrationFiles.length} unique migration files, and ${expectedForwardOnly.length} declared forward-only migration.`);
+console.log(`Verified ${rows.length} applied migration sources, ${migrationFiles.length} unique migration files, and ${expectedForwardOnly.length} declared forward-only migrations.`);
