@@ -489,3 +489,38 @@ button:disabled { opacity: .55; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+
+/* Dark surfaces for remaining operational and discovery components */
+.admin-setup-form { background:#202720; border-color:#39443b; }
+.admin-setup-form h3, .admin-genuine-form>strong,
+.admin-stat-summary strong, .admin-stat-block h3 { color:#f4f3ed; }
+.admin-setup-form input, .admin-setup-form select, .admin-setup-form textarea,
+.admin-genuine-form textarea, .admin-player-search input, .admin-player-search select {
+  background:#111713; color:#f4f3ed; border-color:#465248;
+}
+.admin-setup-form button { background:var(--orange); color:#171713; }
+.admin-setup-registers>div, .admin-stat-summary>div, .admin-stat-block,
+.admin-genuine-form, .admin-player-detail, .admin-help-card,
+.admin-help-grid, .admin-fixture-list, .admin-score-fields,
+.admin-transfer-detail, .admin-sheet-detail {
+  background:#202720; color:#f4f3ed; border-color:#39443b;
+}
+.admin-setup-registers>div>strong, .admin-setup-registers p,
+.admin-stat-summary span, .admin-stat-block p,
+.admin-help-intro, .admin-help-card p { color:#b0b5aa; }
+.admin-setup-registers small, .admin-setup-form>small { color:#aeb5aa; }
+.admin-inline-action { border-color:#667267; color:#f4f3ed; }
+.admin-inline-action:hover { border-color:var(--orange); color:var(--orange); }
+.admin-fixture-list .admin-queue-row { border-color:#39443b; }
+.notification-dispatch-control { background:#202720; border-color:#39443b; }
+.notification-dispatch-control .admin-genuine-form { border-color:#39443b; }
+.notification-dispatch-control .sheet-confirm-check { color:#d2d6ce; }
+.admin-help-grid { border-color:#39443b; }
+.admin-help-card { background:#202720; }
+.admin-help-card h2 { color:#f4f3ed; }
+.auth-mode-switch { background:#39443b; }
+.auth-mode-switch button { background:#202720; color:#c6ccc3; }
+.auth-mode-switch button.active { background:#29382d; color:#fff; }
+.auth-select-label { color:#d2d6ce; }
+.auth-select-label select, .auth-form select { background:#111713; color:#f4f3ed; border-color:#465248; }
