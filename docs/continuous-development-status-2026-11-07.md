@@ -268,3 +268,12 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - Verified development function definition contains the active-captain guard; anon execution remains false; authenticated RPC execution remains true but is constrained by the server-side guard.
 - Extended the repeatable SQL security assertions to include the captain-only payment guard. Executed against development: all seven assertions returned true.
 - This gates ordinary players from directly creating payment records; it does not decide whether captains pay individually or for a whole team. Checkout UI and end-to-end payment remain gated pending that payer-model decision.
+
+
+## 8 November 2026 — avatar storage and latest security checks
+
+- Inspected Supabase Storage configuration and object policies for the existing Player Hub avatar upload.
+- Verified the `profile-avatars` bucket is public-read, has a 5 MiB file limit, and permits only JPEG, PNG and WebP. Owner-scoped insert/update/delete policies restrict writes to the authenticated user's own `<uid>/...` path; a public-read policy supports rendering avatar URLs.
+- Ran four direct storage configuration assertions; all returned true. No storage policy changes were needed.
+- The captain-only fixture-payment migration and its updated security regression assertion are applied and verified in development. This enforces the existing Match Day / Club captain-only access rule at the RPC layer, not just in UI.
+- CI runs for the captain payment migration, its security assertion update, and the profile permission migration/documentation are being checked separately; no pending run is being marked passed prematurely.
