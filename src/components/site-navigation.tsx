@@ -102,9 +102,6 @@ export function SiteNavigation() {
           {access.admin && <Link to="/admin-help" onClick={() => setMoreOpen(false)}>Admin help</Link>}
         </div>
       )}
-      <div className="op-nav-account">
-        {access.signedIn ? <Link to="/player">My account</Link> : <Link to="/sign-in">Sign in</Link>}
-      </div>
     </header>
   );
 }
