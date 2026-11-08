@@ -8,6 +8,7 @@ const expectedForwardOnly = [
   "supabase/migrations/20261108014200_finance_balance_semantics.sql",
   "supabase/migrations/20261108030000_scope_rls_to_global_admins.sql",
   "supabase/migrations/20261108031000_revoke_unscoped_admin_rpcs.sql",
+  "supabase/migrations/20261109000000_correct_membership_location_and_finance_authorization.sql",
 ];
 
 function fail(message) {
