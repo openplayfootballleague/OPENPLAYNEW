@@ -133,3 +133,14 @@ CI success establishes the current build workflow passed; it does not substitute
 - Expanded Stripe review to a fourth blocker: PR #6 does not add a player-facing route/component that actually invokes the checkout Edge Function or presents payment history. The current Player Hub only handles a return query string; that is not an end-to-end checkout UI. The final RPC migration also requires an active captain, so the intended payer role must be settled and the UI must reflect server enforcement.
 - PR #6's static review now has four acceptance blockers: retry lifecycle, `charge.succeeded` paid-state transition, checkout amount/currency/session verification, and missing player-facing entry point/payment history.
 - No original migration SQL was fabricated; no application code or database changes were made in this continuation.
+
+
+## Source-restoration action — Bideford policy migration
+The live Supabase ledger includes `first_release_bideford_location_policy`, but `main` did not contain its applied SQL source. The original divergent PR #3 branch contained the exact source. To avoid merging its 133-commit-behind branch, a clean branch was created from `main` and the exact migration file was restored byte-for-byte:
+- Branch: `fix/restore-bideford-location-policy-source-2026-11-08`
+- Commit: `cb6c4793d43665ee32dae649de8a5d86e0286d4f`
+- Source blob SHA (same on original branch and restored branch): `0f039bc23f94cebf0d5cd9094fd67d13d65f0195`
+- PR #7: https://github.com/openplayfootballleague/OPENPLAYNEW/pull/7
+- PR #7 is draft; no check-runs were available at the first post-create check. It is not merged. This is source restoration only, not a migration re-run or a change to the live location state.
+
+This leaves the small admin activation UI changes from PR #3 unported. They must be ported against the current `main` version of `src/routes/admin.tsx` separately and tested; the stale PR #3 branch must not be merged wholesale.
