@@ -78,3 +78,12 @@ Against PR #6's 92 migration files, normalized-name comparison found these live 
 PR #6 also has three local migration names without same-named live ledger records: `finance_balance_semantics`, `audit_log_deny_all_policy`, and `fixture_goal_records_deny_all`. This is a name-level comparison only; the files may correspond to differently named applied versions, so inspect SQL and version history before concluding they are unapplied or safe to omit. The separate PR #3/#4 trees contain some of these earlier local-only / Bideford files, but no cross-branch exact one-to-one reconciliation has yet been demonstrated.
 
 **Current conclusion:** no available PR head has been verified as a complete, exact, safe 97-record migration source. PR #2 is stale; PR #6 is closest but still has unresolved historical coverage. Do not merge PR #2 or #6 as a migration-ledger fix, and do not apply any of these SQL files to the live project as part of reconciliation.
+
+
+## Pull-request freshness and CI checks — 8 November 2026
+Fresh PR metadata/compare checks:
+- PR #3 (`feat/bideford-only-location-activation-2026-11-07`) is **diverged** from `main`: 3 commits ahead and 133 behind; GitHub reports `mergeable=false`. Its own PR description says automated CI and admin-account E2E testing are pending. Rebase onto current main, resolve conflicts, then rerun the Bideford-only migration/policy/UI checks; do not force-merge.
+- PR #6 (`feat/stripe-test-checkout-lifecycle`) latest observed head is `99dcc76e64a8c34e92616cf8241a41748fa23904`, 215 commits, 61 changed files, and GitHub reports `mergeable=false`. Its latest recursive tree contains 92 migration files. A direct GitHub check-runs lookup for that exact head returned zero check runs; this is **no recorded check-run evidence**, not a passing CI result.
+- The main CI workflow currently installs locked dependencies, type-checks only `supabase/functions/deliver-notifications/index.ts`, runs `npm test`, runs `npm run build`, and performs a Cloudflare Worker dry-run. It does not currently type-check the Stripe Edge Functions on `main`; PR #6 modifies the workflow and must be checked at its latest head before relying on that addition.
+
+**Disposition:** both PR #3 and PR #6 require rebase/conflict resolution and fresh checks before merge. No merge or deployment was performed. The audit branch remains documentation-only.
