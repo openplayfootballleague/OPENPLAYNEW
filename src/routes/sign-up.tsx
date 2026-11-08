@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 
@@ -31,5 +32,5 @@ function SignUpPage() {
       {error&&<p className="form-error" role="alert">{error}</p>}{message&&<p className="form-success" role="status">{message}</p>}
       <button className="button" type="submit" disabled={busy}>{busy?"CREATING ACCOUNT…":"CREATE ACCOUNT"} <span aria-hidden="true">↗</span></button>
     </form><p className="auth-switch">Already registered? <Link to="/sign-in">Sign in</Link></p>
-  </section></main>;
+  </section><PlayerBottomNavigation /></main>;
 }
