@@ -1,3 +1,4 @@
+// Network interception is installed before navigation; no test traffic reaches the real PostHog service.
 import { expect, test, type Page } from "@playwright/test";
 
 const POSTHOG_ORIGIN = "https://eu.i.posthog.com";
