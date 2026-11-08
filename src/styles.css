@@ -546,3 +546,16 @@ button:disabled { opacity: .55; }
 .op-nav-more-menu a{display:block;padding:.7rem .8rem;color:#e8e9e2;text-decoration:none;font-size:.76rem;font-weight:650}
 .op-nav-more-menu a:hover,.op-nav-more-menu a:focus-visible{background:#263329;color:#ff8a56}
 @media(max-width:700px){.op-nav-more-trigger{white-space:nowrap;font-size:.72rem}.op-nav-more-menu{top:calc(100% - .1rem);right:0;min-width:180px}}
+
+/* Optional team-owned Instagram profile links */
+.directory-team{display:flex;align-items:center;gap:.8rem}
+.directory-team>div{flex:1;min-width:0}
+.team-instagram-link{display:inline-flex;align-items:center;justify-content:center;flex:0 0 34px;width:34px;height:34px;border:1px solid #465248;border-radius:50%;color:#f36b32;text-decoration:none}
+.team-instagram-link svg{width:17px;height:17px}
+.team-instagram-link:hover,.team-instagram-link:focus-visible{border-color:#f36b32;background:rgba(243,107,50,.1)}
+.captain-instagram-form{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:.7rem;margin:0 0 1rem;padding:.85rem;background:#171e19;border:1px solid #39443b}
+.captain-instagram-form label{display:grid;gap:.35rem;color:#c8cbc5;font-size:.78rem;font-weight:600}
+.captain-instagram-form input{min-width:0;padding:.65rem .75rem;background:#111713;color:#f4f3ed;border:1px solid #465248;border-radius:3px}
+.captain-instagram-form button{padding:.7rem .85rem;border:1px solid #f36b32;background:transparent;color:#f36b32;font-size:.7rem;font-weight:750;letter-spacing:.04em;cursor:pointer}
+.captain-instagram-form button:disabled{opacity:.55;cursor:wait}
+@media(max-width:560px){.captain-instagram-form{grid-template-columns:1fr}.captain-instagram-form button{width:100%}}
