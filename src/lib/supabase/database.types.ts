@@ -1362,6 +1362,14 @@ export type Database = {
         Args: { p_location_id?: string | null; p_league_id?: string | null; p_season_id?: string | null }
         Returns: Json
       }
+      admin_list_location_assignments: {
+        Args: { p_location_id?: string | null }
+        Returns: { assignment_id: string; user_id: string; location_id: string; location_name: string; assigned_at: string }[]
+      }
+      admin_set_location_assignment: {
+        Args: { p_user_id: string; p_location_id: string; p_assigned: boolean }
+        Returns: undefined
+      }
       get_admin_context_preference: {
         Args: Record<PropertyKey, never>
         Returns: Json
