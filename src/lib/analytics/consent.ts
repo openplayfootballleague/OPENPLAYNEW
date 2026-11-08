@@ -83,3 +83,29 @@ export function writeBrowserAnalyticsConsent(
   }
   return result;
 }
+
+/** True only when the SDK may be mounted; an unset/denied choice never loads it. */
+export function shouldMountPostHog(
+  configured: boolean,
+  consent: AnalyticsConsent,
+  globalPrivacyControl = false,
+): boolean {
+  return configured && isAnalyticsAllowed(consent, globalPrivacyControl);
+}
+
+/** Subscribe to same-tab, cross-tab and foreground GPC/consent changes. */
+export function subscribeToBrowserAnalyticsConsent(
+  onChange: () => void,
+): () => void {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return () => undefined;
+  }
+  window.addEventListener(ANALYTICS_CONSENT_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  document.addEventListener("visibilitychange", onChange);
+  return () => {
+    window.removeEventListener(ANALYTICS_CONSENT_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+    document.removeEventListener("visibilitychange", onChange);
+  };
+}
