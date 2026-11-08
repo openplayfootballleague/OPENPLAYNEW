@@ -66,3 +66,23 @@ export function checkoutAttemptFromIntentMetadata(metadata: unknown): number | n
   const attempt = Number(value);
   return Number.isSafeInteger(attempt) && attempt >= 0 ? attempt : null;
 }
+
+export type CheckoutSessionAction = "reuse" | "paid" | "retry" | "processing";
+export function classifyExistingCheckoutSession(recordStatus: string, sessionStatus: string, paymentStatus: string): CheckoutSessionAction {
+  if (sessionStatus === "open") return "reuse";
+  if (sessionStatus === "complete" && paymentStatus === "paid") return "paid";
+  if (sessionStatus === "expired" ||
+    (sessionStatus === "complete" && ["failed", "cancelled"].includes(recordStatus) && paymentStatus !== "paid")) return "retry";
+  return "processing";
+}
+
+export type CheckoutWithoutSessionAction = "create" | "retry" | "blocked";
+export function classifyCheckoutWithoutSession(recordStatus: string): CheckoutWithoutSessionAction {
+  if (recordStatus === "pending") return "create";
+  if (recordStatus === "failed" || recordStatus === "cancelled") return "retry";
+  return "blocked";
+}
+
+export function nextCheckoutAttempt(attempt: number): number | null {
+  return Number.isSafeInteger(attempt) && attempt >= 0 && attempt < Number.MAX_SAFE_INTEGER ? attempt + 1 : null;
+}
