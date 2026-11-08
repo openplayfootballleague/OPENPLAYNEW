@@ -205,3 +205,21 @@ begin
   end if;
 end;
 $platform_role_rls_regression$;
+
+-- The user_roles policy must use a SECURITY DEFINER predicate to avoid
+-- recursive self-query evaluation.
+do $user_roles_policy_recursion$
+begin
+  if not exists(
+    select 1 from pg_catalog.pg_policies
+    where schemaname='public' and tablename='user_roles'
+      and policyname='user_roles_select_self_or_global_admin'
+      and coalesce(qual,'') ilike '%has_global_admin_role()%'
+  ) then
+    raise exception 'user_roles RLS must use the non-recursive global-admin predicate';
+  end if;
+  if pg_catalog.has_function_privilege('anon','public.has_global_admin_role()','EXECUTE') then
+    raise exception 'Anonymous role must not execute has_global_admin_role';
+  end if;
+end;
+$user_roles_policy_recursion$;
