@@ -5,6 +5,7 @@ import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { normalizeInstagramProfileUrl } from "../lib/teams/instagram";
 import { normalizeInstagramHandle } from "../lib/teams/instagram-handle";
+import { useOpenPlayAnalytics } from "../components/analytics-provider";
 
 type SeasonOption = { id: string; name: string };
 type TeamOption = { id: string; name: string; season_id: string };
@@ -13,6 +14,7 @@ type PlayerState = { registration_status: "registered" | "pending_review" | "rej
 export const Route = createFileRoute("/join")({ component: JoinPage });
 
 function JoinPage() {
+  const capture=useOpenPlayAnalytics();
   const [session,setSession]=useState<Session|null>(null);
   const [player,setPlayer]=useState<PlayerState|null>(null);
   const [loading,setLoading]=useState(true);
@@ -71,8 +73,9 @@ function JoinPage() {
       if(!teamId)throw new Error("Choose a team first.");
       const {error:rpcError}=await getSupabaseClient().rpc("request_team_membership",{p_season_team_id:teamId});
       if(rpcError)throw rpcError;
+      capture("player_join_request_submitted", { feature: "team_membership", outcome: "success" });
       setMessage("Your request has been sent. You will become a team member only after the captain approves it.");
-    }catch(cause){setError(cause instanceof Error?cause.message:"Unable to send your team request.");}
+    }catch(cause){capture("workflow_error", { feature: "team_membership", error_code: "unexpected_error", outcome: "failure" });setError(cause instanceof Error?cause.message:"Unable to send your team request.");}
     finally{setBusy(false);}
   }
   async function submitTeam(event:React.FormEvent<HTMLFormElement>){
@@ -83,9 +86,10 @@ function JoinPage() {
       const instagramUrl=normalizeInstagramProfileUrl(instagramProfileUrl);
       const {data,error:rpcError}=await getSupabaseClient().rpc("register_team",{p_season_id:seasonId,p_team_name:teamName.trim(),p_primary_colour:primaryColour||undefined,p_secondary_colour:secondaryColour||undefined,p_instagram_profile_url:instagramUrl,p_instagram_handle:handle});
       if(rpcError)throw rpcError;
+      capture("team_registration_submitted", { feature: "team_registration", outcome: "success" });
       setMessage(`Your application for ${data.name} has been submitted for administrator approval. You will become its captain only after approval.`);
       setTeamName("");setPrimaryColour("");setSecondaryColour("");setInstagramHandle("");setInstagramProfileUrl("");
-    }catch(cause){setError(cause instanceof Error?cause.message:"Unable to submit team registration.");}
+    }catch(cause){capture("workflow_error", { feature: "team_registration", error_code: "unexpected_error", outcome: "failure" });setError(cause instanceof Error?cause.message:"Unable to submit team registration.");}
     finally{setBusy(false);}
   }
 
@@ -96,7 +100,7 @@ function JoinPage() {
   return <main className="notice-page"><SiteNavigation /><section className="notice-panel auth-panel">
     <Link className="notice-brand" to="/">OPEN PLAY</Link><p className="eyebrow eyebrow-dark">GET INVOLVED</p><h1>Find your<br/><em>place to play.</em></h1>
     <p>Signed in as <strong>{session.user.email}</strong>. Your player registration is approved.</p>
-    <div className="auth-mode-switch"><button type="button" className={mode==="join"?"active":""} onClick={()=>{setMode("join");setError("");setMessage("");}}>JOIN A TEAM</button><button type="button" className={mode==="register"?"active":""} onClick={()=>{setMode("register");setError("");setMessage("");}}>REGISTER A TEAM</button></div>
+    <div className="auth-mode-switch"><button type="button" className={mode==="join"?"active":""} onClick={()=>{setMode("join");setError("");setMessage("");}}>JOIN A TEAM</button><button type="button" className={mode==="register"?"active":""} onClick={()=>{setMode("register");capture("team_registration_started", { feature: "team_registration" });setError("");setMessage("");}}>REGISTER A TEAM</button></div>
     {seasons.length===0?<p className="form-note">There are no public seasons currently accepting registrations. Please check back when a season opens.</p>:<>
       <label className="auth-select-label">Season<select value={seasonId} onChange={e=>setSeasonId(e.target.value)}>{seasons.map(season=><option key={season.id} value={season.id}>{season.name}</option>)}</select></label>
       {mode==="join"?<form className="auth-form" onSubmit={submitJoin}>
