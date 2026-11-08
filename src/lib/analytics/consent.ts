@@ -72,6 +72,6 @@ export function writeBrowserAnalyticsConsent(
   try {
     return writeAnalyticsConsent(requested, window.localStorage, globalPrivacyControl);
   } catch {
-    return { consent: globalPrivacyControl ? "denied" : requested, persisted: false };
+    return { consent: "denied", persisted: false };
   }
 }
