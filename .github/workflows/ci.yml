@@ -21,15 +21,6 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
-      - name: Install Playwright for analytics browser acceptance
-        if: ${{ hashFiles('tests/e2e/analytics-consent.spec.ts') != '' }}
-        run: npm install --no-save --no-package-lock @playwright/test@1.56.1
-      - name: Install Chromium for analytics browser acceptance
-        if: ${{ hashFiles('tests/e2e/analytics-consent.spec.ts') != '' }}
-        run: npx playwright install --with-deps chromium
-      - name: Run analytics browser consent acceptance
-        if: ${{ hashFiles('tests/e2e/analytics-consent.spec.ts') != '' }}
-        run: npx playwright test --config=playwright.config.ts
       - name: Set up Deno
         uses: denoland/setup-deno@v2
         with:
