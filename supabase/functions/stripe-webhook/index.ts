@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
       return new Response("Could not inspect payment record", { status: 500 });
     }
 
-    paymentStatusBeforeEvent = paymentStatusBeforeEvent ?? "pending";
+    paymentStatusBeforeEvent = currentPayment.status;
     // Reject mismatched settlement events without mutating the payment ledger.
     const settlementRecord = currentPayment as PaymentSettlementRecord;
     const settlementValidation = eventType.startsWith("checkout.session.")
