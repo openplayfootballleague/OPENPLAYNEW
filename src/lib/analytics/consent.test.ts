@@ -72,3 +72,65 @@ describe("analytics consent", () => {
     expect(writeAnalyticsConsent("granted", null)).toEqual({ consent: "denied", persisted: false });
   });
 });
+
+describe("PostHog SDK mount gate", () => {
+  it("does not mount the SDK before explicit opt-in", async () => {
+    const { shouldMountPostHog } = await import("./consent");
+    expect(shouldMountPostHog(true, "unset", false)).toBe(false);
+    expect(shouldMountPostHog(true, "denied", false)).toBe(false);
+  });
+
+  it("requires configured privacy settings and no GPC signal", async () => {
+    const { shouldMountPostHog } = await import("./consent");
+    expect(shouldMountPostHog(false, "granted", false)).toBe(false);
+    expect(shouldMountPostHog(true, "granted", true)).toBe(false);
+    expect(shouldMountPostHog(true, "granted", false)).toBe(true);
+  });
+});
+
+describe("browser consent change subscriptions", () => {
+  class FakeTarget {
+    listeners = new Map<string, Set<(event: Event) => void>>();
+    addEventListener(type: string, listener: EventListenerOrEventListenerObject) {
+      const callback = typeof listener === "function"
+        ? listener as (event: Event) => void
+        : (event: Event) => listener.handleEvent(event);
+      const bucket = this.listeners.get(type) ?? new Set();
+      bucket.add(callback);
+      this.listeners.set(type, bucket);
+    }
+    removeEventListener(type: string, listener: EventListenerOrEventListenerObject) {
+      const bucket = this.listeners.get(type);
+      if (!bucket) return;
+      const callback = typeof listener === "function"
+        ? listener as (event: Event) => void
+        : (event: Event) => listener.handleEvent(event);
+      bucket.delete(callback);
+    }
+    dispatchEvent(event: Event) {
+      this.listeners.get(event.type)?.forEach(listener => listener(event));
+      return true;
+    }
+  }
+
+  it("refreshes on same-tab preference, cross-tab storage and foreground events", async () => {
+    const { ANALYTICS_CONSENT_EVENT, subscribeToBrowserAnalyticsConsent } = await import("./consent");
+    const win = new FakeTarget();
+    const doc = new FakeTarget();
+    vi.stubGlobal("window", win);
+    vi.stubGlobal("document", doc);
+    const changed = vi.fn();
+    const unsubscribe = subscribeToBrowserAnalyticsConsent(changed);
+
+    win.dispatchEvent(new Event(ANALYTICS_CONSENT_EVENT));
+    win.dispatchEvent(new Event("storage"));
+    doc.dispatchEvent(new Event("visibilitychange"));
+    expect(changed).toHaveBeenCalledTimes(3);
+
+    unsubscribe();
+    win.dispatchEvent(new Event("storage"));
+    doc.dispatchEvent(new Event("visibilitychange"));
+    expect(changed).toHaveBeenCalledTimes(3);
+    vi.unstubAllGlobals();
+  });
+});
