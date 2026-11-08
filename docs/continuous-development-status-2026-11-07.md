@@ -238,3 +238,12 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - The remaining 63 SECURITY DEFINER functions still need an exhaustive structured authorization and data-minimization review; this targeted inspection is not a blanket sign-off.
 - The user-uploaded canonical orange connected OP logo is present in the current working container and visually confirmed. The repository connector does not provide a direct binary-file bridge from that local path into GitHub; only UTF-8 file writes and base64 text blobs are available. No substitute logo was committed.
 - No production changes, no test users or payment records seeded, and no live Stripe configuration.
+
+
+## 8 November 2026 — payment creation concurrency hardening
+
+- Review of the 63 authenticated-executable SECURITY DEFINER RPCs found the payment-record creation path relied on a SELECT FOR UPDATE of a possibly absent row. The partial unique index prevented duplicate records, but concurrent first-time requests could still race and return a uniqueness error rather than the existing pending payment.
+- Added and applied `20261108050000_serialize_player_fixture_payment_creation.sql`. It acquires a transaction-scoped advisory lock keyed by the authenticated player and fixture before checking/creating the payment record. The existing partial unique index remains the final integrity guard.
+- Verified the deployed development function definition contains `pg_advisory_xact_lock`; anon execution remains false and authenticated execution remains true, with the function's own authenticated-membership validation retained.
+- Reworked `supabase/tests/security_privilege_assertions.sql` into a plain SQL result set to avoid procedural-block delimiter ambiguity in the SQL execution runner. Executed it successfully; all five assertions returned true, including the payment-creation serialization check.
+- The full 63-function review is still open. This pass specifically validated captain-scoped team sheet and membership functions, finance/admin read RPCs, and player payment ownership. No claim of exhaustive authorization sign-off is made.
