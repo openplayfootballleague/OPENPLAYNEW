@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkoutAttemptFromIntentMetadata, classifyCheckoutWithoutSession, classifyExistingCheckoutSession, isRefundedPaymentStatus, nextCheckoutAttempt, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "./stripe-settlement";
+import { checkoutAttemptFromIntentMetadata, classifyCheckoutWithoutSession, classifyExistingCheckoutSession, isFinalizedPaymentStatus, isRefundedPaymentStatus, nextCheckoutAttempt, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "./stripe-settlement";
 
 const record: PaymentSettlementRecord = {
   id: "payment-1",
@@ -194,5 +194,20 @@ describe("Stripe checkout retry state machine", () => {
     expect(nextCheckoutAttempt(3)).toBe(4);
     expect(nextCheckoutAttempt(-1)).toBeNull();
     expect(nextCheckoutAttempt(Number.MAX_SAFE_INTEGER)).toBeNull();
+  });
+});
+
+describe("Stripe finalized payment state", () => {
+  it("prevents paid and refunded states being downgraded by late events", () => {
+    expect(isFinalizedPaymentStatus("paid")).toBe(true);
+    expect(isFinalizedPaymentStatus("partially_refunded")).toBe(true);
+    expect(isFinalizedPaymentStatus("refunded")).toBe(true);
+  });
+
+  it("allows non-final states to progress through checkout", () => {
+    expect(isFinalizedPaymentStatus("pending")).toBe(false);
+    expect(isFinalizedPaymentStatus("processing")).toBe(false);
+    expect(isFinalizedPaymentStatus("failed")).toBe(false);
+    expect(isFinalizedPaymentStatus("cancelled")).toBe(false);
   });
 });
