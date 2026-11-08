@@ -76,8 +76,8 @@ function HomePage() {
   return (
     <main className="site-shell">
       <header className="site-header">
-        <a className="wordmark" href="/" aria-label="Open Play home">
-          <span>OPEN PLAY</span>
+        <a className="wordmark" href="/player" aria-label="Open Play Player Hub">
+          <img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/>
         </a>
         <nav className="header-nav" aria-label="Main navigation">
           <a href="/match-centre">Match centre</a>
@@ -153,8 +153,8 @@ function HomePage() {
       </section>
 
       <footer className="site-footer">
-        <a className="wordmark" href="/" aria-label="Open Play home">
-          <span>OPEN PLAY</span>
+        <a className="wordmark" href="/player" aria-label="Open Play Player Hub">
+          <img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/>
         </a>
         <span>PLAY HARD. RESPECT ALWAYS.</span>
         <span>© {new Date().getFullYear()} OPEN PLAY</span>
