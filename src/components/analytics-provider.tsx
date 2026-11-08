@@ -5,7 +5,6 @@ import posthog from "posthog-js";
 import { useLocation } from "@tanstack/react-router";
 import {
   isGlobalPrivacyControlEnabled,
-  isAnalyticsAllowed,
   readBrowserAnalyticsConsent,
   writeBrowserAnalyticsConsent,
   shouldMountPostHog,
@@ -273,6 +272,9 @@ function AnalyticsE2EDiagnostics({
             { send_instantly: true, transport: "fetch" },
           );
           setCaptureResult(String(result ?? "undefined"));
+          // Force the synthetic E2E event out of the SDK queue so the browser
+          // test can verify the intercepted request without contacting PostHog.
+          void posthog.flush();
         }}
       >
         Send analytics test probe
