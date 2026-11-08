@@ -32,7 +32,7 @@ function PlayerHubPage(){
     supabase.rpc("get_my_transfer_requests")
    ]);
    if(!alive)return;
-   if(playerError||membershipError||profileError||notificationPrefsError||notificationRowsError||transferOptionsError||transferRowsError)setError(playerError?.message??membershipError?.message??profileError?.message??notificationPrefsError?.message??notificationRowsError?.message??transferOptionsError?.message??transferRowsError?.message??paymentRowsError?.message??"Unable to load your player hub.");
+   if(playerError||membershipError||profileError||notificationPrefsError||notificationRowsError||transferOptionsError||transferRowsError)setError(playerError?.message??membershipError?.message??profileError?.message??notificationPrefsError?.message??notificationRowsError?.message??transferOptionsError?.message??transferRowsError?.message??"Unable to load your player hub.");
    setPlayer(playerData);setProfile(profileData);setFirstName(profileData?.first_name??"");setLastName(profileData?.last_name??"");setDisplayName(profileData?.display_name??"");setPhone(profileData?.phone??"");setPosition(profileData?.preferred_position??"");
    if(profileData?.avatar_path)setAvatarUrl(supabase.storage.from("profile-avatars").getPublicUrl(profileData.avatar_path).data.publicUrl);
    setIsAdmin((roleData??[]).some(r=>["admin","super_admin","league_admin"].includes(r.role)));setNotificationPrefs(notificationPrefsData as unknown as NotificationPreferences);setNotifications((notificationRows??[]) as unknown as PlayerNotification[]);setTransferDestinations((transferOptions??[]) as unknown as TransferDestination[]);setTransferRequests((transferRows??[]) as unknown as TransferRequest[]);
