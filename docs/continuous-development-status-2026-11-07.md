@@ -306,3 +306,11 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - Added a "Make captain" action to each eligible active non-captain squad member in the Captain Hub. The action confirms the transfer of responsibility, calls the guarded RPC, reloads the captain data and reports success/failure.
 - Extended the repeatable SQL security assertions to 12 checks. All 12 returned true in development.
 - The feature has not yet been exercised with real authenticated test accounts because no disposable test-user creation/deletion workflow is currently available through the connected services. CI is required to confirm frontend compilation.
+
+
+## 8 November 2026 — captain handover type correction and uniqueness verification
+
+- The first Captain Hub build exposed a generated Supabase TypeScript schema gap: the new `handover_team_captain` RPC was deployed but absent from `Database.Functions`. The frontend call therefore failed TypeScript validation. The Edge Function type-check and all 32 existing domain tests had passed; the application build failed only at this missing function type.
+- Updated `src/lib/supabase/database.types.ts` with the exact RPC argument and `team_memberships` return shape, including the set-return options. This keeps the typed Supabase client intact rather than weakening it with casts.
+- Verified the development database already has the unique partial index `team_memberships_one_active_captain` on active captain memberships per team. The new handover RPC also takes a per-team advisory lock; both layers protect against two simultaneous active captains.
+- The corrected frontend build is queued for CI verification. No authenticated browser test accounts have been created.
