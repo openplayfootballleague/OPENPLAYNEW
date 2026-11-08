@@ -23,7 +23,9 @@ CI run: `42467516708` — passed.
    - participation counts distinct eligible registered players who actually appeared, not account holders.
 6. Found and fixed a refund sign mismatch in the shared finance calculation helper so it agrees with the Finance database summary. Updated the regression test.
 7. Inspected the live PostHog event/property schema and recorded the existing Open Play content-view events, location/league/team context, current UTM dimensions and missing registration/approval/participation instrumentation.
-8. Updated PR #13 description to record Analytics scope and outstanding gates.
+8. Added a role-aware More navigation menu. Account/sign-in, Admin dashboard, Finance and Admin Help destinations are now grouped under More; Matchday remains visible only to active approved captains, and Join Open Play remains state-dependent.
+9. Re-ran the full CI after the navigation changes. Run `42467801899` passed Deno Edge Function type-check, all 42 tests, TypeScript/production build and Cloudflare Worker dry-run validation.
+10. Updated PR #13 description to record Analytics scope and outstanding gates.
 
 ## Verification
 
