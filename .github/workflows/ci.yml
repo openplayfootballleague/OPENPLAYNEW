@@ -51,10 +51,16 @@ jobs:
         run: supabase db start
       - name: Replay every migration against a clean local database
         run: supabase db reset --local --no-seed
+      - name: Install PostgreSQL client for multi-statement role tests
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
       - name: Verify player self-service profile permission assertions
-        run: supabase db query --local --file supabase/tests/profile_self_service_permissions.sql
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/profile_self_service_permissions.sql
       - name: Verify player, captain and admin RLS role boundaries
-        run: supabase db query --local --file supabase/tests/location_admin_role_scope.sql
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/location_admin_role_scope.sql
       - name: Verify database security assertions
         run: node scripts/verify-security-assertions.mjs
       - name: Stop local Supabase database
