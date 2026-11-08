@@ -176,3 +176,14 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - Prior route-state consistency commits all passed GitHub Actions: runs 42429529130 (Captain Hub), 42429537132 (password reset), and 42429580279 (status documentation).
 - CSS expansion commit: `559fef809eb4f94f066691de1aad237980a15173`. CI status for this exact commit must be checked before treating it as verified.
 - The exact official logo and shared navigation remain blocked on safe transfer of the supplied binary asset. No substitute logo or fabricated icon package was introduced.
+
+
+## 8 November 2026 — shared player bottom navigation
+
+- Added `src/components/player-bottom-navigation.tsx`, a shared four-destination navigation component (Player Hub, Match Centre, Teams, Join Open Play). It uses inline accessible SVG icons and TanStack Router links; no new icon dependency was introduced.
+- Integrated the shared navigation into Player Hub, Captain Hub, Match Centre, Teams and Join Open Play.
+- Added fixed safe-area-aware mobile navigation styling and a centered compact desktop navigation treatment. Main page bottom padding is increased only when the navigation is present.
+- The navigation is also being added to sign-in, sign-up, player-registration and password-reset flows; these route updates were made during this execution session and require CI confirmation.
+- The user supplied the exact connected orange OP mark again in this session (1254×1254 RGBA PNG, 459,212 bytes). It is confirmed as the canonical logo reference. The asset is not yet in the Git repository: the available GitHub binary blob API accepts base64 text but this execution environment does not expose the local uploaded file bytes to that connector action. No lossy recreation or external-host substitution was made.
+- The bottom-navigation component commit `fa5418a9377479ece2637c9e8da90211b44ea861` passed CI run 42429786708. The first route integrations passed CI runs 42429794337 (Teams), 42429804062 (Captain Hub) and the initial CSS run was pending at time of writing. Remaining route/style CI runs: 42429813808, 42429821498 and 42429828850; confirm before declaring the entire navigation change green.
+- Browser-based visual acceptance has not yet been performed. Public marketing homepage and Admin Dashboard remain unchanged.
