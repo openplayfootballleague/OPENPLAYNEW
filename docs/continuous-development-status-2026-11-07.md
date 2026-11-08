@@ -198,3 +198,14 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - Performance advisor reports multiple permissive RLS policies on 15 tables and 51 unused indexes. These are review candidates, not safe automatic cleanup: several permissive policies deliberately combine admin management with player/captain access, and unused indexes may be useful under real workload. No policies or indexes were changed.
 - A first attempt to call the advisor without its required `type` parameter failed validation and made no database changes; both subsequent typed advisor calls succeeded.
 - No production configuration, live payments, or production data were changed.
+
+
+## 8 November 2026 — notification function execution hardening
+
+- Investigated the Supabase security advisor's SECURITY DEFINER warnings by querying all 78 public SECURITY DEFINER functions in the development project.
+- Confirmed none of the 78 inspected functions were executable by the `anon` role. Fifteen notification dispatch/trigger functions were nevertheless callable by `authenticated` without user-facing authorization checks; these are internal worker, scheduler, enqueue-helper, and database-trigger functions.
+- Added migration `20261108040000_restrict_notification_internal_function_execution.sql` and applied it successfully to development. It revokes EXECUTE from PUBLIC, anon and authenticated for the 15 internal notification functions, preserving existing service_role grants on the worker RPCs.
+- Post-migration privilege query verified all 15 are no longer executable by anon or authenticated. Service-role access remains enabled where it was already granted for the worker RPCs. Database trigger functions remain attached to their triggers.
+- No production changes. No user notifications were dispatched during this permission change.
+- CI for the navigation route changes and preceding documentation commits is green (runs 42429967967 and 42429943236 both successful). The security migration has been applied to dev; CI for its repository migration commit is pending.
+- Remaining security review: the other SECURITY DEFINER functions need per-function verification of authorization semantics, and the full RLS policy set still needs review.
