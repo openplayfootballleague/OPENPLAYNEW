@@ -141,6 +141,15 @@ Deno.serve(async (req) => {
         ? validateChargeSettlement(settlementRecord, object ?? {}, chargePaymentIntentMetadata)
         : { ok: true as const };
     if (!settlementValidation.ok) {
+      if (settlementValidation.stale) {
+        await admin.from("stripe_webhook_events").update({
+          payment_record_id: resolvedPaymentId,
+          processed_at: new Date().toISOString(),
+          processing_error: null,
+          processing_started_at: null,
+        }).eq("id", eventId);
+        return Response.json({ received: true, stale: true });
+      }
       await admin.from("stripe_webhook_events").update({
         payment_record_id: resolvedPaymentId,
         processing_error: settlementValidation.reason,
