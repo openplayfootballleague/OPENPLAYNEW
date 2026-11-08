@@ -139,21 +139,21 @@ describe("Stripe retry attempt isolation", () => {
     })).toEqual({ ok: true });
   });
 
-  it("rejects a delayed event from the previous attempt", () => {
+  it("marks a delayed event from the previous attempt as stale", () => {
     expect(validateCheckoutSettlement(retryRecord, {
       id: "cs_test_attempt_0",
       client_reference_id: "payment-1",
       metadata: { payment_record_id: "payment-1", checkout_attempt: "0" },
-    }).ok).toBe(false);
+    })).toMatchObject({ ok: false, stale: true });
   });
 
-  it("rejects a charge from the previous PaymentIntent attempt", () => {
+  it("marks a charge from the previous PaymentIntent attempt as stale", () => {
     expect(validateChargeSettlement(retryRecord, {
       payment_intent: "pi_old",
       amount: 350,
       currency: "gbp",
       paid: true,
-    }, { payment_record_id: "payment-1", checkout_attempt: "0" }).ok).toBe(false);
+    }, { payment_record_id: "payment-1", checkout_attempt: "0" })).toMatchObject({ ok: false, stale: true });
   });
 });
 
