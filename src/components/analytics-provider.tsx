@@ -126,15 +126,24 @@ function AnalyticsRouteTracker() {
         : "unknown";
     }
 
-    void resolveActor().then((resolved) => {
-      if (alive) setActor(resolved);
-    });
+    void resolveActor()
+      .then((resolved) => {
+        if (alive) setActor(resolved);
+      })
+      .catch(() => {
+        // Analytics is optional; auth/network failures must never affect the app.
+        if (alive) setActor("unknown");
+      });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
       setActor("unknown");
-      void resolveActor().then((resolved) => {
-        if (alive) setActor(resolved);
-      });
+      void resolveActor()
+        .then((resolved) => {
+          if (alive) setActor(resolved);
+        })
+        .catch(() => {
+          if (alive) setActor("unknown");
+        });
     });
 
     return () => {
