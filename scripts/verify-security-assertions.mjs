@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const sourcePath = "supabase/tests/security_privilege_assertions.sql";
-const source = readFileSync(sourcePath, "utf8").trim().replace(/;\\s*$/, "");
+const source = readFileSync(sourcePath, "utf8").trim().replace(/;\s*$/, "");
 
 if (!source.toLowerCase().startsWith("select")) {
   throw new Error(`Expected a SELECT assertion query in ${sourcePath}`);
