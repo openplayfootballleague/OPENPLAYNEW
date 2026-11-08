@@ -5,7 +5,7 @@
 **Branch:** `chore/reconcile-remaining-applied-migrations-2026-11-08`  
 **Applied ledger rows:** 98  
 **Canonical source files:** 98/98 present, unique version prefixes  
-**Forward-only local migrations:** `20261108014200_finance_balance_semantics.sql` (finance balance semantics; requires separate review), `20261108030000_scope_rls_to_global_admins.sql` (prevents location-scoped `league_admin` roles from receiving global direct-table RLS access), and `20261108031000_revoke_unscoped_admin_rpcs.sql` (revokes client execution of legacy cross-location admin RPCs); all require isolated replay and role-matrix verification.
+**Forward-only local migrations:** `20261108014200_finance_balance_semantics.sql`, `20261108030000_scope_rls_to_global_admins.sql`, `20261108031000_revoke_unscoped_admin_rpcs.sql`, `20261108032000_fix_captain_membership_approval_scope.sql`, `20261109000000_correct_membership_location_and_finance_authorization.sql`, `20261109020000_fix_player_duplicate_identity_matching.sql`, and `20261109021000_restrict_identity_reviews_to_global_admins.sql`; all are forward-only and require isolated replay, role-matrix regression testing and explicit release review.
 
 This manifest maps every applied ledger version/name to its canonical source path and Git blob SHA. The 24 previously unmapped source statements were recovered from the live migration ledger. The other 74 source statements were reconciled from the verified PR #2, PR #6 and PR #21 source sets. The migration ledger's `name` field may retain an older embedded timestamp; the source path is mapped by the authoritative 14-digit applied version prefix.
 
@@ -113,7 +113,7 @@ This manifest maps every applied ledger version/name to its canonical source pat
 ## Verification notes
 
 - All 98 ledger versions have a corresponding canonical source path in the branch.
-- All 103 migration file prefixes are unique: 98 applied ledger versions plus five separate forward-only migrations.
+- All 105 migration file prefixes are unique: 98 applied ledger versions plus seven separate forward-only migrations.
 - No duplicate synthetic-prefix copies of applied sources remain in this branch.
 - The canonical files are source artifacts only. This manifest does not certify clean-database replay, role behavior, or production release readiness.
 - Do not apply any of the already-recorded versions to production.
