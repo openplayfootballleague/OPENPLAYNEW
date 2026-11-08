@@ -77,3 +77,12 @@ Attempts 1–3 failed before application tests because GitHub returned HTTP 504 
 
 This verifies compilation, current automated domain tests and Worker bundle validation for the code at that commit. It does **not** verify the un-applied Supabase migration, production RLS, live captain/admin authorisation, public database reads, browser navigation, or iOS Instagram deep-link behaviour. The report commit that records this CI result is documentation-only and does not alter application code.
 CI run 42470183329 (attempt 4) reported **8 test files passed, 61 tests passed**, followed by a successful `npm run build` (`vite build` plus `tsc --noEmit`) and successful Cloudflare Worker dry-run. The job completed successfully.
+
+### Compact profile icon refinement — 8 November 2026
+
+- Changed the individual team profile action from a labelled “Visit Instagram” pill to the compact Instagram icon requested for team profiles.
+- Kept the anchor conditional on `instagram_profile_url`; a missing URL still renders no icon or link.
+- Updated the profile-specific CSS to use the same 34px circular icon dimensions as the directory affordance.
+- Read the updated route and stylesheet back from GitHub and verified the labelled text is absent and the compact dimensions are present.
+- Commits: `51c2d96f76eb8400ac640f57fd7eec128a35a375` (profile markup) and `d5330090864e4f6e2fc4dca08b70f4b52d707585` (CSS).
+- A new CI result for these two commits has not yet been observed. Prior successful CI at `a156630` does not prove these later edits passed.
