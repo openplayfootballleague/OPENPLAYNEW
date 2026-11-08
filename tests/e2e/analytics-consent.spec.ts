@@ -87,6 +87,7 @@ test("does not contact PostHog before opt-in and stops after same-tab revocation
   await expect(page.getByRole("complementary", { name: "Optional analytics preferences" })).toHaveCount(0);
   await expectPostHogReady(page);
   await probe.click();
+  await expect(page.getByTestId("analytics-e2e-diagnostics")).toHaveAttribute("data-posthog-capture-called", "true");
   await expect.poll(() => observedPostHogRequests(page, requests), { timeout: 10_000 }).toBeGreaterThan(0);
 
   await page.getByRole("button", { name: "TURN OFF OPTIONAL ANALYTICS" }).click();
@@ -149,6 +150,7 @@ test("cross-tab opt-in and revocation update the other tab", async ({ page, cont
   await secondTab.evaluate((key) => localStorage.setItem(key, "granted"), CONSENT_KEY);
   await expectPostHogReady(page);
   await firstTabProbe.click();
+  await expect(page.getByTestId("analytics-e2e-diagnostics")).toHaveAttribute("data-posthog-capture-called", "true");
   await expect.poll(() => observedPostHogRequests(page, firstTabRequests), { timeout: 10_000 }).toBeGreaterThan(0);
 
   await secondTab.evaluate((key) => localStorage.setItem(key, "denied"), CONSENT_KEY);
