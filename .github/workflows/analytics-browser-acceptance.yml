@@ -1,0 +1,35 @@
+name: Analytics browser acceptance
+
+on:
+  pull_request:
+    paths:
+      - "src/components/analytics-provider.tsx"
+      - "src/lib/analytics/**"
+      - "src/routes/privacy-security.tsx"
+      - "playwright.config.ts"
+      - "tests/e2e/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-consent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install Playwright test runner without changing project lockfile
+        run: npm install --no-save --no-package-lock @playwright/test@1.56.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run consent and network acceptance tests
+        run: npx playwright test --config=playwright.config.ts
