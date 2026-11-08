@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { deriveAccountAccess } from "../lib/account/access";
@@ -35,6 +35,28 @@ export function SiteNavigation() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!accountOpen && !moreOpen) return;
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setAccountOpen(false);
+        setMoreOpen(false);
+      }
+    }
+    function closeOnOutsidePointer(event: PointerEvent) {
+      if (event.target instanceof Node && !accountMenuRef.current?.contains(event.target)) {
+        setAccountOpen(false);
+      }
+    }
+    document.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+    };
+  }, [accountOpen, moreOpen]);
 
   useEffect(() => {
     let alive = true;
@@ -137,7 +159,7 @@ export function SiteNavigation() {
         </button>
       </nav>
 
-      <div className="op-nav-account-wrap">
+      <div className="op-nav-account-wrap" ref={accountMenuRef}>
         {access.signedIn ? (
           <>
             <button type="button" className="op-account-trigger" aria-label="Open account menu" aria-expanded={accountOpen} aria-controls="op-account-menu" onClick={() => { setAccountOpen((open) => !open); setMoreOpen(false); }}>
