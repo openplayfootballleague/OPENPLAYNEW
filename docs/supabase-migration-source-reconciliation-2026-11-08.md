@@ -282,3 +282,10 @@ A fresh comparison of the **98-row live migration ledger** with the current PR #
 The PR #7 location activation controls and policy documentation have been ported into PR #6. The primary branch now has a platform-admin-gated Bideford activation/deactivation confirmation flow, reason and confirmation checkbox, and the exact source migration. The Needs Attention summary tiles now link to the correct PR #6 queue IDs with keyboard-focus styling. Admin workspace labels are sequentially numbered. This is source consolidation only; PR #6 remains draft and must not be deployed as a migration baseline.
 
 CI on PR #6 head `a345997ed11e3c96aeacb6f6b242434cc64aece0` passed (7 test files / 78 tests, Edge Function type-check, TypeScript/Vite build and Cloudflare dry-run). A subsequent small copy update to the location-creation success/help text is on a newer head and awaits its own CI result.
+
+
+## PR consolidation closeout — 8 November 2026, 02:25 UTC
+
+PR #7 is now **closed unmerged** because all of its unique changes were ported to PR #6 and the consolidated branch passed workflow `42438352387` at head `8698acc3c6fa5700786a2e4deb1c86eb37b557d2` (7 test files / 78 tests; type-check, build and Cloudflare dry-run all passed). The exact Bideford source blob SHA remains `0f039bc23f94cebf0d5cd9094fd67d13d65f0195`.
+
+The PR #6 migration directory currently has 94 SQL files, two exact leading-version-prefix matches to the 98-row live ledger, and nine duplicate prefixes. Six original applied SQL sources remain unrecovered. PR #6 is draft/unmerged. No migrations were executed.
