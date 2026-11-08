@@ -87,7 +87,7 @@ begin
 
   if v_summary.payments_pence <> 8000
      or v_summary.outstanding_pence <> 9500 then
-    raise exception 'Overpaid team must not offset another team's positive debt: %',row_to_json(v_summary);
+    raise exception 'Overpaid team must not offset another team''s positive debt: %',row_to_json(v_summary);
   end if;
 
   execute 'reset role';
