@@ -44,10 +44,10 @@ function NotificationsPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  async function refresh() {
+  async function refresh(userId: string) {
     const supabase = getSupabaseClient();
     const [{ data, error: rowsError }, { data: prefs, error: prefsError }] = await Promise.all([
-      supabase.from("notification_events").select("id,event_type,payload,created_at,read_at").eq("channel", "in_app").eq("status", "sent").order("created_at", { ascending: false }).limit(100),
+      supabase.from("notification_events").select("id,event_type,payload,created_at,read_at").eq("user_id", userId).eq("channel", "in_app").eq("status", "sent").order("created_at", { ascending: false }).limit(100),
       supabase.rpc("get_my_notification_preferences"),
     ]);
     if (rowsError || prefsError) throw rowsError ?? prefsError;
@@ -63,10 +63,10 @@ function NotificationsPage() {
         const { data: { session } } = await getSupabaseClient().auth.getSession();
         if (!session) { await navigate({ to: "/sign-in" }); return; }
         const supabase = getSupabaseClient();
-        await refresh();
+        await refresh(session.user.id);
         notificationChannel = supabase.channel("notification-centre-" + session.user.id)
           .on("postgres_changes", { event: "*", schema: "public", table: "notification_events", filter: "user_id=eq." + session.user.id }, () => {
-            void refresh().catch(cause => { if (alive) setError(cause instanceof Error ? cause.message : "Unable to refresh notifications."); });
+            void refresh(session.user.id).catch(cause => { if (alive) setError(cause instanceof Error ? cause.message : "Unable to refresh notifications."); });
           })
           .subscribe();
       } catch (cause) {
