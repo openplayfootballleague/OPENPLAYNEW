@@ -4,24 +4,42 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase/client";
 
+type ExistingPlayer = { registration_status: "registered" | "pending_review" | "rejected"; is_banned: boolean };
+
 export const Route = createFileRoute("/register-player")({ component: RegisterPlayerPage });
 
 function RegisterPlayerPage() {
   const navigate=useNavigate(); const [session,setSession]=useState<Session|null>(null); const [loading,setLoading]=useState(true);
   const [name,setName]=useState(""); const [phone,setPhone]=useState(""); const [dob,setDob]=useState("");
   const [error,setError]=useState(""); const [message,setMessage]=useState(""); const [submitted,setSubmitted]=useState(false); const [busy,setBusy]=useState(false);
+  const [existingPlayer,setExistingPlayer]=useState<ExistingPlayer|null>(null);
   useEffect(()=>{
     const supabase=getSupabaseClient();
-    supabase.auth.getSession().then(({data})=>{setSession(data.session);setLoading(false);});
+    let active=true;
+    async function load(){
+      const {data:{session:current}}=await supabase.auth.getSession();
+      if(!active)return;
+      setSession(current);
+      if(current){
+        const {data:playerData,error:playerError}=await supabase.from("players").select("registration_status,is_banned").eq("user_id",current.user.id).maybeSingle();
+        if(!active)return;
+        if(playerError)setError(playerError.message);
+        else setExistingPlayer(playerData as ExistingPlayer|null);
+      }
+      if(active)setLoading(false);
+    }
+    void load();
     const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,next)=>setSession(next));
-    return ()=>subscription.unsubscribe();
+    return ()=>{active=false;subscription.unsubscribe();};
   },[]);
   async function submit(event:React.FormEvent<HTMLFormElement>){
     event.preventDefault();setError("");setMessage("");setBusy(true);
     try{
       if(!session?.user.email||!session.user.email_confirmed_at) throw new Error("Please verify your email address before registering as a player.");
-      const {error:rpcError}=await getSupabaseClient().rpc("register_player",{p_full_name:name.trim(),p_phone:phone.trim(),p_email:session.user.email,p_date_of_birth:dob});
+      const {data:playerData,error:rpcError}=await getSupabaseClient().rpc("register_player",{p_full_name:name.trim(),p_phone:phone.trim(),p_email:session.user.email,p_date_of_birth:dob});
       if(rpcError) throw rpcError;
+      if(!playerData)throw new Error("Your registration could not be confirmed. Please try again.");
+      setExistingPlayer({registration_status:playerData.registration_status,is_banned:playerData.is_banned});
       setMessage("Your player registration has been submitted. If it needs a manual identity check, it will remain pending review. Your account and player registration are separate from joining a team.");
       setSubmitted(true);
     }catch(cause){setError(cause instanceof Error?cause.message:"Unable to submit player registration.");}
@@ -34,7 +52,7 @@ function RegisterPlayerPage() {
       const {error:resendError}=await getSupabaseClient().auth.resend({
         type:"signup",
         email:session.user.email,
-        options:{emailRedirectTo:window.location.origin+"/player"}
+        options:{emailRedirectTo:window.location.origin+"/register-player"}
       });
       if(resendError)throw resendError;
       setMessage("A new verification email has been sent. Open the link in your inbox before registering as a player.");
@@ -44,6 +62,7 @@ function RegisterPlayerPage() {
   if(loading)return <main className="notice-page player-facing"><section className="notice-panel"><p>Checking your account…</p></section></main>;
   if(!session)return <main className="notice-page player-facing"><section className="notice-panel"><Link className="notice-brand" to="/player"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link><p className="eyebrow eyebrow-dark">PLAYER REGISTRATION</p><h1>One more<br/><em>step.</em></h1><p>You need an Open Play account before registering as a player.</p><Link className="button" to="/sign-in">SIGN IN <span>↗</span></Link><p className="auth-switch">New here? <Link to="/sign-up">Create an account</Link></p></section></main>;
   if(!session.user.email_confirmed_at)return <main className="notice-page player-facing"><section className="notice-panel auth-panel"><Link className="notice-brand" to="/player"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link><p className="eyebrow eyebrow-dark">VERIFY YOUR EMAIL</p><h1>Check your<br/><em>inbox.</em></h1><p>Verify <strong>{session.user.email}</strong> before submitting your player registration. Your player profile will only be created after email verification.</p>{error&&<p className="form-error" role="alert">{error}</p>}{message&&<p className="form-success" role="status">{message}</p>}<button className="button" type="button" onClick={resendVerification} disabled={busy}>{busy?"SENDING…":"RESEND VERIFICATION EMAIL"}</button><p className="auth-switch"><Link to="/sign-in">Back to sign in</Link></p></section><PlayerBottomNavigation /></main>;
+  if(existingPlayer&&!submitted)return <main className="notice-page player-facing"><section className="notice-panel auth-panel"><Link className="notice-brand" to="/player"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link><p className="eyebrow eyebrow-dark">PLAYER REGISTRATION STATUS</p><h1>{existingPlayer.is_banned?"Account":"Registration"}<br/><em>{existingPlayer.is_banned?"restricted":existingPlayer.registration_status==="registered"?"approved":existingPlayer.registration_status==="pending_review"?"under review":"not approved"}.</em></h1><p>{existingPlayer.is_banned?"Your account cannot submit player or team requests. Please contact Open Play support.":existingPlayer.registration_status==="registered"?"Your player registration is approved. You can now access your Player Hub and request to join or register a team.":existingPlayer.registration_status==="pending_review"?"Your player registration is awaiting an identity review. You do not need to submit another application.":"Your player registration was not approved. Please contact Open Play support for the next steps."}</p>{existingPlayer.registration_status==="registered"&&!existingPlayer.is_banned?<Link className="button" to="/player">OPEN PLAYER HUB <span>↗</span></Link>:<Link className="button" to="/">BACK TO OPEN PLAY <span>↗</span></Link>}</section><PlayerBottomNavigation /></main>;
   return <main className="notice-page player-facing"><section className="notice-panel auth-panel"><Link className="notice-brand" to="/player"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link><p className="eyebrow eyebrow-dark">PLAYER PROFILE</p><h1>Register<br/><em>to play.</em></h1><p>Signed in as <strong>{session.user.email}</strong>. This creates your permanent player identity; it does not automatically add you to a team.</p>
     {submitted?<section className="hub-empty"><p className="form-success" role="status">{message}</p><h2>You're in the system.</h2><p>Your Player Hub will show your registration status. You can request to join or register a team once your player registration is approved.</p><Link className="button" to="/player">OPEN PLAYER HUB <span>↗</span></Link></section>:<form className="auth-form" onSubmit={submit}>
       <label>Full name<input autoComplete="name" required maxLength={120} value={name} onChange={e=>setName(e.target.value)}/></label>
