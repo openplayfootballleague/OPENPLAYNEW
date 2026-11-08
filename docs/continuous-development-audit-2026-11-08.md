@@ -333,3 +333,42 @@ PR #6 description has been updated with this evidence. The PR remains draft; CI 
 - Static admin navigation check passed: all 15 in-page anchors have targets; numbers 01–16 are unique.
 - The six unrecovered original migration SQL sources, nine duplicate filename prefixes and version drift remain blockers. Current PR #6 branch has 94 migration files and two exact version-prefix matches against the 98-row live ledger.
 - Hosted Stripe functions remain older than PR #6 source; no Stripe secrets/test webhook/test checkout, Auth test users or production deployment were configured.
+
+
+## Continuous execution session — database authorization review (8 November 2026, 02:30 UTC)
+
+### Fresh repository / CI verification
+- PR #6 remains open, draft and unmerged. Current head: `8698acc3c6fa5700786a2e4deb1c86eb37b557d2`.
+- GitHub reports the current PR #6 head as mergeable against main.
+- Exact head workflow run `42438352387` is completed/successful. The workflow includes Deno type-check for all four Edge Functions, Vitest, TypeScript/Vite build and Cloudflare Worker dry-run.
+- Current PR #6 package versions and lockfile remain pinned. No dependencies were changed.
+- Live Supabase project `ghnrsysvrlgkjmdlwdmp` remains ACTIVE_HEALTHY; the migration ledger is 98 rows. No migration or data writes were made.
+
+### Confirmed captain membership approval defect — GitHub issue #9
+Read-only inspection of the live definitions of `resolve_team_membership_request(uuid,text)` and `can_administer_location(uuid)` found that the membership RPC first requires `can_administer_location(...)`, before checking `is_active_team_captain(...)`. The helper only grants platform admins/super admins and assigned league admins; it does not grant team captains. Consequently an ordinary captain is rejected before the intended own-team captain authorization branch is reached.
+
+- Tracked: https://github.com/openplayfootballleague/OPENPLAYNEW/issues/9
+- PR #6 discussion updated with the evidence.
+- Required remediation: a forward migration with explicit admin/location-admin OR own-team captain authorization, plus positive and negative role-isolation tests.
+- Do not edit or rerun the historical applied migration. Do not change the hosted database before migration reconciliation.
+
+### Confirmed location activation privilege defect — GitHub issue #10
+Read-only inspection of `admin_set_location_active(uuid,boolean,text)`, `has_platform_role()` and `can_administer_location(uuid)` found that `has_platform_role()` includes `league_admin`, while `can_administer_location()` accepts an assigned league administrator. The activation RPC combines those checks and does not explicitly require `admin` or `super_admin`. This conflicts with the agreed platform-admin-only activation rule; hiding the UI control is not an authorization boundary.
+
+- Tracked: https://github.com/openplayfootballleague/OPENPLAYNEW/issues/10
+- PR #6 discussion updated with the evidence.
+- Required remediation: a forward migration requiring explicit `admin` or `super_admin`, preserving the Bideford-only, single-active-location, deactivation, reason and audit safeguards. Add role-isolation regression tests.
+- No live database changes were made.
+
+### Current blockers and safety decision
+- Six original applied SQL sources remain unrecovered; 56 candidate source filenames have version prefixes that differ from the applied ledger, and duplicate local prefixes remain. No migration baseline is deployable yet.
+- No Auth users or role records exist for authenticated acceptance; no approved mailbox or Stripe test secrets are configured.
+- Stripe Edge Functions hosted in Supabase remain older than the current PR #6 branch source. Do not deploy them without approved test credentials, webhook registration and controlled test acceptance.
+- The exact canonical OP logo binary remains unavailable to the repository write path; do not redraw or substitute it.
+- No production deployment, migration write, test account creation, location activation, notification dispatch or payment was performed.
+
+### Next execution order
+1. Recover authoritative migration SQL and reconcile all 98 ledger versions exactly.
+2. Prepare forward migrations for issues #9 and #10 using the Supabase CLI workflow, with regression tests; do not apply them until reviewed and reconciled.
+3. Continue role-by-role SECURITY DEFINER review and add authenticated acceptance coverage when approved test identities become available.
+4. Complete Stripe test-mode, player/captain/admin browser acceptance, PWA real-device checks and production gates.
