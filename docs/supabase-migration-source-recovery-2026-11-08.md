@@ -69,3 +69,26 @@ The branch `chore/reconcile-supabase-migration-ledger-2026-11-07` contains 35 in
 5. Only after this reconciliation, create separate forward-only migrations for permission defects #9–#11 and test them against a disposable branch/database.
 
 **Safety:** This recovery session used read-only Supabase catalog and migration-list queries. No production schema, migration history, user data, roles, payments or location activation was changed. Do not manually edit Supabase's internal migration-history table.
+
+## Follow-up branch integration audit — 8 November 2026, 10:xx UTC
+
+A later read-only check found that the 94-file baseline above is the Stripe checkout feature branch, not the current visual-refresh development branch. Current branch counts are:
+
+| Ref | SQL migration files |
+|---|---:|
+| Production ledger | 98 applied records |
+| `feat/stripe-test-checkout-lifecycle` | 94 |
+| `main` | 62 |
+| `feat/visual-system-refresh-2026-11-08` | 63 |
+
+The visual-refresh branch has 63 migration SQL files (62 from its main ancestry plus the new team Instagram migration). It does not contain the 31 additional migration files present on the Stripe branch; the only migration file unique to the visual-refresh branch compared with the Stripe branch is `20261108015000_team_instagram_profile.sql`. This is a branch divergence/integration issue, not evidence that 31 production migrations are unapplied.
+
+Related pull requests remain open and unmerged at this check:
+- PR #2 migration-ledger reconciliation: `chore/reconcile-supabase-migration-ledger-2026-11-07`
+- PR #6 Stripe test-mode checkout: `feat/stripe-test-checkout-lifecycle`
+- PR #8 audit/migration/Stripe documentation: `docs/continuous-development-audit-2026-11-08`
+- PR #13 visual refresh and current feature work: `feat/visual-system-refresh-2026-11-08`
+
+PR #13 is based on `main`, not the Stripe feature branch. No pull request was merged and no production changes were made. Before any integration/merge, compare the full ancestry and migration file sets, preserve all reviewed forward migrations, and re-run CI on the final combined branch. Do not resolve the discrepancy by copying filenames alone or fabricating missing migration source.
+
+The 98-row live ledger remains the authoritative applied-history inventory. The six missing originals and three unmatched files listed above remain unresolved; the 63-file visual-refresh count is an additional current-branch limitation.
