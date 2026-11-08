@@ -697,3 +697,50 @@ a { color: inherit; text-decoration: none; }
   .notice-page .admin-workspace-nav { gap: 7px; }
   .notice-page .admin-workspace-nav a { flex: 1 1 calc(50% - 7px); }
 }
+
+
+/* Persistent administrator competition context */
+.notice-page .admin-context-selector {
+  display: grid;
+  gap: 14px;
+  margin: 22px 0;
+  padding: 18px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 14px;
+  background: rgba(255,255,255,.035);
+}
+.notice-page .admin-context-selector h2 {
+  margin: 5px 0;
+  color: inherit;
+  font-size: clamp(19px, 3vw, 25px);
+}
+.notice-page .admin-context-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.notice-page .admin-context-fields label {
+  display: grid;
+  gap: 7px;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+.notice-page .admin-context-fields select {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 9px;
+  color: inherit;
+  background: #171717;
+  font: inherit;
+}
+.notice-page .admin-context-fields select:focus-visible {
+  outline: 3px solid #ff6500;
+  outline-offset: 2px;
+}
+.notice-page .admin-context-fields select:disabled { opacity: .55; }
+@media (max-width: 700px) {
+  .notice-page .admin-context-fields { grid-template-columns: 1fr; }
+}
