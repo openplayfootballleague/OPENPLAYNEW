@@ -108,7 +108,7 @@ function FinancePage(){
   <section className="finance-section">
    <div className="hub-section-heading"><span className="hub-kicker">PLAYER CARD PAYMENTS · STRIPE</span><span>{stripePayments.length} records</span></div>
    {stripePayments.length===0?<p className="form-note">No Stripe player payments have been recorded yet. This list updates from verified Stripe webhook events.</p>:<div className="finance-table-wrap"><table className="finance-table"><thead><tr><th>Player / Team</th><th>Fixture</th><th>Amount</th><th>Status</th><th>Refunded</th><th>Paid at</th></tr></thead><tbody>{stripePayments.map(p=><tr key={p.payment_record_id}><td><strong>{p.player_name??"Player account"}</strong><small>{p.team_name} · {p.season_name}</small></td><td>{p.gameweek?"Gameweek "+p.gameweek:"Fixture"}<small>{dateTime(p.scheduled_at)}</small></td><td>{money(p.amount_pence)}</td><td><span className={"finance-type finance-"+p.status}>{p.status.replaceAll("_"," ")}</span></td><td>{money(p.amount_refunded_pence)}</td><td>{dateTime(p.paid_at)}</td></tr>)}</tbody></table></div>}
-   <p className="form-note">Stripe fees and net proceeds remain blank until balance-transaction reconciliation is implemented. Never treat a Checkout return URL as proof of payment.</p>
+   <p className="form-note">Stripe fees and net proceeds populate from verified Stripe balance-transaction webhook events; values remain blank until reconciliation arrives. Never treat a Checkout return URL as proof of payment.</p>
   </section>
   <section className="finance-section">
    <div className="hub-section-heading"><span className="hub-kicker">RECORD A FINANCE ENTRY</span><span>Manual only</span></div>
