@@ -16,6 +16,10 @@ function PublicTeamProfilePage(){
  const [error,setError]=useState("");
 
  useEffect(()=>{
+  if(team)capture("team_profile_viewed",{feature:"team_directory"});
+ },[capture,team?.season_team_id]);
+
+ useEffect(()=>{
   let alive=true;
   async function load(){
    const {data,error:rpcError}=await getSupabaseClient().rpc("get_public_team_directory",{p_season_team_id:teamId});
@@ -23,7 +27,6 @@ function PublicTeamProfilePage(){
    if(rpcError){setError("Unable to load this team profile.");setLoading(false);return;}
    const publicTeam=((data??[]) as PublicTeam[])[0]??null;
    setTeam(publicTeam);
-   if(publicTeam)capture("team_profile_viewed",{feature:"team_directory"});
    setLoading(false);
   }
   void load();
