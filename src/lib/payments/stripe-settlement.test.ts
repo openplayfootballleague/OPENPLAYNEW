@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "./stripe-settlement";
+import { isRefundedPaymentStatus, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "./stripe-settlement";
 
 const record: PaymentSettlementRecord = {
   id: "payment-1",
@@ -73,5 +73,18 @@ describe("Stripe checkout settlement validation", () => {
       currency: "gbp",
       paid: false,
     }).ok).toBe(false);
+  });
+});
+
+describe("Stripe payment state ordering", () => {
+  it("preserves partial and full refund states when a late success event arrives", () => {
+    expect(isRefundedPaymentStatus("partially_refunded")).toBe(true);
+    expect(isRefundedPaymentStatus("refunded")).toBe(true);
+  });
+
+  it("allows a valid success event to settle non-refunded states", () => {
+    expect(isRefundedPaymentStatus("pending")).toBe(false);
+    expect(isRefundedPaymentStatus("processing")).toBe(false);
+    expect(isRefundedPaymentStatus("paid")).toBe(false);
   });
 });
