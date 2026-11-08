@@ -124,3 +124,26 @@ $$;
 
 revoke all on function public.update_team_instagram_profile(uuid,text) from public,anon;
 grant execute on function public.update_team_instagram_profile(uuid,text) to authenticated;
+
+create or replace function public.get_captain_team_social_profiles()
+returns table (
+  season_team_id uuid,
+  team_name text,
+  instagram_profile_url text
+)
+language sql
+security definer
+set search_path = ''
+as $$
+  select st.id, st.name, t.instagram_profile_url
+  from public.team_memberships tm
+  join public.season_teams st on st.id=tm.season_team_id
+  join public.teams t on t.id=st.team_id
+  where tm.user_id=auth.uid()
+    and tm.status='active'
+    and tm.is_captain=true
+  order by st.name;
+$$;
+
+revoke all on function public.get_captain_team_social_profiles() from public,anon;
+grant execute on function public.get_captain_team_social_profiles() to authenticated;
