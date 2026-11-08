@@ -5,6 +5,7 @@ import {
   isGlobalPrivacyControlEnabled,
   readBrowserAnalyticsConsent,
   writeBrowserAnalyticsConsent,
+  subscribeToBrowserAnalyticsConsent,
   type AnalyticsConsent,
 } from "../lib/analytics/consent";
 
@@ -24,14 +25,7 @@ function PrivacySecurityPage() {
       setConsent(readBrowserAnalyticsConsent(gpc));
     };
     refresh();
-    window.addEventListener(ANALYTICS_CONSENT_EVENT, refresh);
-    window.addEventListener("storage", refresh);
-    document.addEventListener("visibilitychange", refresh);
-    return () => {
-      window.removeEventListener(ANALYTICS_CONSENT_EVENT, refresh);
-      window.removeEventListener("storage", refresh);
-      document.removeEventListener("visibilitychange", refresh);
-    };
+    return subscribeToBrowserAnalyticsConsent(refresh);
   }, []);
 
   function updatePreference(next: "granted" | "denied") {
