@@ -1,13 +1,13 @@
 # Open Play — Continuous Development Status
 
-**Last verified:** 8 November 2026, 00:12 UTC  
+**Last verified:** 8 November 2026, 00:18 UTC  
 **Repository:** `openplayfootballleague/OPENPLAYNEW`  
 **Supabase project:** `ghnrsysvrlgkjmdlwdmp` — Open Play New only  
 **Applied database migrations:** 69
 
 ## Implemented in this repository and Supabase project
 
-> **Latest session update (8 November 2026, 00:12 UTC):** The current PR head is `b37852cb6509d86d02e16487effdee23ce7a3343`. CI run [42428405414](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42428405414) completed successfully on that exact SHA. This verifies the TypeScript/build, domain tests, Edge Function type-checks and Cloudflare dry run. The `partially_refunded` enum constant was also added to generated client constants. The Stripe Checkout and webhook functions remain deployed only to the isolated development project; no Checkout session, payment or refund has been exercised. Stripe secrets and webhook registration remain unconfigured, and no test identities or fixture data have been created.
+> **Latest session update (8 November 2026, 00:18 UTC):** Hardened Stripe webhook duplicate-delivery handling. Added `processing_started_at` and an index to `stripe_webhook_events`; the migration is applied to the isolated development database. The webhook now atomically claims unprocessed events, returns a retryable HTTP 409 when another worker holds the five-minute lease, releases the lease after recorded processing failures, and clears it on success. The updated `stripe-webhook` is deployed to the development project as ACTIVE version 3 (`verify_jwt=false`). Current CI runs [42428637941](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42428637941) and [42428645678](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42428645678) were triggered by the migration and function commits and are being verified. No signed Stripe event has yet been replayed against the configured endpoint; secrets and webhook registration remain unconfigured.
 
 
 ### Accounts, registration and access control
