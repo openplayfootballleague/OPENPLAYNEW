@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  ANALYTICS_CONSENT_EVENT,
   isGlobalPrivacyControlEnabled,
   readBrowserAnalyticsConsent,
   writeBrowserAnalyticsConsent,
