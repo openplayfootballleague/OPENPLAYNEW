@@ -48,5 +48,15 @@ begin
   ) then
     raise exception 'authenticated can execute an internal notification function';
   end if;
-end $$;
+
+  if not exists (
+    select 1 from pg_proc p
+    join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname='public'
+      and p.oid='public.create_player_fixture_payment(uuid,uuid)'::regprocedure
+      and pg_get_functiondef(p.oid) ilike '%pg_advisory_xact_lock%'
+  ) then
+    raise exception 'Player fixture payment creation is missing its concurrency lock';
+  end if;
+end $;
 select 'security privilege assertions passed' as result;
