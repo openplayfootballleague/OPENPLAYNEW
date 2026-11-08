@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { usePostHog } from "posthog-js/react";
 import { getSupabaseClient } from "../lib/supabase/client";
 
 export const Route = createFileRoute("/sign-up")({ component: SignUpPage });
 
 function SignUpPage() {
   const navigate = useNavigate();
+  const posthog = usePostHog();
   const [email,setEmail]=useState(""); const [password,setPassword]=useState(""); const [confirm,setConfirm]=useState("");
   const [error,setError]=useState(""); const [message,setMessage]=useState(""); const [busy,setBusy]=useState(false);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -16,6 +18,7 @@ function SignUpPage() {
     try {
       const {data,error:authError}=await getSupabaseClient().auth.signUp({email:email.trim(),password,options:{emailRedirectTo:window.location.origin+"/player"}});
       if(authError) throw authError;
+      posthog.capture("account_created", { email_verification_required: !data.session });
       if(data.session) await navigate({to:"/player"});
       else setMessage("Your account request is in. Check your inbox to verify your email before signing in. Creating an account does not register you as a player or make you a captain.");
     } catch(cause){setError(cause instanceof Error?cause.message:"Unable to create your account. Please try again.");}
