@@ -1,11 +1,14 @@
 # Open Play — Continuous Development Status
 
-**Last verified:** 7 November 2026, 23:36 UTC  
+**Last verified:** 8 November 2026, 00:03 UTC  
 **Repository:** `openplayfootballleague/OPENPLAYNEW`  
 **Supabase project:** `ghnrsysvrlgkjmdlwdmp` — Open Play New only  
-**Applied database migrations:** 66
+**Applied database migrations:** 69
 
 ## Implemented in this repository and Supabase project
+
+> **Latest session update (8 November 2026, 00:03 UTC):** Stripe test-mode player fixture payments have been added to this repository and deployed to the isolated Open Play New Supabase development project. Two payment migrations plus a backend-permissions follow-up are applied. `create-player-checkout` is active (version 1, JWT required); `stripe-webhook` is active (version 2, Stripe signature verification handled in-function, JWT disabled for webhook delivery). The latest branch includes player checkout/history, finance-admin payment reporting and season player-fee controls. The latest CI build after a separate captain-route repair is queued; earlier commit `c53233b` passed all 32 tests, Edge Function type-checks, TypeScript/build and Cloudflare dry run. No checkout has been completed and no test users, teams, fixtures or payments have been created.
+
 
 ### Accounts, registration and access control
 - Sign-in returns users to the Player Hub; password-reset emails use the dedicated reset-password route; creating an account does not silently register a player.
@@ -50,8 +53,20 @@
 - Added an append-only team finance ledger for charges, payments received, fines, refunds and credits, with integer-pence amounts, optional fixture/due-date links, manual payment method/reference and internal notes.
 - Finance read/write RPCs require `has_finance_access()` (platform admins or finance admins). The ledger table has RLS enabled, an explicit deny-all direct-client policy and no direct table grants.
 - Finance entries are audit logged and cannot be edited/deleted; corrections must be recorded as additional entries. Refunds reverse a prior receipt and increase the amount outstanding; credits reduce it. Team overpayments do not offset another team's debt.
-- Added an Admin Dashboard link to the new Finance Ledger page, with season/team filters, summary totals and manual entry form. No card processing, Stripe integration or automatic payment collection has been added.
+- Added an Admin Dashboard link to the Finance Ledger page, with season/team filters, summary totals and manual entry form. The original manual ledger remains append-only and separate from Stripe-backed player payments.
 - Database remains empty: finance ledger contains 0 rows. Finance role acceptance testing needs an owner-approved test identity; do not grant finance roles or create accounts without approval.
+
+### Finance v2 — Stripe test-mode player fixture payments
+- Extended the existing `payment_records` table (no duplicate ledger) with player ownership, refund totals, Stripe fee/net fields, webhook event timestamps and checkout retry counter. Added the `partially_refunded` payment status in its own earlier migration so PostgreSQL commits the enum before dependent functions use it.
+- Server-side `create_player_fixture_payment` uses `auth.uid()`, requires an approved/non-banned player and active membership in one of the fixture's teams, checks the fixture is payable, reads the season/gameweek player fee from `season_fee_configs`, and snapshots the amount. The browser cannot supply the amount.
+- Added `admin_set_player_fixture_fee` for finance roles, with effective gameweek, validation and audit logging. Existing team fee settings are preserved when a player fee is added.
+- Added `get_my_fixture_payments` for a player's own history and `get_admin_stripe_payments` for finance-authorised reporting. Direct payment-table writes are revoked from clients; authenticated users retain SELECT subject to the existing finance/captain RLS policy; the service role has explicit backend CRUD privileges.
+- Added hosted Checkout Edge Function `create-player-checkout` (ACTIVE, version 1, JWT required). It accepts fixture/team IDs only, authenticates the player, reads the server-created amount and refuses any Stripe secret not prefixed `sk_test_`.
+- Added `stripe-webhook` Edge Function (ACTIVE, version 2, JWT disabled because Stripe calls it directly). It verifies timestamped HMAC signatures, rejects live-mode events, records/retries event IDs, updates paid/failed/cancelled/refund states, and fetches Stripe balance transactions to record processing fees and net proceeds.
+- Player Hub includes fixture payment actions, checkout return messaging and personal payment history. Finance page includes the Stripe payment register and season-specific player fee settings. Checkout success is not treated as proof of payment; only the verified webhook changes payment state.
+- GitHub PR [#6](https://github.com/openplayfootballleague/OPENPLAYNEW/pull/6) remains open/draft and unmerged. Stripe secrets are not committed. No test-mode secret key, webhook signing secret or confirmed app origin has been configured in Supabase Edge Function secrets. No Stripe webhook endpoint has been registered yet.
+- Verification: latest completed full CI at commit `c53233b36807a9287d71ea9317b6c85489757ab6` passed 32 tests, Deno type-checks, TypeScript/build and Cloudflare dry run. The current head has additional source-only fixes and its latest CI is queued. SQL smoke checks confirmed unauthenticated payment creation is rejected, unauthenticated finance access is false, own-history RPC returns zero rows when unauthenticated, and finance-only RPCs reject unauthorised calls.
+- No Auth users, players, teams, fixtures, payment records or webhook events have been created. The user explicitly authorised disposable test accounts and Stripe test-mode testing, but the available Supabase connector exposes neither Auth Admin user creation/deletion nor Edge Function secret management. These actions must use an approved Supabase Dashboard/CLI path before full end-to-end testing.
 
 ### Administrator help and guided walkthrough
 - Added a platform-admin-only operations guide at `/admin-help`, linked from the Admin Dashboard.
@@ -115,13 +130,13 @@ Separate Open Play reports in the Library document substantial Stage 2–4 work 
 ## Remaining launch blockers
 
 1. Complete browser acceptance tests for player detail, correction, ban/unban, genuine classification, player transfers, finance ledger, admin audit history and the help walkthrough.
-2. Obtain an owner-approved non-production test identity, an approved admin test identity and an accessible mailbox. Do not self-appoint an administrator or create test accounts without authorization.
+2. The owner has authorised disposable non-production test identities and their removal after testing. Use a secure Supabase Auth Admin mechanism; current connector tooling cannot create/delete Auth users, so use the Dashboard/CLI once an authorised path is available. Do not self-appoint an administrator.
 3. Test the complete sign-up, email verification, sign-in, password reset, player registration, team registration, membership request and captain approval journey.
 4. Test saved team-sheet drafts, goalkeeper selection, final submission/locking, admin amendment and result publication/correction with realistic test fixtures.
 5. Configure Resend and Twilio credentials, verify sender/domain and SMS sender configuration, then test consent, delivery, failure, retry, hold, unconfirmed and opt-out handling with approved test recipients. The Supabase Vault currently contains no secrets; provider credentials and the service-role invocation secret are not configured.
 6. Configure the Resend/Twilio Edge Function secrets and the two Supabase Vault invocation secrets, run controlled delivery tests, then obtain explicit owner approval to enable the minute-level dispatch job. The schedule is implemented but remains inactive by default.
 7. Test 24-hour and 3-hour reminders with fixtures and users; verify rescheduling/cancellation invalidates stale reminders. Test the transfer request/approval/rejection flow with two approved teams in one test season.
-8. Finish remaining admin operations and the full matchday lifecycle. The admin help guide and step-by-step walkthrough are now implemented; contextual in-dashboard tours beyond the help page remain optional. Obtain owner approval on whether online card payments are in scope; the current finance v1 is manual record keeping only. Complete finance-role acceptance, reconciliation/refund controls and comprehensive security testing.
+8. Finish remaining admin operations and the full matchday lifecycle. The admin help guide and step-by-step walkthrough are implemented. Stripe Checkout foundations and player/finance UI are now present in PR #6, but test-mode secrets, webhook registration, end-to-end checkout/refund tests, admin refund controls and payout reconciliation remain outstanding. Complete finance-role acceptance and comprehensive security testing.
 9. Merge/reconcile the PWA and official OP branding changes, then complete real-device install/cache testing.
 10. Owner-verify Bideford league, season, venue, team and fixture data before any production seeding. Bideford is the only launch location; Barnstaple and Torrington remain inactive.
 11. Configure production environment variables, Auth redirects, email confirmation, hosting and monitoring. Production deployment has not occurred; CI has only run a Cloudflare Worker dry run.
