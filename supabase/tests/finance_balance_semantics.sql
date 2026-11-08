@@ -70,7 +70,7 @@ begin
   end if;
 
   select * into v_summary
-  from public.get_finance_summary('00000000-0000-4000-8000-000000000031');
+  from public.get_finance_summary('00000000-0000-4000-8000-000000000030');
 
   if v_summary.payments_pence <> 5000
      or v_summary.outstanding_pence <> 0 then
