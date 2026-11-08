@@ -227,3 +227,14 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - Added `supabase/tests/security_privilege_assertions.sql` with executable assertions that: every public application table has RLS enabled; anon/authenticated have no TRUNCATE, REFERENCES or TRIGGER privileges on public tables; anon cannot execute public SECURITY DEFINER functions; and authenticated cannot execute the 15 internal notification worker/trigger functions.
 - Executed the assertions against development immediately after the privilege migrations. Result: `security privilege assertions passed`.
 - These are explicit database regression assertions, not a substitute for full user-role integration testing. Authenticated SECURITY DEFINER functions that remain callable must continue to be reviewed for their in-function ownership/role checks.
+
+
+## 8 November 2026 — follow-up verification and authorization review
+
+- Confirmed GitHub Actions runs 42430240761 (table privilege migration), 42430255406 (security-hardening documentation), 42430282251 (security assertion file) and 42430288933 (follow-up documentation) all completed successfully.
+- Re-ran Supabase security advisor after restricting internal notification execution and table-level client privileges. It continues to report 63 authenticated-executable SECURITY DEFINER functions. These are largely deliberate user-facing/admin RPCs, and the advisor warning is intentionally retained for review rather than suppressed.
+- Inspected the sensitive team-management functions `resolve_team_membership_request`, `set_team_squad_number`, `save_team_sheet_draft` and `submit_team_sheet`. They validate authenticated actor identity and require platform-admin or active-captain rights scoped to the relevant team; team-sheet writes additionally validate fixture participation, roster membership, player eligibility, duplicate selection, goalkeeper selection, and lock state.
+- Inspected admin player register, finance ledger/summary, Stripe ledger and admin team-sheet read RPCs. They check platform or finance roles before returning privileged records.
+- The remaining 63 SECURITY DEFINER functions still need an exhaustive structured authorization and data-minimization review; this targeted inspection is not a blanket sign-off.
+- The user-uploaded canonical orange connected OP logo is present in the current working container and visually confirmed. The repository connector does not provide a direct binary-file bridge from that local path into GitHub; only UTF-8 file writes and base64 text blobs are available. No substitute logo was committed.
+- No production changes, no test users or payment records seeded, and no live Stripe configuration.
