@@ -103,17 +103,63 @@ Deno.serve(async (req) => {
   // completion/expiry/failure overwrite a newer payment or refund state.
   if (paymentEvents.has(eventType) && resolvedPaymentId) {
     const { data: currentPayment, error: currentPaymentError } = await admin.from("payment_records")
-      .select("last_stripe_event_at")
+      .select("id,amount_pence,currency,status,stripe_checkout_session_id,stripe_payment_intent_id,last_stripe_event_at")
       .eq("id", resolvedPaymentId)
       .maybeSingle();
-    if (currentPaymentError) {
+    if (currentPaymentError || !currentPayment) {
       await admin.from("stripe_webhook_events").update({
-        processing_error: "Could not inspect current payment event ordering",
+        processing_error: "Could not inspect current payment record",
         processing_started_at: null,
       }).eq("id", eventId);
-      return new Response("Could not inspect payment event ordering", { status: 500 });
+      return new Response("Could not inspect payment record", { status: 500 });
     }
-    const previousEventTime = currentPayment?.last_stripe_event_at
+
+    // Never let an event for a different session/intent or a different amount
+    // settle this payment record. A mismatch is retained for finance review.
+    if (eventType.startsWith("checkout.session.")) {
+      const sessionId = typeof object?.id === "string" ? object.id : "";
+      const sessionMetadata = object?.metadata as Record<string, unknown> | undefined;
+      const metadataPaymentId = String(sessionMetadata?.payment_record_id ?? object?.client_reference_id ?? "");
+      if (!sessionId || currentPayment.stripe_checkout_session_id !== sessionId || metadataPaymentId !== resolvedPaymentId) {
+        await admin.from("stripe_webhook_events").update({
+          payment_record_id: resolvedPaymentId,
+          processing_error: "Checkout session identity mismatch; held for finance review",
+          processing_started_at: null,
+        }).eq("id", eventId);
+        return new Response("Checkout session identity mismatch", { status: 409 });
+      }
+      if (eventType === "checkout.session.completed" || eventType === "checkout.session.async_payment_succeeded") {
+        const amountTotal = object?.amount_total;
+        const currency = String(object?.currency ?? "").toLowerCase();
+        const intentId = typeof object?.payment_intent === "string" ? object.payment_intent : "";
+        if (!Number.isSafeInteger(amountTotal) || Number(amountTotal) !== currentPayment.amount_pence ||
+          currency !== String(currentPayment.currency).toLowerCase() ||
+          (currentPayment.stripe_payment_intent_id && intentId && currentPayment.stripe_payment_intent_id !== intentId)) {
+          await admin.from("stripe_webhook_events").update({
+            payment_record_id: resolvedPaymentId,
+            processing_error: "Checkout amount, currency or payment intent mismatch; held for finance review",
+            processing_started_at: null,
+          }).eq("id", eventId);
+          return new Response("Checkout payment details mismatch", { status: 409 });
+        }
+      }
+    } else if (eventType === "charge.succeeded") {
+      const intentId = typeof object?.payment_intent === "string" ? object.payment_intent : "";
+      const amount = object?.amount;
+      const currency = String(object?.currency ?? "").toLowerCase();
+      if (!intentId || (currentPayment.stripe_payment_intent_id && currentPayment.stripe_payment_intent_id !== intentId) ||
+        !Number.isSafeInteger(amount) || Number(amount) !== currentPayment.amount_pence ||
+        currency !== String(currentPayment.currency).toLowerCase() || object?.paid !== true) {
+        await admin.from("stripe_webhook_events").update({
+          payment_record_id: resolvedPaymentId,
+          processing_error: "Charge amount, currency or payment intent mismatch; held for finance review",
+          processing_started_at: null,
+        }).eq("id", eventId);
+        return new Response("Charge payment details mismatch", { status: 409 });
+      }
+    }
+
+    const previousEventTime = currentPayment.last_stripe_event_at
       ? Date.parse(currentPayment.last_stripe_event_at)
       : 0;
     const incomingEventTime = Number(event.created) * 1000;
@@ -187,6 +233,11 @@ Deno.serve(async (req) => {
       patch.stripe_fee_pence = balance.fee;
       patch.net_amount_pence = balance.net;
       if (typeof object?.payment_intent === "string") patch.stripe_payment_intent_id = object.payment_intent;
+      // A charge.succeeded event is independently authoritative proof of a
+      // successful charge. Do not leave the ledger pending if checkout.session
+      // completion was delayed or not delivered.
+      patch.status = "paid";
+      patch.paid_at = new Date().toISOString();
     } else if (eventType === "charge.refunded") {
       const refunded = Number(object?.amount_refunded ?? 0);
       const total = Number(object?.amount ?? 0);
