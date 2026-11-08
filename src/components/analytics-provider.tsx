@@ -78,38 +78,47 @@ function PostHogConsentInitializer() {
 }
 
 /**
- * A deterministic browser-test probe. It is compiled into the dedicated
- * analytics E2E Vite mode only and never appears in normal dev or production.
- * The browser test intercepts its request before it can leave the runner.
+ * Test-only diagnostics and capture control, rendered outside the SDK provider
+ * so the browser suite can distinguish consent/configuration from provider mount.
  */
-function PostHogE2EProbe() {
-  const client = usePostHog();
-  const [captureCalled, setCaptureCalled] = useState(false);
-  const [captureResult, setCaptureResult] = useState("not-called");
+function AnalyticsE2EDiagnostics({
+  configured,
+  allowed,
+  sdkReady,
+  error,
+}: {
+  configured: boolean;
+  allowed: boolean;
+  sdkReady: boolean;
+  error: string | null;
+}) {
   if (import.meta.env.VITE_OPENPLAY_ANALYTICS_E2E !== "true") return null;
 
   return (
-    <button
-      type="button"
-      data-testid="analytics-e2e-probe"
-      data-posthog-loaded={String(client.__loaded)}
-      data-posthog-capturing={String(client.is_capturing())}
-      data-posthog-opted-in={String(client.has_opted_in_capturing())}
-      data-posthog-capture-called={String(captureCalled)}
-      data-posthog-capture-result={captureResult}
-      onClick={() => {
-        setCaptureCalled(true);
-        const result = client.capture(
+    <div
+      data-testid="analytics-e2e-diagnostics"
+      data-posthog-configured={String(configured)}
+      data-consent-allowed={String(allowed)}
+      data-sdk-ready={String(sdkReady)}
+      data-posthog-loaded={String(posthog.__loaded)}
+      data-posthog-capturing={String(posthog.is_capturing())}
+      data-posthog-opted-in={String(posthog.has_opted_in_capturing())}
+      data-posthog-token={posthog.get_config("token") ? "present" : "missing"}
+      data-posthog-host={String(posthog.get_config("api_host") ?? "missing")}
+      data-posthog-error={error ?? ""}
+    >
+      <button
+        type="button"
+        data-testid="analytics-e2e-probe"
+        onClick={() => posthog.capture(
           "openplay_e2e_consent_probe",
           { test_mode: true },
           { send_instantly: true, transport: "fetch" },
-        );
-        setCaptureResult(String(result ?? "undefined"));
-        client.flush();
-      }}
-    >
-      Send analytics test probe
-    </button>
+        )}
+      >
+        Send analytics test probe
+      </button>
+    </div>
   );
 }
 
@@ -286,6 +295,7 @@ export function AnalyticsConsentBanner({ enabled }: { enabled: boolean }) {
 export function ConsentAwareAnalytics({ children }: { children: ReactNode }) {
   const [allowed, setAllowed] = useState(false);
   const [sdkReady, setSdkReady] = useState(false);
+  const [sdkError, setSdkError] = useState<string | null>(null);
   const projectToken = import.meta.env.VITE_POSTHOG_PROJECT_TOKEN?.trim();
   const projectHost = import.meta.env.VITE_POSTHOG_HOST?.trim();
   const privacySettingsVerified = import.meta.env.VITE_POSTHOG_PRIVACY_SETTINGS_VERIFIED === "true";
@@ -309,17 +319,24 @@ export function ConsentAwareAnalytics({ children }: { children: ReactNode }) {
     if (!configured || !allowed || !projectToken || !projectHost) {
       if (posthog.__loaded) posthog.opt_out_capturing();
       setSdkReady(false);
+      setSdkError(null);
       return;
     }
 
-    if (!posthog.__loaded) {
-      posthog.init(projectToken, {
-        ...POSTHOG_OPTIONS,
-        api_host: projectHost,
-      });
+    try {
+      if (!posthog.__loaded) {
+        posthog.init(projectToken, {
+          ...POSTHOG_OPTIONS,
+          api_host: projectHost,
+        });
+      }
+      posthog.opt_in_capturing();
+      setSdkReady(true);
+      setSdkError(null);
+    } catch (error) {
+      setSdkReady(false);
+      setSdkError(error instanceof Error ? error.message : String(error));
     }
-    posthog.opt_in_capturing();
-    setSdkReady(true);
   }, [allowed, configured, projectHost, projectToken]);
 
   return (
@@ -327,11 +344,16 @@ export function ConsentAwareAnalytics({ children }: { children: ReactNode }) {
       {configured && allowed && sdkReady ? (
         <PostHogProvider client={posthog}>
           <PostHogConsentInitializer />
-          <PostHogE2EProbe />
           <PostHogCaptureProvider>{children}</PostHogCaptureProvider>
         </PostHogProvider>
       ) : children}
       <AnalyticsConsentBanner enabled={configured} />
+      <AnalyticsE2EDiagnostics
+        configured={configured}
+        allowed={allowed}
+        sdkReady={sdkReady}
+        error={sdkError}
+      />
     </AnalyticsCaptureContext.Provider>
   );
 }
