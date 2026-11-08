@@ -57,6 +57,16 @@ describe("Stripe checkout settlement validation", () => {
     }).ok).toBe(false);
   });
 
+  it("rejects a paid checkout session when the amount is missing", () => {
+    expect(validateCheckoutSettlement(record, {
+      id: "cs_test_123",
+      client_reference_id: "payment-1",
+      metadata: { payment_record_id: "payment-1" },
+      payment_status: "paid",
+      currency: "gbp",
+    }).ok).toBe(false);
+  });
+
   it("accepts a charge.succeeded-only event when the charge matches", () => {
     expect(validateChargeSettlement(record, {
       payment_intent: "pi_123",
