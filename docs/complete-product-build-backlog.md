@@ -109,3 +109,8 @@ Verification status: **implemented, not yet verified**. The repository CI workfl
 ## Stage 1 — app-wide account foundations
 
 The authoritative Stage 1 scope and live completion checklist is maintained in [`docs/stage-1-account-foundations.md`](stage-1-account-foundations.md). It covers the entire application: account lifecycle, player identity, profile privacy, role/location permissions, protected route/data access, session handling and operational privacy/security policy. Password recovery has been improved so expired links can request a fresh email. Stage 1 remains in progress; unresolved Auth provider configuration, anti-abuse settings, super-admin bootstrap, role matrix and privacy/policy decisions are explicitly tracked. No paid test infrastructure, hosted migration, merge or deployment is authorised.
+
+
+### Stage 1 permission audit update — 8 November 2026
+
+A read-only catalog audit of the deployed Supabase project is recorded in `docs/stage-1-account-foundations.md` (commit `c2f8df496fcbd2d9fc12b71116004788ecbd5a30`). It confirms owner/admin read boundaries and SELECT-only authenticated grants for `user_roles`, `profiles`, `players` and `team_memberships`, and deny-all/no client grants for `audit_log`. It also identified deployed-policy/migration-source drift in `season_teams`; this must be reconciled against the applied migration ledger before any corrective migration is authored. No hosted changes were made. CI has not yet produced a run/status for the latest docs commit. Stage 1 remains in progress.
