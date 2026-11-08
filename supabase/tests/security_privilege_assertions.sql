@@ -82,19 +82,7 @@ select
     'public.resolve_team_membership_request(uuid,text)'::regprocedure,
     'public.resolve_team_registration(uuid,text,text)'::regprocedure
   ) and (not (pg_get_functiondef(p.oid) ilike '%can_administer_location%') or has_function_privilege('anon',p.oid,'EXECUTE'))) as location_admin_mutations_check_assigned_location,
-  has_column_privilege('authenticated','public.profiles','first_name','UPDATE') as profile_first_name_updateable,
-  has_column_privilege('authenticated','public.profiles','last_name','UPDATE') as profile_last_name_updateable,
-  has_column_privilege('authenticated','public.profiles','display_name','UPDATE') as profile_display_name_updateable,
-  has_column_privilege('authenticated','public.profiles','phone','UPDATE') as profile_phone_updateable,
-  has_column_privilege('authenticated','public.profiles','preferred_position','UPDATE') as profile_preferred_position_updateable,
-  has_column_privilege('authenticated','public.profiles','avatar_path','UPDATE') as profile_avatar_path_updateable,
-  not has_column_privilege('authenticated','public.profiles','date_of_birth','UPDATE') as profile_dob_restricted,
-  not has_column_privilege('authenticated','public.profiles','emergency_contact_name','UPDATE') as profile_emergency_name_restricted,
-  not has_column_privilege('authenticated','public.profiles','emergency_contact_phone','UPDATE') as profile_emergency_phone_restricted,
-  not has_column_privilege('authenticated','public.profiles','created_at','UPDATE') as profile_created_at_restricted,
-  not has_column_privilege('authenticated','public.profiles','updated_at','UPDATE') as profile_updated_at_restricted,
-  not has_table_privilege('authenticated','public.profiles','UPDATE') as profile_no_table_level_update,
-  (has_column_privilege('authenticated','public.profiles','first_name','UPDATE')
+  has_column_privilege('authenticated','public.profiles','first_name','UPDATE')
     and has_column_privilege('authenticated','public.profiles','last_name','UPDATE')
     and has_column_privilege('authenticated','public.profiles','display_name','UPDATE')
     and has_column_privilege('authenticated','public.profiles','phone','UPDATE')
@@ -105,7 +93,7 @@ select
     and not has_column_privilege('authenticated','public.profiles','emergency_contact_phone','UPDATE')
     and not has_column_privilege('authenticated','public.profiles','created_at','UPDATE')
     and not has_column_privilege('authenticated','public.profiles','updated_at','UPDATE')
-    and not has_table_privilege('authenticated','public.profiles','UPDATE'))
+    and not has_table_privilege('authenticated','public.profiles','UPDATE')
     as profile_self_service_columns_are_restricted,
   (exists(select 1 from pg_proc p where p.oid='public.get_my_team_request_statuses()'::regprocedure and p.prosecdef)
     and not has_function_privilege('anon','public.get_my_team_request_statuses()','EXECUTE')) as team_request_status_rpc_is_security_definer_and_denies_anon,
