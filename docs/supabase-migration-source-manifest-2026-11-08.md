@@ -113,7 +113,7 @@ This manifest maps every applied ledger version/name to its canonical source pat
 ## Verification notes
 
 - All 98 ledger versions have a corresponding canonical source path in the branch.
-- All 100 migration file prefixes are unique: 98 applied ledger versions plus one separate forward-only migration.
+- All 99 migration file prefixes are unique: 98 applied ledger versions plus one separate forward-only migration.
 - No duplicate synthetic-prefix copies of applied sources remain in this branch.
 - The canonical files are source artifacts only. This manifest does not certify clean-database replay, role behavior, or production release readiness.
 - Do not apply any of the already-recorded versions to production.
