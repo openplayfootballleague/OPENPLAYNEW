@@ -1499,6 +1499,7 @@ export type Database = {
           p_primary_colour?: string
           p_season_id: string
           p_secondary_colour?: string
+          p_instagram_profile_url?: string
           p_team_name: string
         }
         Returns: {
@@ -2382,6 +2383,21 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_captain_team_social_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          season_team_id: string
+          team_name: string
+          instagram_profile_url: string | null
+        }[]
+      }
+      update_team_instagram_profile: {
+        Args: {
+          p_season_team_id: string
+          p_instagram_profile_url: string | null
+        }
+        Returns: string | null
       }
       request_player_transfer: {
         Args: {
