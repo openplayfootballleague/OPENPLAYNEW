@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase/client";
@@ -36,5 +37,5 @@ function RegisterPlayerPage() {
       {error&&<p className="form-error" role="alert">{error}</p>}
       <button className="button" type="submit" disabled={busy}>{busy?"SUBMITTING…":"SUBMIT PLAYER REGISTRATION"} <span aria-hidden="true">↗</span></button>
     </form>}<button className="auth-text-button" type="button" onClick={async()=>{await getSupabaseClient().auth.signOut();await navigate({to:"/"});}}>Sign out</button>
-  </section></main>;
+  </section><PlayerBottomNavigation /></main>;
 }
