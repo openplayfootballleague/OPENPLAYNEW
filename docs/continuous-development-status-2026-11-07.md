@@ -314,3 +314,15 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - Updated `src/lib/supabase/database.types.ts` with the exact RPC argument and `team_memberships` return shape, including the set-return options. This keeps the typed Supabase client intact rather than weakening it with casts.
 - Verified the development database already has the unique partial index `team_memberships_one_active_captain` on active captain memberships per team. The new handover RPC also takes a per-team advisory lock; both layers protect against two simultaneous active captains.
 - The corrected frontend build is queued for CI verification. No authenticated browser test accounts have been created.
+
+
+## 8 November 2026 — verification follow-up
+
+- Corrected generated Supabase RPC typing for captain handover in commit `629b731e4a49459fa69d863ab59e5b13b53dfb5f`.
+- CI for the type correction passed: run `42431735780`.
+- CI for the documentation update passed: run `42431750576`.
+- Both successful runs include Edge Function type-check, all 32 domain tests, Vite client/server builds and TypeScript validation.
+- Reviewed player transfer cancellation, player transfer request, team membership request/approval and captain handover database definitions. No new unauthorised state mutation was identified in this focused review; the approval paths serialize membership changes and the transfer cancellation is scoped to the requesting user and pending request.
+- The Supabase security advisor reports the expected general warning for SECURITY DEFINER RPCs exposed to authenticated users. These functions intentionally serve signed-in application workflows and are expected to enforce role/ownership checks internally; the warning is not itself proof of a privilege bypass. Continue function-by-function permission review rather than blanket-revoking authenticated execution.
+- Development database contains no seeded player/team/fixture records, so live authenticated workflow testing remains outstanding. No test users or production data were created.
+- The canonical supplied OP PNG remains available in the working file area but has not been committed to the repository; the available GitHub connector accepts text/base64 content and the current runtime has no GitHub CLI. Do not use a substitute logo.
