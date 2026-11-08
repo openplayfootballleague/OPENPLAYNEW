@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import type { Database } from "../../../src/lib/supabase/database.types.ts";
 import { isRefundedPaymentStatus, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "../../../src/lib/payments/stripe-settlement.ts";
 
 function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
@@ -46,7 +47,7 @@ Deno.serve(async (req) => {
   try { event = JSON.parse(raw); } catch { return new Response("Invalid event payload", { status: 400 }); }
   if (event.livemode !== false) return new Response("Live-mode events are disabled", { status: 400 });
 
-  const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const admin = createClient<Database>(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const object = (event.data as Record<string, unknown> | undefined)?.object as Record<string, unknown> | undefined;
   const metadata = object?.metadata as Record<string, unknown> | undefined;
   const paymentId = String(metadata?.payment_record_id ?? object?.client_reference_id ?? "");
