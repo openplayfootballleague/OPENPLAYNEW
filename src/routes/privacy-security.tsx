@@ -34,12 +34,7 @@ function PrivacySecurityPage() {
         await navigate({ to: "/sign-in" });
         return;
       }
-      if (alive) {
-        setEmail(session.user.email ?? "");
-        const gpc = isGlobalPrivacyControlEnabled();
-        setGlobalPrivacyControl(gpc);
-        setAnalyticsConsent(readBrowserAnalyticsConsent(gpc));
-      }
+      if (alive) setEmail(session.user.email ?? "");
     }
     void load().catch(cause => {
       if (alive) setError(cause instanceof Error ? cause.message : "Unable to load account security.");
@@ -60,6 +55,12 @@ function PrivacySecurityPage() {
       setMessage("Optional analytics are turned off on this device.");
     }
   }
+
+  useEffect(() => {
+    const gpc = isGlobalPrivacyControlEnabled();
+    setGlobalPrivacyControl(gpc);
+    setAnalyticsConsent(readBrowserAnalyticsConsent(gpc));
+  }, []);
 
   async function changeEmail(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
