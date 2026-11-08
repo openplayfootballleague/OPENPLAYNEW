@@ -82,6 +82,7 @@ function HomePage() {
         <nav className="header-nav" aria-label="Main navigation">
           <a href="/match-centre">Match centre</a>
           <a href="/teams">Leagues</a>
+          <a href="/gallery">Gallery</a>
           <a href="#about">About</a>
         </nav>
         <div className="header-actions">
