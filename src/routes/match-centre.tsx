@@ -3,6 +3,7 @@ import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
 import { PlayerCompetitionSelector, usePlayerCompetitionContext } from "../lib/competition/player-context";
 import { Link,createFileRoute } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { useOpenPlayAnalytics } from "../components/analytics-provider";
 
 type Team={id:string;name:string};
 type Fixture={id:string;gameweek:number;scheduled_at:string|null;status:string;home_team_id:string;away_team_id:string};
@@ -12,6 +13,7 @@ type Standing={id:string;name:string;played:number;won:number;drawn:number;lost:
 export const Route=createFileRoute("/match-centre")({component:MatchCentrePage});
 
 function MatchCentrePage(){
+ const capture=useOpenPlayAnalytics();
  const competition=usePlayerCompetitionContext();
  const [teams,setTeams]=useState<Team[]>([]);
  const [fixtures,setFixtures]=useState<Fixture[]>([]);
@@ -39,6 +41,12 @@ function MatchCentrePage(){
   }
   void load();return()=>{alive=false;};
  },[competition.loading,competition.selectedSeasonId]);
+
+ useEffect(()=>{
+  if(loading)return;
+  if(fixtures.length>0)capture("fixture_viewed",{feature:"match_centre"});
+  if(results.length>0)capture("result_viewed",{feature:"results"});
+ },[capture,fixtures.length,loading,results.length,competition.selectedSeasonId]);
 
  const teamName=(id:string)=>teams.find(t=>t.id===id)?.name??"Team";
  const resultMap=new Map(results.map(r=>[r.fixture_id,r]));
