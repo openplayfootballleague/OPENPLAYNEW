@@ -563,3 +563,12 @@ button:disabled { opacity: .55; }
 .captain-instagram-form{border-radius:3px}
 .directory-team .team-instagram-link{margin-left:auto}
 .auth-form input[type="url"]{width:100%}
+
+.admin-team-social-manager{margin:1rem 0}
+.admin-team-social-manager>form{display:grid;grid-template-columns:minmax(130px,.8fr) minmax(220px,1.5fr) auto;align-items:end;gap:.7rem;padding:.75rem 0;border-top:1px solid #39443b}
+.admin-team-social-manager>form>div{display:grid;gap:.25rem;color:#f4f3ed}
+.admin-team-social-manager>form small{color:#aeb5aa}
+.admin-team-social-manager>form label{display:grid;gap:.35rem;color:#c8cbc5;font-size:.75rem}
+.admin-team-social-manager>form input{min-width:0;padding:.65rem;background:#111713;color:#f4f3ed;border:1px solid #465248}
+.admin-team-social-manager>form button{padding:.7rem .8rem;background:transparent;border:1px solid #f36b32;color:#f36b32;font-size:.7rem;font-weight:750}
+@media(max-width:650px){.admin-team-social-manager>form{grid-template-columns:1fr}.admin-team-social-manager>form button{width:100%}}
