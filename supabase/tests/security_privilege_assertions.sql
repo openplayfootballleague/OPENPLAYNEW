@@ -95,6 +95,19 @@ select
     and not has_column_privilege('authenticated','public.profiles','updated_at','UPDATE')
     and not has_table_privilege('authenticated','public.profiles','UPDATE')
     as profile_self_service_columns_are_restricted,
+  not exists (
+    select 1 from pg_policies
+    where schemaname='public'
+      and (
+        coalesce(qual,'') ilike '%has_platform_role%'
+        or coalesce(with_check,'') ilike '%has_platform_role%'
+      )
+  ) as public_rls_policies_do_not_use_unscoped_platform_role,
+  (
+    to_regprocedure('public.has_global_admin_role()') is not null
+    and has_function_privilege('authenticated','public.has_global_admin_role()','EXECUTE')
+    and not has_function_privilege('anon','public.has_global_admin_role()','EXECUTE')
+  ) as global_admin_rls_helper_is_authenticated_only,
   (exists(select 1 from pg_proc p where p.oid='public.get_my_team_request_statuses()'::regprocedure and p.prosecdef)
     and not has_function_privilege('anon','public.get_my_team_request_statuses()','EXECUTE')) as team_request_status_rpc_is_security_definer_and_denies_anon,
   has_function_privilege('authenticated','public.get_my_team_request_statuses()','EXECUTE') as team_request_status_rpc_allows_authenticated,
