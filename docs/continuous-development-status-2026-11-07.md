@@ -350,3 +350,56 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - Added four unit tests for default season selection (registration-open priority, active fallback, completed fallback and empty seasons).
 - The admin competition setup already contains the create-location workflow. No new location row was seeded: the connected database currently has zero locations, and the prior release-safety decision intentionally left location data empty. The selector therefore displays an explicit empty-state message until Bideford is configured and activated through the approved admin workflow.
 - An initial CI build exposed an incorrect relative Supabase client import in the new shared context module. The import was corrected in commit `d7905cba70258bdb711339a738f8ec3bd7ee4fe4`. Full CI verification of the corrected final head is pending.
+
+
+---
+
+## Execution update — 8 November 2026, 02:00 UTC
+
+**Development project:** `ghnrsysvrlgkjmdlwdmp` (Open Play New only)  
+**Repository:** `openplayfootballleague/OPENPLAYNEW`
+
+### Verified current database state
+
+- Applied migrations: **97** (the earlier count of 69 in this report is superseded).
+- Public base tables: 30; all 30 have RLS enabled.
+- Auth users: 0; assigned user roles: 0; location records: 0. The development database is intentionally unseeded, so signed-in browser acceptance cannot yet be completed.
+- The first-release Bideford location-policy migration (`20261107225453`) is recorded as applied. No location row was created or activated during this session.
+- `admin_set_location_active(uuid,boolean,text)` is present. The current deployed database definition includes both location-scope enforcement and platform-role validation; anonymous EXECUTE is denied and authenticated EXECUTE is granted.
+- `admin_context_preferences`, `gallery_items` and `location_admin_assignments` are RLS-enabled, have no direct client SELECT/INSERT grants, and have zero table policies. This is intentional RPC-only access, not an exposed table. Do not add broad policies to silence the generic linter warning.
+
+### Security regression suite
+
+Executed the repository's `supabase/tests/security_privilege_assertions.sql` against the development database. **All 17 assertions returned true**, including:
+
+- RLS enabled on all public tables and no client TRUNCATE/REFERENCES/TRIGGER bypass privileges.
+- No anonymous execution of SECURITY DEFINER functions.
+- No authenticated execution of internal notification worker functions.
+- Fixture payment creation is serialized and requires an active captain.
+- Membership approval, team registration, admin team assignment and transfer approval enforce eligibility and concurrency constraints.
+- Captain handover is authenticated-captain-only and audited.
+- Gallery storage is private and RPC-controlled.
+- Global-admin controls, location assignments, contextual admin reads and location-scoped mutations are restricted.
+- Self-service profile update columns exclude date of birth and emergency-contact fields.
+
+Additional static inspection found 79 SECURITY DEFINER functions callable by authenticated users: 78 contain an `auth.uid()` check and the remaining function contains an explicit role check. No callable function was found without either an authentication check or one of the recognised role/location/captain guards. This is a source-level audit, not a substitute for authenticated negative/positive tests.
+
+### Pull request verification
+
+- PR #6 (`feat/stripe-test-checkout-lifecycle`) remains open, draft and unmerged. Latest observed head: `f09481620c8e90759ca3dac872a3477efa586a01`. CI run **42435790150** passed: Edge Function type-check, domain tests, application type-check/build and Cloudflare Worker dry-run.
+- PR #7 (`fix/restore-bideford-location-policy-source-2026-11-08`) remains open, draft and unmerged. CI run **42435893691** passed the same workflow. It restores the already-applied Bideford policy migration source and adds guarded admin activation/deactivation controls plus dashboard Needs Attention links. No browser/admin acceptance is claimed.
+- PR #7's activation UI requires a reason of at least five characters and an explicit confirmation checkbox. Server-side rules enforce Bideford-only activation, a single active first-release location, and safe deactivation. The UI offers no activation action for future locations.
+- No pull request was merged and no deployment was performed.
+
+### Remaining blockers
+
+1. Create disposable authenticated test identities and assign test roles using an approved Supabase Auth Admin path. The connected Supabase tooling available in this session does not expose Auth Admin user creation/deletion.
+2. Run signed-in browser acceptance for global admin and location admin, including denied cross-location access and Bideford activation/deactivation validation.
+3. Configure Stripe test secrets and register a test webhook endpoint through an approved secret-management path; replay signed test events and verify duplicate delivery, lease expiry/retry and refund lifecycle. Do not use live credentials.
+4. Complete the outstanding admin information architecture and overview work described in `docs/admin-dashboard-location-season-analytics-master-specification.md`; current context selector and contextual RPCs do not complete the full 15-section admin specification.
+5. Finish public-facing Gallery browsing and grouping/album workflow, then test private unpublished previews and public published images.
+6. Verify all user-facing workflows on a seeded development dataset, then stage and separately verify production deployment.
+
+### Next execution priority
+
+Use the available approved Auth Admin path to provision disposable development-only global-admin and location-admin identities, then execute authenticated browser acceptance. If that capability remains unavailable, continue with the independent admin information-architecture and gallery backlog without weakening authentication or access controls.
