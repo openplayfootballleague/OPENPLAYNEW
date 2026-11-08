@@ -16,7 +16,8 @@ import {
   type AnalyticsProperties,
   type OpenPlayAnalyticsEvent,
 } from "../lib/analytics/events";
-import { getSupabaseClient } from "../lib/supabase/client";
+import { getSupabaseClient, isSupabaseConfigured } from "../lib/supabase/client";
+import { resolveAnalyticsActorSafely } from "../lib/analytics/actor";
 
 const POSTHOG_OPTIONS = {
   defaults: "2026-08-30",
@@ -108,42 +109,64 @@ function PostHogCaptureProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let alive = true;
-    const supabase = getSupabaseClient();
 
-    async function resolveActor(): Promise<AnalyticsActor> {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) return "unknown";
-      if (!session) return "anonymous";
-
-      const { data: roles, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id);
-      if (rolesError) return "unknown";
-
-      if ((roles ?? []).some(({ role }) =>
-        ["admin", "super_admin", "finance_admin", "league_admin"].includes(role),
-      )) return "admin";
-
-      const { data: player, error: playerError } = await supabase
-        .from("players")
-        .select("registration_status,is_banned")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-      if (playerError) return "unknown";
-      if (player?.is_banned) return "unknown";
-      return player?.registration_status === "registered" ? "player" : "account_user";
+    // Analytics must remain inert when account services are not configured.
+    // Do not let an optional PostHog setup crash the app in that environment.
+    if (!isSupabaseConfigured()) {
+      setActor("unknown");
+      return;
     }
 
-    void resolveActor().then((resolved) => {
-      if (alive) setActor(resolved);
-    });
+    let supabase: ReturnType<typeof getSupabaseClient>;
+    try {
+      supabase = getSupabaseClient();
+    } catch {
+      setActor("unknown");
+      return;
+    }
+
+    async function resolveActor(): Promise<AnalyticsActor> {
+      return resolveAnalyticsActorSafely(true, async () => {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) return "unknown";
+        if (!session) return "anonymous";
+
+        const { data: roles, error: rolesError } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id);
+        if (rolesError) return "unknown";
+
+        if ((roles ?? []).some(({ role }) =>
+          ["admin", "super_admin", "finance_admin", "league_admin"].includes(role),
+        )) return "admin";
+
+        const { data: player, error: playerError } = await supabase
+          .from("players")
+          .select("registration_status,is_banned")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        if (playerError) return "unknown";
+        if (player?.is_banned) return "unknown";
+        return player?.registration_status === "registered" ? "player" : "account_user";
+      });
+    }
+
+    const applyResolvedActor = () => {
+      void resolveActor()
+        .then((resolved) => {
+          if (alive) setActor(resolved);
+        })
+        .catch(() => {
+          if (alive) setActor("unknown");
+        });
+    };
+
+    applyResolvedActor();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
       setActor("unknown");
-      void resolveActor().then((resolved) => {
-        if (alive) setActor(resolved);
-      });
+      applyResolvedActor();
     });
 
     return () => {
