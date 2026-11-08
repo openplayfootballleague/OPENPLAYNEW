@@ -15,9 +15,7 @@ declare
   v_player public.players;
   v_before jsonb;
   v_team record;
-  v_successor public.team_memberships;
-  v_successor_name text;
-  v_appearance_count bigint;
+  v_successor record;
   v_admin record;
 begin
   if v_actor is null
@@ -70,12 +68,11 @@ begin
         and user_id = p_user_id
         and status = 'active';
 
-      v_successor := null;
-      v_successor_name := null;
-      v_appearance_count := 0;
-
-      select row(tm.*)::public.team_memberships, p.full_name, coalesce(app.appearances,0)
-      into v_successor, v_successor_name, v_appearance_count
+      -- Use one RECORD target for the complete selected row. PostgreSQL does
+      -- not permit a record/composite target in a multi-target INTO list.
+      select tm.*, p.full_name as successor_name,
+             coalesce(app.appearances,0) as appearances
+      into v_successor
       from public.team_memberships tm
       join public.players p on p.user_id = tm.user_id
       left join lateral (
@@ -110,7 +107,7 @@ begin
           v_actor,'team.captain.auto_succeeded','team_membership',
           v_successor.id::text,btrim(p_reason),
           jsonb_build_object('former_captain_user_id',p_user_id,'season_team_id',v_team.season_team_id),
-          jsonb_build_object('new_captain_user_id',v_successor.user_id,'appearances',v_appearance_count)
+          jsonb_build_object('new_captain_user_id',v_successor.user_id,'appearances',v_successor.appearances)
         );
         perform public.enqueue_notification_event(
           v_successor.user_id,'team.captain.handover_completed',
