@@ -105,6 +105,7 @@ function PostHogE2EProbe() {
           { send_instantly: true, transport: "fetch" },
         );
         setCaptureResult(String(result ?? "undefined"));
+        client.flush();
       }}
     >
       Send analytics test probe
