@@ -2,12 +2,14 @@ import { useEffect,useState } from "react";
 import { Link,createFileRoute } from "@tanstack/react-router";
 import { SiteNavigation } from "../components/site-navigation";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { useOpenPlayAnalytics } from "../components/analytics-provider";
 
 type PublicTeam={season_team_id:string;team_name:string;season_id:string;season_name:string;starts_on:string;primary_colour:string|null;secondary_colour:string|null;instagram_profile_url:string|null};
 
 export const Route=createFileRoute("/teams/$teamId")({component:PublicTeamProfilePage});
 
 function PublicTeamProfilePage(){
+ const capture=useOpenPlayAnalytics();
  const {teamId}=Route.useParams();
  const [team,setTeam]=useState<PublicTeam|null>(null);
  const [loading,setLoading]=useState(true);
@@ -19,7 +21,9 @@ function PublicTeamProfilePage(){
    const {data,error:rpcError}=await getSupabaseClient().rpc("get_public_team_directory",{p_season_team_id:teamId});
    if(!alive)return;
    if(rpcError){setError("Unable to load this team profile.");setLoading(false);return;}
-   setTeam(((data??[]) as PublicTeam[])[0]??null);
+   const publicTeam=((data??[]) as PublicTeam[])[0]??null;
+   setTeam(publicTeam);
+   if(publicTeam)capture("team_profile_viewed",{feature:"team_directory"});
    setLoading(false);
   }
   void load();
