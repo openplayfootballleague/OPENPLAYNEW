@@ -47,8 +47,9 @@ begin
   ) into v_admin_amendment;
   if position('v_fixture.status <> ''completed''' in lower(v_admin_amendment)) = 0
      or position('length(btrim(p_reason)) < 5' in lower(v_admin_amendment)) = 0
-     or position('fixture.team_sheet.admin_amended' in lower(v_admin_amendment)) = 0 then
-    raise exception 'Admin amendment is missing completed-fixture, reason, or audit safeguards';
+     or position('fixture.team_sheet.admin_amended' in lower(v_admin_amendment)) = 0
+     or position('can_administer_location' in lower(v_admin_amendment)) = 0 then
+    raise exception 'Admin amendment is missing completed-fixture, reason, audit, or location-scope safeguards';
   end if;
 
   raise notice 'Captain next-fixture and post-match amendment regression assertions passed';
