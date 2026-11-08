@@ -92,4 +92,10 @@ select
     and not has_column_privilege('authenticated','public.profiles','emergency_contact_name','UPDATE')
     and not has_column_privilege('authenticated','public.profiles','emergency_contact_phone','UPDATE')
     and not has_table_privilege('authenticated','public.profiles','UPDATE')
-    as profile_self_service_columns_are_restricted;
+    as profile_self_service_columns_are_restricted,
+  (exists(select 1 from pg_proc p where p.oid='public.get_my_team_request_statuses()'::regprocedure and p.prosecdef)
+    and not has_function_privilege('anon','public.get_my_team_request_statuses()','EXECUTE')) as team_request_status_rpc_is_security_definer_and_denies_anon,
+  has_function_privilege('authenticated','public.get_my_team_request_statuses()','EXECUTE') as team_request_status_rpc_allows_authenticated,
+  (select pg_get_functiondef('public.get_my_team_request_statuses()'::regprocedure) ilike '%auth.uid() is not null%'
+    and pg_get_functiondef('public.get_my_team_request_statuses()'::regprocedure) ilike '%tm.user_id = auth.uid()%'
+    and pg_get_functiondef('public.get_my_team_request_statuses()'::regprocedure) ilike '%limit 100%') as team_request_status_rpc_is_self_scoped_and_bounded;
