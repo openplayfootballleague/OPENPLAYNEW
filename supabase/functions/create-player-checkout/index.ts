@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
       .select("status,stripe_checkout_session_id,checkout_attempt")
       .eq("id", record.id).maybeSingle();
     if (latestRecord?.status === "paid") return json({ paid: true, message: "This fixture has already been paid." });
-    if (latestRecord?.stripe_checkout_session_id === session.id && latestRecord.checkout_attempt === record.checkout_attempt &&
+    if (latestRecord?.stripe_checkout_session_id === session.id && latestRecord?.checkout_attempt === record.checkout_attempt &&
       ["pending", "processing"].includes(latestRecord.status)) {
       return json({ checkout_url: session.url, payment_record_id: record.id });
     }
