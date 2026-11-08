@@ -58,3 +58,11 @@ export function paymentRecordIdFromIntentMetadata(metadata: unknown): string | n
   const value = (metadata as Record<string, unknown>).payment_record_id;
   return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
+
+export function checkoutAttemptFromIntentMetadata(metadata: unknown): number | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, unknown>).checkout_attempt;
+  if (typeof value !== "string" || !/^\\d+$/.test(value)) return null;
+  const attempt = Number(value);
+  return Number.isSafeInteger(attempt) && attempt >= 0 ? attempt : null;
+}
