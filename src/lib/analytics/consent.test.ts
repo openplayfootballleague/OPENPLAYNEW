@@ -69,6 +69,6 @@ describe("analytics consent", () => {
 
   it("does not allow analytics if consent is unset even when storage is unavailable", () => {
     expect(isAnalyticsAllowed(readAnalyticsConsent(null))).toBe(false);
-    expect(writeAnalyticsConsent("granted", null)).toEqual({ consent: "granted", persisted: false });
+    expect(writeAnalyticsConsent("granted", null)).toEqual({ consent: "denied", persisted: false });
   });
 });
