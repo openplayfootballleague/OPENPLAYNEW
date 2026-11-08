@@ -116,6 +116,16 @@ begin
   select count(*) into v_count from public.team_memberships where id='00000000-0000-4000-8000-000000000065' and status='rejected';
   if v_count <> 1 then raise exception 'Captain could not reject a pending request for their own team'; end if;
 
+  if auth.uid() <> '00000000-0000-4000-8000-000000000002'::uuid then
+    raise exception 'Captain JWT subject changed before cross-team authorization test';
+  end if;
+  if public.is_active_team_captain('00000000-0000-4000-8000-000000000052') then
+    raise exception 'Captain A was incorrectly recognized as captain of Team B';
+  end if;
+  if public.can_administer_location('00000000-0000-4000-8000-000000000011') then
+    raise exception 'Captain A unexpectedly has administration access to Location B';
+  end if;
+
   v_denied := false;
   begin
     perform public.resolve_team_membership_request('00000000-0000-4000-8000-000000000064','approved');
