@@ -81,7 +81,7 @@ function JoinPage() {
       if(!seasonId)throw new Error("There is no open season available for team registration.");
       const handle=normalizeInstagramHandle(instagramHandle);
       const instagramUrl=normalizeInstagramProfileUrl(instagramProfileUrl);
-      const {data,error:rpcError}=await getSupabaseClient().rpc("register_team",{p_season_id:seasonId,p_team_name:teamName.trim(),p_primary_colour:primaryColour||null,p_secondary_colour:secondaryColour||null,p_instagram_profile_url:instagramUrl,p_instagram_handle:handle});
+      const {data,error:rpcError}=await getSupabaseClient().rpc("register_team",{p_season_id:seasonId,p_team_name:teamName.trim(),p_primary_colour:primaryColour||undefined,p_secondary_colour:secondaryColour||undefined,p_instagram_profile_url:instagramUrl,p_instagram_handle:handle});
       if(rpcError)throw rpcError;
       setMessage(`Your application for ${data.name} has been submitted for administrator approval. You will become its captain only after approval.`);
       setTeamName("");setPrimaryColour("");setSecondaryColour("");setInstagramHandle("");setInstagramProfileUrl("");
