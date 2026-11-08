@@ -41,7 +41,7 @@ begin
 
   -- An overpaid team must not offset another team's positive debt.
   perform public.admin_create_finance_entry(
-    '00000000-0000-4000-8000-000000000052',
+    '00000000-0000-4000-8000-000000000051',
     'payment',5000,'CI finance overpayment',
     null,null,'cash'
   );
@@ -75,7 +75,7 @@ begin
   into v_balance
   from public.get_finance_ledger(
     '00000000-0000-4000-8000-000000000030',
-    '00000000-0000-4000-8000-000000000052'
+    '00000000-0000-4000-8000-000000000051'
   );
 
   if v_balance <> -5000 then
