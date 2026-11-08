@@ -112,14 +112,14 @@ function EditProfilePage() {
     <h1>EDIT <em>PROFILE</em></h1>
     <p>Keep your Open Play picture up to date.</p>
     <div className="edit-avatar-preview">
-      {previewUrl ? <img ref={imageRef} src={previewUrl} alt="Selected profile picture preview" /> : currentUrl ? <img src={currentUrl} alt="Current profile picture" /> : <span aria-hidden="true">OP</span>}
+      {previewUrl ? <img ref={imageRef} src={previewUrl} alt="Selected profile picture preview" style={{ objectPosition: horizontal + "% " + vertical + "%", transform: "scale(" + zoom + ")" }} /> : currentUrl ? <img src={currentUrl} alt="Current profile picture" /> : <span aria-hidden="true">OP</span>}
     </div>
     {previewUrl && <div className="avatar-crop-controls">
       <p>Move and zoom your picture to fit the circle.</p>
       <label>Zoom <input type="range" min="1" max="3" step="0.01" value={zoom} onChange={e=>setZoom(Number(e.target.value))}/></label>
       <label>Horizontal position <input type="range" min="0" max="100" value={horizontal} onChange={e=>setHorizontal(Number(e.target.value))}/></label>
       <label>Vertical position <input type="range" min="0" max="100" value={vertical} onChange={e=>setVertical(Number(e.target.value))}/></label>
-      <div className="avatar-crop-preview" aria-hidden="true"><img src={previewUrl} style={{ width: (Math.max(100, 100 * zoom)) + "%", height: (Math.max(100, 100 * zoom)) + "%", objectFit: "cover", objectPosition: horizontal + "% " + vertical + "%" }} alt="" /></div>
+
     </div>}
     <label className="button edit-avatar-select"> {currentUrl || previewUrl ? "CHANGE PROFILE PHOTO" : "UPLOAD NEW PICTURE"} <input type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseImage} disabled={saving}/></label>
     <p className="form-note">This picture appears across Open Play. JPG, PNG or WebP · Maximum 5 MB.</p>
