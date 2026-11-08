@@ -147,3 +147,21 @@ $$;
 
 revoke all on function public.get_captain_team_social_profiles() from public,anon;
 grant execute on function public.get_captain_team_social_profiles() to authenticated;
+
+-- Public visitors may read only the team ID and Instagram URL for teams
+-- attached to an approved, published public season. Do not expose created_by.
+grant select (id, instagram_profile_url) on public.teams to anon, authenticated;
+create policy teams_select_public_instagram_profile on public.teams
+for select to anon, authenticated
+using (
+  exists (
+    select 1
+    from public.season_teams st
+    join public.seasons s on s.id=st.season_id
+    join public.leagues l on l.id=s.league_id
+    where st.team_id=teams.id
+      and st.registration_status='approved'
+      and s.is_public=true
+      and l.is_published=true
+  )
+);
