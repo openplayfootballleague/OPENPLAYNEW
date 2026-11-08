@@ -10,7 +10,7 @@ type AccountData = {
   registration: string;
   playerLinked: boolean;
   memberships: number;
-  unreadMessages: number;
+  unreadMessages: number | null;
   unreadNotifications: number;
   admin: boolean;
 };
@@ -47,13 +47,13 @@ function AccountPage() {
         const avatarUrl = profile?.avatar_path ? supabase.storage.from("profile-avatars").getPublicUrl(profile.avatar_path).data.publicUrl : null;
         const registration = !player ? "Not registered as a player" : player.is_banned ? "Player account restricted" : player.registration_status.replaceAll("_", " ");
         setData({
-          name: fullName || player?.full_name || session.user.email || "Open Play account",
+          name: player?.full_name || fullName || session.user.email || "Open Play account",
           email: session.user.email ?? "",
           avatarUrl,
           registration,
           playerLinked: Boolean(player),
           memberships: (memberships ?? []).filter(row => row.status === "active").length,
-          unreadMessages: 0,
+          unreadMessages: null,
           unreadNotifications: unreadNotifications ?? 0,
           admin: (roles ?? []).some(row => ["admin", "super_admin", "league_admin"].includes(row.role)),
         });
@@ -79,7 +79,7 @@ function AccountPage() {
     </section>
     {!data.playerLinked && <section className="account-register-callout"><h2>Your player profile isn't registered yet.</h2><p>Your account is separate from player registration. Complete registration if you want to take part as a player.</p><Link className="button button-small" to="/register-player">REGISTER AS A PLAYER <span>↗</span></Link></section>}
     <div className="account-stat-grid">
-      <a href="/inbox"><strong>{data.unreadMessages}</strong><span>Unread messages</span></a>
+      <a href="/inbox"><strong>{data.unreadMessages ?? "—"}</strong><span>Inbox messages</span></a>
       <a href="/player#teams"><strong>{data.memberships}</strong><span>Current teams</span></a>
       <a href="/player#notifications"><strong>{data.unreadNotifications}</strong><span>Unread alerts</span></a>
     </div>
