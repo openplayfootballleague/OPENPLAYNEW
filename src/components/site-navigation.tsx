@@ -138,7 +138,7 @@ export function SiteNavigation() {
                   {account.avatarUrl ? <img src={account.avatarUrl} alt="" /> : <span className="op-account-avatar-fallback" aria-hidden="true">{account.name.slice(0, 1).toUpperCase()}</span>}
                   <div><strong>{account.name}</strong><span>{account.status}</span><small>Signed in</small></div>
                 </div>
-                <Link to="/player" onClick={() => setAccountOpen(false)}>My Account</Link>
+                <Link to="/account" onClick={() => setAccountOpen(false)}>My Account</Link>
                 <a href="/inbox" onClick={() => setAccountOpen(false)}>Inbox {account.unread > 0 && <span className="op-account-count">{account.unread}</span>}</a>
                 {access.approvedPlayer && <a href="/player#teams" onClick={() => setAccountOpen(false)}>My Teams</a>}
                 <a href="/notifications" onClick={() => setAccountOpen(false)}>Notifications</a>
@@ -159,7 +159,7 @@ export function SiteNavigation() {
       {moreOpen && (
         <div id="op-nav-more-menu" className="op-nav-more-menu" aria-label="More Open Play links">
           {access.signedIn ? (
-            <Link to="/player" onClick={() => setMoreOpen(false)}>My account</Link>
+            <Link to="/account" onClick={() => setMoreOpen(false)}>My account</Link>
           ) : (
             <Link to="/sign-in" onClick={() => setMoreOpen(false)}>Sign in</Link>
           )}
