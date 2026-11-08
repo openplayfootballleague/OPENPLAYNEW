@@ -40,7 +40,13 @@ const POSTHOG_OPTIONS = {
   // Flush the single synthetic probe immediately in browser acceptance tests;
   // production keeps the SDK defaults and never enables the probe.
   ...(import.meta.env.VITE_OPENPLAY_ANALYTICS_E2E === "true"
-    ? { request_batching: false, api_transport: "XHR" as const }
+    ? {
+        request_batching: false,
+        api_transport: "XHR" as const,
+        // Playwright headless Chromium is classified as a bot by the SDK.
+        // Allow only this synthetic test environment to exercise event delivery.
+        opt_out_useragent_filter: true,
+      }
     : {}),
 } as const;
 
