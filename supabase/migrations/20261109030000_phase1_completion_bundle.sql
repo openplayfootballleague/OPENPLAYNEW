@@ -862,6 +862,8 @@ create policy player_registration_reviews_admin_only
 -- authenticated SELECT grant required for the global-admin RLS policy.
 revoke all privileges on table public.player_registration_reviews from anon, authenticated, public;
 grant select on table public.player_registration_reviews to authenticated;
+revoke insert, update, delete, truncate, references, trigger
+  on table public.player_registration_reviews from authenticated;
 
 -- END supabase/migrations/20261109021000_restrict_identity_reviews_to_global_admins.sql
 
