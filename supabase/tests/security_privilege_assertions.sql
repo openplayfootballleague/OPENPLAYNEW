@@ -255,3 +255,19 @@ begin
   end if;
 end;
 $fixture_venue_location_scope$;
+
+-- Captain membership approvals must remain scoped to the exact active team.
+do $captain_membership_approval_scope$
+declare
+  v_definition text := pg_catalog.pg_get_functiondef(
+    'public.resolve_team_membership_request(uuid,text)'::regprocedure
+  );
+begin
+  if v_definition not ilike '%not public.is_active_team_captain((select tm.season_team_id from public.team_memberships tm where tm.id=p_membership_id))%' then
+    raise exception 'Membership approval must allow the active captain of the requested membership team';
+  end if;
+  if v_definition not ilike '%not public.has_platform_role()%' then
+    raise exception 'Membership approval must retain the platform-admin/captain role boundary';
+  end if;
+end;
+$captain_membership_approval_scope$;
