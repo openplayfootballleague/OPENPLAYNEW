@@ -177,7 +177,7 @@ export function SiteNavigation() {
           <>
             <button type="button" className="op-account-trigger" aria-label="Open account menu" aria-expanded={accountOpen} aria-controls="op-account-menu" onClick={() => { setAccountOpen((open) => !open); setMoreOpen(false); }}>
               {account.avatarUrl ? <img src={account.avatarUrl} alt="" /> : <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5" /><path d="M4.5 20c.5-4 3.2-6 7.5-6s7 2 7.5 6" /></svg>}
-              {account.unread > 0 && <span className="op-account-unread" aria-label={account.unread + " unread notifications"} />}
+              {account.unread !== null && account.unread > 0 && <span className="op-account-unread" aria-label={account.unread + " unread notifications"} />}
             </button>
             {accountOpen && (
               <div id="op-account-menu" className="op-account-menu">
@@ -186,7 +186,7 @@ export function SiteNavigation() {
                   <div><strong>{account.name}</strong><span>{account.status}</span><small>Signed in</small></div>
                 </div>
                 <Link to="/account" onClick={() => setAccountOpen(false)}>My Account</Link>
-                <a href="/inbox" onClick={() => setAccountOpen(false)}>Inbox {account.unread > 0 && <span className="op-account-count">{account.unread}</span>}</a>
+                <a href="/inbox" onClick={() => setAccountOpen(false)}>Inbox {account.unread !== null && account.unread > 0 && <span className="op-account-count">{account.unread}</span>}</a>
                 {access.approvedPlayer && <a href="/player#teams" onClick={() => setAccountOpen(false)}>My Teams</a>}
                 <a href="/notifications" onClick={() => setAccountOpen(false)}>Notifications</a>
                 <a href="/privacy-security" onClick={() => setAccountOpen(false)}>Privacy &amp; Security</a>
