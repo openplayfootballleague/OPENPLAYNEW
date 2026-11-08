@@ -228,3 +228,33 @@ The PR #2 branch is 24 commits ahead but 481 commits behind the current PR #6 co
 ### Safety state
 
 No Supabase migration, database DDL, role grant, payment, production deployment or paid branch creation was performed. The user-agreed no-cost-until-development-end boundary remains unchanged.
+
+
+## 11. Finance reconciliation and branch integration review — 8 November 2026, 13:40 UTC
+
+### Finance semantics test
+
+Fetched the PR #13 SQL regression file `supabase/tests/finance_balance_semantics_regression.sql` and executed its read-only PostgreSQL DO-block assertions against the live function definitions. It completed without exception. The current live `get_finance_ledger`, `get_finance_summary` and `admin_create_finance_entry` definitions contain the expected charge/fine/refund versus payment/credit balance signs, finance-role guards, non-negative outstanding summary and audit insertion. This is source-contract verification only; it is not a migration replay or authenticated ledger arithmetic test. No database mutation occurred.
+
+### PR #13 latest CI
+
+After the three new migration files were given valid ordered UTC timestamps, latest PR #13 head `271340b507fe0a2479c46c573a3c0ced6702bb3f` passed run `42485863731`:
+- **13 test files / 103 tests passed**;
+- Supabase Edge Function type-check passed;
+- TypeScript and production build passed;
+- Cloudflare Worker dry-run passed.
+
+The three migration content SHAs were preserved through the renames. The finance test above was separately run read-only against live function definitions.
+
+### Branch divergence — integration blocker
+
+A fresh comparison against the current PR #6 core branch reports:
+- PR #13 visual/analytics branch: 232 commits ahead and 377 behind; divergent.
+- PR #22 authorization correction branch: 8 commits ahead and 62 behind; divergent.
+- PR #2 migration reconciliation branch: 24 commits ahead and 481 behind; divergent.
+
+These branches must not be merged wholesale. The verified files and tested changes are useful source material, but integration requires a deliberate port/rebase and conflict review. Green branch CI does not equal integrated acceptance.
+
+### Remaining work and next execution task
+
+The migration source set is 74/98 exact. The next task is to locate and verify the remaining 24 ledger sources (the exact versions are listed in issue #19), identify any existing files under non-canonical names, and recover only genuinely missing statements. Do not add duplicate migration files or run migrations against production. After source reconciliation, build one integration branch and complete isolated replay at the agreed end-of-development stage.
