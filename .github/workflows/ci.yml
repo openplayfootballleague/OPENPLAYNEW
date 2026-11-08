@@ -53,6 +53,8 @@ jobs:
         run: supabase db reset --local --no-seed
       - name: Verify player self-service profile permission assertions
         run: supabase db query --local --file supabase/tests/profile_self_service_permissions.sql
+      - name: Verify player, captain and admin RLS role boundaries
+        run: supabase db query --local --file supabase/tests/location_admin_role_scope.sql
       - name: Verify database security assertions
         run: node scripts/verify-security-assertions.mjs
       - name: Stop local Supabase database
