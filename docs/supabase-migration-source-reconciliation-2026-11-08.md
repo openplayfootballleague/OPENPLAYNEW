@@ -124,3 +124,16 @@ Do not reconstruct these SQL files from the current database schema or infer the
 - Three local names on `main` (`finance_balance_semantics`, `audit_log_deny_all_policy`, `fixture_goal_records_deny_all`) have no exact same-named ledger record. Their relationship to differently named applied records has not been established.
 - PR #2 is based on an older `main`; PR #3 is 133 commits behind and divergent; PR #6 is currently not mergeable. None is approved for merge by this inventory.
 - No database writes, migrations, branch merges, or deployments were performed.
+
+## Expanded all-branch recovery search — 8 November 2026
+The inventory was rechecked against every currently visible branch in `OPENPLAYNEW` (nine branches, 128 distinct SQL filenames). The six original applied migration sources remain absent from all inspected branch trees, and the GitHub commit history API returned no historical path entries for those exact filenames. This makes the original SQL unrecoverable from the repository's current branch/path history through the available GitHub evidence.
+
+Three later files are semantically related but **are not substitutes for the original applied SQL**:
+- `20261108014200_finance_balance_semantics.sql` revises `get_finance_ledger`, `get_finance_summary`, and finance entry creation. It may overlap with the missing finance migration records, but it is a later corrective migration and does not prove what the original `finance_options_for_finance_roles` or `finance_summary_team_balance_rollup` migrations contained.
+- `20261108014600_audit_log_deny_all_policy.sql` adds a deny-all client policy to `audit_log`, conceptually related to the missing `audit_log_explicit_deny_policy` record.
+- `20261108014800_fixture_goal_records_deny_all.sql` adds a deny-all client policy to `fixture_goal_records`, conceptually related to the missing `fixture_goal_records_explicit_deny_policy` record.
+
+The missing `fixture_player_appearance_tracking` migration has historical feature context in the Stage 1 report, but that report is not the migration SQL. The missing `20261108190000_location_admin_assignments` source also remains unrecovered; later location-admin scoping migrations do not replace its original source.
+
+### Safe next recovery route
+Request an authoritative migration archive/export from the original migration author or CI artifact storage, or a backup of the source tree at the time those migrations were applied. If the exact SQL cannot be recovered, retain this gap explicitly and produce a new, separately versioned reconciliation migration only after a full schema/privilege/function diff and owner review. Do not fabricate or backdate files and do not edit the hosted migration ledger to make filenames appear reconciled.
