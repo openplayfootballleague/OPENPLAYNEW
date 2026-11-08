@@ -108,3 +108,5 @@ Fresh PR metadata/compare checks:
 - The audit reinforces that account creation is not player registration; the registration → player → team journey and genuine-data acceptance remain key launch gates. The master prompt itself was not located as a dedicated file in the repository docs inspected so far.
 
 **No code implementation, merge, deployment, Stripe secret configuration, test account creation, or production data change was made in this follow-up.**
+
+**Project-boundary note:** the Library reports include material from the earlier Lovable/live application. They are historical context only and are not treated as evidence that OPENPLAYNEW contains or has accepted those features. OPENPLAYNEW's repository, Supabase project and current branch evidence remain the sole implementation source of truth for this development run.
