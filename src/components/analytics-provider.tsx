@@ -297,7 +297,6 @@ export function ConsentAwareAnalytics({ children }: { children: ReactNode }) {
       {configured && allowed ? (
         <PostHogProvider apiKey={projectToken!} options={{ ...POSTHOG_OPTIONS, api_host: projectHost! }}>
           <PostHogConsentInitializer />
-          <PostHogE2EProbe />
           <PostHogCaptureProvider>{children}</PostHogCaptureProvider>
         </PostHogProvider>
       ) : children}
