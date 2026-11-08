@@ -152,7 +152,6 @@ test("cross-tab opt-in and revocation update the other tab", async ({ page, cont
   await secondTab.evaluate((key) => localStorage.setItem(key, "granted"), CONSENT_KEY);
   await expectPostHogReady(page);
   await firstTabProbe.click();
-  const firstTabDiagnostics = page.getByTestId("analytics-e2e-diagnostics");
   await expect(firstTabDiagnostics).toHaveAttribute("data-posthog-capture-called", "true");
   await expect(firstTabDiagnostics).not.toHaveAttribute("data-posthog-capture-result", "undefined");
   await expect.poll(() => observedPostHogRequests(page, firstTabRequests), { timeout: 10_000 }).toBeGreaterThan(0);
