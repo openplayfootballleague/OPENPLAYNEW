@@ -212,3 +212,5 @@ PR #6 now includes the public Gallery route, admin upload/publish controls, and 
 The project currently has **zero active locations and zero gallery items**, so real public gallery content/URL acceptance cannot yet be exercised. No images were uploaded and no location was activated. The gallery migration local filename prefixes do not yet match their actual ledger versions; this is covered by the migration deployability blocker above.
 
 - Follow-up: the `player_team_request_status_rpc` migration source has been restored on PR #6 under the actual live ledger version `20261108020706_player_team_request_status_rpc.sql`, replacing the mismatched `20261108021000_...` filename. This raises exact prefix alignment on that branch from zero to one; the other mismatches and nine duplicate prefixes remain open.
+
+- PR #6 latest head `0754c34f9d3b2f1bdaed79c9d0905145b26d6ba8` passed CI run `42437517983`: Deno type-check, 74 tests across 7 files, TypeScript/Vite build and Cloudflare Worker dry-run. The earlier type-check failures in the new admin context selector and team-request status types were corrected; current head is green.
