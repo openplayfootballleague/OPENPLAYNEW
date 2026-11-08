@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 
@@ -45,5 +46,5 @@ function SignInPage() {
     </form>
     <button className="auth-text-button" type="button" onClick={resetPassword} disabled={busy}>Forgot your password?</button>
     <p className="auth-switch">New to Open Play? <Link to="/sign-up">Create an account</Link></p><p className="auth-switch"><Link to="/finance">Finance team access</Link></p>
-  </section></main>;
+  </section><PlayerBottomNavigation /></main>;
 }
