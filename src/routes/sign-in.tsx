@@ -34,7 +34,7 @@ function SignInPage() {
     finally { setBusy(false); }
   }
 
-  return <main className="notice-page"><section className="notice-panel auth-panel">
+  return <main className="notice-page player-facing"><section className="notice-panel auth-panel">
     <Link className="notice-brand" to="/">OPEN PLAY</Link><p className="eyebrow eyebrow-dark">PLAYER ACCESS</p>
     <h1>Welcome<br/><em>back.</em></h1><p>Sign in to access your Open Play account.</p>
     <form className="auth-form" onSubmit={signIn}>
