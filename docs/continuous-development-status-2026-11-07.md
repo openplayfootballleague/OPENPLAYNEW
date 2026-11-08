@@ -1,13 +1,13 @@
 # Open Play — Continuous Development Status
 
-**Last verified:** 8 November 2026, 00:03 UTC  
+**Last verified:** 8 November 2026, 00:12 UTC  
 **Repository:** `openplayfootballleague/OPENPLAYNEW`  
 **Supabase project:** `ghnrsysvrlgkjmdlwdmp` — Open Play New only  
 **Applied database migrations:** 69
 
 ## Implemented in this repository and Supabase project
 
-> **Latest session update (8 November 2026, 00:03 UTC):** Stripe test-mode player fixture payments have been added to this repository and deployed to the isolated Open Play New Supabase development project. Two payment migrations plus a backend-permissions follow-up are applied. `create-player-checkout` is active (version 1, JWT required); `stripe-webhook` is active (version 2, Stripe signature verification handled in-function, JWT disabled for webhook delivery). The latest branch includes player checkout/history, finance-admin payment reporting and season player-fee controls. Current CI run [42427960361](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42427960361) passed all 32 tests, Edge Function type-checks, TypeScript/build and Cloudflare dry run on commit `747b3bac668be5e3b61400dd48f6632a86041255`. No checkout has been completed and no test users, teams, fixtures or payments have been created.
+> **Latest session update (8 November 2026, 00:12 UTC):** The current PR head is `b37852cb6509d86d02e16487effdee23ce7a3343`. CI run [42428405414](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42428405414) completed successfully on that exact SHA. This verifies the TypeScript/build, domain tests, Edge Function type-checks and Cloudflare dry run. The `partially_refunded` enum constant was also added to generated client constants. The Stripe Checkout and webhook functions remain deployed only to the isolated development project; no Checkout session, payment or refund has been exercised. Stripe secrets and webhook registration remain unconfigured, and no test identities or fixture data have been created.
 
 
 ### Accounts, registration and access control
@@ -63,9 +63,9 @@
 - Added `get_my_fixture_payments` for a player's own history and `get_admin_stripe_payments` for finance-authorised reporting. Direct payment-table writes are revoked from clients; authenticated users retain SELECT subject to the existing finance/captain RLS policy; the service role has explicit backend CRUD privileges.
 - Added hosted Checkout Edge Function `create-player-checkout` (ACTIVE, version 1, JWT required). It accepts fixture/team IDs only, authenticates the player, reads the server-created amount and refuses any Stripe secret not prefixed `sk_test_`.
 - Added `stripe-webhook` Edge Function (ACTIVE, version 2, JWT disabled because Stripe calls it directly). It verifies timestamped HMAC signatures, rejects live-mode events, records/retries event IDs, updates paid/failed/cancelled/refund states, and fetches Stripe balance transactions to record processing fees and net proceeds.
-- Player Hub includes fixture payment actions, checkout return messaging and personal payment history. Finance page includes the Stripe payment register and season-specific player fee settings. Checkout success is not treated as proof of payment; only the verified webhook changes payment state.
+- The Finance page includes the Stripe payment register and season-specific player fee settings. General Player Hub payment controls have been removed. The Captain Hub currently has no Stripe payment action UI; captain-only payment presentation and the correct payer model must be settled before checkout can be enabled. Checkout success is not treated as proof of payment; only the verified webhook changes payment state.
 - GitHub PR [#6](https://github.com/openplayfootballleague/OPENPLAYNEW/pull/6) remains open/draft and unmerged. Stripe secrets are not committed. No test-mode secret key, webhook signing secret or confirmed app origin has been configured in Supabase Edge Function secrets. No Stripe webhook endpoint has been registered yet.
-- Verification: latest completed full CI at commit `c53233b36807a9287d71ea9317b6c85489757ab6` passed 32 tests, Deno type-checks, TypeScript/build and Cloudflare dry run. The current head `747b3bac668be5e3b61400dd48f6632a86041255` passed full CI run [42427960361](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42427960361). SQL smoke checks confirmed unauthenticated payment creation is rejected, unauthenticated finance access is false, own-history RPC returns zero rows when unauthenticated, and finance-only RPCs reject unauthorised calls.
+- Verification: current PR head `b37852cb6509d86d02e16487effdee23ce7a3343` passed full CI run [42428405414](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42428405414). Earlier SQL smoke checks confirmed unauthenticated payment creation is rejected, unauthenticated finance access is false, own-history RPC returns zero rows when unauthenticated, and finance-only RPCs reject unauthorised calls. These are not substitutes for authenticated end-to-end checkout/refund tests.
 - No Auth users, players, teams, fixtures, payment records or webhook events have been created. The user explicitly authorised disposable test accounts and Stripe test-mode testing, but the available Supabase connector exposes neither Auth Admin user creation/deletion nor Edge Function secret management. These actions must use an approved Supabase Dashboard/CLI path before full end-to-end testing.
 
 ### Administrator help and guided walkthrough
