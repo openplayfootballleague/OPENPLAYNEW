@@ -638,3 +638,28 @@ button:disabled { opacity: .55; }
 .edit-avatar-select input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
 .edit-avatar-actions{display:flex;align-items:center;gap:16px;margin-top:14px}
 @media(max-width:520px){.edit-avatar-preview{width:190px;height:190px}}
+
+
+/* Record-backed notification centre */
+.notification-page{width:min(100% - 2rem,760px);max-width:760px}
+.notification-page-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:24px 0 12px;padding-bottom:14px;border-bottom:1px solid #39443b;color:#f4f3ed;font-size:12px}
+.notification-filter{display:flex;gap:8px;margin:14px 0}
+.notification-filter button{padding:8px 14px;border:1px solid #39443b;border-radius:999px;background:transparent;color:#c8cbc5;font:inherit;font-size:11px;cursor:pointer}
+.notification-filter button.active{border-color:#f36b32;background:#35261f;color:#ff9a68}
+.notification-list{display:grid;gap:10px}
+.notification-card{display:flex;justify-content:space-between;gap:18px;padding:17px;background:#202820;border:1px solid #39443b;border-radius:12px;color:#f4f3ed}
+.notification-card.unread{border-left:3px solid #f36b32}
+.notification-card-type{color:#ff9a68;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.notification-card h2{margin:6px 0;font-size:20px}
+.notification-card p{margin:0 0 9px;color:#c8cbc5;font-size:12px;line-height:1.6}
+.notification-card time{color:#929c92;font-size:10px}
+.notification-card-actions{display:flex;flex-direction:column;align-items:flex-end;gap:9px;flex:0 0 auto}
+.notification-card-actions a,.notification-card-actions button{border:0;background:transparent;color:#ff9a68;font:inherit;font-size:10px;font-weight:800;cursor:pointer}
+.notification-preference-panel{margin-top:26px;padding:18px;background:#202820;border:1px solid #39443b;border-radius:12px;color:#f4f3ed}
+.notification-preference-panel h2{margin:0 0 8px;font-size:23px}
+.notification-preference-panel p{color:#c8cbc5;font-size:12px;line-height:1.6}
+.notification-preference-panel form{display:grid;gap:12px}
+.notification-preference-panel label{display:flex;align-items:flex-start;gap:9px;color:#e5e7df;font-size:12px}
+.notification-preference-panel input{accent-color:#f36b32}
+.notification-preference-panel .button{justify-self:start}
+@media(max-width:520px){.notification-card{flex-direction:column}.notification-card-actions{flex-direction:row;align-items:center}.notification-page-heading{align-items:flex-start}}
