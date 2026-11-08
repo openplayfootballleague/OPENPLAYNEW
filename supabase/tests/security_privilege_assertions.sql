@@ -223,3 +223,22 @@ begin
   end if;
 end;
 $user_roles_policy_recursion$;
+
+-- Retired unscoped admin RPCs must not remain callable through PostgREST.
+do $legacy_admin_rpc_boundary$
+declare
+  v_signature text;
+begin
+  foreach v_signature in array array[
+    'public.admin_get_transfer_requests(text)',
+    'public.get_admin_dashboard()',
+    'public.get_admin_player_register(text,text,integer,integer)',
+    'public.get_admin_team_sheets()'
+  ] loop
+    if pg_catalog.has_function_privilege('anon',v_signature,'EXECUTE')
+       or pg_catalog.has_function_privilege('authenticated',v_signature,'EXECUTE') then
+      raise exception 'Legacy unscoped admin RPC remains executable by a client: %',v_signature;
+    end if;
+  end loop;
+end;
+$legacy_admin_rpc_boundary$;
