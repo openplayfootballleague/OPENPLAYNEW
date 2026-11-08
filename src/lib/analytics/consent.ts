@@ -6,6 +6,7 @@ export interface ConsentStorage {
 }
 
 export const ANALYTICS_CONSENT_KEY = "open-play.analytics-consent.v1";
+export const ANALYTICS_CONSENT_EVENT = "openplay:analytics-consent-change";
 
 /** Read a browser-local analytics choice. GPC always overrides a saved opt-in. */
 export function readAnalyticsConsent(
@@ -70,7 +71,9 @@ export function writeBrowserAnalyticsConsent(
     return { consent: "denied", persisted: false };
   }
   try {
-    return writeAnalyticsConsent(requested, window.localStorage, globalPrivacyControl);
+    const result = writeAnalyticsConsent(requested, window.localStorage, globalPrivacyControl);
+    window.dispatchEvent(new Event(ANALYTICS_CONSENT_EVENT));
+    return result;
   } catch {
     return { consent: "denied", persisted: false };
   }
