@@ -24,6 +24,22 @@ function SignInPage() {
     } finally { setBusy(false); }
   }
 
+  async function resendVerification() {
+    setBusy(true); setError(""); setMessage("");
+    try {
+      if (!email.trim()) throw new Error("Enter your email address first.");
+      const { error: resendError } = await getSupabaseClient().auth.resend({
+        type: "signup",
+        email: email.trim(),
+        options: { emailRedirectTo: window.location.origin + "/player" },
+      });
+      if (resendError) throw resendError;
+      setMessage("If this account is awaiting email verification, a new confirmation email has been sent.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to request a verification email.");
+    } finally { setBusy(false); }
+  }
+
   async function resetPassword() {
     setBusy(true); setError(""); setMessage("");
     try {
@@ -45,6 +61,7 @@ function SignInPage() {
       <button className="button" type="submit" disabled={busy}>{busy ? "PLEASE WAIT…" : "SIGN IN"} <span aria-hidden="true">↗</span></button>
     </form>
     <button className="auth-text-button" type="button" onClick={resetPassword} disabled={busy}>Forgot your password?</button>
+    <button className="auth-text-button" type="button" onClick={resendVerification} disabled={busy}>Resend verification email</button>
     <p className="auth-switch">New to Open Play? <Link to="/sign-up">Create an account</Link></p><p className="auth-switch"><Link to="/finance">Finance team access</Link></p>
   </section><PlayerBottomNavigation /></main>;
 }
