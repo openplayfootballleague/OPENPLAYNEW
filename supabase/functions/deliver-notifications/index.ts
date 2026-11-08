@@ -144,7 +144,7 @@ Deno.serve(async (req: Request) => {
       global: { headers: { Authorization: `Bearer ${token}` } },
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const { error: adminError } = await userClient.rpc("get_admin_dashboard");
+    const { error: adminError } = await userClient.rpc("admin_get_notification_dispatch_status");
     if (adminError) return jsonResponse({ error: "Administrator permission required" }, 403);
   }
 
