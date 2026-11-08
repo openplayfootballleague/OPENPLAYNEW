@@ -31,7 +31,7 @@ function PublicTeamProfilePage(){
    <span className="team-colour-mark team-profile-colour" style={{background:team.primary_colour??"#e96831"}}/>
    <h1>{team.team_name}</h1><p>{team.season_name}</p>
    <div className="team-profile-colours"><span>Primary colour: {team.primary_colour??"Not set"}</span><span>Secondary colour: {team.secondary_colour??"Not set"}</span></div>
-   {team.instagram_profile_url&&<a className="team-instagram-link team-profile-instagram" href={team.instagram_profile_url} target="_blank" rel="noopener noreferrer" aria-label={"Visit "+team.team_name+" on Instagram"}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" strokeWidth="1.8"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="1.8"/><circle cx="17.5" cy="6.8" r="1.1" fill="currentColor"/></svg><span>Visit Instagram</span></a>}
+   {team.instagram_profile_url&&<a className="team-instagram-link team-profile-instagram" href={team.instagram_profile_url} target="_blank" rel="noopener noreferrer" aria-label={"Visit "+team.team_name+" on Instagram"}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" strokeWidth="1.8"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="1.8"/><circle cx="17.5" cy="6.8" r="1.1" fill="currentColor"/></svg></a>}
   </>}
   <Link className="auth-switch" to="/teams">Back to teams</Link><Link className="auth-switch" to="/match-centre">View match centre</Link>
  </section></main>;
