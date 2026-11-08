@@ -81,6 +81,32 @@ const { data: roleRows, error: roleReadError } = await supabase
 if (roleReadError) throw roleReadError;
 if ((roleRows ?? []).length !== 0) throw new Error("Account creation unexpectedly assigned a privileged role");
 
+const registrationPhone = `+4477009${randomUUID().replaceAll("-", "").slice(0, 5)}`;
+const { data: registrationData, error: registrationError } = await supabase.rpc("register_player", {
+  p_full_name: `Open Play CI ${randomUUID().slice(0, 8)}`,
+  p_phone: registrationPhone,
+  p_email: email,
+  p_date_of_birth: "1994-05-17",
+});
+if (registrationError) throw registrationError;
+const registration = Array.isArray(registrationData) ? registrationData[0] : registrationData;
+if (!registration || registration.registration_status !== "registered") {
+  throw new Error("Verified Auth user could not complete the separate player-registration step");
+}
+const { data: registeredPlayers, error: registeredPlayerReadError } = await supabase
+  .from("players").select("id,registration_status").eq("user_id", signedInData.user.id);
+if (registeredPlayerReadError) throw registeredPlayerReadError;
+if (registeredPlayers?.length !== 1 || registeredPlayers[0].registration_status !== "registered") {
+  throw new Error("Player registration did not persist exactly one approved player record");
+}
+const { error: duplicateRegistrationError } = await supabase.rpc("register_player", {
+  p_full_name: "Duplicate CI Registration",
+  p_phone: registrationPhone,
+  p_email: email,
+  p_date_of_birth: "1994-05-17",
+});
+if (!duplicateRegistrationError) throw new Error("A second player registration for the same Auth user unexpectedly succeeded");
+
 const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
   redirectTo: "http://127.0.0.1:3000/reset-password",
 });
@@ -108,4 +134,4 @@ if (!replacementSignIn.session) throw new Error("Updated password did not authen
 const { error: signOutError } = await supabase.auth.signOut();
 if (signOutError) throw signOutError;
 
-console.log("Auth lifecycle integration passed: signup, confirmation email, verified sign-in, account/player separation, password recovery, password update and sign-out.");
+console.log("Auth lifecycle integration passed: signup, confirmation email, verified sign-in, account/player separation, player registration, one-registration-per-account, password recovery, password update and sign-out.");
