@@ -953,6 +953,7 @@ export type Database = {
           created_at: string
           effective_from_gameweek: number
           id: string
+          player_fee_pence: number | null
           reason: string | null
           season_id: string
           team_fee_pence: number
@@ -962,6 +963,7 @@ export type Database = {
           created_at?: string
           effective_from_gameweek?: number
           id?: string
+          player_fee_pence?: number | null
           reason?: string | null
           season_id: string
           team_fee_pence: number
@@ -971,6 +973,7 @@ export type Database = {
           created_at?: string
           effective_from_gameweek?: number
           id?: string
+          player_fee_pence?: number | null
           reason?: string | null
           season_id?: string
           team_fee_pence?: number
