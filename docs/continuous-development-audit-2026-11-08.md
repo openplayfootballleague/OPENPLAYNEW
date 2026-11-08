@@ -187,3 +187,10 @@ Ported the four admin summary shortcuts and their target section IDs onto the cu
 PR #6 now implements atomic retry of expired/failed checkout attempts using the existing `checkout_attempt` column and a compare-and-set update; no new migration was needed. Checkout sessions are reused while open, attempts increment once on retry, and unique idempotency keys are derived from the attempt. Session and PaymentIntent metadata bind webhook events to the exact attempt; stale events from older attempts are acknowledged without mutating the current payment. The webhook also uses a compare-and-set payment snapshot to protect concurrent retries and preserves paid/refunded terminal states.
 
 Latest code-bearing PR #6 head `d15f48f59e3693c517a139ea0cb54920696a477c` passed run `42436764026`: Deno type-check, 67 tests across 6 files (27 Stripe-specific), TypeScript/Vite production build and Cloudflare Worker dry-run. Test-mode Stripe/browser acceptance is still blocked by missing test secrets and an approved test identity; hosted Edge Functions remain checkout v1/webhook v5 and have not been deployed with the new code. Admin refund controls and payout reconciliation remain incomplete.
+
+
+## Advisor recheck — 8 November 2026, 02:03 UTC
+- Supabase health advisors returned no findings.
+- Security advisors continue to report 3 RLS-enabled tables with no direct policies: `admin_context_preferences`, `gallery_items`, `location_admin_assignments`. A separate read-only `information_schema.table_privileges` query returned no direct `anon`, `authenticated` or `PUBLIC` grants for these tables, consistent with their RPC-only access model. These are INFO findings, not demonstrated direct Data API access.
+- The authenticated SECURITY DEFINER warning count remains 79. This warning alone does not establish a bypass; continue function-by-function authorization review. Do not blanket-revoke intended authenticated RPCs.
+- Performance advisors continue to report unused indexes and multiple permissive RLS policies. No changes made because the hosted database is empty and query workload/semantics have not been established.
