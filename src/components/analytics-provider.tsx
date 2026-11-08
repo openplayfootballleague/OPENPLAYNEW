@@ -59,13 +59,13 @@ export function useOpenPlayAnalytics() {
 
 function routeCategory(pathname: string): string {
   if (pathname === "/") return "home";
-  if (/\\/(?:player|player-hub)(?:\\/|$)/.test(pathname)) return "player_hub";
-  if (/\\/(?:fixtures|results|match-centre)(?:\\/|$)/.test(pathname)) return "match_centre";
-  if (/\\/teams?(?:\\/|$)/.test(pathname)) return "teams";
-  if (/\\/(?:register|registration|onboarding)(?:\\/|$)/.test(pathname)) return "registration";
-  if (/\\/notifications?(?:\\/|$)/.test(pathname)) return "notifications";
-  if (/\\/gallery(?:\\/|$)/.test(pathname)) return "gallery";
-  if (/\\/(?:account|profile|settings)(?:\\/|$)/.test(pathname)) return "account";
+  if (pathname.startsWith("/player") || pathname.startsWith("/player-hub")) return "player_hub";
+  if (pathname.startsWith("/fixtures") || pathname.startsWith("/results") || pathname.startsWith("/match-centre")) return "match_centre";
+  if (pathname.startsWith("/team")) return "teams";
+  if (pathname.startsWith("/register") || pathname.startsWith("/registration") || pathname.startsWith("/onboarding")) return "registration";
+  if (pathname.startsWith("/notification")) return "notifications";
+  if (pathname.startsWith("/gallery")) return "gallery";
+  if (pathname.startsWith("/account") || pathname.startsWith("/profile") || pathname.startsWith("/settings")) return "account";
   return "other";
 }
 
