@@ -5,6 +5,7 @@ import {
   createRootRoute,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { ConsentAwareAnalytics } from "../components/analytics-provider";
 import "../styles.css";
 
 export const Route = createRootRoute({
@@ -30,7 +31,9 @@ export const Route = createRootRoute({
 function RootComponent() {
   return (
     <RootDocument>
-      <Outlet />
+      <ConsentAwareAnalytics>
+        <Outlet />
+      </ConsentAwareAnalytics>
     </RootDocument>
   );
 }
