@@ -10,6 +10,8 @@ const expectedForwardOnly = [
   "supabase/migrations/20261108031000_revoke_unscoped_admin_rpcs.sql",
   "supabase/migrations/20261108032000_fix_captain_membership_approval_scope.sql",
   "supabase/migrations/20261109000000_correct_membership_location_and_finance_authorization.sql",
+  "supabase/migrations/20261109020000_fix_player_duplicate_identity_matching.sql",
+  "supabase/migrations/20261109021000_restrict_identity_reviews_to_global_admins.sql",
 ];
 
 function fail(message) {
