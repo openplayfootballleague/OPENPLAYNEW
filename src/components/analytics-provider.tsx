@@ -71,6 +71,27 @@ function PostHogConsentInitializer() {
   return null;
 }
 
+/**
+ * A deterministic browser-test probe. It is compiled into the dedicated
+ * analytics E2E Vite mode only and never appears in normal dev or production.
+ * The browser test intercepts its request before it can leave the runner.
+ */
+function PostHogE2EProbe() {
+  const posthog = usePostHog();
+
+  if (import.meta.env.VITE_OPENPLAY_ANALYTICS_E2E !== "true") return null;
+
+  return (
+    <button
+      type="button"
+      data-testid="analytics-e2e-probe"
+      onClick={() => posthog.capture("openplay_e2e_consent_probe", { test_mode: true })}
+    >
+      Send analytics test probe
+    </button>
+  );
+}
+
 function routeCategory(pathname: string) {
   if (pathname === "/") return "home";
   if (pathname === "/player" || pathname.startsWith("/player/")) return "player_hub";
@@ -265,6 +286,7 @@ export function ConsentAwareAnalytics({ children }: { children: ReactNode }) {
       {configured && allowed ? (
         <PostHogProvider apiKey={projectToken!} options={{ ...POSTHOG_OPTIONS, api_host: projectHost! }}>
           <PostHogConsentInitializer />
+          <PostHogE2EProbe />
           <PostHogCaptureProvider>{children}</PostHogCaptureProvider>
         </PostHogProvider>
       ) : children}
