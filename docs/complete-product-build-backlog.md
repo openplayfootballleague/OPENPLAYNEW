@@ -90,3 +90,6 @@ This is the authoritative workflow. It supersedes any implication that a club cr
 - Implement join requests and captain accept/reject.
 - Implement a fixture-linked weekly match sheet with server-side club membership and fixture eligibility checks.
 - Keep player approval, club approval and membership approval as distinct states where the existing security model requires them.
+
+
+The detailed owner-confirmed acceptance specification is now documented in `docs/player-club-matchday-workflow.md` (commit `20a728799d3563e8359081e7511d5eed90bde66b`). It distinguishes implemented code observations from end-to-end verification and lists the acceptance checks for each phase. The unapproved initial-squad helper and tests were removed from this workspace (commits `ba0e84e53025f2fc8e4d0602b56efdd551e62aff` and `2e79a0fbd87388a62731e7c9958018437f7b26fe`).
