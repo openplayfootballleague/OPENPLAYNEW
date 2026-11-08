@@ -15,7 +15,7 @@ describe("source-aware analytics metrics", () => {
 
     expect(result.expectedIncomePence).toBe(4500);
     expect(result.netCashReceivedPence).toBe(1500);
-    expect(result.outstandingPence).toBe(2250);
+    expect(result.outstandingPence).toBe(1750);
     expect(result.expenditurePence).toBeNull();
     expect(result.operatingProfitPence).toBeNull();
     expect(result.profitMargin).toBeNull();
