@@ -69,3 +69,24 @@ The integration workspace is a controlled assembly area. Feature code may be por
 5. running the relevant targeted tests after each port.
 
 The initial-squad helper and tests from PR #36 are now present in this workspace at commits `193fca0b72055d4a3f61b056a72dfe0cb7ac81bb` and `25c6fa4c5d23b4592968c81824e8a7a8a09be539`. The workspace is not yet a complete runnable integration because it is deliberately not pretending that feature branches with different ancestry have been merged.
+
+
+## Owner-confirmed player, club and weekly match-sheet workflow (8 November 2026)
+
+This is the authoritative workflow. It supersedes any implication that a club creator submits an initial squad.
+
+1. Every player completes individual player registration first.
+2. After registration, the player may either:
+   - select an existing club and request to join it; or
+   - create a club by completing the team/club registration form. The creator becomes captain once the club is successfully created/approved.
+3. There is **no initial squad submission form**. Club creation does not collect a starting lineup or a list of substitutes.
+4. Other registered players can subsequently request to join a club. The captain accepts or rejects each request. Only players associated with the club for the relevant season may be selected for that club's match sheet.
+5. From the first gameweek onward, the captain completes a separate fixture-specific match sheet every gameweek, selecting only players associated with their club. This is not a player-registration or club-registration form.
+
+### Implementation consequences
+- Re-scope PR #36's initial-squad helper/tests. They are not an approved product workflow and must not be wired into the registration form or used to require an initial roster.
+- Implement the individual player registration → join/create club choice.
+- Implement club creation with creator-as-captain.
+- Implement join requests and captain accept/reject.
+- Implement a fixture-linked weekly match sheet with server-side club membership and fixture eligibility checks.
+- Keep player approval, club approval and membership approval as distinct states where the existing security model requires them.
