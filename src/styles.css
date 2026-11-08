@@ -807,3 +807,69 @@ a { color: inherit; text-decoration: none; }
     text-align: center;
   }
 }
+
+
+/* Player-facing location and season selector */
+.player-facing .player-competition-context {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0 24px;
+  padding: 16px;
+  border: 1px solid #d7d5cb;
+  background: #eeece3;
+}
+.player-facing .player-competition-context-heading {
+  display: grid;
+  gap: 4px;
+}
+.player-facing .player-competition-context-heading strong {
+  color: #171c18;
+  font-size: 15px;
+}
+.player-facing .player-competition-context-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.player-facing .player-competition-context-fields label {
+  display: grid;
+  gap: 6px;
+  color: #55564f;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.player-facing .player-competition-context-fields select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #c8c6bb;
+  border-radius: 0;
+  background: #fffefa;
+  color: #171c18;
+  font: inherit;
+  font-size: 13px;
+  text-transform: none;
+}
+.player-facing .player-competition-context-fields select:focus-visible {
+  outline: 3px solid #e96831;
+  outline-offset: 2px;
+}
+.player-facing .player-competition-context-fields select:disabled {
+  color: #77786f;
+  background: #e4e2d8;
+}
+.player-facing .player-competition-empty {
+  margin: 18px 0;
+  padding: 12px 14px;
+  border-left: 3px solid #e96831;
+  background: #eeece3;
+  color: #55564f;
+  font-size: 12px;
+}
+@media (max-width: 520px) {
+  .player-facing .player-competition-context-fields {
+    grid-template-columns: 1fr;
+  }
+}
