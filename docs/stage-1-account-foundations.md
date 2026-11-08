@@ -199,3 +199,8 @@ The location-admin and global-admin boundaries in this matrix describe the targe
 ### CI scope limitation
 
 The repository Build verification workflow runs Deno type checks for Edge Functions, domain unit tests, the TypeScript production build/type check and a Cloudflare Worker dry-run bundle validation. It does not start a Supabase/PostgreSQL instance, apply migration files or execute `supabase/tests/*.sql`. A green workflow therefore verifies application code/build only; it does not validate the new RLS migrations or SQL regression assertions.
+### Legacy unscoped admin RPC exposure
+
+The full deployed SECURITY DEFINER inventory identified four older, unscoped read RPCs that were still executable by authenticated users: `get_admin_dashboard()`, `get_admin_player_register(...)`, `get_admin_team_sheets()` and `admin_get_transfer_requests(...)`. Each checked `has_platform_role()` but did not enforce an assigned location. Since that helper includes `league_admin`, a location administrator could call these older endpoints directly and retrieve platform-wide queues/player/transfer/sheet data, bypassing the contextual routes.
+
+The active Admin route calls the contextual replacements instead. Added `20261108222000_revoke_legacy_unscoped_admin_rpcs.sql` to revoke client execution from the four legacy functions, and a regression assertion confirms anon and authenticated cannot execute them. This is a repository-only change pending isolated replay and approved hosted migration.
