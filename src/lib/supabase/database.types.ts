@@ -1499,7 +1499,7 @@ export type Database = {
           p_primary_colour?: string
           p_season_id: string
           p_secondary_colour?: string
-          p_instagram_profile_url?: string
+          p_instagram_profile_url: string | null
           p_team_name: string
         }
         Returns: {
