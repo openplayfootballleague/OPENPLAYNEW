@@ -97,7 +97,6 @@ function AnalyticsE2EDiagnostics({
   error: string | null;
 }) {
   const [captureCalled, setCaptureCalled] = useState(false);
-  const [captureResult, setCaptureResult] = useState("not-called");
   if (import.meta.env.VITE_OPENPLAY_ANALYTICS_E2E !== "true") return null;
 
   return (
@@ -110,7 +109,6 @@ function AnalyticsE2EDiagnostics({
       data-posthog-capturing={String(posthog.has_opted_in_capturing())}
       data-posthog-opted-in={String(posthog.has_opted_in_capturing())}
       data-posthog-capture-called={String(captureCalled)}
-      data-posthog-capture-result={captureResult}
       data-posthog-token={tokenConfigured ? "present" : "missing"}
       data-posthog-host={host ?? "missing"}
       data-posthog-error={error ?? ""}
