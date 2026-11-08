@@ -1326,6 +1326,10 @@ export type Database = {
         Args: { p_effective_from_gameweek: number; p_player_fee_pence: number; p_reason: string; p_season_id: string }
         Returns: string
       }
+      get_admin_dashboard_contextual: {
+        Args: { p_location_id?: string | null; p_league_id?: string | null; p_season_id?: string | null }
+        Returns: Json
+      }
       get_admin_context_preference: {
         Args: Record<PropertyKey, never>
         Returns: Json
