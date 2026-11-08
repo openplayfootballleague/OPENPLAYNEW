@@ -63,3 +63,16 @@ The initial implementation exposed the conditional Instagram link on each team d
 - Profile CSS preserves the established visual system.
 
 This is an additional code change awaiting CI. It has not been deployed. Database/RLS behaviour and real-device navigation remain unverified. The profile route intentionally uses the same public-season and approved-team filters as the directory; it does not expose player/member records.
+
+### CI verification update — 8 November 2026
+
+Workflow run `42470183329`, attempt 4, completed successfully on commit `a1566308fbe3fc30497981cf6d65e0c04a5c0a1d`. Passed:
+- Install locked dependencies
+- Supabase Edge Function type-check
+- Domain tests
+- TypeScript type-check and production build
+- Cloudflare Worker bundle dry-run validation
+
+Attempts 1–3 failed before application tests because GitHub returned HTTP 504 while downloading Deno. Attempt 4 successfully installed Deno and passed every workflow step.
+
+This verifies compilation, current automated domain tests and Worker bundle validation for the code at that commit. It does **not** verify the un-applied Supabase migration, production RLS, live captain/admin authorisation, public database reads, browser navigation, or iOS Instagram deep-link behaviour. The report commit that records this CI result is documentation-only and does not alter application code.
