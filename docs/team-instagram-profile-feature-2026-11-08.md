@@ -76,3 +76,4 @@ Workflow run `42470183329`, attempt 4, completed successfully on commit `a156630
 Attempts 1–3 failed before application tests because GitHub returned HTTP 504 while downloading Deno. Attempt 4 successfully installed Deno and passed every workflow step.
 
 This verifies compilation, current automated domain tests and Worker bundle validation for the code at that commit. It does **not** verify the un-applied Supabase migration, production RLS, live captain/admin authorisation, public database reads, browser navigation, or iOS Instagram deep-link behaviour. The report commit that records this CI result is documentation-only and does not alter application code.
+CI run 42470183329 (attempt 4) reported **8 test files passed, 61 tests passed**, followed by a successful `npm run build` (`vite build` plus `tsc --noEmit`) and successful Cloudflare Worker dry-run. The job completed successfully.
