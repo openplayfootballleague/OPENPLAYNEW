@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { SiteNavigation } from "../components/site-navigation";
 import { getSupabaseClient } from "../lib/supabase/client";
+import {
+  isGlobalPrivacyControlEnabled,
+  readBrowserAnalyticsConsent,
+  writeBrowserAnalyticsConsent,
+  type AnalyticsConsent,
+} from "../lib/analytics/consent";
 
 export const Route = createFileRoute("/privacy-security")({ component: PrivacySecurityPage });
 
@@ -16,6 +22,8 @@ function PrivacySecurityPage() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [analyticsConsent, setAnalyticsConsent] = useState<AnalyticsConsent>("unset");
+  const [globalPrivacyControl, setGlobalPrivacyControl] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -26,13 +34,32 @@ function PrivacySecurityPage() {
         await navigate({ to: "/sign-in" });
         return;
       }
-      if (alive) setEmail(session.user.email ?? "");
+      if (alive) {
+        setEmail(session.user.email ?? "");
+        const gpc = isGlobalPrivacyControlEnabled();
+        setGlobalPrivacyControl(gpc);
+        setAnalyticsConsent(readBrowserAnalyticsConsent(gpc));
+      }
     }
     void load().catch(cause => {
       if (alive) setError(cause instanceof Error ? cause.message : "Unable to load account security.");
     }).finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [navigate]);
+
+  function updateAnalyticsPreference(next: "granted" | "denied") {
+    setError("");
+    setMessage("");
+    const result = writeBrowserAnalyticsConsent(next, globalPrivacyControl);
+    setAnalyticsConsent(result.consent);
+    if (!result.persisted) {
+      setMessage("Your browser would not save this preference. Optional analytics will remain off on this device.");
+    } else if (result.consent === "granted") {
+      setMessage("Your optional analytics preference is saved on this device. Analytics capture is not active in this build yet.");
+    } else {
+      setMessage("Optional analytics are turned off on this device.");
+    }
+  }
 
   async function changeEmail(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -89,6 +116,16 @@ function PrivacySecurityPage() {
         <label>Confirm new password<input type="password" autoComplete="new-password" minLength={12} required value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} /></label>
         <button className="button" type="submit" disabled={savingPassword}>{savingPassword ? "PLEASE WAIT…" : "UPDATE PASSWORD"}</button>
       </form>
+    </section>
+    <section className="account-security-section">
+      <h2>Optional product analytics</h2>
+      <p>Open Play may use privacy-friendly product analytics to understand which features are useful and improve the app. Analytics are optional and are not used for league standings, player eligibility or financial records. No message contents, passwords, payment details or contact information should be sent to analytics.</p>
+      <p><strong>Current preference:</strong> {analyticsConsent === "granted" ? "Allowed on this device" : analyticsConsent === "denied" ? "Off on this device" : "No choice saved"}</p>
+      {globalPrivacyControl ? <p className="form-note">Global Privacy Control is enabled in this browser. Optional analytics remain off and cannot be enabled here.</p> : <div className="edit-avatar-actions">
+        <button type="button" className="button" disabled={analyticsConsent === "granted"} onClick={() => updateAnalyticsPreference("granted")}>ALLOW OPTIONAL ANALYTICS</button>
+        <button type="button" className="auth-text-button" disabled={analyticsConsent === "denied"} onClick={() => updateAnalyticsPreference("denied")}>TURN OFF</button>
+      </div>}
+      <p className="form-note">Your choice is stored locally on this device. Analytics capture is not active in this build yet; this preference will be honoured before any PostHog tracking is enabled.</p>
     </section>
     <section className="account-security-section">
       <h2>More security controls</h2>
