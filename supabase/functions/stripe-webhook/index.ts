@@ -65,6 +65,19 @@ Deno.serve(async (req) => {
     // An earlier attempt failed before completion. Continue processing the same event.
   }
 
+  // Atomically claim this event. Stripe may deliver the same event concurrently;
+  // an unprocessed event already leased by another worker receives a retryable 409.
+  const leaseCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const { data: claimedEvent, error: claimError } = await admin.from("stripe_webhook_events")
+    .update({ processing_started_at: new Date().toISOString(), processing_error: null })
+    .eq("id", eventId)
+    .is("processed_at", null)
+    .or(`processing_started_at.is.null,processing_started_at.lt.${leaseCutoff}`)
+    .select("id")
+    .maybeSingle();
+  if (claimError) return new Response("Could not claim webhook event", { status: 500 });
+  if (!claimedEvent) return new Response("Webhook event is already being processed", { status: 409 });
+
   let resolvedPaymentId = paymentId;
   if (!resolvedPaymentId && (eventType === "charge.refunded" || eventType === "charge.succeeded")) {
     const intentId = typeof object?.payment_intent === "string" ? object.payment_intent : "";
@@ -86,7 +99,7 @@ Deno.serve(async (req) => {
   ]);
   if (paymentEvents.has(eventType) && !resolvedPaymentId) {
     await admin.from("stripe_webhook_events").update({
-      processing_error: "No matching Open Play payment record",
+      processing_error: "No matching Open Play payment record", processing_started_at: null,
     }).eq("id", eventId);
     return new Response("Payment record not found", { status: 500 });
   }
@@ -126,7 +139,7 @@ Deno.serve(async (req) => {
           : "";
       if (!balanceTransactionId) {
         await admin.from("stripe_webhook_events").update({
-          processing_error: "Charge has no balance transaction yet",
+          processing_error: "Charge has no balance transaction yet", processing_started_at: null,
         }).eq("id", eventId);
         return new Response("Balance transaction not available", { status: 500 });
       }
@@ -136,7 +149,7 @@ Deno.serve(async (req) => {
       const balance = await balanceResponse.json().catch(() => ({}));
       if (!balanceResponse.ok || !Number.isSafeInteger(balance?.fee) || !Number.isSafeInteger(balance?.net) || balance.fee < 0 || balance.net < 0) {
         await admin.from("stripe_webhook_events").update({
-          processing_error: "Could not verify Stripe balance transaction fee and net",
+          processing_error: "Could not verify Stripe balance transaction fee and net", processing_started_at: null,
         }).eq("id", eventId);
         return new Response("Balance transaction lookup failed", { status: 500 });
       }
@@ -148,7 +161,7 @@ Deno.serve(async (req) => {
       const total = Number(object?.amount ?? 0);
       if (!Number.isSafeInteger(refunded) || !Number.isSafeInteger(total) || refunded < 0 || total <= 0 || refunded > total) {
         await admin.from("stripe_webhook_events").update({
-          processing_error: "Invalid refund amounts in Stripe event",
+          processing_error: "Invalid refund amounts in Stripe event", processing_started_at: null,
         }).eq("id", eventId);
         return new Response("Invalid refund amounts", { status: 400 });
       }
@@ -162,7 +175,7 @@ Deno.serve(async (req) => {
       .update(patch).eq("id", resolvedPaymentId);
     if (paymentUpdateError) {
       await admin.from("stripe_webhook_events").update({
-        processing_error: paymentUpdateError.message,
+        processing_error: paymentUpdateError.message, processing_started_at: null,
       }).eq("id", eventId);
       return new Response("Could not update payment record", { status: 500 });
     }
@@ -170,11 +183,13 @@ Deno.serve(async (req) => {
       payment_record_id: resolvedPaymentId,
       processed_at: new Date().toISOString(),
       processing_error: null,
+      processing_started_at: null,
     }).eq("id", eventId);
   } else {
     await admin.from("stripe_webhook_events").update({
       processed_at: new Date().toISOString(),
       processing_error: null,
+      processing_started_at: null,
     }).eq("id", eventId);
   }
 
