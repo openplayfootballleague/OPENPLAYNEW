@@ -40,6 +40,9 @@ export function getTeamRequestDisplay(item: TeamRequestStatus): TeamRequestDispl
   if (item.membership_status === "rejected") {
     return { label: "Join request declined", description: "The team did not approve your membership request.", tone: "danger" };
   }
+  if (item.membership_status === "suspended") {
+    return { label: "Membership suspended", description: "Your team membership is currently suspended. Contact Open Play for clarification.", tone: "danger" };
+  }
   if (item.membership_status === "active" && item.is_captain) {
     return { label: "Captain access active", description: "Your team registration is approved and your captain access is active.", tone: "success" };
   }
