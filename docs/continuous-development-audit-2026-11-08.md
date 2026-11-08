@@ -179,3 +179,5 @@ Ported the four admin summary shortcuts and their target section IDs onto the cu
 - PR #6 current head `1b6b0fa412aed40f6a9c45ec05263a8a22ba82d3` passed CI run `42436207960` after the Stripe settlement hardening. The workflow passed Edge Function type-check, domain tests (including 12 settlement regression cases), TypeScript/build and Cloudflare dry-run. The retry-attempt transition and live test-mode acceptance remain open.
 
 - Exact CI log inspection for PR #6 run `42436207960`: 5 Vitest files passed, 48 total tests passed (including all 12 Stripe settlement tests); Deno type-check, Vite/TypeScript production build and Cloudflare Worker dry-run all succeeded.
+
+- Updated stale PR #2's description to explicitly mark its 35-row migration snapshot superseded and warn not to merge its 157-commit-behind branch. It remains open as historical source-candidate evidence while six original applied SQL sources are unrecovered.
