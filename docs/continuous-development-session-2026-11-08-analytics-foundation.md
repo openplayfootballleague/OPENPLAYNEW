@@ -115,3 +115,16 @@ The PostHog SDK, UI, aggregate reporting, exports, and end-to-end acceptance rem
 2. Continue authoritative migration-source recovery and branch integration planning. Do not synthesize missing originals or merge PRs without preserving the reviewed migration set.
 3. Once migration history is reconciled and a safe isolated DB is available, fix security issue #9, then #10 and #11 with role-based regression tests.
 4. Continue PostHog SDK/consent integration and Section 48 Analytics UI/data contracts.
+
+21. CI verification for the Instagram team profile feature completed successfully: workflow run `42470183329`, attempt 4, on application commit `a1566308fbe3fc30497981cf6d65e0c04a5c0a1d`. Deno setup, Supabase Edge Function type-check, domain tests, TypeScript/production build and Cloudflare Worker dry run all passed. Attempts 1–3 failed only at Deno download with HTTP 504 before tests. Feature report updated with this evidence.
+22. Reviewed the official canonical asset in the Library (`Connected Orange OP Monogram.png`, 781,549 bytes). The GitHub connector supports base64 blob upload but the current tool bridge cannot transfer the mounted binary bytes into that API call. No alternate or AI-recreated logo was committed. Exact asset integration remains an explicit file-transfer task.
+23. Rechecked PostHog readiness: no SDK dependency or cookie/analytics consent component currently exists in this branch. The approved Section 48 specification requires consented session replay and privacy controls. No behavioural collection was enabled without the required user-facing consent flow and approved privacy wording.
+
+### Current verified state and next task
+
+- Instagram route + directory link code: CI passed at commit `a156630`.
+- Subsequent report-only commits do not change app code.
+- Database migration/RLS and browser/device acceptance remain unverified.
+- Production migrations, records, PR merges and deployment remain untouched.
+
+**Next highest-priority task:** resolve the development branch integration/migration-history gap. Recover the six missing applied migration sources from an authoritative original source and map the three unmatched files to exact ledger records; then construct a combined feature branch preserving Stripe, Bideford policy, admin-scope and visual-refresh work. Do not synthesize original SQL or merge until the exact source set is reconciled and CI passes.
