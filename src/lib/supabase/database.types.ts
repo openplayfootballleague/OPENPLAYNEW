@@ -1347,6 +1347,28 @@ export type Database = {
           team_name: string
         }[]
       }
+      handover_team_captain: {
+        Args: { p_new_captain_membership_id: string; p_season_team_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          is_captain: boolean
+          joined_at: string | null
+          left_at: string | null
+          season_team_id: string
+          squad_number: number | null
+          status: Database["public"]["Enums"]["membership_status"]
+          transfer_request_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_memberships"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_my_fixture_payments: {
         Args: never
         Returns: {
