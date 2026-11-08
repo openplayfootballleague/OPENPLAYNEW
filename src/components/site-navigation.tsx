@@ -63,11 +63,17 @@ export function SiteNavigation() {
     let alive = true;
     const supabase = getSupabaseClient();
     let accountChannel: ReturnType<typeof supabase.channel> | null = null;
+    let accountChannelUserId: string | null = null;
 
     async function load() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!alive) return;
       if (!session) {
+        if (accountChannel) {
+          void supabase.removeChannel(accountChannel);
+          accountChannel = null;
+          accountChannelUserId = null;
+        }
         setAccess(signedOut);
         setAccount({ name: "Open Play account", avatarUrl: null, status: "Signed out", unread: 0 });
         return;
@@ -99,7 +105,9 @@ export function SiteNavigation() {
         status: derivedAccess.approvedPlayer ? "Registered player" : player ? "Player registration pending" : "Account not registered as a player",
         unread: unreadCount ?? 0,
       });
-      if (!accountChannel) {
+      if (accountChannelUserId !== session.user.id) {
+        if (accountChannel) void supabase.removeChannel(accountChannel);
+        accountChannelUserId = session.user.id;
         accountChannel = supabase.channel("account-indicators-" + session.user.id)
           .on("postgres_changes", { event: "*", schema: "public", table: "notification_events", filter: "user_id=eq." + session.user.id }, async () => {
             const { count } = await supabase.from("notification_events").select("id", { count: "exact", head: true }).eq("user_id", session.user.id).eq("channel", "in_app").eq("status", "sent").is("read_at", null);
@@ -121,6 +129,8 @@ export function SiteNavigation() {
       alive = false;
       subscription.unsubscribe();
       if (accountChannel) void supabase.removeChannel(accountChannel);
+      accountChannel = null;
+      accountChannelUserId = null;
     };
   }, []);
 
