@@ -59,7 +59,7 @@ jobs:
         shell: bash
         run: |
           eval "$(supabase status --output env)"
-          SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" INBUCKET_URL="http://127.0.0.1:54324" node scripts/test-auth-lifecycle.mjs
+          SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" MAILPIT_URL="http://127.0.0.1:54324" node scripts/test-auth-lifecycle.mjs
       - name: Replay every migration against a clean local database
         run: supabase db reset --local --no-seed
       - name: Install PostgreSQL client for multi-statement role tests
