@@ -85,7 +85,13 @@ function PostHogE2EProbe() {
     <button
       type="button"
       data-testid="analytics-e2e-probe"
-      onClick={() => client.capture("openplay_e2e_consent_probe", { test_mode: true })}
+      data-posthog-loaded={String(client.__loaded)}
+      data-posthog-capturing={String(client.is_capturing())}
+      data-posthog-opted-in={String(client.has_opted_in_capturing())}
+      onClick={() => {
+        client.capture("openplay_e2e_consent_probe", { test_mode: true });
+        void client.shutdown();
+      }}
     >
       Send analytics test probe
     </button>
