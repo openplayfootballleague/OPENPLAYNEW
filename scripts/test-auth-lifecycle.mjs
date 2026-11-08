@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const anonKey = process.env.SUPABASE_ANON_KEY;
-const inbucketUrl = process.env.INBUCKET_URL ?? "http://127.0.0.1:54324";
+const mailpitUrl = process.env.MAILPIT_URL ?? "http://127.0.0.1:54324";
 if (!supabaseUrl || !anonKey) throw new Error("SUPABASE_URL and SUPABASE_ANON_KEY are required");
 
 const supabase = createClient(supabaseUrl, anonKey, {
@@ -25,20 +25,17 @@ async function waitForEmail(predicate, description) {
   const deadline = Date.now() + 25_000;
   let lastMessages = [];
   while (Date.now() < deadline) {
-    const messages = await requestJson(`${inbucketUrl}/api/v1/mailbox/${encodeURIComponent(mailbox)}`);
-    lastMessages = Array.isArray(messages) ? messages : messages?.messages ?? [];
+    const result = await requestJson(`${mailpitUrl}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`);
+    lastMessages = result?.messages ?? [];
     const match = lastMessages.find(predicate);
-    if (match) {
-      const full = await requestJson(`${inbucketUrl}/api/v1/mailbox/${encodeURIComponent(mailbox)}/${encodeURIComponent(match.id)}`);
-      return full;
-    }
+    if (match) return await requestJson(`${mailpitUrl}/api/v1/message/${encodeURIComponent(match.ID)}`);
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   throw new Error(`Timed out waiting for ${description}; received ${lastMessages.length} message(s)`);
 }
 
 function extractTokenHash(message) {
-  const source = [message.text, message.html, message.body, message].map((value) =>
+  const source = [message.Text, message.HTML, message.text, message.html, message.body, message].map((value) =>
     typeof value === "string" ? value : JSON.stringify(value),
   ).join("\n").replaceAll("&amp;", "&").replaceAll("&#x3D;", "=");
   const match = source.match(/[?&]token=([^&"'<>\s]+)/i) ?? source.match(/[?&]token_hash=([^&"'<>\s]+)/i);
