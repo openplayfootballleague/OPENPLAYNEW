@@ -159,8 +159,8 @@ begin
   values ('00000000-0000-4000-8000-000000000201','Alice Example','+447700900201','ci-name-email@openplay.invalid',date '1990-01-01','registered',false)
   returning id into v_candidate_a;
 
-  insert into public.players (user_id,full_name,phone,email,date_of_birth,registration_status,is_banned)
-  values ('00000000-0000-4000-8000-000000000202','Bob Example','+447700900202','ci-phone-email@openplay.invalid',date '1990-01-02','registered',true)
+  insert into public.players (user_id,full_name,phone,email,date_of_birth,registration_status,is_banned,banned_at)
+  values ('00000000-0000-4000-8000-000000000202','Bob Example','+447700900202','ci-phone-email@openplay.invalid',date '1990-01-02','registered',true,now())
   returning id into v_candidate_b;
 
   execute 'set local role authenticated';
