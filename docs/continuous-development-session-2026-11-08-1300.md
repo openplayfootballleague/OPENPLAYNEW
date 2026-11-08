@@ -258,3 +258,42 @@ These branches must not be merged wholesale. The verified files and tested chang
 ### Remaining work and next execution task
 
 The migration source set is 74/98 exact. The next task is to locate and verify the remaining 24 ledger sources (the exact versions are listed in issue #19), identify any existing files under non-canonical names, and recover only genuinely missing statements. Do not add duplicate migration files or run migrations against production. After source reconciliation, build one integration branch and complete isolated replay at the agreed end-of-development stage.
+
+## 12. Migration source closure and verification pipeline — 8 November 2026, 13:50 UTC
+
+### Applied migration source reconciliation — complete
+
+- Re-read the 24 outstanding applied migration rows from the read-only Supabase migration ledger.
+- Located all 24 source files on the active core branch under synthetic timestamp prefixes; none required an invented SQL definition.
+- Compared every source against its exact ledger statement. Seventeen were already byte-for-byte exact; seven had drifted and were restored from the authoritative ledger statement.
+- Created canonical files using the exact applied version and migration name, and removed the 24 synthetic-prefix paths on draft PR #28.
+- Verified all 24 canonical file blob SHAs against the expected newly-created blob SHAs in the PR branch tree; all 24 matched and all 24 old paths were absent.
+- This closes the applied migration source mapping at **98/98** across the recovered source branches and PR #28. It is not a migration replay, deployment, or production acceptance.
+- PR #28: https://github.com/openplayfootballleague/OPENPLAYNEW/pull/28 (draft).
+
+### CI trigger correction
+
+- The active core .github/workflows/ci.yml previously limited pull_request to PRs targeting main. PRs targeting the active feature/core branch were not receiving CI.
+- Removed the target-branch restriction for pull_request; pushes remain restricted to main.
+- PR #28 workflow run https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42486495405 passed: Deno Edge Function type-check, Vitest, TypeScript/production build and Cloudflare Worker dry-run.
+- The active core branch's own PR #6 workflow run https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42486515290 also passed after the workflow change.
+
+### PostHog actor-resolution hardening
+
+- Review of the current PR #13 branch found the analytics actor resolver still called getSupabaseClient() without checking whether Supabase was configured, and an unexpected rejected auth/database lookup could escape as an unhandled promise rejection.
+- Added a configuration guard, synchronous client-initialisation fallback, and a fail-closed resolver that maps rejected lookups to unknown; unknown actors do not capture route events.
+- Added three tests for the unconfigured path, successful resolution and rejected lookup fallback.
+- Latest PR #13/PR #27 shared branch head 32b45fab1112fd970994f7eb03f08d3c3b394ac2 passed https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42486692854: **14 test files / 106 tests passed**, Deno Edge Function type-check, TypeScript/production build and Cloudflare Worker dry-run.
+- This does not yet prove browser-level consent/revocation behavior or absence of network requests before opt-in.
+
+### Current blockers and safety state
+
+- PR #13 analytics/visual branch and PR #22 authorization branch remain substantially divergent from the core branch; do not merge wholesale. Port reviewed changes in small, verified increments.
+- PR #22 authorization migration still lacks an isolated replay and real positive/negative authenticated role-matrix test. Its static catalog assertions do not establish role behavior.
+- Initial Super Admin provisioning remains blocked on explicit owner approval of the authority matrix and confirmation of the first trusted owner Auth identity. No account or role was created.
+- PostHog project-level privacy settings and browser network behavior still require verification.
+- No Supabase branch was created, no migration was applied, no production data/DDL was changed, no roles/users were provisioned, no payment was triggered, and no production deployment occurred. The agreed no-cost-until-development-end boundary remains intact.
+
+### Precise next task
+
+Port the reviewed consent-aware PostHog provider and actor-resolver hardening onto the active core branch as a small integration PR, then add browser-level tests proving no PostHog network requests before explicit opt-in, opt-out/revocation, GPC override, and cross-tab consent changes. Keep analytics fail-closed and exclude privileged actors. Continue with PR #22's role-matrix validation after the analytics port; do not provision the first Super Admin until the owner approval dependency is resolved.
