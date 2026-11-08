@@ -137,3 +137,7 @@ The missing `fixture_player_appearance_tracking` migration has historical featur
 
 ### Safe next recovery route
 Request an authoritative migration archive/export from the original migration author or CI artifact storage, or a backup of the source tree at the time those migrations were applied. If the exact SQL cannot be recovered, retain this gap explicitly and produce a new, separately versioned reconciliation migration only after a full schema/privilege/function diff and owner review. Do not fabricate or backdate files and do not edit the hosted migration ledger to make filenames appear reconciled.
+
+
+## Follow-up: Bideford policy source restored to a clean PR branch
+The `20261107225453_first_release_bideford_location_policy.sql` file was restored byte-for-byte from the original feature branch onto a clean branch based on `main`, avoiding the stale PR #3 branch. The restored file's blob SHA matches the original source (`0f039bc23f94cebf0d5cd9094fd67d13d65f0195`). It is included in PR #7 with the current admin activation UI. This restores one known applied migration source to the `main`-based candidate tree; it does not resolve the six remaining missing source records listed above. PR #7 remains draft/unmerged and no migration was rerun.
