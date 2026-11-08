@@ -32,7 +32,7 @@ CI has successfully completed client and server production bundling in the featu
 
 ## Acceptance testing still required
 - Run a disposable database migration test against the reconciled schema before applying migration.
-- Exercise registration with no handle/link, handle only, and both values. Current branch's registration UI had no separate pre-existing Instagram-handle input, so this implementation adds the requested optional URL field; it does not invent a separate username field.
+- Exercise registration with no handle/link, handle only, and both values. Current branch's registration UI had no separate pre-existing Instagram-handle input, and the separate optional handle field is now included in the follow-up implementation below.
 - Test invalid URLs against the actual RPC and database constraint.
 - Verify icon appears only for non-null valid URLs; update/removal refreshes the team directory.
 - Verify iOS universal-link opening with Instagram installed and browser fallback without the app.
@@ -86,3 +86,15 @@ CI run 42470183329 (attempt 4) reported **8 test files passed, 61 tests passed**
 - Read the updated route and stylesheet back from GitHub and verified the labelled text is absent and the compact dimensions are present.
 - Commits: `51c2d96f76eb8400ac640f57fd7eec128a35a375` (profile markup) and `d5330090864e4f6e2fc4dca08b70f4b52d707585` (CSS).
 - A new CI result for these two commits has not yet been observed. Prior successful CI at `a156630` does not prove these later edits passed.
+
+
+### Separate optional handle field — 8 November 2026
+
+- Added an optional Instagram handle input immediately before the optional profile URL input in team registration.
+- The handle is stored separately on the canonical `public.teams.instagram_handle` column; the profile URL remains the sole source for the clickable profile icon. A handle alone never creates a nonfunctional icon.
+- Client helper `src/lib/teams/instagram-handle.ts` trims whitespace, removes one optional leading @, and rejects invalid characters, repeated dots, leading/trailing dots and values over 30 characters.
+- Added a database constraint and a six-argument `register_team` overload. It validates the handle, delegates existing player/season/team checks to the established five-argument registration RPC, then attaches the handle only to the newly created team owned by the authenticated actor. The old five-argument RPC remains available to existing callers.
+- Updated generated Supabase function/table types and reset the handle after successful submission.
+- Added unit tests for canonicalisation, empty optional values and invalid inputs.
+- Source changes are on the existing PR #13 branch. Workflow runs `42475566080` and `42475572849` were observed running for intermediate commits; a completed result for final head `6bc1fb853f6a0e4beb10412200af0526bf400519` is still required.
+- Migration is not applied to production; isolated SQL replay, registration RPC execution, role/browser tests and deployment remain outstanding.
