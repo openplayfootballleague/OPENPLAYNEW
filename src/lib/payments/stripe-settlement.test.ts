@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkoutAttemptFromIntentMetadata, isRefundedPaymentStatus, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "./stripe-settlement";
+import { checkoutAttemptFromIntentMetadata, classifyCheckoutWithoutSession, classifyExistingCheckoutSession, isRefundedPaymentStatus, nextCheckoutAttempt, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "./stripe-settlement";
 
 const record: PaymentSettlementRecord = {
   id: "payment-1",
@@ -154,5 +154,45 @@ describe("Stripe retry attempt isolation", () => {
       currency: "gbp",
       paid: true,
     }, { payment_record_id: "payment-1", checkout_attempt: "0" }).ok).toBe(false);
+  });
+});
+
+describe("Stripe checkout retry state machine", () => {
+  it("reuses an open session", () => {
+    expect(classifyExistingCheckoutSession("pending", "open", "unpaid")).toBe("reuse");
+  });
+
+  it("recognises an already-paid completed session", () => {
+    expect(classifyExistingCheckoutSession("processing", "complete", "paid")).toBe("paid");
+  });
+
+  it("retries an expired session", () => {
+    expect(classifyExistingCheckoutSession("pending", "expired", "unpaid")).toBe("retry");
+  });
+
+  it("retries a completed asynchronous failure only after the ledger marks it failed", () => {
+    expect(classifyExistingCheckoutSession("failed", "complete", "unpaid")).toBe("retry");
+    expect(classifyExistingCheckoutSession("processing", "complete", "unpaid")).toBe("processing");
+  });
+
+  it("creates the initial pending attempt without incrementing it", () => {
+    expect(classifyCheckoutWithoutSession("pending")).toBe("create");
+  });
+
+  it("allows retry after a failed or cancelled record without a session", () => {
+    expect(classifyCheckoutWithoutSession("failed")).toBe("retry");
+    expect(classifyCheckoutWithoutSession("cancelled")).toBe("retry");
+  });
+
+  it("blocks paid or processing records without a session", () => {
+    expect(classifyCheckoutWithoutSession("paid")).toBe("blocked");
+    expect(classifyCheckoutWithoutSession("processing")).toBe("blocked");
+  });
+
+  it("increments only valid non-negative attempt counters", () => {
+    expect(nextCheckoutAttempt(0)).toBe(1);
+    expect(nextCheckoutAttempt(3)).toBe(4);
+    expect(nextCheckoutAttempt(-1)).toBeNull();
+    expect(nextCheckoutAttempt(Number.MAX_SAFE_INTEGER)).toBeNull();
   });
 });
