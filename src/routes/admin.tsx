@@ -9,7 +9,7 @@ type Dashboard={counts:{pending_player_reviews:number;pending_team_applications:
 type AdminSetup={
  locations:Array<{id:string;name:string;town:string;region:string;address:string|null;is_active:boolean}>;
  leagues:Array<{id:string;location_id:string;location_name:string;name:string;format:"six_a_side"|"seven_a_side";description:string|null;is_published:boolean}>;
- seasons:Array<{id:string;league_id:string;league_name:string;location_name:string;name:string;season_number:number|null;starts_on:string|null;ends_on:string|null;status:string;is_public:boolean}>;
+ seasons:Array<{id:string;league_id:string;location_id:string;league_name:string;location_name:string;name:string;season_number:number|null;starts_on:string|null;ends_on:string|null;status:string;is_public:boolean}>;
  season_teams:Array<{id:string;season_id:string;season_name:string;league_name:string;location_name:string;name:string;registration_status:string;primary_colour:string|null;secondary_colour:string|null;member_count:number;captain_name:string|null}>;
  registered_players:Array<{user_id:string;full_name:string;email:string}>;
  fixtures:Array<{id:string;season_id:string;season_name:string;gameweek:number;fixture_number:number;home_team_id:string;away_team_id:string;home_team_name:string;away_team_name:string;venue_id:string|null;venue_name:string|null;scheduled_at:string|null;status:"scheduled"|"in_progress"|"completed"|"postponed"|"cancelled";home_score:number|null;away_score:number|null;notes:string|null}>;
