@@ -254,7 +254,7 @@ function AnalyticsE2EDiagnostics({
       data-sdk-ready={String(sdkReady)}
       data-posthog-loaded={String(posthog.__loaded)}
       data-posthog-capturing={String(allowed && sdkReady)}
-      data-posthog-opted-in={String(allowed && sdkReady)}
+      data-posthog-opted-in={String(posthog.has_opted_in_capturing())}
       data-posthog-token={tokenConfigured ? "present" : "missing"}
       data-posthog-host={host ?? "missing"}
       data-posthog-error={error ?? ""}
@@ -316,11 +316,29 @@ export function ConsentAwareAnalytics({ children }: { children: ReactNode }) {
         posthog.init(projectToken, {
           ...POSTHOG_OPTIONS,
           api_host: projectHost,
+          // Do not advertise analytics as ready until the SDK has completed
+          // initialization. Consent may be revoked while initialization is pending.
+          loaded: (client) => {
+            const consentStillAllowsCapture = shouldMountPostHog(
+              configured,
+              readBrowserAnalyticsConsent(),
+              isGlobalPrivacyControlEnabled(),
+            );
+            if (!consentStillAllowsCapture) {
+              client.opt_out_capturing();
+              setSdkReady(false);
+              return;
+            }
+            client.opt_in_capturing();
+            setSdkReady(true);
+            setSdkError(null);
+          },
         });
+      } else {
+        posthog.opt_in_capturing();
+        setSdkReady(true);
+        setSdkError(null);
       }
-      posthog.opt_in_capturing();
-      setSdkReady(true);
-      setSdkError(null);
     } catch (error) {
       setSdkReady(false);
       setSdkError(error instanceof Error ? error.message : String(error));
