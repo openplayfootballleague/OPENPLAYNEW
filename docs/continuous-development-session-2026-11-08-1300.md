@@ -297,3 +297,36 @@ The migration source set is 74/98 exact. The next task is to locate and verify t
 ### Precise next task
 
 Port the reviewed consent-aware PostHog provider and actor-resolver hardening onto the active core branch as a small integration PR, then add browser-level tests proving no PostHog network requests before explicit opt-in, opt-out/revocation, GPC override, and cross-tab consent changes. Keep analytics fail-closed and exclude privileged actors. Continue with PR #22's role-matrix validation after the analytics port; do not provision the first Super Admin until the owner approval dependency is resolved.
+
+## 13. PostHog core port, consent lifecycle tests and advisor audit — 8 November 2026, 14:05 UTC
+
+### PostHog consent-aware integration — draft PR #29
+
+- Ported consent storage, explicit opt-in/opt-out, Global Privacy Control override, allow-listed event properties and capture governance onto the active core branch as a focused branch/PR.
+- Preserved the core root document's existing PWA metadata and service-worker registration while wrapping the app in ConsentAwareAnalytics.
+- PostHog SDK mounting now requires a project token, host, explicit deployment privacy-settings verification, saved opt-in and no GPC signal. The project token remains blank and privacy verification remains false by default.
+- Added a shared browser consent subscription for same-tab preference events, cross-tab storage events and visibility changes. Banner, SDK initializer, root mount gate and Privacy & Security settings all refresh through this contract.
+- Capture re-reads consent at the instant an event is sent; it no longer assumes consent remains granted after initial mount. This prevents a revocation race.
+- Actor lookup fails closed if Supabase is unconfigured, client initialisation throws or auth/database lookup rejects. Unknown and privileged actors are excluded.
+- Added consent gate and browser event subscription tests. Latest PR #29 head `6b38d3e09aa969158a05d5b271c18bd45307ebcf` passed run https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42487842044: **11 test files / 107 tests passed**, Edge Function type-check, TypeScript/production build and Cloudflare Worker dry-run.
+- Browser-level network interception proving no PostHog requests before opt-in/after revocation, and real multi-tab/GPC browser acceptance remain outstanding. Do not treat PR #29 as privacy accepted until then.
+
+### Supabase advisor and function privilege audit
+
+- Read-only Supabase security advisor: 80 public SECURITY DEFINER functions executable by authenticated, 0 of those executable by anon; three RLS-enabled/no-policy tables (`admin_context_preferences`, `gallery_items`, `location_admin_assignments`).
+- Read-only grant inventory confirms the 80 authenticated-executable functions are not executable by anon. Only three are executable by service_role.
+- `user_roles` currently grants authenticated SELECT only; anon has no privileges; authenticated INSERT/UPDATE/DELETE are false. This preserves the no-client-role-mutation boundary.
+- Read-only performance advisor: 15 multiple-permissive-policy warnings, 7 unindexed foreign keys and 52 unused-index notices. Do not blindly consolidate policies or drop indexes: first classify intended access and collect representative workload evidence.
+- Created issue #30 for function-by-function SECURITY DEFINER, RLS, policy overlap and index triage: https://github.com/openplayfootballleague/OPENPLAYNEW/issues/30.
+- Added `supabase/tests/security_definer_grants_regression.sql` to the core branch. It fails if anon can execute public SECURITY DEFINER functions, if anon can access `user_roles`, or if authenticated clients can directly mutate `user_roles`; it preserves authenticated SELECT. This SQL test has not yet been run against an isolated database and does not replace internal function role-matrix tests.
+
+### Remaining blockers and next task
+
+- PR #29 is draft and requires browser network interception / real browser acceptance before merge.
+- PR #22 authorization corrections still need isolated migration replay and positive/negative authenticated role-matrix tests. The current static SQL regression checks function-definition invariants but not actual caller identities.
+- Issue #24 still requires explicit owner approval of the role authority matrix and the first trusted owner Auth identity before any initial Super Admin provisioning. No user or role was created.
+- Issue #30's 80 SECURITY DEFINER grants require a per-function internal-authorization review; advisor warning count alone is not evidence to revoke all grants.
+- PR #28 migration source reconciliation remains draft and needs isolated clean replay at the agreed end-of-development stage.
+- No Supabase branch, migration, production data/DDL change, role provisioning, payment, notification dispatch or production deployment occurred. The no-cost-until-development-end boundary remains in force.
+
+Precise next task: finish browser-level consent/network verification for PR #29, then port the role-scope correction to the active core integration branch only after isolated migration replay and an executable positive/negative role matrix can be run safely. In parallel, inventory SECURITY DEFINER internal guards against the role matrix; do not blanket-revoke authenticated EXECUTE.
