@@ -205,6 +205,24 @@ Report templates:
 
 Support PDF, CSV and Excel-compatible export. Every export includes generated-at timestamp, timezone, filters, comparison period, metric definitions, data source and completeness warnings. Exports must enforce the same server-side permissions as on-screen data and exclude private player fields by default.
 
+## 5.1 Existing PostHog event inventory (verified 8 November 2026)
+
+The connected project's event schema currently includes these Open Play product events:
+- `league_table_viewed`
+- `results_viewed`
+- `fixtures_viewed`
+- `player_stats_viewed`
+- `team_profile_viewed`
+- `gallery_viewed`
+- `gallery_photo_viewed`
+- `$pageview`
+
+The existing custom event schemas include public context such as `location`, `league`, and where relevant `team`; they also expose UTM/referrer and device/browser context. The inspected event schemas expose `utm_source`, `utm_medium`, and `utm_content`; `utm_campaign` was not present in the inspected property schema and must be added/verified before campaign-name reporting is promised.
+
+The project schema also lists `$web_vitals`, `$exception`, `$identify`, and other standard PostHog system events, but the schema snapshot explicitly marks them as not seen in the last 30 days. Treat those capabilities as available event types, not as evidence that Open Play is currently collecting usable data for them. Web Vitals, exception monitoring, identity linkage and session replay therefore need integration and ingestion verification before their cards can show values.
+
+The current product events support a first layer of content/competition interest reporting (table, results, fixtures, player stats, team profiles and gallery). They do not yet establish signup/registration funnel conversion, payment, membership approval, player participation or team retention. Those outcomes must come from explicit new instrumentation and/or authoritative Supabase records. Existing location/league/team labels must be normalised to stable opaque IDs before they are used as cross-system filter keys; do not assume the current text labels are canonical identifiers.
+
 ## 5. PostHog product instrumentation contract
 
 Use PostHog's React/web SDK only after the correct project token and cloud region are configured. Keep credentials in environment/Worker secrets as appropriate; never hard-code tokens. Do not collect passwords, form contents, full names, DOB, contact details, emergency contacts, private notes, payment references or other sensitive personal/financial fields.
