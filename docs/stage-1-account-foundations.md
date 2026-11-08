@@ -183,3 +183,16 @@ GitHub Build verification passed for the shared hook and Captain route commits. 
 ### Player Hub sign-out/session-loss cleanup
 
 The Player Hub auth listener now clears player/profile identity, memberships, team requests, team/fixture/availability state, notification preferences/events, transfer options/requests, payment rows, avatar URL, admin flag and edit state when the session is lost. The initial session lookup is guarded against overwriting a newer auth-state event, and asynchronous player/fixture loads verify that the active user ID still matches before writing sensitive results into component state. The full account-switch/cross-tab behaviour still needs end-to-end regression coverage.
+### Working role/action matrix — derived from deployed helpers and RPC guards
+
+| Actor | Permitted boundary | Explicitly outside its authority |
+|---|---|---|
+| Anonymous visitor | Published active locations, published leagues/seasons, approved public teams, published fixtures/results and published gallery assets | Accounts, private player/profile data, memberships, availability, team sheets, finance, admin RPCs |
+| Account-only user | Own Auth account/session, own role/profile rows, verified-email player registration workflow | Player privileges, team membership, captain powers, finance or admin workspaces |
+| Registered player | Own player/profile data, own team requests/memberships, own availability, own notifications and payment history | Other players' private data, captain actions without active captain membership, admin or finance powers |
+| Active team captain | Exact active captain membership's team roster, team fixtures, team availability and team sheets; membership request decisions, squad numbers and captain handover for that team | Other teams, other locations, finance and platform-wide administration |
+| Finance admin | Finance options, ledger, summary, Stripe payment review and finance entry actions through finance RPCs | Player identity review, platform roles, location activation, competition administration unless separately granted |
+| Location admin (`league_admin`) | Assigned location only: contextual competition/team/fixture/player-register work, scoped team/membership/sheet/gallery access and location-scoped administrative mutations | Other locations, global identity review, global notification outbox/audit, global player bans/profile corrections, location assignment and activation, finance unless separately granted |
+| Platform admin / super admin | Platform-wide administrative and location access, global identity reviews, sensitive player corrections, notification operations, audit and location-admin assignments | Super-admin bootstrap cannot be self-appointed; first grant requires a controlled owner-approved process |
+
+This is the current intended contract, not a claim that every RPC has passed a positive/negative test for every row. The final matrix must be reconciled against all exposed RPC signatures and direct-table grants, especially legacy/unused RPCs not called by the current route code.
