@@ -39,6 +39,22 @@ export function getPreferredPlayerSeason(options: PlayerSeasonOption[]) {
     ?? null;
 }
 
+export function resolvePlayerCompetitionSelection(
+  locations: PlayerLocationOption[],
+  seasons: PlayerSeasonOption[],
+  saved: { locationId?: string; seasonId?: string },
+) {
+  const selectedLocationId = locations.some((location) => location.id === saved.locationId)
+    ? saved.locationId!
+    : locations[0]?.id ?? "";
+  const availableSeasons = seasons.filter((season) => season.location_id === selectedLocationId);
+  const selectedSeasonId = availableSeasons.some((season) => season.id === saved.seasonId)
+    ? saved.seasonId!
+    : getPreferredPlayerSeason(availableSeasons)?.id ?? "";
+
+  return { selectedLocationId, selectedSeasonId };
+}
+
 export function usePlayerCompetitionContext(): PlayerCompetitionContext {
   const [locations, setLocations] = useState<PlayerLocationOption[]>([]);
   const [seasons, setSeasons] = useState<PlayerSeasonOption[]>([]);
@@ -132,16 +148,9 @@ export function usePlayerCompetitionContext(): PlayerCompetitionContext {
         saved = {};
       }
 
-      const locationId = activeLocations.some((item) => item.id === saved.locationId)
-        ? saved.locationId!
-        : activeLocations[0].id;
-      const availableSeasons = seasonOptions.filter((season) => season.location_id === locationId);
-      const seasonId = availableSeasons.some((season) => season.id === saved.seasonId)
-        ? saved.seasonId!
-        : getPreferredPlayerSeason(availableSeasons)?.id ?? "";
-
-      setSelectedLocationId(locationId);
-      setSelectedSeasonId(seasonId);
+      const selection = resolvePlayerCompetitionSelection(activeLocations, seasonOptions, saved);
+      setSelectedLocationId(selection.selectedLocationId);
+      setSelectedSeasonId(selection.selectedSeasonId);
       setLoading(false);
     }
 
