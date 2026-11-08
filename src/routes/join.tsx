@@ -4,6 +4,7 @@ import { PlayerCompetitionSelector, usePlayerCompetitionContext } from "../lib/c
 import { Link, createFileRoute } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { getTeamRequestDisplay, type TeamRequestStatus } from "../lib/team-request-status";
 
 type TeamOption = { id: string; name: string; season_id: string };
 type PlayerState = { registration_status: "registered" | "pending_review" | "rejected"; is_banned: boolean };
@@ -17,6 +18,7 @@ function JoinPage() {
   const [loading,setLoading]=useState(true);
   const [mode,setMode]=useState<"join"|"register">("join");
   const [teams,setTeams]=useState<TeamOption[]>([]);
+  const [myRequests,setMyRequests]=useState<TeamRequestStatus[]>([]);
   const [teamId,setTeamId]=useState("");
   const [teamName,setTeamName]=useState("");
   const [primaryColour,setPrimaryColour]=useState("");
@@ -24,6 +26,12 @@ function JoinPage() {
   const [error,setError]=useState("");
   const [message,setMessage]=useState("");
   const [busy,setBusy]=useState(false);
+
+  async function refreshMyRequests(){
+    const {data,error:requestError}=await getSupabaseClient().rpc("get_my_team_request_statuses");
+    if(requestError)throw requestError;
+    setMyRequests(data??[]);
+  }
 
   useEffect(()=>{
     const supabase=getSupabaseClient();
@@ -36,13 +44,14 @@ function JoinPage() {
         const {data:playerData}=await supabase.from("players").select("registration_status,is_banned").eq("user_id",current.user.id).maybeSingle();
         if(!alive)return;
         setPlayer(playerData);
+        try{await refreshMyRequests();}catch(cause){if(alive)setError(cause instanceof Error?cause.message:"Unable to load your team request history.");}
       }
       if(alive)setLoading(false);
     }
     void load();
     const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,next)=>{
       setSession(next);
-      if(!next){setPlayer(null);setTeams([]);}
+      if(!next){setPlayer(null);setTeams([]);setMyRequests([]);}
     });
     return ()=>{alive=false;subscription.unsubscribe();};
   },[]);
@@ -66,6 +75,7 @@ function JoinPage() {
       const {error:rpcError}=await getSupabaseClient().rpc("request_team_membership",{p_season_team_id:teamId});
       if(rpcError)throw rpcError;
       setMessage("Your request has been sent. You will become a team member only after the captain approves it.");
+      try{await refreshMyRequests();}catch{}
     }catch(cause){setError(cause instanceof Error?cause.message:"Unable to send your team request.");}
     finally{setBusy(false);}
   }
@@ -77,6 +87,7 @@ function JoinPage() {
       const {data,error:rpcError}=await getSupabaseClient().rpc("register_team",{p_season_id:competition.selectedSeasonId,p_team_name:teamName.trim(),p_primary_colour:primaryColour||undefined,p_secondary_colour:secondaryColour||undefined});
       if(rpcError)throw rpcError;
       setMessage(`Your application for ${data.name} has been submitted for administrator approval. You will become its captain only after approval.`);
+      try{await refreshMyRequests();}catch{}
       setTeamName("");setPrimaryColour("");setSecondaryColour("");
     }catch(cause){setError(cause instanceof Error?cause.message:"Unable to submit team registration.");}
     finally{setBusy(false);}
@@ -92,6 +103,16 @@ function JoinPage() {
   return <main className="notice-page player-facing"><section className="notice-panel auth-panel">
     <Link className="notice-brand" to="/player"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link><p className="eyebrow eyebrow-dark">GET INVOLVED</p><h1>Find your<br/><em>place to play.</em></h1>
     <p>Signed in as <strong>{session.user.email}</strong>. Your player registration is approved.</p>
+    {myRequests.length>0&&<section className="join-request-list" aria-labelledby="join-request-heading">
+      <div className="join-request-heading"><div><p className="eyebrow eyebrow-dark">YOUR TEAM ACTIVITY</p><h2 id="join-request-heading">Requests &amp; memberships</h2></div><span>{myRequests.length} records</span></div>
+      {myRequests.map((item)=>{
+        const display=getTeamRequestDisplay(item);
+        return <article className="join-request-item" key={item.membership_id}>
+          <div className="join-request-item-top"><div><strong>{item.team_name}</strong><span>{item.season_name}</span></div><span className={"join-request-status join-request-status--"+display.tone}>{display.label}</span></div>
+          <p>{display.description}</p>
+        </article>;
+      })}
+    </section>}
     <PlayerCompetitionSelector context={competition}/>
     {competition.error&&<p className="form-error" role="alert">{competition.error}</p>}
     {error&&<p className="form-error" role="alert">{error}</p>}{message&&<p className="form-note" role="status">{message}</p>}
