@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isRefundedPaymentStatus, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "./stripe-settlement";
+import { checkoutAttemptFromIntentMetadata, isRefundedPaymentStatus, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "./stripe-settlement";
 
 const record: PaymentSettlementRecord = {
   id: "payment-1",
@@ -7,6 +7,7 @@ const record: PaymentSettlementRecord = {
   currency: "gbp",
   stripe_checkout_session_id: "cs_test_123",
   stripe_payment_intent_id: "pi_123",
+  checkout_attempt: 0,
 };
 
 describe("Stripe checkout settlement validation", () => {
@@ -14,7 +15,7 @@ describe("Stripe checkout settlement validation", () => {
     expect(validateCheckoutSettlement(record, {
       id: "cs_test_123",
       client_reference_id: "payment-1",
-      metadata: { payment_record_id: "payment-1" },
+      metadata: { payment_record_id: "payment-1", checkout_attempt: "0" },
       amount_total: 350,
       currency: "gbp",
       payment_intent: "pi_123",
@@ -33,7 +34,7 @@ describe("Stripe checkout settlement validation", () => {
     expect(validateCheckoutSettlement(record, {
       id: "cs_test_123",
       client_reference_id: "payment-2",
-      metadata: { payment_record_id: "payment-2" },
+      metadata: { payment_record_id: "payment-2", checkout_attempt: "0" },
     }).ok).toBe(false);
   });
 
@@ -73,7 +74,7 @@ describe("Stripe checkout settlement validation", () => {
       amount: 350,
       currency: "gbp",
       paid: true,
-    })).toEqual({ ok: true });
+    }, { payment_record_id: "payment-1", checkout_attempt: "0" })).toEqual({ ok: true });
   });
 
   it("rejects an unconfirmed or mismatched charge", () => {
@@ -82,7 +83,7 @@ describe("Stripe checkout settlement validation", () => {
       amount: 350,
       currency: "gbp",
       paid: false,
-    }).ok).toBe(false);
+    }, { payment_record_id: "payment-1", checkout_attempt: "0" }).ok).toBe(false);
   });
 });
 
@@ -108,5 +109,16 @@ describe("Stripe PaymentIntent record mapping", () => {
     expect(paymentRecordIdFromIntentMetadata(null)).toBeNull();
     expect(paymentRecordIdFromIntentMetadata([])).toBeNull();
     expect(paymentRecordIdFromIntentMetadata({ payment_record_id: "  " })).toBeNull();
+  });
+});
+
+describe("Stripe checkout attempt metadata", () => {
+  it("parses a non-negative integer attempt", () => {
+    expect(checkoutAttemptFromIntentMetadata({ checkout_attempt: "2" })).toBe(2);
+  });
+
+  it("rejects malformed attempt values", () => {
+    expect(checkoutAttemptFromIntentMetadata({ checkout_attempt: "2x" })).toBeNull();
+    expect(checkoutAttemptFromIntentMetadata(null)).toBeNull();
   });
 });
