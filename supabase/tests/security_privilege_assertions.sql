@@ -242,3 +242,16 @@ begin
   end loop;
 end;
 $legacy_admin_rpc_boundary$;
+
+-- A fixture venue must belong to the same location as its season.
+do $fixture_venue_location_scope$
+declare
+  v_definition text := pg_catalog.pg_get_functiondef(
+    'public.admin_create_fixture(uuid,integer,integer,uuid,uuid,timestamp with time zone,uuid,text)'::regprocedure
+  );
+begin
+  if v_definition not ilike '%id=p_venue_id and is_active=true and id=(select l.location_id from public.seasons s join public.leagues l on l.id=s.league_id where s.id=p_season_id)%' then
+    raise exception 'Fixture venue must be constrained to the season location';
+  end if;
+end;
+$fixture_venue_location_scope$;
