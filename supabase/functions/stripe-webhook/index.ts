@@ -82,31 +82,30 @@ Deno.serve(async (req) => {
   if (!claimedEvent) return new Response("Webhook event is already being processed", { status: 409 });
 
   let resolvedPaymentId = paymentId;
-  if (!resolvedPaymentId && (eventType === "charge.refunded" || eventType === "charge.succeeded")) {
+  let chargePaymentIntentMetadata: unknown = null;
+  if (eventType === "charge.succeeded") {
+    const intentId = typeof object?.payment_intent === "string" ? object.payment_intent : "";
+    if (!intentId) return new Response("Charge has no PaymentIntent", { status: 400 });
+    // Always inspect the PaymentIntent, not just the Charge object: the
+    // server-created metadata binds this charge to the exact checkout attempt.
+    const intentResponse = await fetch(`https://api.stripe.com/v1/payment_intents/${encodeURIComponent(intentId)}`, {
+      headers: { Authorization: `Bearer ${stripeKey}` },
+    });
+    const intent = await intentResponse.json().catch(() => ({}));
+    if (!intentResponse.ok) return new Response("Could not retrieve Stripe PaymentIntent", { status: 500 });
+    chargePaymentIntentMetadata = intent?.metadata;
+    const metadataPaymentId = paymentRecordIdFromIntentMetadata(chargePaymentIntentMetadata) ?? "";
+    if (!metadataPaymentId || (resolvedPaymentId && resolvedPaymentId !== metadataPaymentId)) {
+      return new Response("PaymentIntent metadata does not match the charge payment record", { status: 409 });
+    }
+    resolvedPaymentId = metadataPaymentId;
+  } else if (!resolvedPaymentId && eventType === "charge.refunded") {
     const intentId = typeof object?.payment_intent === "string" ? object.payment_intent : "";
     if (intentId) {
       const { data: linkedPayment, error: lookupError } = await admin.from("payment_records")
         .select("id").eq("stripe_payment_intent_id", intentId).maybeSingle();
-      if (lookupError) return new Response("Could not map charge to payment", { status: 500 });
+      if (lookupError) return new Response("Could not map refund to payment", { status: 500 });
       resolvedPaymentId = linkedPayment?.id ?? "";
-
-      // checkout.session.completed may be delayed or missing. The PaymentIntent
-      // metadata is set by Open Play at Checkout creation, so it can securely
-      // identify the payment record for a charge.succeeded-only delivery.
-      if (!resolvedPaymentId && eventType === "charge.succeeded") {
-        const intentResponse = await fetch(`https://api.stripe.com/v1/payment_intents/${encodeURIComponent(intentId)}`, {
-          headers: { Authorization: `Bearer ${stripeKey}` },
-        });
-        const intent = await intentResponse.json().catch(() => ({}));
-        if (!intentResponse.ok) return new Response("Could not retrieve Stripe PaymentIntent", { status: 500 });
-        const metadataPaymentId = paymentRecordIdFromIntentMetadata(intent?.metadata) ?? "";
-        if (metadataPaymentId) {
-          const { data: metadataPayment, error: metadataLookupError } = await admin.from("payment_records")
-            .select("id").eq("id", metadataPaymentId).maybeSingle();
-          if (metadataLookupError) return new Response("Could not map PaymentIntent metadata to payment", { status: 500 });
-          resolvedPaymentId = metadataPayment?.id ?? "";
-        }
-      }
     }
   }
 
@@ -123,7 +122,7 @@ Deno.serve(async (req) => {
   let paymentStatusBeforeEvent: string | null = null;
   if (paymentEvents.has(eventType) && resolvedPaymentId) {
     const { data: currentPayment, error: currentPaymentError } = await admin.from("payment_records")
-      .select("id,amount_pence,currency,status,stripe_checkout_session_id,stripe_payment_intent_id,last_stripe_event_at")
+      .select("id,amount_pence,currency,status,stripe_checkout_session_id,stripe_payment_intent_id,checkout_attempt,last_stripe_event_at")
       .eq("id", resolvedPaymentId)
       .maybeSingle();
     if (currentPaymentError || !currentPayment) {
@@ -140,7 +139,7 @@ Deno.serve(async (req) => {
     const settlementValidation = eventType.startsWith("checkout.session.")
       ? validateCheckoutSettlement(settlementRecord, object ?? {})
       : eventType === "charge.succeeded"
-        ? validateChargeSettlement(settlementRecord, object ?? {})
+        ? validateChargeSettlement(settlementRecord, object ?? {}, chargePaymentIntentMetadata)
         : { ok: true as const };
     if (!settlementValidation.ok) {
       await admin.from("stripe_webhook_events").update({
