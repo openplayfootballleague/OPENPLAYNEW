@@ -1499,9 +1499,9 @@ export type Database = {
       }
       admin_create_season_team: {
         Args: {
-          p_primary_colour: string | null
+          p_primary_colour?: string | null
           p_season_id: string
-          p_secondary_colour: string | null
+          p_secondary_colour?: string | null
           p_team_name: string
         }
         Returns: {
