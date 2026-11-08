@@ -88,3 +88,11 @@ Tracked in https://github.com/openplayfootballleague/OPENPLAYNEW/issues/10 and r
 - Live Supabase ledger remains 98 records; six exact applied SQL sources remain unrecovered and candidate filename/version reconciliation is incomplete.
 - No live database writes, migrations, role grants, test users, secrets, Stripe sessions, location records or production deployments were performed.
 - Do not alter historical migrations to fix either issue. Generate forward migrations with the Supabase CLI only after source reconciliation and test planning.
+
+
+## Continuous execution continuation — 8 November 2026, 02:34 UTC
+
+### Third confirmed authorization mismatch — finance-admin fee configuration (issue #11)
+The live `admin_set_player_fixture_fee` RPC applies `can_administer_location()` before `has_finance_access()`. The former allows platform admins and assigned league admins but excludes finance_admin; the latter explicitly allows admin, super_admin and finance_admin. Read-only review of the other finance RPCs confirms they use `has_finance_access()` alone and expose finance data across seasons/teams without location assignment filters. The fee configuration RPC is therefore inconsistent with the existing global finance role model and blocks finance_admin-only users from the player fee form.
+
+Tracked in https://github.com/openplayfootballleague/OPENPLAYNEW/issues/11. A forward migration should align the fee RPC with the global finance role model unless product ownership explicitly requires finance-location scoping. Preserve amount/gameweek/reason validation and audit logging. No live schema/data changes were made.
