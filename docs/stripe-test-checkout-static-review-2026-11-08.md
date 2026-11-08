@@ -61,3 +61,11 @@ Regression tests cover matching checkout settlement, wrong session ID, wrong pay
 Current-head PR #6 workflow run `42435790150` completed successfully: locked dependency install, Deno setup, Edge Function type-check, domain tests, TypeScript/build and Cloudflare Worker dry-run all passed. This does not constitute Stripe API or browser end-to-end acceptance.
 
 Still open: atomic retry-attempt transition for expired/failed sessions; Stripe test secrets and test account/fixture setup; actual checkout/webhook/refund/fee tests; admin refund controls and payout reconciliation; browser acceptance. No live payments were used.
+
+
+## Hosted Edge Function deployment check — 8 November 2026
+Read-only Supabase function inventory and source retrieval confirms the hosted Open Play New project currently has:
+- `create-player-checkout` version 1, `verify_jwt=true`.
+- `stripe-webhook` version 5, `verify_jwt=false`.
+
+The hosted sources are older than the current PR #6 branch changes: the deployed webhook does not yet contain the new settlement identity/amount/currency checks or the `charge.succeeded` paid-state transition; the deployed checkout function does not contain a retry-attempt repair. Do not mistake a passing GitHub CI build for a deployed fix. No function deployment was performed because the PR is still draft, test secrets/provider configuration are not available through the connected tools, and no test-mode end-to-end acceptance has been run. Existing `verify_jwt` settings were not changed.
