@@ -158,23 +158,44 @@ $$;
 revoke all on function public.get_captain_team_social_profiles() from public,anon;
 grant execute on function public.get_captain_team_social_profiles() to authenticated;
 
--- Public visitors may read only the team ID and Instagram URL for teams
--- attached to an approved, published public season. Do not expose created_by.
-grant select (id, instagram_profile_url) on public.teams to anon, authenticated;
-create policy teams_select_public_instagram_profile on public.teams
-for select to anon, authenticated
-using (
-  exists (
-    select 1
-    from public.season_teams st
-    join public.seasons s on s.id=st.season_id
-    join public.leagues l on l.id=s.league_id
-    where st.team_id=teams.id
-      and st.registration_status='approved'
-      and s.is_public=true
-      and l.is_published=true
-  )
-);
+-- Public team profiles are exposed through a narrowly scoped RPC.
+-- Do not add a permissive policy to public.teams: authenticated already has
+-- table-level SELECT for member/admin workflows, so a public policy there
+-- would expose every selectable column (including created_by).
+create or replace function public.get_public_team_directory(
+  p_season_team_id uuid default null
+)
+returns table (
+  season_team_id uuid,
+  team_name text,
+  season_id uuid,
+  season_name text,
+  starts_on date,
+  primary_colour text,
+  secondary_colour text,
+  instagram_profile_url text
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select st.id, st.name, s.id, s.name, s.starts_on,
+         st.primary_colour, st.secondary_colour, t.instagram_profile_url
+  from public.season_teams st
+  join public.teams t on t.id=st.team_id
+  join public.seasons s on s.id=st.season_id
+  join public.leagues l on l.id=s.league_id
+  where st.registration_status='approved'
+    and s.is_public=true
+    and s.status in ('active','completed')
+    and l.is_published=true
+    and (p_season_team_id is null or st.id=p_season_team_id)
+  order by s.starts_on desc, s.name, st.name;
+$;
+
+revoke all on function public.get_public_team_directory(uuid) from public, anon;
+grant execute on function public.get_public_team_directory(uuid) to anon, authenticated;
 
 create or replace function public.admin_get_team_social_profiles()
 returns table (
