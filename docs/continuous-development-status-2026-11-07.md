@@ -157,3 +157,12 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - Team badge upload/background removal/quality-review workflow remains unimplemented. Do not publish low-confidence processed badges.
 - Stripe work remains test-mode only; captain payer semantics are unresolved and checkout remains unavailable until the payer model is decided.
 - Admin Dashboard remains excluded from player-facing visual CSS scope.
+
+
+## 8 November 2026 — route-state styling consistency
+
+- Audited all player-facing route render states and found secondary/error/empty/loading branches in Join, Captain Hub, player registration and password reset that still used the unscoped `notice-page` class. This meant those states could fall back to the legacy light panel instead of the approved dark player-facing system.
+- Updated every `notice-page` main element in those four routes to include `player-facing`. This is CSS scoping only; no route guards, data access, workflows or business logic changed.
+- Verified by refetching all four source files: Join has 4 scoped main states, Captain Hub 2, player registration 3 and password reset 2; none of these files retains an unscoped `notice-page` main.
+- GitHub Actions build verification runs 42429529130 and 42429537132 were still in progress at the time of this update. Do not count these changes as CI-passed until those runs complete successfully.
+- The previous visual-foundation build run 42429350785 completed successfully. This does not substitute for browser/device visual acceptance.
