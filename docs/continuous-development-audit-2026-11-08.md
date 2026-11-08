@@ -175,3 +175,5 @@ Ported the four admin summary shortcuts and their target section IDs onto the cu
 - Ported the `FIRST_RELEASE_LOCATION_POLICY.md` documentation from stale PR #3 onto PR #7 as well. PR #7 now carries the historical migration source, guarded admin activation UI, accessible Needs Attention shortcuts and the policy documentation. Its latest code-bearing head `36e3247380eb2b8289a468d27b4c76eff08e9b1d` passed CI; the subsequent documentation-only commit does not trigger a new build. No location rows have been created or activated.
 
 - Closed stale PR #3 as superseded after porting all three of its changed files (Bideford migration, admin activation UI, and policy documentation) to PR #7. No changes were merged from its diverged branch.
+
+- PR #6 current head `1b6b0fa412aed40f6a9c45ec05263a8a22ba82d3` passed CI run `42436207960` after the Stripe settlement hardening. The workflow passed Edge Function type-check, domain tests (including 12 settlement regression cases), TypeScript/build and Cloudflare dry-run. The retry-attempt transition and live test-mode acceptance remain open.
