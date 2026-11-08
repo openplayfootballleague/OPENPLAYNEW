@@ -155,3 +155,9 @@ Read-only Supabase inspection against `ghnrsysvrlgkjmdlwdmp` confirms:
 - The live `admin_set_location_active` function also calls `can_administer_location(p_location_id)` before the platform-role check, reflecting the later location-admin scope hardening. The restored original migration remains the historical source; subsequent scope migrations remain authoritative for the current function body.
 
 PR #7's current-head build check was observed in progress at the last poll. No live rows or activation state were changed.
+
+
+## Stripe progress — 8 November 2026
+PR #6 now has captain-only Player Hub checkout and personal payment-history UI, hardened webhook settlement validation and seven regression tests for session/charge validation. Latest CI run `42435790150` passed all steps including Edge Function type-check, domain tests, TS/build and Cloudflare dry-run. PR remains draft and unmerged.
+
+The remaining retry-lifecycle defect requires a new atomic server-side transition and a properly generated migration source. The available connected tooling does not expose the Supabase CLI `migration new` workflow; I have not fabricated a migration filename or edited an already-applied migration to bypass that requirement. This is the next technical blocker to resolve. No database schema or live payment state was changed during this continuation.
