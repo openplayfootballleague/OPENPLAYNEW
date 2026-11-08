@@ -95,8 +95,6 @@ function PostHogE2EProbe() {
       data-posthog-loaded={String(client.__loaded)}
       data-posthog-capturing={String(client.is_capturing())}
       data-posthog-opted-in={String(client.has_opted_in_capturing())}
-      data-posthog-token={client.get_config("token") ? "present" : "missing"}
-      data-posthog-host={String(client.get_config("api_host") ?? "missing")}
       data-posthog-capture-called={String(captureCalled)}
       data-posthog-capture-result={captureResult}
       onClick={() => {
