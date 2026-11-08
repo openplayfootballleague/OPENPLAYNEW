@@ -71,6 +71,10 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/finance_balance_semantics.sql
+      - name: Verify player identity matching and review-data access boundaries
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/player_registration_identity_security.sql
       - name: Stop local Supabase database
         if: always()
         run: supabase stop --no-backup

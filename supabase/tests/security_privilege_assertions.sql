@@ -82,12 +82,12 @@ select
     'public.resolve_team_membership_request(uuid,text)'::regprocedure,
     'public.resolve_team_registration(uuid,text,text)'::regprocedure
   ) and (not (pg_get_functiondef(p.oid) ilike '%can_administer_location%') or has_function_privilege('anon',p.oid,'EXECUTE'))) as location_admin_mutations_check_assigned_location,
-  has_column_privilege('authenticated','public.profiles','first_name','UPDATE')
-    and has_column_privilege('authenticated','public.profiles','last_name','UPDATE')
-    and has_column_privilege('authenticated','public.profiles','display_name','UPDATE')
-    and has_column_privilege('authenticated','public.profiles','phone','UPDATE')
-    and has_column_privilege('authenticated','public.profiles','preferred_position','UPDATE')
-    and has_column_privilege('authenticated','public.profiles','avatar_path','UPDATE')
+  has_column_privilege('authenticated','public.profiles','avatar_path','UPDATE')
+    and not has_column_privilege('authenticated','public.profiles','first_name','UPDATE')
+    and not has_column_privilege('authenticated','public.profiles','last_name','UPDATE')
+    and not has_column_privilege('authenticated','public.profiles','display_name','UPDATE')
+    and not has_column_privilege('authenticated','public.profiles','phone','UPDATE')
+    and not has_column_privilege('authenticated','public.profiles','preferred_position','UPDATE')
     and not has_column_privilege('authenticated','public.profiles','date_of_birth','UPDATE')
     and not has_column_privilege('authenticated','public.profiles','emergency_contact_name','UPDATE')
     and not has_column_privilege('authenticated','public.profiles','emergency_contact_phone','UPDATE')

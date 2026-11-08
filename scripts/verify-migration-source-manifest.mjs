@@ -4,13 +4,7 @@ import { basename, join } from "node:path";
 
 const manifestPath = "docs/supabase-migration-source-manifest-2026-11-08.md";
 const migrationDirectory = "supabase/migrations";
-const expectedForwardOnly = [
-  "supabase/migrations/20261108014200_finance_balance_semantics.sql",
-  "supabase/migrations/20261108030000_scope_rls_to_global_admins.sql",
-  "supabase/migrations/20261108031000_revoke_unscoped_admin_rpcs.sql",
-  "supabase/migrations/20261108032000_fix_captain_membership_approval_scope.sql",
-  "supabase/migrations/20261109000000_correct_membership_location_and_finance_authorization.sql",
-];
+const expectedForwardOnly = [];
 
 function fail(message) {
   console.error(`Migration source manifest verification failed: ${message}`);
@@ -28,7 +22,7 @@ const rows = [...manifest.matchAll(rowPattern)].map((match) => ({
   expectedSha: match[4],
 }));
 
-if (rows.length !== 98) fail(`expected 98 applied ledger rows, found ${rows.length}`);
+if (rows.length !== 99) fail(`expected 99 applied ledger rows, found ${rows.length}`);
 
 const versions = rows.map((row) => row.version);
 const paths = rows.map((row) => row.path);

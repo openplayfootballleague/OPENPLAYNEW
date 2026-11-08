@@ -1,11 +1,11 @@
 # Open Play New — applied Supabase migration source manifest
 
-**Snapshot:** 8 November 2026, 13:55 UTC  
+**Snapshot:** 8 November 2026, 19:48 UTC  
 **Project:** `ghnrsysvrlgkjmdlwdmp`  
-**Branch:** `chore/reconcile-remaining-applied-migrations-2026-11-08`  
-**Applied ledger rows:** 98  
-**Canonical source files:** 98/98 present, unique version prefixes  
-**Forward-only local migrations:** `20261108014200_finance_balance_semantics.sql` (finance balance semantics; requires separate review), `20261108030000_scope_rls_to_global_admins.sql` (prevents location-scoped `league_admin` roles from receiving global direct-table RLS access), and `20261108031000_revoke_unscoped_admin_rpcs.sql` (revokes client execution of legacy cross-location admin RPCs); all require isolated replay and role-matrix verification.
+**Branch:** `fix/phase1-player-identity-security-2026-11-08`  
+**Applied ledger rows:** 99  
+**Canonical source files:** 99/99 present, unique version prefixes  
+**Phase 1 release migration:** `20261108194831_phase1_completion_bundle.sql` is applied to the dedicated Open Play New project. It consolidates the seven outstanding security/authorization corrections plus the Phase 1 picture-only profile permission correction. A clean local replay and all SQL authorization/identity regression tests passed in CI before application.
 
 This manifest maps every applied ledger version/name to its canonical source path and Git blob SHA. The 24 previously unmapped source statements were recovered from the live migration ledger. The other 74 source statements were reconciled from the verified PR #2, PR #6 and PR #21 source sets. The migration ledger's `name` field may retain an older embedded timestamp; the source path is mapped by the authoritative 14-digit applied version prefix.
 
@@ -110,11 +110,13 @@ This manifest maps every applied ledger version/name to its canonical source pat
 | 20261108012537 | 20261108280000_keep_unpublished_gallery_images_private | `supabase/migrations/20261108012537_keep_unpublished_gallery_images_private.sql` | `e235dd430f12dcc88bd72858ce49d2bbbb1f4411` |
 | 20261108020706 | player_team_request_status_rpc | `supabase/migrations/20261108020706_player_team_request_status_rpc.sql` | `2cc6ad92429460ee1d23a9f406afe0ad875868bc` |
 
+| 20261108194831 | phase1_completion_bundle | `supabase/migrations/20261108194831_phase1_completion_bundle.sql` | `ff1a08e27f077a7f127c6f6c33dbf77e5eb38aac` |
+
 ## Verification notes
 
-- All 98 ledger versions have a corresponding canonical source path in the branch.
-- All 103 migration file prefixes are unique: 98 applied ledger versions plus five separate forward-only migrations.
+- All 99 ledger versions have a corresponding canonical source path in the branch.
+- All 99 migration file prefixes are unique and every source file corresponds to an applied ledger version.
 - No duplicate synthetic-prefix copies of applied sources remain in this branch.
-- The canonical files are source artifacts only. This manifest does not certify clean-database replay, role behavior, or production release readiness.
-- Do not apply any of the already-recorded versions to production.
+- The canonical files are source artifacts. The consolidated Phase 1 release passed clean local replay and the complete SQL role/identity/authorization regression suite before being applied to the dedicated project.
+- Do not reapply any of the already-recorded versions. Future schema changes must use new forward-only migration versions.
 
