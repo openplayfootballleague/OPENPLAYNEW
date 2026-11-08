@@ -14,7 +14,7 @@ export function financeEntryImpactPence(type: FinanceEntryType, amountPence: num
   if (!Number.isSafeInteger(amountPence) || amountPence <= 0) {
     throw new RangeError("Finance amounts must be positive integer pence.");
   }
-  return type === "charge" || type === "fine" || type === "refund"
+  return type === "charge" || type === "fine"
     ? amountPence
     : -amountPence;
 }
