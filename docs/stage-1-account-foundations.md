@@ -207,3 +207,6 @@ The active Admin route calls the contextual replacements instead. Added `2026110
 ### Fixture venue location-scope correction
 
 The per-RPC review also found that `admin_create_fixture` verified the venue was active but did not verify that its location matched the fixture's season location. A location admin could therefore create a fixture in their assigned league while attaching another active location as the venue. Added `20261108222500_scope_fixture_venue_to_season_location.sql` to enforce that relationship and a regression assertion in `security_privilege_assertions.sql`. This is repository-only pending isolated replay.
+### Captain membership-approval permission correction
+
+The deployed `resolve_team_membership_request` function applied an assigned-location administrator check before its later active-captain check. That ordering unintentionally blocked a captain who was not also a location administrator from approving or rejecting membership requests for their own team. Added `20261108223000_preserve_captain_membership_approval_scope.sql` so the initial scope gate accepts either an administrator assigned to the team location or the active captain of the exact membership's team; the subsequent role check still limits captain decisions to their own team. Added a regression assertion. This migration is pending isolated replay.
