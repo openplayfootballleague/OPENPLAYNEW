@@ -87,8 +87,29 @@ Deno.serve(async (req) => {
     if (intentId) {
       const { data: linkedPayment, error: lookupError } = await admin.from("payment_records")
         .select("id").eq("stripe_payment_intent_id", intentId).maybeSingle();
-      if (lookupError) return new Response("Could not map refund to payment", { status: 500 });
+      if (lookupError) return new Response("Could not map charge to payment", { status: 500 });
       resolvedPaymentId = linkedPayment?.id ?? "";
+
+      // checkout.session.completed may be delayed or missing. The PaymentIntent
+      // metadata is set by Open Play at Checkout creation, so it can securely
+      // identify the payment record for a charge.succeeded-only delivery.
+      if (!resolvedPaymentId && eventType === "charge.succeeded") {
+        const intentResponse = await fetch(`https://api.stripe.com/v1/payment_intents/${encodeURIComponent(intentId)}`, {
+          headers: { Authorization: `Bearer ${stripeKey}` },
+        });
+        const intent = await intentResponse.json().catch(() => ({}));
+        if (!intentResponse.ok) return new Response("Could not retrieve Stripe PaymentIntent", { status: 500 });
+        const intentMetadata = intent?.metadata as Record<string, unknown> | undefined;
+        const metadataPaymentId = typeof intentMetadata?.payment_record_id === "string"
+          ? intentMetadata.payment_record_id
+          : "";
+        if (metadataPaymentId) {
+          const { data: metadataPayment, error: metadataLookupError } = await admin.from("payment_records")
+            .select("id").eq("id", metadataPaymentId).maybeSingle();
+          if (metadataLookupError) return new Response("Could not map PaymentIntent metadata to payment", { status: 500 });
+          resolvedPaymentId = metadataPayment?.id ?? "";
+        }
+      }
     }
   }
 
