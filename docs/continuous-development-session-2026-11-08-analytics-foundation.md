@@ -89,3 +89,7 @@ This session completes a specification and calculation foundation, not the Analy
 6. Implement authorised PDF/CSV/Excel-compatible exports and acceptance reconciliation.
 
 The PostHog SDK, UI, aggregate reporting, exports, and end-to-end acceptance remain unimplemented. No production database changes, merge or deployment occurred.
+
+15. Added comparison-window helpers for immediately preceding equal-duration periods and previous-calendar-year periods, including safe leap-day handling. Added boundary and invalid-range tests.
+16. CI passed for both registration-growth commits `4953719497dd04963e6c46d8c1fa52cc608a4e03` and `ce251f412aaf8eede5812825cdefba3a75aa85cb`. This verifies the growth implementation and its tests.
+17. Added comparison-period helper files `src/lib/analytics/periods.ts` and `src/lib/analytics/periods.test.ts`. CI for this latest addition is queued/in progress and not yet verified.
