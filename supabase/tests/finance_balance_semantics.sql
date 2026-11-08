@@ -79,7 +79,7 @@ begin
   );
 
   if v_balance <> -5000 then
-    raise exception 'Expected the overpaid team's individual balance to be -5000 pence, got %',v_balance;
+    raise exception 'Expected the overpaid team''s individual balance to be -5000 pence, got %',v_balance;
   end if;
 
   select * into v_summary
