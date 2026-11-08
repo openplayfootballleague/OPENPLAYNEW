@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SiteNavigation } from "../components/site-navigation";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase/client";
@@ -26,9 +27,9 @@ function RegisterPlayerPage() {
     }catch(cause){setError(cause instanceof Error?cause.message:"Unable to submit player registration.");}
     finally{setBusy(false);}
   }
-  if(loading)return <main className="notice-page"><section className="notice-panel"><p>Checking your account…</p></section></main>;
-  if(!session)return <main className="notice-page"><section className="notice-panel"><Link className="notice-brand" to="/">OPEN PLAY</Link><p className="eyebrow eyebrow-dark">PLAYER REGISTRATION</p><h1>One more<br/><em>step.</em></h1><p>You need an Open Play account before registering as a player.</p><Link className="button" to="/sign-in">SIGN IN <span>↗</span></Link><p className="auth-switch">New here? <Link to="/sign-up">Create an account</Link></p></section></main>;
-  return <main className="notice-page"><section className="notice-panel auth-panel"><Link className="notice-brand" to="/">OPEN PLAY</Link><p className="eyebrow eyebrow-dark">PLAYER PROFILE</p><h1>Register<br/><em>to play.</em></h1><p>Signed in as <strong>{session.user.email}</strong>. This creates your permanent player identity; it does not automatically add you to a team.</p>
+  if(loading)return <main className="notice-page"><SiteNavigation /><section className="notice-panel"><p>Checking your account…</p></section></main>;
+  if(!session)return <main className="notice-page"><SiteNavigation /><section className="notice-panel"><Link className="notice-brand" to="/">OPEN PLAY</Link><p className="eyebrow eyebrow-dark">PLAYER REGISTRATION</p><h1>One more<br/><em>step.</em></h1><p>You need an Open Play account before registering as a player.</p><Link className="button" to="/sign-in">SIGN IN <span>↗</span></Link><p className="auth-switch">New here? <Link to="/sign-up">Create an account</Link></p></section></main>;
+  return <main className="notice-page"><SiteNavigation /><section className="notice-panel auth-panel"><Link className="notice-brand" to="/">OPEN PLAY</Link><p className="eyebrow eyebrow-dark">PLAYER PROFILE</p><h1>Register<br/><em>to play.</em></h1><p>Signed in as <strong>{session.user.email}</strong>. This creates your permanent player identity; it does not automatically add you to a team.</p>
     {submitted?<section className="hub-empty"><p className="form-success" role="status">{message}</p><h2>You're in the system.</h2><p>Your Player Hub will show your registration status. You can request to join or register a team once your player registration is approved.</p><Link className="button" to="/player">OPEN PLAYER HUB <span>↗</span></Link></section>:<form className="auth-form" onSubmit={submit}>
       <label>Full name<input autoComplete="name" required maxLength={120} value={name} onChange={e=>setName(e.target.value)}/></label>
       <label>Mobile number<input type="tel" autoComplete="tel" required maxLength={30} value={phone} onChange={e=>setPhone(e.target.value)}/></label>
