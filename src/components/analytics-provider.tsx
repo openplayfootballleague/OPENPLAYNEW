@@ -38,6 +38,11 @@ const POSTHOG_OPTIONS = {
   disable_product_tours: true,
   disable_conversations: true,
   logs: { captureConsoleLogs: false },
+  // Flush the single synthetic probe immediately in browser acceptance tests;
+  // production keeps the SDK defaults and never enables the probe.
+  ...(import.meta.env.VITE_OPENPLAY_ANALYTICS_E2E === "true"
+    ? { flushAt: 1, flushInterval: 1_000 }
+    : {}),
 } as const;
 
 type AnalyticsCapture = (
@@ -90,7 +95,6 @@ function PostHogE2EProbe() {
       data-posthog-opted-in={String(client.has_opted_in_capturing())}
       onClick={() => {
         client.capture("openplay_e2e_consent_probe", { test_mode: true });
-        void client.shutdown();
       }}
     >
       Send analytics test probe
