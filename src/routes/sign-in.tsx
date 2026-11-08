@@ -16,9 +16,13 @@ function SignInPage() {
   async function signIn(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError(""); setMessage("");
     try {
-      const { error: authError } = await getSupabaseClient().auth.signInWithPassword({ email: email.trim(), password });
+      const supabase = getSupabaseClient();
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (authError) throw authError;
-      await navigate({ to: "/player" });
+      if (!authData.user) throw new Error("Your account could not be loaded. Please sign in again.");
+      const { data: player, error: playerError } = await supabase.from("players").select("registration_status,is_banned").eq("user_id", authData.user.id).maybeSingle();
+      if (playerError) throw playerError;
+      await navigate({ to: player?.registration_status === "registered" && !player.is_banned ? "/player" : "/register-player" });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to sign in. Please try again.");
     } finally { setBusy(false); }
@@ -31,7 +35,7 @@ function SignInPage() {
       const { error: resendError } = await getSupabaseClient().auth.resend({
         type: "signup",
         email: email.trim(),
-        options: { emailRedirectTo: window.location.origin + "/player" },
+        options: { emailRedirectTo: window.location.origin + "/register-player" },
       });
       if (resendError) throw resendError;
       setMessage("If this account is awaiting email verification, a new confirmation email has been sent.");
