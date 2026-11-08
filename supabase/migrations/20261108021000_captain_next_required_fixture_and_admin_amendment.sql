@@ -266,6 +266,16 @@ declare
   v_all_memberships uuid[];
   v_before jsonb;
 begin
+  if not public.can_administer_location((
+    select l.location_id
+    from public.fixture_team_sheets sh
+    join public.fixtures f on f.id = sh.fixture_id
+    join public.seasons s on s.id = f.season_id
+    join public.leagues l on l.id = s.league_id
+    where sh.id = p_team_sheet_id
+  )) then
+    raise exception 'You are not assigned to this location';
+  end if;
   if v_actor is null or not public.has_platform_role() then
     raise exception 'Administrator permission required';
   end if;
