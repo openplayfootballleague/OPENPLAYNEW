@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { SiteNavigation } from "../components/site-navigation";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -7,20 +8,7 @@ export const Route = createFileRoute("/")({
 function HomePage() {
   return (
     <main className="site-shell">
-      <header className="site-header">
-        <a className="wordmark" href="/" aria-label="Open Play home">
-          <span>OPEN PLAY</span>
-        </a>
-        <nav className="header-nav" aria-label="Main navigation">
-          <a href="/match-centre">Match centre</a>
-          <a href="/teams">Leagues</a>
-          <a href="#about">About</a>
-        </nav>
-        <div className="header-actions">
-          <a className="login-link" href="/player">Player Hub</a>
-          <a className="button button-small" href="/join">Join Open Play</a>
-        </div>
-      </header>
+      <SiteNavigation />
 
       <section className="hero" aria-labelledby="hero-title">
         <div className="hero-image" aria-hidden="true" />
