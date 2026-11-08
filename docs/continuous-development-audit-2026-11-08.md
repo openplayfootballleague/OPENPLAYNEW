@@ -399,3 +399,44 @@ A fresh read-only check of Supabase project `ghnrsysvrlgkjmdlwdmp` confirms:
 - Health Advisor: no lints.
 
 This refresh supersedes older 97-migration/79-warning snapshots. It does not change the migration reconciliation blocker, and it does not establish authenticated role acceptance: the project still has no test users or role assignments. No database, Auth, secrets, Edge Functions or deployment changes were made.
+
+
+## Role-scope authorization follow-up — 8 November 2026, 12:35 UTC
+
+### Live role-helper semantics
+A read-only inspection of the deployed helper definitions confirms:
+- `has_platform_role()`: `admin`, `super_admin`, or `league_admin`.
+- `has_finance_access()`: `admin`, `super_admin`, or `finance_admin`.
+- `can_administer_location(location_id)`: global `admin`/`super_admin`, or a `league_admin` with an explicit assignment to that location.
+- `assert_admin_location_context(location_id)`: requires an authenticated platform-role user; a `league_admin` must select an assigned location and cannot use a null/global location context.
+- Finance is deliberately a separate role family from platform/location administration.
+
+### Three confirmed mismatches and correction branch
+Issues #9, #10 and #11 document live authorization mismatches:
+- #9: captain membership approval was blocked by a premature location-admin check.
+- #10: an assigned `league_admin` could satisfy the location-activation checks, although activation is intended to be global-admin-only.
+- #11: `finance_admin` was blocked from setting season player fees by an unrelated location-admin check, despite `has_finance_access()` explicitly allowing the role.
+
+Draft PR #22 (`fix/database-role-scope-authorization-2026-11-08`, head `fa6eb54ca8e575a03ca950f698c25226e1e619e2`) proposes a forward-only migration and static regression SQL:
+- membership decisions: active captain for own team, assigned league admin for that team's location, or global admin/super-admin;
+- location activation/deactivation: admin/super-admin only;
+- player fixture fee configuration: global finance helper, with season existence and existing fee/gameweek/reason/audit checks retained.
+
+An independent read-only source check confirmed all six expected old-guard/finance-guard text anchors in the current live definitions match the migration's replacement preconditions. This confirms the migration is aimed at the current deployed function text; it does not execute the migration or prove compilation. PR #22 has no recorded GitHub Actions run because its base is the feature branch, and its static regression file has not been run against a clean isolated database. Do not merge or deploy it yet.
+
+### Role provisioning gap
+A separate catalog and effective-privilege review found:
+- `public.user_roles` has one SELECT policy: users may read their own role rows; platform-role users may read the wider set.
+- `anon` has no SELECT/INSERT/UPDATE/DELETE privilege on `user_roles`.
+- `authenticated` has SELECT only; no INSERT/UPDATE/DELETE.
+- `service_role` has no SELECT/INSERT/UPDATE/DELETE on this table (TRUNCATE privilege only).
+- `postgres` has full table privileges.
+- No non-system database function was found that inserts, updates or deletes `public.user_roles`; the four deployed Edge Functions do not include a role-provisioning function.
+- The admin route explicitly says role creation is not yet configurable; the existing location-admin assignment UI only assigns locations to users who already have `league_admin`.
+
+This is a deliberate security boundary, but it leaves initial super-admin bootstrap and ongoing admin/finance/league role grant/revocation without an application workflow. It must be addressed through an owner-approved, tightly controlled bootstrap/provisioning design; do not grant roles to an unverified account or expose direct role-table writes to clients.
+
+### Migration-source recovery update
+PR #21 restores seven previously missing applied SQL source files from the live migration ledger's stored statements and reports byte-for-byte verification. PR #20 is explicitly superseded and must not be merged. PR #21 remains unmerged into the feature branch; full version mapping and clean isolated replay are still outstanding. The earlier six-missing-source statement in this audit is historical and is superseded by PR #21's recovery evidence.
+
+No live database changes, role grants, account creation, migrations, secrets or deployments were performed in this follow-up.
