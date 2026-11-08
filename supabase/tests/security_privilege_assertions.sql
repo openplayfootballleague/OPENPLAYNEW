@@ -48,6 +48,25 @@ select
   (select pg_get_functiondef('public.admin_resolve_player_transfer_request(uuid,text,text)'::regprocedure) ilike '%pg_advisory_xact_lock%' and pg_get_functiondef('public.admin_resolve_player_transfer_request(uuid,text,text)'::regprocedure) ilike '%v_source.user_id<>v_request.user_id%' and pg_get_functiondef('public.admin_resolve_player_transfer_request(uuid,text,text)'::regprocedure) ilike '%tm.id<>v_source.id%') as transfer_approval_is_serialized_and_source_scoped,
   (select pg_get_functiondef('public.resolve_team_registration(uuid,text,text)'::regprocedure) ilike '%pg_advisory_xact_lock%' and pg_get_functiondef('public.resolve_team_registration(uuid,text,text)'::regprocedure) ilike '%v_player.is_banned%' and pg_get_functiondef('public.resolve_team_registration(uuid,text,text)'::regprocedure) ilike '%tm.season_team_id<>p_season_team_id%') as team_registration_captain_is_eligible_and_unique,
   (not has_function_privilege('anon','public.handover_team_captain(uuid,uuid)','EXECUTE') and has_function_privilege('authenticated','public.handover_team_captain(uuid,uuid)','EXECUTE') and (select pg_get_functiondef('public.handover_team_captain(uuid,uuid)'::regprocedure) ilike '%is_active_team_captain(p_season_team_id)%' and pg_get_functiondef('public.handover_team_captain(uuid,uuid)'::regprocedure) ilike '%team.captain.handed_over%')) as captain_handover_is_authenticated_captain_only_and_audited,
+  (select c.relrowsecurity and not has_table_privilege('anon',c.oid,'SELECT') and not has_table_privilege('authenticated',c.oid,'SELECT') and not has_table_privilege('anon',c.oid,'INSERT') and not has_table_privilege('authenticated',c.oid,'INSERT') from pg_class c where c.oid='public.location_admin_assignments'::regclass) as location_admin_assignments_are_rpc_only,
+  not exists(select 1 from pg_proc p where p.oid in (
+    'public.get_admin_dashboard_contextual(uuid,uuid,uuid)'::regprocedure,
+    'public.get_admin_player_register_contextual(text,text,integer,integer,uuid,uuid,uuid)'::regprocedure,
+    'public.get_admin_team_sheets_contextual(uuid,uuid,uuid)'::regprocedure,
+    'public.admin_get_transfer_requests_contextual(text,uuid,uuid,uuid)'::regprocedure,
+    'public.get_admin_contextual_fixtures(uuid,uuid,uuid)'::regprocedure
+  ) and (not (pg_get_functiondef(p.oid) ilike '%assert_admin_location_context(v_location)%') or has_function_privilege('anon',p.oid,'EXECUTE'))) as contextual_admin_reads_enforce_assigned_location,
+  not exists(select 1 from pg_proc p where p.oid in (
+    'public.admin_create_league(uuid,text,competition_format,text)'::regprocedure,
+    'public.admin_create_season(uuid,text,integer,date,date,timestamp with time zone,timestamp with time zone)'::regprocedure,
+    'public.admin_create_season_team(uuid,text,text,text)'::regprocedure,
+    'public.admin_create_fixture(uuid,integer,integer,uuid,uuid,timestamp with time zone,uuid,text)'::regprocedure,
+    'public.admin_record_fixture_result_with_appearances(uuid,integer,integer,uuid[],uuid[],uuid[],uuid[],text)'::regprocedure,
+    'public.admin_set_fixture_status(uuid,fixture_status,text)'::regprocedure,
+    'public.admin_transition_season(uuid,season_status)'::regprocedure,
+    'public.resolve_team_membership_request(uuid,text)'::regprocedure,
+    'public.resolve_team_registration(uuid,text,text)'::regprocedure
+  ) and (not (pg_get_functiondef(p.oid) ilike '%can_administer_location%') or has_function_privilege('anon',p.oid,'EXECUTE'))) as location_admin_mutations_check_assigned_location,
   has_column_privilege('authenticated','public.profiles','first_name','UPDATE')
     and has_column_privilege('authenticated','public.profiles','last_name','UPDATE')
     and has_column_privilege('authenticated','public.profiles','display_name','UPDATE')
