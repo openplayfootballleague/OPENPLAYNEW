@@ -136,6 +136,92 @@ begin
 end;
 $player_registration_security$;
 
+-- Exercise the actual registration RPC against controlled candidate rows.
+do $register_player_identity_runtime$
+declare
+  v_candidate_a uuid;
+  v_candidate_b uuid;
+  v_player_status text;
+  v_review record;
+begin
+  insert into auth.users (id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
+  values
+    ('00000000-0000-4000-8000-000000000201','authenticated','authenticated','ci-seed-a@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    ('00000000-0000-4000-8000-000000000202','authenticated','authenticated','ci-seed-b@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    ('00000000-0000-4000-8000-000000000203','authenticated','authenticated','ci-split-match@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    ('00000000-0000-4000-8000-000000000204','authenticated','authenticated','ci-name-phone@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    ('00000000-0000-4000-8000-000000000205','authenticated','authenticated','ci-name-email@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    ('00000000-0000-4000-8000-000000000206','authenticated','authenticated','ci-phone-email@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    ('00000000-0000-4000-8000-000000000207','authenticated','authenticated','ci-one-match@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    ('00000000-0000-4000-8000-000000000208','authenticated','authenticated','ci-no-match@openplay.invalid','','{}'::jsonb,now(),now(),now());
+
+  insert into public.players (user_id,full_name,phone,email,date_of_birth,registration_status,is_banned)
+  values ('00000000-0000-4000-8000-000000000201','Alice Example','+447700900201','ci-name-email@openplay.invalid',date '1990-01-01','registered',false)
+  returning id into v_candidate_a;
+
+  insert into public.players (user_id,full_name,phone,email,date_of_birth,registration_status,is_banned)
+  values ('00000000-0000-4000-8000-000000000202','Bob Example','+447700900202','ci-phone-email@openplay.invalid',date '1990-01-02','registered',true)
+  returning id into v_candidate_b;
+
+  execute 'set local role authenticated';
+
+  -- A name match on candidate A and phone match on candidate B must not combine.
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000203',true);
+  perform public.register_player('Alice Example','+447700900202','ci-split-match@openplay.invalid',date '1990-01-01');
+  select registration_status::text into v_player_status from public.players where user_id='00000000-0000-4000-8000-000000000203';
+  if v_player_status <> 'registered'
+     or exists(select 1 from public.player_registration_reviews r join public.players p on p.id=r.player_id where p.user_id='00000000-0000-4000-8000-000000000203') then
+    raise exception 'Split matches across two existing players incorrectly triggered manual review';
+  end if;
+
+  -- Name + phone against one candidate.
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000204',true);
+  perform public.register_player('Alice Example','+447700900201','ci-name-phone@openplay.invalid',date '1990-01-01');
+  select registration_status::text into v_player_status from public.players where user_id='00000000-0000-4000-8000-000000000204';
+  if v_player_status <> 'pending_review' then raise exception 'Name plus phone match did not trigger review'; end if;
+  select r.* into v_review from public.player_registration_reviews r join public.players p on p.id=r.player_id where p.user_id='00000000-0000-4000-8000-000000000204';
+  if v_review.matched_player_ids <> array[v_candidate_a]::uuid[]
+     or jsonb_array_length(v_review.match_evidence) <> 1
+     or (v_review.match_evidence->0->>'name_matched')::boolean is not true
+     or (v_review.match_evidence->0->>'phone_matched')::boolean is not true
+     or (v_review.match_evidence->0->>'email_matched')::boolean is not false then
+    raise exception 'Name plus phone review evidence is not candidate-specific';
+  end if;
+
+  -- Name + email against one candidate.
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000205',true);
+  perform public.register_player('Alice Example','+447700900299','ci-name-email@openplay.invalid',date '1990-01-01');
+  select registration_status::text into v_player_status from public.players where user_id='00000000-0000-4000-8000-000000000205';
+  if v_player_status <> 'pending_review' then raise exception 'Name plus email match did not trigger review'; end if;
+
+  -- Phone + email against a banned candidate: banned records remain in duplicate evaluation.
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000206',true);
+  perform public.register_player('Charlie Example','+447700900202','ci-phone-email@openplay.invalid',date '1990-01-02');
+  select registration_status::text into v_player_status from public.players where user_id='00000000-0000-4000-8000-000000000206';
+  if v_player_status <> 'pending_review' then raise exception 'Phone plus email match against a banned candidate was not evaluated consistently'; end if;
+  select r.* into v_review from public.player_registration_reviews r join public.players p on p.id=r.player_id where p.user_id='00000000-0000-4000-8000-000000000206';
+  if v_review.matched_player_ids <> array[v_candidate_b]::uuid[]
+     or jsonb_array_length(v_review.match_evidence) <> 1
+     or (v_review.match_evidence->0->>'phone_matched')::boolean is not true
+     or (v_review.match_evidence->0->>'email_matched')::boolean is not true then
+    raise exception 'Phone plus email evidence for a banned candidate is incomplete';
+  end if;
+
+  -- A single matching metric must not trigger review; DOB alone is never a metric.
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000207',true);
+  perform public.register_player('Alice Example','+447700900299','ci-one-match@openplay.invalid',date '1990-01-01');
+  select registration_status::text into v_player_status from public.players where user_id='00000000-0000-4000-8000-000000000207';
+  if v_player_status <> 'registered' then raise exception 'A single identity metric incorrectly triggered review'; end if;
+
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000208',true);
+  perform public.register_player('Charlie Example','+447700900299','ci-no-match@openplay.invalid',date '1990-01-01');
+  select registration_status::text into v_player_status from public.players where user_id='00000000-0000-4000-8000-000000000208';
+  if v_player_status <> 'registered' then raise exception 'DOB-only overlap incorrectly triggered identity review'; end if;
+
+  execute 'reset role';
+end;
+$register_player_identity_runtime$;
+
 -- Verify row-level visibility using disposable test identities.
 do $identity_review_role_matrix$
 declare
