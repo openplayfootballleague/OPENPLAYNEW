@@ -45,3 +45,18 @@ The prior status report records successful GitHub Actions runs for domain tests,
 
 ## Next execution priority
 Reconcile the current 97-record Supabase migration ledger with the repository's local migration files and determine the exact scope of PR #2's outdated 35-record snapshot. Continue with independent code and CI review while preserving the production and security gates above.
+
+
+## Migration-ledger reconciliation — follow-up verification (8 November 2026)
+A fresh read of the live Supabase migration ledger and GitHub recursive trees materially changes the assessment of PR #2:
+- Live Supabase ledger: **97 records**.
+- `main`: **62** local `supabase/migrations/*.sql` files.
+- PR #2 head (`chore/reconcile-supabase-migration-ledger-2026-11-07`): **35** local migration files.
+- Comparing normalized migration names (removing the leading local timestamp) gives **96 distinct remote names**, because the live ledger contains two records named `admin_fixture_management`.
+- **37 distinct live migration names have no matching local filename on main**. These include Bideford-only activation, player appearance tracking, Stripe checkout/refunds/webhook processing, finance role/summary functions, further security hardening, admin location scoping, and gallery privacy.
+- Three local filenames on main have no same-named remote ledger entry: `finance_balance_semantics`, `audit_log_deny_all_policy`, and `fixture_goal_records_deny_all`. Their semantics/version mapping must be checked, not discarded.
+- The remote ledger contains two separate `admin_fixture_management` records (versions `20261107224311` and `20261107224351`). They must remain separate history entries even if their SQL content is identical.
+
+**Disposition:** PR #2 is not ready to merge. Its stated 35↔35 reconciliation describes an earlier ledger state and does not cover the current 97 applied records. Do not merge it, rerun migrations, edit the live migration ledger, or rename/delete files on the basis of name-only matching.
+
+**Safe next step:** inventory all migration files across the relevant OPENPLAYNEW branches/PR heads; retrieve the exact SQL blobs for each live-missing migration where present; match by content and history (including duplicate versions); then create a reviewed, deterministic local filename/snapshot reconciliation on a dedicated branch. Any live migration with no recoverable SQL source must be explicitly reported as an unreconciled historical migration, not reconstructed speculatively.
