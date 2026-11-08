@@ -183,3 +183,17 @@ The new SQL regression file is not executed by this CI workflow. Its database as
 - PR #22 migration filename: corrected and source preconditions checked; no CI or database replay.
 - Live database: unchanged.
 - Supabase paid branch / isolated environment: still intentionally deferred until development is complete.
+
+
+## 9. PostHog resilience CI completed — 8 November 2026, 13:35 UTC
+
+The second PR #13 hardening commit (`ccbc27ccb0874878d409ed732e011458d8e073d7`) adds rejection handling for asynchronous Supabase auth/network actor resolution. If the auth lookup rejects, the analytics actor is reset to `unknown`; no route event is captured. The committed source was read back and checked.
+
+GitHub Actions run `42484179685` completed successfully:
+- Supabase Edge Function type-check: passed.
+- Vitest: **12 files / 96 tests passed**.
+- TypeScript and production build: passed.
+- Cloudflare Worker dry-run: passed.
+- No failed steps. Deno emitted a peer-dependency compatibility warning during install.
+
+A PR #13 comment records the fix and evidence. Consent grant/revocation/GPC browser tests and proof of zero PostHog network requests before consent remain unverified and are still acceptance requirements.
