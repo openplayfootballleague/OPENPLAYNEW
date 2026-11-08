@@ -126,3 +126,10 @@ A direct GitHub check-runs lookup on each current PR head returned one completed
 - #6 Stripe checkout — success; static lifecycle/financial-integrity findings and end-to-end payment acceptance remain open.
 
 CI success establishes the current build workflow passed; it does not substitute for real-device, authenticated-role, migration-content, or Stripe integration acceptance. All six PRs remain drafts at this check. No PR was merged.
+
+
+## Latest follow-up — 8 November 2026
+- Expanded the migration recovery search to all nine visible branches (128 distinct SQL filenames). The same six applied migration sources remain absent; GitHub path history returned no commits for their expected filenames. Three later files appear conceptually related (finance balance semantics, audit-log deny policy, fixture-goal-record deny policy), but they are not the original SQL and have not been treated as exact replacements. The migration report now records this and the safe recovery route.
+- Expanded Stripe review to a fourth blocker: PR #6 does not add a player-facing route/component that actually invokes the checkout Edge Function or presents payment history. The current Player Hub only handles a return query string; that is not an end-to-end checkout UI. The final RPC migration also requires an active captain, so the intended payer role must be settled and the UI must reflect server enforcement.
+- PR #6's static review now has four acceptance blockers: retry lifecycle, `charge.succeeded` paid-state transition, checkout amount/currency/session verification, and missing player-facing entry point/payment history.
+- No original migration SQL was fabricated; no application code or database changes were made in this continuation.
