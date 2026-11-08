@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateTeamRetention, summarizeFinanceForAnalytics } from "./metrics";
+import { calculatePlayerRetention, calculateTeamRetention, summarizeFinanceForAnalytics } from "./metrics";
 
 const range = ["2026-01-01T00:00:00.000Z", "2027-01-01T00:00:00.000Z"] as const;
 
@@ -44,6 +44,11 @@ describe("source-aware analytics metrics", () => {
 
   it("returns unavailable retention when the previous cohort is empty", () => {
     expect(calculateTeamRetention([], ["team-a"])).toBeNull();
+  });
+
+  it("calculates player retention against distinct comparable-period players", () => {
+    expect(calculatePlayerRetention(["p1", "p1", "p2", "p3"], ["p1", "p3", "p4"])).toBeCloseTo(2 / 3);
+    expect(calculatePlayerRetention([], ["p1"])).toBeNull();
   });
 
   it("calculates retention against the distinct previous-season cohort", () => {
