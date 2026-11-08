@@ -19,10 +19,20 @@ import { getSupabaseClient } from "../lib/supabase/client";
 const POSTHOG_OPTIONS = {
   defaults: "2026-08-30",
   autocapture: false,
+  rageclick: false,
+  capture_dead_clicks: false,
   capture_pageview: false,
   capture_pageleave: false,
+  capture_exceptions: false,
+  capture_heatmaps: false,
+  capture_performance: false,
   disable_session_recording: true,
   opt_out_capturing_by_default: true,
+  advanced_disable_flags: true,
+  disable_surveys: true,
+  disable_product_tours: true,
+  disable_conversations: true,
+  logs: { captureConsoleLogs: false },
 } as const;
 
 function PostHogConsentInitializer() {
