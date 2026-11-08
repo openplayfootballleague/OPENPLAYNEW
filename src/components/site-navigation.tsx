@@ -67,7 +67,6 @@ export function SiteNavigation() {
 
   const homeTarget = access.signedIn ? "/player" : "/";
   const showJoin = !access.approvedPlayer;
-  const navLabel = access.captain ? "Matchday" : "Home";
 
   return (
     <header className="op-site-nav">
@@ -75,7 +74,7 @@ export function SiteNavigation() {
         <span>OPEN</span><strong>PLAY</strong>
       </Link>
       <nav aria-label="Open Play navigation">
-        <Link to={homeTarget}>{navLabel}</Link>
+        <Link to={homeTarget}>Home</Link>
         <Link to="/match-centre">Match Centre</Link>
         <Link to="/teams">Teams</Link>
         {showJoin && <Link to="/join">Join Open Play</Link>}
