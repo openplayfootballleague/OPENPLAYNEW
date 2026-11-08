@@ -1326,6 +1326,14 @@ export type Database = {
         Args: { p_effective_from_gameweek: number; p_player_fee_pence: number; p_reason: string; p_season_id: string }
         Returns: string
       }
+      admin_get_transfer_requests_contextual: {
+        Args: { p_status?: string | null; p_location_id?: string | null; p_league_id?: string | null; p_season_id?: string | null }
+        Returns: {
+          id: string; user_id: string; player_name: string; source_membership_id: string; source_team_name: string;
+          destination_team_id: string; destination_team_name: string; season_name: string; league_name: string;
+          reason: string; status: string; requested_at: string
+        }[]
+      }
       get_admin_team_sheets_contextual: {
         Args: { p_location_id?: string | null; p_league_id?: string | null; p_season_id?: string | null }
         Returns: {
