@@ -40,3 +40,7 @@ export function validateChargeSettlement(record: PaymentSettlementRecord, object
   }
   return { ok: true };
 }
+
+export function isRefundedPaymentStatus(status: string): boolean {
+  return status === "refunded" || status === "partially_refunded";
+}
