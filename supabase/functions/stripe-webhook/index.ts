@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
   ]);
   // Stripe can deliver events out of order. Do not let an older checkout
   // completion/expiry/failure overwrite a newer payment or refund state.
-  let paymentStatusBeforeEvent: string | null = null;
+  let paymentStatusBeforeEvent: Database["public"]["Enums"]["payment_status"] | null = null;
   let paymentAttemptBeforeEvent: number | null = null;
   let paymentSessionBeforeEvent: string | null = null;
   let lastStripeEventBeforeEvent: string | null = null;
