@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - feat/openplay-integrated-application-2026-11-08
-    paths:
-      - .github/workflows/posthog-dependency-lock.yml
 
 permissions:
   contents: write
