@@ -10,7 +10,7 @@ function TeamsPage(){
  const [teams,setTeams]=useState<TeamRow[]>([]);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState("");
- const seasons=Array.from(new Map(teams.map(team=>[team.season_id,{id:team.season_id,name:team.season_name,starts_on:team.starts_on}])).values());
+ const seasons=teams.filter((team,index)=>teams.findIndex(other=>other.season_id===team.season_id)===index).map(team=>({id:team.season_id,name:team.season_name,starts_on:team.starts_on}));
 
  useEffect(()=>{
   let alive=true;
