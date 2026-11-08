@@ -110,7 +110,7 @@ This manifest maps every applied ledger version/name to its canonical source pat
 | 20261108012537 | 20261108280000_keep_unpublished_gallery_images_private | `supabase/migrations/20261108012537_keep_unpublished_gallery_images_private.sql` | `e235dd430f12dcc88bd72858ce49d2bbbb1f4411` |
 | 20261108020706 | player_team_request_status_rpc | `supabase/migrations/20261108020706_player_team_request_status_rpc.sql` | `2cc6ad92429460ee1d23a9f406afe0ad875868bc` |
 
-| 20261108194831 | phase1_completion_bundle | `supabase/migrations/20261108194831_phase1_completion_bundle.sql` | ff1a08e27f077a7f127c6f6c33dbf77e5eb38aac |
+| 20261108194831 | phase1_completion_bundle | `supabase/migrations/20261108194831_phase1_completion_bundle.sql` | `ff1a08e27f077a7f127c6f6c33dbf77e5eb38aac` |
 
 ## Verification notes
 
