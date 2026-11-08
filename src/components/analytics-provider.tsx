@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { PostHogProvider, usePostHog } from "@posthog/react";
 import { useLocation } from "@tanstack/react-router";
 import {
@@ -16,7 +17,6 @@ import {
 import { getSupabaseClient } from "../lib/supabase/client";
 
 const POSTHOG_OPTIONS = {
-  api_host: import.meta.env.VITE_POSTHOG_HOST,
   defaults: "2026-08-30",
   autocapture: false,
   capture_pageview: false,
@@ -200,7 +200,7 @@ export function AnalyticsConsentBanner({ enabled }: { enabled: boolean }) {
   );
 }
 
-export function ConsentAwareAnalytics({ children }: { children: React.ReactNode }) {
+export function ConsentAwareAnalytics({ children }: { children: ReactNode }) {
   const [allowed, setAllowed] = useState(false);
   const projectToken = import.meta.env.VITE_POSTHOG_PROJECT_TOKEN?.trim();
   const projectHost = import.meta.env.VITE_POSTHOG_HOST?.trim();
