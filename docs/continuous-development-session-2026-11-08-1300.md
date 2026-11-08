@@ -197,3 +197,34 @@ GitHub Actions run `42484179685` completed successfully:
 - No failed steps. Deno emitted a peer-dependency compatibility warning during install.
 
 A PR #13 comment records the fix and evidence. Consent grant/revocation/GPC browser tests and proof of zero PostHog network requests before consent remain unverified and are still acceptance requirements.
+
+
+## 10. Extended migration reconciliation — 8 November 2026, 13:45 UTC
+
+### Exact-source mapping progress
+
+The 98-row live ledger was enumerated again. The verified distinct exact-source set is now **74 of 98 applied versions**:
+
+- **35/35** historical sources in the dedicated PR #2 reconciliation branch now match their exact live ledger statements byte-for-byte. Sixteen files that had formatting/comment drift or had absorbed later edits were restored to the original ledger statement and fetched back for verification. In particular, the original admin_dashboard_projection source was restored; the later admin_queue_consistency migration already carries the approved-membership filter and remains its own exact source.
+- **33/33** source files on the current PR #6 core feature branch now map to exact applied ledger versions: 32 existing sources plus the recovered 20261107225102_goal_audit_actor_restrict source. Twenty-six files were renamed from synthetic local ordering prefixes to their actual applied version prefixes; exact ledger SQL was used where needed. The branch now has 33 applied source files and no duplicate migration filename prefixes.
+- **6 additional** exact sources from PR #21 beyond its overlapping 20261107224311_admin_fixture_management source: appearance tracking, two finance summary options, two explicit deny policies and location-admin assignments.
+
+The four payment source files and 26 core feature migration files were all aligned to exact applied version prefixes. The Instagram profile migration was separately moved to 20261109005000, preserving order before 20261109010000_team_instagram_handle.sql and avoiding the former 20261108015000 collision with Stripe checkout.
+
+### CI after source alignment
+
+- PR #6 latest core branch run 42485543523: **8 files / 80 tests passed**, Edge Function type-check, TypeScript/production build and Cloudflare Worker dry-run all passed.
+- PR #13 latest run 42484316495: **12 files / 97 tests passed**, Edge Function type-check, TypeScript/production build and Cloudflare Worker dry-run all passed.
+- These CI runs do not execute SQL migrations or replace clean database replay and authenticated role-matrix testing.
+
+### Remaining source gap
+
+24 of 98 applied ledger versions remain to be mapped or recovered. The full version/name list and next recovery action are recorded in issue #19. The fact that a source is not yet in the verified set does not prove it is absent from every branch; the next task is to locate existing source files by content/version or recover the exact statement from the live ledger, while avoiding duplicate local sources.
+
+### Integration constraint
+
+The PR #2 branch is 24 commits ahead but 481 commits behind the current PR #6 core branch and is divergent. It must not be merged wholesale. Its 35 verified SQL sources are a recovery set; port only the reviewed canonical migration files/manifest into the active integration sequence after conflict review.
+
+### Safety state
+
+No Supabase migration, database DDL, role grant, payment, production deployment or paid branch creation was performed. The user-agreed no-cost-until-development-end boundary remains unchanged.
