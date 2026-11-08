@@ -22,7 +22,8 @@ CI run: `42467516708` — passed.
    - postponed/cancelled/missing-result counts are separate;
    - participation counts distinct eligible registered players who actually appeared, not account holders.
 6. Found and fixed a refund sign mismatch in the shared finance calculation helper so it agrees with the Finance database summary. Updated the regression test.
-7. Updated PR #13 description to record Analytics scope and outstanding gates.
+7. Inspected the live PostHog event/property schema and recorded the existing Open Play content-view events, location/league/team context, current UTM dimensions and missing registration/approval/participation instrumentation.
+8. Updated PR #13 description to record Analytics scope and outstanding gates.
 
 ## Verification
 
