@@ -263,3 +263,22 @@ Snapshot taken 8 November 2026 from all 10 visible branches (129 distinct migrat
 | 20261108020706 | player_team_request_status_rpc | supabase/migrations/20261108020706_player_team_request_status_rpc.sql (feat/stripe-test-checkout-lifecycle; 2cc6ad92429460ee1d23a9f406afe0ad875868bc) | Exact version + name |
 
 Summary: 37 exact version+name candidates, 55 name-only candidates requiring version-prefix reconciliation, 6 missing original SQL sources. The two admin_fixture_management ledger rows (versions 20261107224311 and 20261107224351) map to byte-identical local source blobs (f586326ec408dbebadbf458ae317f1e7252ce1bf); this duplicate application should be reviewed, although the SQL uses CREATE OR REPLACE definitions and grants.
+
+
+## Consolidation update — 8 November 2026, 02:23 UTC
+
+The exact Bideford first-release migration source has now been copied byte-for-byte from the reviewed PR #7 source branch into the primary PR #6 feature branch:
+- File: `supabase/migrations/20261107225453_first_release_bideford_location_policy.sql`
+- Verified original blob SHA: `0f039bc23f94cebf0d5cd9094fd67d13d65f0195`
+- The PR #6 copy has the same blob SHA. No SQL was executed and no live database rows/schema were changed.
+
+A fresh comparison of the **98-row live migration ledger** with the current PR #6 branch tree reports:
+- 94 local migration SQL files.
+- Exactly **2** exact leading-version-prefix matches: `20261107225453` (Bideford first-release policy) and `20261108020706` (player team-request status RPC).
+- **9 duplicate local version prefixes** remain.
+- 96 live ledger versions still lack an exact leading-prefix match in the current branch.
+- The six original applied SQL sources listed in this report remain unrecovered: `fixture_player_appearance_tracking`, `finance_options_for_finance_roles`, `finance_summary_team_balance_rollup`, `audit_log_explicit_deny_policy`, `fixture_goal_records_explicit_deny_policy`, and `location_admin_assignments`.
+
+The PR #7 location activation controls and policy documentation have been ported into PR #6. The primary branch now has a platform-admin-gated Bideford activation/deactivation confirmation flow, reason and confirmation checkbox, and the exact source migration. The Needs Attention summary tiles now link to the correct PR #6 queue IDs with keyboard-focus styling. Admin workspace labels are sequentially numbered. This is source consolidation only; PR #6 remains draft and must not be deployed as a migration baseline.
+
+CI on PR #6 head `a345997ed11e3c96aeacb6f6b242434cc64aece0` passed (7 test files / 78 tests, Edge Function type-check, TypeScript/Vite build and Cloudflare dry-run). A subsequent small copy update to the location-creation success/help text is on a newer head and awaits its own CI result.
