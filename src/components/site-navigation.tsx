@@ -35,7 +35,7 @@ export function SiteNavigation() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-  const accountMenuRef = useRef<HTMLDivElement>(null);
+  const navigationRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!accountOpen && !moreOpen) return;
@@ -46,8 +46,9 @@ export function SiteNavigation() {
       }
     }
     function closeOnOutsidePointer(event: PointerEvent) {
-      if (event.target instanceof Node && !accountMenuRef.current?.contains(event.target)) {
+      if (event.target instanceof Node && !navigationRef.current?.contains(event.target)) {
         setAccountOpen(false);
+        setMoreOpen(false);
       }
     }
     document.addEventListener("keydown", closeOnEscape);
@@ -138,7 +139,7 @@ export function SiteNavigation() {
   }
 
   return (
-    <header className="op-site-nav">
+    <header className="op-site-nav" ref={navigationRef}>
       <Link className="op-nav-brand" to={homeTarget} aria-label="Open Play home">
         <span>OPEN</span><strong>PLAY</strong>
       </Link>
@@ -159,7 +160,7 @@ export function SiteNavigation() {
         </button>
       </nav>
 
-      <div className="op-nav-account-wrap" ref={accountMenuRef}>
+      <div className="op-nav-account-wrap">
         {access.signedIn ? (
           <>
             <button type="button" className="op-account-trigger" aria-label="Open account menu" aria-expanded={accountOpen} aria-controls="op-account-menu" onClick={() => { setAccountOpen((open) => !open); setMoreOpen(false); }}>
