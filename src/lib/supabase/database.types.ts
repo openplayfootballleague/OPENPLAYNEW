@@ -1194,16 +1194,19 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          instagram_profile_url: string | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
           id?: string
+          instagram_profile_url?: string | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
           id?: string
+          instagram_profile_url?: string | null
         }
         Relationships: []
       }
