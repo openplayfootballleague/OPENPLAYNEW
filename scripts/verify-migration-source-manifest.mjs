@@ -6,7 +6,6 @@ const manifestPath = "docs/supabase-migration-source-manifest-2026-11-08.md";
 const migrationDirectory = "supabase/migrations";
 const expectedForwardOnly = [
   "supabase/migrations/20261108014200_finance_balance_semantics.sql",
-  "supabase/migrations/20261109002000_profiles_avatar_only_permissions.sql",
 ];
 
 function fail(message) {
