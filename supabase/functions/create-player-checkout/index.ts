@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { classifyCheckoutWithoutSession, classifyExistingCheckoutSession, nextCheckoutAttempt } from "../../../src/lib/payments/stripe-settlement.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": Deno.env.get("APP_ORIGIN") ?? "https://openplayfootball.lovable.app",
@@ -77,10 +78,9 @@ Deno.serve(async (req) => {
     if (existingSession.status === "complete" && existingSession.payment_status === "paid") {
       return json({ paid: true, message: "This fixture has already been paid." });
     }
-    const canRetry = existingSession.status === "expired" ||
-      (existingSession.status === "complete" && ["failed", "cancelled"].includes(record.status) && existingSession.payment_status !== "paid");
-    if (!canRetry) return json({ error: "This Checkout is still processing. Refresh the Player Hub shortly." }, 409);
-  } else if (record.status !== "pending" && record.status !== "failed" && record.status !== "cancelled") {
+    const sessionAction = classifyExistingCheckoutSession(record.status, String(existingSession.status ?? ""), String(existingSession.payment_status ?? ""));
+    if (sessionAction !== "retry") return json({ error: "This Checkout is still processing. Refresh the Player Hub shortly." }, 409);
+  } else if (classifyCheckoutWithoutSession(record.status) === "blocked") {
     return json({ error: "This payment cannot be checked out" }, 409);
   }
 
@@ -89,9 +89,11 @@ Deno.serve(async (req) => {
   if (retryRequired) {
     const previousStatus = record.status;
     const previousAttempt = record.checkout_attempt;
+    const nextAttempt = nextCheckoutAttempt(previousAttempt);
+    if (nextAttempt === null) return json({ error: "Checkout attempt limit reached. Contact Open Play." }, 409);
     let claim = admin.from("payment_records").update({
       status: "pending",
-      checkout_attempt: previousAttempt + 1,
+      checkout_attempt: nextAttempt,
       stripe_checkout_session_id: null,
       stripe_payment_intent_id: null,
     }).eq("id", record.id).eq("status", previousStatus).eq("checkout_attempt", previousAttempt);
