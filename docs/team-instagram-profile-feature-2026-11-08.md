@@ -42,3 +42,14 @@ CI has successfully completed client and server production bundling in the featu
 
 ## Deployment
 No migration has been applied to production. No live deployment or PR merge has been performed.
+
+## Final CI verification update — 10:04 UTC
+Latest workflow run `42469768931` for commit `d341295ad9d9f7ae8f88200e5b42e7f5c87d10f2` completed successfully:
+- Supabase Edge Function type-check: passed
+- Domain tests: 8 test files, 61 tests passed (including 10 Instagram URL validation tests)
+- TypeScript and production client/server build: passed
+- Cloudflare Worker bundle dry-run validation: passed
+
+The previous failures were corrected: duplicate RPC type declarations were removed, and the generated database types now keep `admin_create_season_team` separate from the extended `register_team` signature.
+
+A hosted Supabase development branch was not created: the Supabase tool requires explicit cost confirmation before provisioning. No production migration was applied. SQL migration execution and role/row-level behaviour therefore remain unverified.
