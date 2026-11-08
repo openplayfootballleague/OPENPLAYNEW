@@ -29,11 +29,11 @@ export function writeAnalyticsConsent(
 ): { consent: Exclude<AnalyticsConsent, "unset">; persisted: boolean } {
   const consent = globalPrivacyControl ? "denied" : requested;
   try {
-    if (!storage) return { consent, persisted: false };
+    if (!storage) return { consent: "denied", persisted: false };
     storage.setItem(ANALYTICS_CONSENT_KEY, consent);
     return { consent, persisted: true };
   } catch {
-    return { consent, persisted: false };
+    return { consent: "denied", persisted: false };
   }
 }
 
@@ -67,7 +67,7 @@ export function writeBrowserAnalyticsConsent(
   globalPrivacyControl = isGlobalPrivacyControlEnabled(),
 ): { consent: Exclude<AnalyticsConsent, "unset">; persisted: boolean } {
   if (typeof window === "undefined") {
-    return { consent: globalPrivacyControl ? "denied" : requested, persisted: false };
+    return { consent: "denied", persisted: false };
   }
   try {
     return writeAnalyticsConsent(requested, window.localStorage, globalPrivacyControl);
