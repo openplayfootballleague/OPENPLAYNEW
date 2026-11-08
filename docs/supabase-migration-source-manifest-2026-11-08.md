@@ -5,7 +5,7 @@
 **Branch:** `chore/reconcile-remaining-applied-migrations-2026-11-08`  
 **Applied ledger rows:** 98  
 **Canonical source files:** 98/98 present, unique version prefixes  
-**Forward-only local migrations:** `20261108014200_finance_balance_semantics.sql`, `20261108030000_scope_rls_to_global_admins.sql`, `20261108031000_revoke_unscoped_admin_rpcs.sql`, `20261108032000_fix_captain_membership_approval_scope.sql`, `20261109000000_correct_membership_location_and_finance_authorization.sql`, `20261109020000_fix_player_duplicate_identity_matching.sql`, and `20261109021000_restrict_identity_reviews_to_global_admins.sql`; all are forward-only and require isolated replay, role-matrix regression testing and explicit release review.
+**Consolidated forward-only migration:** `20261109030000_phase1_completion_bundle.sql` contains the seven previously pending corrections plus the Phase 1 picture-only profile permission correction. It is not applied and requires isolated replay, role-matrix regression testing and explicit release review.
 
 This manifest maps every applied ledger version/name to its canonical source path and Git blob SHA. The 24 previously unmapped source statements were recovered from the live migration ledger. The other 74 source statements were reconciled from the verified PR #2, PR #6 and PR #21 source sets. The migration ledger's `name` field may retain an older embedded timestamp; the source path is mapped by the authoritative 14-digit applied version prefix.
 

@@ -1,6 +1,6 @@
 -- Player self-service profile permission regression.
--- The confirmed Player Hub editor may update identity/presentation fields and
--- avatar_path. DOB and emergency-contact fields remain admin-managed.
+-- The confirmed Player Hub editor may replace the profile picture only.
+-- All identity/contact/player fields use approved workflows.
 do $profile_self_service_permissions$
 declare
   v_profile_rls boolean;
@@ -10,19 +10,19 @@ begin
     raise exception 'Authenticated users must not have table-level UPDATE on profiles';
   end if;
 
-  if not has_column_privilege('authenticated', 'public.profiles', 'first_name', 'UPDATE')
-     or not has_column_privilege('authenticated', 'public.profiles', 'last_name', 'UPDATE')
-     or not has_column_privilege('authenticated', 'public.profiles', 'display_name', 'UPDATE')
-     or not has_column_privilege('authenticated', 'public.profiles', 'phone', 'UPDATE')
-     or not has_column_privilege('authenticated', 'public.profiles', 'preferred_position', 'UPDATE')
-     or not has_column_privilege('authenticated', 'public.profiles', 'avatar_path', 'UPDATE') then
-    raise exception 'Confirmed Player Hub self-service profile fields must remain writable';
+  if not has_column_privilege('authenticated', 'public.profiles', 'avatar_path', 'UPDATE') then
+    raise exception 'Players must be able to replace their own profile picture';
   end if;
 
-  if has_column_privilege('authenticated', 'public.profiles', 'date_of_birth', 'UPDATE')
+  if has_column_privilege('authenticated', 'public.profiles', 'first_name', 'UPDATE')
+     or has_column_privilege('authenticated', 'public.profiles', 'last_name', 'UPDATE')
+     or has_column_privilege('authenticated', 'public.profiles', 'display_name', 'UPDATE')
+     or has_column_privilege('authenticated', 'public.profiles', 'phone', 'UPDATE')
+     or has_column_privilege('authenticated', 'public.profiles', 'preferred_position', 'UPDATE')
+     or has_column_privilege('authenticated', 'public.profiles', 'date_of_birth', 'UPDATE')
      or has_column_privilege('authenticated', 'public.profiles', 'emergency_contact_name', 'UPDATE')
      or has_column_privilege('authenticated', 'public.profiles', 'emergency_contact_phone', 'UPDATE') then
-    raise exception 'DOB and emergency-contact fields must remain admin-managed';
+    raise exception 'Only avatar_path may be updated directly by a player';
   end if;
 
   select string_agg(c.column_name, ', ' order by c.ordinal_position)
@@ -31,8 +31,7 @@ begin
   where c.table_schema = 'public'
     and c.table_name = 'profiles'
     and c.column_name not in (
-      'first_name', 'last_name', 'display_name', 'phone',
-      'preferred_position', 'avatar_path'
+      'avatar_path'
     )
     and has_column_privilege('authenticated', 'public.profiles', c.column_name, 'UPDATE');
 
@@ -112,8 +111,8 @@ end;
 $profile_self_service_permissions$;
 
 -- Two-authenticated-user Data API tests remain required:
--- 1. User A can update their own confirmed self-service fields.
--- 2. User A cannot update DOB or emergency-contact fields.
+-- 1. User A can update only their own avatar_path.
+-- 2. User A cannot update identity, contact, DOB, emergency-contact or player fields.
 -- 3. User A cannot update User B's profile row.
 -- 4. User A can upload/replace/delete only objects in User A's UUID folder.
 -- 5. User A cannot upload/replace/delete objects in User B's UUID folder.

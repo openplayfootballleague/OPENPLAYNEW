@@ -5,13 +5,7 @@ import { basename, join } from "node:path";
 const manifestPath = "docs/supabase-migration-source-manifest-2026-11-08.md";
 const migrationDirectory = "supabase/migrations";
 const expectedForwardOnly = [
-  "supabase/migrations/20261108014200_finance_balance_semantics.sql",
-  "supabase/migrations/20261108030000_scope_rls_to_global_admins.sql",
-  "supabase/migrations/20261108031000_revoke_unscoped_admin_rpcs.sql",
-  "supabase/migrations/20261108032000_fix_captain_membership_approval_scope.sql",
-  "supabase/migrations/20261109000000_correct_membership_location_and_finance_authorization.sql",
-  "supabase/migrations/20261109020000_fix_player_duplicate_identity_matching.sql",
-  "supabase/migrations/20261109021000_restrict_identity_reviews_to_global_admins.sql",
+  "supabase/migrations/20261109030000_phase1_completion_bundle.sql",
 ];
 
 function fail(message) {
