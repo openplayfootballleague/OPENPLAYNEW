@@ -25,7 +25,7 @@ BEGIN
 ${source}
   ) AS assertions;
 
-  SELECT string_agg(format('%s=%s', key, value::text), ', ' ORDER BY key)
+  SELECT string_agg(key, ', ' ORDER BY key)
   INTO failed_assertions
   FROM jsonb_each(to_jsonb(assertion_results))
   WHERE value IS DISTINCT FROM 'true'::jsonb;
