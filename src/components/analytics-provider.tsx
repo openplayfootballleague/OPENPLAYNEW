@@ -175,7 +175,7 @@ function PostHogCaptureProvider({ children }: { children: ReactNode }) {
     };
     return captureOpenPlayEvent(
       client,
-      "granted",
+      readBrowserAnalyticsConsent(),
       isGlobalPrivacyControlEnabled(),
       actor,
       event,
