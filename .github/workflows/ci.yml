@@ -64,6 +64,8 @@ jobs:
       - name: Verify database security assertions
         run: node scripts/verify-security-assertions.mjs
       - name: Verify membership, location and finance authorization regressions
+        env:
+          PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/authorization_scope_regression.sql
       - name: Stop local Supabase database
         if: always()
