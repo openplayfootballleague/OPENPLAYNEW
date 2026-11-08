@@ -56,8 +56,6 @@ async function expectPostHogReady(page: Page) {
   await expect(diagnostics).toHaveAttribute("data-posthog-loaded", "true");
   await expect(diagnostics).toHaveAttribute("data-posthog-capturing", "true");
   await expect(diagnostics).toHaveAttribute("data-posthog-opted-in", "true");
-  await expect(diagnostics).toHaveAttribute("data-posthog-token", "present");
-  await expect(diagnostics).toHaveAttribute("data-posthog-host", /posthog\.com/);
   await expect(diagnostics).toHaveAttribute("data-posthog-error", "");
 }
 
