@@ -5,12 +5,19 @@ const POSTHOG_ORIGIN = "https://eu.i.posthog.com";
 const CONSENT_KEY = "open-play.analytics-consent.v1";
 
 async function interceptPostHog(page: Page, requests: string[]) {
-  await page.route(`${POSTHOG_ORIGIN}/**`, async (route) => {
-    requests.push(route.request().url());
+  await page.route("**/*", async (route) => {
+    const url = route.request().url();
+    if (!url.toLowerCase().includes("posthog")) {
+      await route.continue();
+      return;
+    }
+
+    requests.push(url);
+    const isScript = /\\.js(?:\\?|$)/i.test(url);
     await route.fulfill({
       status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
+      contentType: isScript ? "application/javascript" : "application/json",
+      body: isScript ? "" : JSON.stringify({
         featureFlags: [],
         featureFlagPayloads: {},
         quotaLimited: false,
@@ -36,8 +43,11 @@ test("does not contact PostHog before opt-in and stops after same-tab revocation
   await expect(page.getByRole("complementary", { name: "Optional analytics preferences" })).toHaveCount(0);
   const probe = page.getByTestId("analytics-e2e-probe");
   await expect(probe).toBeVisible();
+  await expect(probe).toHaveAttribute("data-posthog-loaded", "true");
+  await expect(probe).toHaveAttribute("data-posthog-capturing", "true");
+  await expect(probe).toHaveAttribute("data-posthog-opted-in", "true");
   await probe.click();
-  await expect.poll(() => requests.length).toBeGreaterThan(0);
+  await expect.poll(() => requests.length, { timeout: 10_000 }).toBeGreaterThan(0);
 
   await page.getByRole("button", { name: "TURN OFF OPTIONAL ANALYTICS" }).click();
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("denied");
@@ -92,8 +102,11 @@ test("cross-tab opt-in and revocation update the other tab", async ({ page, cont
   const firstTabProbe = page.getByTestId("analytics-e2e-probe");
   await expect(firstTabProbe).toBeVisible();
   await page.waitForTimeout(100);
+  await expect(firstTabProbe).toHaveAttribute("data-posthog-loaded", "true");
+  await expect(firstTabProbe).toHaveAttribute("data-posthog-capturing", "true");
+  await expect(firstTabProbe).toHaveAttribute("data-posthog-opted-in", "true");
   await firstTabProbe.click();
-  await expect.poll(() => firstTabRequests.length).toBeGreaterThan(0);
+  await expect.poll(() => firstTabRequests.length, { timeout: 10_000 }).toBeGreaterThan(0);
 
   await secondTab.evaluate((key) => localStorage.setItem(key, "denied"), CONSENT_KEY);
   await expect(firstTabProbe).toHaveCount(0);
