@@ -115,3 +115,44 @@ A personal-context review found no exact owner-approved grant/revoke authority m
 ### Live project baseline refresh
 
 Read-only counts on the connected Supabase project returned **0 Auth users, 0 user-role rows, 0 locations and 0 team memberships**. This is consistent with the current unbootstrapped state. It also means no real owner/admin/captain/ordinary-player session exists for live role acceptance; do not create one without the approved bootstrap and test plan. The profile column-grant issue is therefore a latent permission gap to close before onboarding, not evidence that a current user account was modified.
+
+
+## 7. Continued execution addendum — 8 November 2026, 13:20 UTC
+
+### PostHog provider hardening
+
+The latest PR #13 head had added the consent-gated PostHog provider. Review found that the route-actor resolver called `getSupabaseClient()` without first checking whether Supabase client configuration was available. This could throw inside a React effect in an environment where PostHog was configured but Supabase was not, allowing optional analytics to generate an application error.
+
+Fixed on the PR #13 branch:
+- Import and check `isSupabaseConfigured()` before constructing the Supabase client.
+- If account services are not configured, leave the analytics actor as `unknown` and do not capture route events. This is fail-closed and does not affect the rest of the app.
+- Read the committed file back from GitHub and confirmed the guard is present.
+- New commit: `5acdfefb3bd2d52c575abbe570ce29eeb6a52645`.
+- GitHub Actions run `42483918988` completed successfully; all build-job steps passed.
+
+### Profile avatar-only regression test
+
+The live database catalog was rechecked read-only. It confirms that authenticated users have UPDATE on `avatar_path`, but also on `first_name`, `last_name`, `display_name`, `phone` and `preferred_position`. The existing storage policies correctly constrain avatar object insert/update/delete to the caller's UUID folder. This is a permission gap relative to the approved avatar-only profile requirement; no live permission was changed.
+
+Added `supabase/tests/profile_avatar_only_permissions.sql` to the core feature branch, commit `7524dfeb1a3b368addaa8edb86e116c890d2a60e`. It uses a PostgreSQL `DO` block that raises on failed catalog assertions and checks:
+- no table-level UPDATE on profiles;
+- avatar_path UPDATE retained;
+- all non-avatar profile UPDATE grants absent;
+- profiles RLS and owner/admin row policy retained;
+- owner-folder avatar upload, replacement and deletion policies retained.
+
+The file was fetched back from GitHub and an issue #25 comment records its scope. It has not been executed. It is expected to fail against the current live permission grants until the forward-only correction is implemented and tested in an isolated environment. Two-user Data API tests and actual avatar upload/replace/delete tests remain outstanding. The migration gate remains in force: no schema migration added and no production permission changed.
+
+### Migration ledger clarification
+
+A fresh read-only query reconfirmed:
+- 98 applied records, 98 unique versions;
+- one repeated name, `admin_fixture_management`, at two distinct applied versions (`20261107224311` and `20261107224351`);
+- every ledger record contains one SQL statement.
+
+A separate cross-PR path review found two local files on the core feature branch sharing the prefix `20261108015100`: `payment_service_role_privileges` and `stripe_webhook_processing_lease`. Their applied ledger versions are different (`20261107235943` and `20261108001150`). This local filename collision is now recorded in issue #19 and must be resolved before replay. No historical migration version was changed.
+
+### CI refresh
+
+- PR #13 PostHog guard commit: **GitHub Actions passed**.
+- PR #6 profile regression-test commit: GitHub Actions run `42483998963` was still in progress at the time of this addendum; do not count it as passed until its final conclusion is checked.
