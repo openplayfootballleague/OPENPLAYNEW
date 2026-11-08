@@ -57,7 +57,7 @@ function MatchCentrePage(){
  },[teams,fixtures,results]);
 
  return <main className="notice-page player-facing"><section className="notice-panel match-panel">
-  <Link className="notice-brand" to="/">OPEN PLAY</Link><p className="eyebrow eyebrow-dark">PUBLIC MATCH CENTRE</p><h1>Every game.<br/><em>Every point.</em></h1>
+  <Link className="notice-brand" to="/player"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link><p className="eyebrow eyebrow-dark">PUBLIC MATCH CENTRE</p><h1>Every game.<br/><em>Every point.</em></h1>
   <PlayerCompetitionSelector context={competition}/>
   {error&&<p className="form-error" role="alert">{error}</p>}
   {loading?<p className="form-note">Loading fixtures and results…</p>:!competition.selectedSeasonId?<p className="form-note">No published season is available for this location yet.</p>:<>
