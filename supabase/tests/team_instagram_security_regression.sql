@@ -55,6 +55,22 @@ begin
     raise exception 'Public team directory must not expose team creator identity';
   end if;
 
+  if not has_function_privilege('anon','public.get_public_team_directory(uuid)','execute')
+     or not has_function_privilege('authenticated','public.get_public_team_directory(uuid)','execute') then
+    raise exception 'Public team directory RPC must be explicitly executable by anon and authenticated users';
+  end if;
+
+  if exists (
+    select 1
+      from pg_catalog.pg_proc p
+      cross join lateral pg_catalog.aclexplode(coalesce(p.proacl,pg_catalog.acldefault('f',p.proowner))) acl
+     where p.oid='public.get_public_team_directory(uuid)'::regprocedure
+       and acl.grantee=0
+       and acl.privilege_type='EXECUTE'
+  ) then
+    raise exception 'Public team directory RPC must not grant EXECUTE to PUBLIC';
+  end if;
+
   if position('tm.status=''active''' in v_update_definition)=0
      or position('tm.is_captain=true' in v_update_definition)=0
      or position('can_administer_location' in v_update_definition)=0 then
