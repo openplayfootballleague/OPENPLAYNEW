@@ -2,6 +2,17 @@
 # This project configuration contains no credentials and is safe to commit.
 project_id = "openplaynew"
 
+[auth]
+enable_signup = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["http://127.0.0.1:3000", "http://localhost:3000"]
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+secure_password_change = true
+
+
 [db]
 major_version = 17
 
