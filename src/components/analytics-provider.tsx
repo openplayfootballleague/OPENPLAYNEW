@@ -57,105 +57,6 @@ export function useOpenPlayAnalytics() {
   return useContext(AnalyticsCaptureContext);
 }
 
-function PostHogConsentInitializer() {
-  const posthog = usePostHog();
-
-  useEffect(() => {
-    const syncConsent = () => {
-      const allowed = isAnalyticsAllowed(
-        readBrowserAnalyticsConsent(),
-        isGlobalPrivacyControlEnabled(),
-      );
-      if (allowed) posthog.opt_in_capturing();
-      else posthog.opt_out_capturing();
-    };
-
-    syncConsent();
-    return subscribeToBrowserAnalyticsConsent(syncConsent);
-  }, [posthog]);
-
-  return null;
-}
-
-/**
- * Test-only diagnostics and capture control, rendered outside the SDK provider
- * so the browser suite can distinguish consent/configuration from provider mount.
- */
-function AnalyticsE2EDiagnostics({
-  configured,
-  allowed,
-  sdkReady,
-  tokenConfigured,
-  host,
-  error,
-}: {
-  configured: boolean;
-  allowed: boolean;
-  sdkReady: boolean;
-  tokenConfigured: boolean;
-  host: string | undefined;
-  error: string | null;
-}) {
-  const [captureCalled, setCaptureCalled] = useState(false);
-  if (import.meta.env.VITE_OPENPLAY_ANALYTICS_E2E !== "true") return null;
-
-  return (
-    <div
-      data-testid="analytics-e2e-diagnostics"
-      data-posthog-configured={String(configured)}
-      data-consent-allowed={String(allowed)}
-      data-sdk-ready={String(sdkReady)}
-      data-posthog-loaded={String(posthog.__loaded)}
-      data-posthog-capturing={String(posthog.has_opted_in_capturing())}
-      data-posthog-opted-in={String(posthog.has_opted_in_capturing())}
-      data-posthog-capture-called={String(captureCalled)}
-      data-posthog-token={tokenConfigured ? "present" : "missing"}
-      data-posthog-host={host ?? "missing"}
-      data-posthog-error={error ?? ""}
-    >
-      <button
-        type="button"
-        data-testid="analytics-e2e-probe"
-        onClick={() => {
-          setCaptureCalled(true);
-          posthog.capture(
-            "openplay_e2e_consent_probe",
-            { test_mode: true },
-            { send_instantly: true, transport: "fetch" },
-          );
-        }}
-      >
-        Send analytics test probe
-      </button>
-    </div>
-  );
-}
-
-function routeCategory(pathname: string) {
-  if (pathname === "/") return "home";
-  if (pathname === "/player" || pathname.startsWith("/player/")) return "player_hub";
-  if (pathname.startsWith("/match-centre")) return "match_centre";
-  if (pathname === "/teams" || pathname.startsWith("/teams/")) return "teams";
-  if (pathname === "/join" || pathname === "/register-player") return "registration";
-  if (pathname.startsWith("/notifications")) return "notifications";
-  if (pathname.startsWith("/gallery")) return "gallery";
-  if (pathname === "/account" || pathname === "/edit-profile" || pathname === "/privacy-security") return "account";
-  return "other";
-}
-
-function routeFeature(category: ReturnType<typeof routeCategory>) {
-  switch (category) {
-    case "player_hub": return "player_hub";
-    case "match_centre": return "match_centre";
-    case "teams": return "team_directory";
-    case "registration": return "player_registration";
-    case "notifications": return "notifications";
-    case "gallery": return "gallery";
-    case "account": return "profile";
-    default: return undefined;
-  }
-}
-
 function PostHogCaptureProvider({ children }: { children: ReactNode }) {
   const posthog = usePostHog();
   const location = useLocation();
@@ -352,7 +253,6 @@ export function ConsentAwareAnalytics({ children }: { children: ReactNode }) {
     <AnalyticsCaptureContext.Provider value={noOpCapture}>
       {configured && allowed && sdkReady ? (
         <PostHogProvider client={posthog}>
-          <PostHogConsentInitializer />
           <PostHogCaptureProvider>{children}</PostHogCaptureProvider>
         </PostHogProvider>
       ) : children}
