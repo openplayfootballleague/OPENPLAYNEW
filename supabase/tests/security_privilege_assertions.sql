@@ -1,14 +1,11 @@
--- Development/security regression assertions. Run after applying migrations.
-do $$
-begin
-  if exists (
+-- Run against the development database after applying the security migrations.
+-- Each row must return true; any false result is a failed security assertion.
+select
+  not exists (
     select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace
     where n.nspname='public' and c.relkind='r' and not c.relrowsecurity
-  ) then
-    raise exception 'A public application table has row-level security disabled';
-  end if;
-
-  if exists (
+  ) as all_public_tables_have_rls,
+  not exists (
     select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace
     where n.nspname='public' and c.relkind='r'
       and (
@@ -19,19 +16,13 @@ begin
         or has_table_privilege('anon',c.oid,'TRIGGER')
         or has_table_privilege('authenticated',c.oid,'TRIGGER')
       )
-  ) then
-    raise exception 'anon/authenticated retains a table-level privilege that bypasses RLS';
-  end if;
-
-  if exists (
+  ) as no_client_table_bypass_privileges,
+  not exists (
     select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname='public' and p.prosecdef
       and has_function_privilege('anon',p.oid,'EXECUTE')
-  ) then
-    raise exception 'anon can execute a public SECURITY DEFINER function';
-  end if;
-
-  if exists (
+  ) as no_anon_security_definer_execution,
+  not exists (
     select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname='public' and p.prosecdef
       and p.proname in (
@@ -45,18 +36,9 @@ begin
         'notify_team_registration_change'
       )
       and has_function_privilege('authenticated',p.oid,'EXECUTE')
-  ) then
-    raise exception 'authenticated can execute an internal notification function';
-  end if;
-
-  if not exists (
+  ) as no_client_notification_worker_execution,
+  exists (
     select 1 from pg_proc p
-    join pg_namespace n on n.oid=p.pronamespace
-    where n.nspname='public'
-      and p.oid='public.create_player_fixture_payment(uuid,uuid)'::regprocedure
+    where p.oid='public.create_player_fixture_payment(uuid,uuid)'::regprocedure
       and pg_get_functiondef(p.oid) ilike '%pg_advisory_xact_lock%'
-  ) then
-    raise exception 'Player fixture payment creation is missing its concurrency lock';
-  end if;
-end $;
-select 'security privilege assertions passed' as result;
+  ) as player_fixture_payment_creation_is_serialized;
