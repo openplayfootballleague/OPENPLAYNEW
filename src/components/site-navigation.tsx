@@ -73,7 +73,7 @@ export function SiteNavigation() {
       setAccount({
         name: player?.full_name || fullName || session.user.email || "Open Play account",
         avatarUrl,
-        status: approvedPlayer ? "Registered player" : player ? "Player registration pending" : "Account not registered as a player",
+        status: derivedAccess.approvedPlayer ? "Registered player" : player ? "Player registration pending" : "Account not registered as a player",
         unread: unreadCount ?? 0,
       });
       if (!accountChannel) {
