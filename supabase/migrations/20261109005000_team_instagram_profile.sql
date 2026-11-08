@@ -10,12 +10,14 @@ alter table public.teams
     or (
       instagram_profile_url ~ '^https://www[.]instagram[.]com/[A-Za-z0-9._]{1,30}/
 
+-- Keep the existing four-argument register_team overload unambiguous.
+-- New callers must supply all five arguments, using NULL for optional values.
 create or replace function public.register_team(
   p_season_id uuid,
   p_team_name text,
-  p_primary_colour text default null,
-  p_secondary_colour text default null,
-  p_instagram_profile_url text default null
+  p_primary_colour text,
+  p_secondary_colour text,
+  p_instagram_profile_url text
 )
 returns public.season_teams
 language plpgsql
