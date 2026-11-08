@@ -113,6 +113,9 @@ Deno.serve(async (req) => {
   // Stripe can deliver events out of order. Do not let an older checkout
   // completion/expiry/failure overwrite a newer payment or refund state.
   let paymentStatusBeforeEvent: string | null = null;
+  let paymentAttemptBeforeEvent: number | null = null;
+  let paymentSessionBeforeEvent: string | null = null;
+  let lastStripeEventBeforeEvent: string | null = null;
   if (paymentEvents.has(eventType) && resolvedPaymentId) {
     const { data: currentPayment, error: currentPaymentError } = await admin.from("payment_records")
       .select("id,amount_pence,currency,status,stripe_checkout_session_id,stripe_payment_intent_id,checkout_attempt,last_stripe_event_at")
@@ -127,6 +130,9 @@ Deno.serve(async (req) => {
     }
 
     paymentStatusBeforeEvent = currentPayment.status;
+    paymentAttemptBeforeEvent = currentPayment.checkout_attempt;
+    paymentSessionBeforeEvent = currentPayment.stripe_checkout_session_id;
+    lastStripeEventBeforeEvent = currentPayment.last_stripe_event_at;
     // Reject mismatched settlement events without mutating the payment ledger.
     const settlementRecord = currentPayment as PaymentSettlementRecord;
     const settlementValidation = eventType.startsWith("checkout.session.")
@@ -247,16 +253,22 @@ Deno.serve(async (req) => {
     // A retry may advance checkout_attempt while this webhook is retrieving the
     // balance transaction; without these predicates a delayed event from the
     // previous attempt could overwrite the new attempt's state.
+    if (paymentStatusBeforeEvent === null || paymentAttemptBeforeEvent === null) {
+      await admin.from("stripe_webhook_events").update({
+        processing_error: "Payment snapshot missing during settlement", processing_started_at: null,
+      }).eq("id", eventId);
+      return new Response("Payment snapshot missing", { status: 500 });
+    }
     let paymentUpdate = admin.from("payment_records")
       .update(patch)
       .eq("id", resolvedPaymentId)
-      .eq("status", currentPayment.status)
-      .eq("checkout_attempt", currentPayment.checkout_attempt);
-    paymentUpdate = currentPayment.stripe_checkout_session_id
-      ? paymentUpdate.eq("stripe_checkout_session_id", currentPayment.stripe_checkout_session_id)
+      .eq("status", paymentStatusBeforeEvent)
+      .eq("checkout_attempt", paymentAttemptBeforeEvent);
+    paymentUpdate = paymentSessionBeforeEvent
+      ? paymentUpdate.eq("stripe_checkout_session_id", paymentSessionBeforeEvent)
       : paymentUpdate.is("stripe_checkout_session_id", null);
-    paymentUpdate = currentPayment.last_stripe_event_at
-      ? paymentUpdate.eq("last_stripe_event_at", currentPayment.last_stripe_event_at)
+    paymentUpdate = lastStripeEventBeforeEvent
+      ? paymentUpdate.eq("last_stripe_event_at", lastStripeEventBeforeEvent)
       : paymentUpdate.is("last_stripe_event_at", null);
     const { data: updatedPayment, error: paymentUpdateError } = await paymentUpdate
       .select("id").maybeSingle();
