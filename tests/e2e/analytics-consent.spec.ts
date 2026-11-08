@@ -1,7 +1,6 @@
 // Network interception is installed before navigation; no test traffic reaches the real PostHog service.
 import { expect, test, type Page } from "@playwright/test";
 
-const POSTHOG_ORIGIN = "https://eu.i.posthog.com";
 const CONSENT_KEY = "open-play.analytics-consent.v1";
 
 async function interceptPostHog(page: Page, requests: string[]) {
@@ -70,7 +69,7 @@ test("does not contact PostHog before opt-in and stops after same-tab revocation
   await expect(probe).toHaveAttribute("data-posthog-capturing", "true");
   await expect(probe).toHaveAttribute("data-posthog-opted-in", "true");
   await probe.click();
-  await expect.poll(() => requests.length, { timeout: 10_000 }).toBeGreaterThan(0);
+  await expect.poll(() => observedPostHogRequests(page, requests), { timeout: 10_000 }).toBeGreaterThan(0);
 
   await page.getByRole("button", { name: "TURN OFF OPTIONAL ANALYTICS" }).click();
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("denied");
@@ -84,7 +83,7 @@ test("does not contact PostHog before opt-in and stops after same-tab revocation
   await expect(page.getByText("Declined on this device")).toBeVisible();
   await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
   await page.waitForTimeout(500);
-  expect(requests).toHaveLength(requestsAfterRevocation);
+  expect(await observedPostHogRequests(page, requests)).toBe(requestsAfterRevocation);
 });
 
 test("Global Privacy Control overrides a previously saved opt-in", async ({ page }) => {
@@ -104,7 +103,7 @@ test("Global Privacy Control overrides a previously saved opt-in", async ({ page
   await expect(page.getByRole("complementary", { name: "Optional analytics preferences" })).toHaveCount(0);
   await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
   await page.waitForTimeout(300);
-  expect(requests).toHaveLength(0);
+  expect(await observedPostHogRequests(page, requests)).toBe(0);
 });
 
 test("cross-tab opt-in and revocation update the other tab", async ({ page, context }) => {
@@ -117,8 +116,8 @@ test("cross-tab opt-in and revocation update the other tab", async ({ page, cont
   await page.goto("/privacy-security");
   await secondTab.goto("/privacy-security");
   await page.waitForTimeout(200);
-  expect(firstTabRequests).toHaveLength(0);
-  expect(secondTabRequests).toHaveLength(0);
+  expect(await observedPostHogRequests(page, firstTabRequests)).toBe(0);
+  expect(await observedPostHogRequests(secondTab, secondTabRequests)).toBe(0);
   await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
 
   // A localStorage write in one tab emits a native storage event in the other.
@@ -142,6 +141,6 @@ test("cross-tab opt-in and revocation update the other tab", async ({ page, cont
   await expect(page.getByText("Declined on this device")).toBeVisible();
   await expect(page.getByTestId("analytics-e2e-probe")).toHaveCount(0);
   await page.waitForTimeout(500);
-  expect(firstTabRequests).toHaveLength(requestsAfterCrossTabRevocation);
+  expect(await observedPostHogRequests(page, firstTabRequests)).toBe(requestsAfterCrossTabRevocation);
   await secondTab.close();
 });
