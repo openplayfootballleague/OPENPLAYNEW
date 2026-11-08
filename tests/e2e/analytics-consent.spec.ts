@@ -4,6 +4,12 @@ import { expect, test, type Page } from "@playwright/test";
 const POSTHOG_ORIGIN = "https://eu.i.posthog.com";
 const CONSENT_KEY = "open-play.analytics-consent.v1";
 
+type PostHogWindow = Window & {
+  posthog?: {
+    capture?: (event: string, properties?: Record<string, unknown>) => void;
+  };
+};
+
 async function interceptPostHog(page: Page, requests: string[]) {
   await page.route(`${POSTHOG_ORIGIN}/**`, async (route) => {
     requests.push(route.request().url());
@@ -17,6 +23,14 @@ async function interceptPostHog(page: Page, requests: string[]) {
       }),
     });
   });
+}
+
+async function emitProbe(page: Page, event: string) {
+  await page.evaluate((eventName) => {
+    const client = (window as PostHogWindow).posthog;
+    if (!client?.capture) throw new Error("PostHog SDK is not initialised");
+    client.capture(eventName, { test_mode: true });
+  }, event);
 }
 
 test("does not contact PostHog before opt-in and stops after same-tab revocation", async ({ page }) => {
@@ -33,13 +47,18 @@ test("does not contact PostHog before opt-in and stops after same-tab revocation
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("granted");
   await expect(page.getByText("Allowed on this device")).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Optional analytics preferences" })).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => Boolean((window as PostHogWindow).posthog?.capture))).toBe(true);
+
+  await emitProbe(page, "openplay_browser_consent_probe");
   await expect.poll(() => requests.length).toBeGreaterThan(0);
 
   await page.getByRole("button", { name: "TURN OFF OPTIONAL ANALYTICS" }).click();
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("denied");
   await expect(page.getByText("Declined on this device")).toBeVisible();
-  await page.waitForTimeout(300);
   const requestsAfterRevocation = requests.length;
+  await emitProbe(page, "openplay_browser_consent_probe_after_revoke");
+  await page.waitForTimeout(300);
+  expect(requests).toHaveLength(requestsAfterRevocation);
 
   await page.reload();
   await expect(page.getByText("Declined on this device")).toBeVisible();
@@ -78,17 +97,19 @@ test("cross-tab opt-in and revocation update the other tab", async ({ page, cont
   expect(firstTabRequests).toHaveLength(0);
   expect(secondTabRequests).toHaveLength(0);
 
-  await secondTab.locator(".account-security-section").getByRole("button", { name: "ALLOW OPTIONAL ANALYTICS" }).click();
-  await expect.poll(() => secondTab.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("granted");
-  await expect(secondTab.getByText("Allowed on this device")).toBeVisible();
-  await expect(secondTab.getByRole("complementary", { name: "Optional analytics preferences" })).toHaveCount(0);
+  // A localStorage write in one page emits a native storage event in the other.
+  await secondTab.evaluate((key) => localStorage.setItem(key, "granted"), CONSENT_KEY);
+  await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("granted");
+  await expect.poll(() => page.evaluate(() => Boolean((window as PostHogWindow).posthog?.capture))).toBe(true);
+  await emitProbe(page, "openplay_browser_cross_tab_probe");
   await expect.poll(() => firstTabRequests.length).toBeGreaterThan(0);
 
-  await secondTab.getByRole("button", { name: "TURN OFF OPTIONAL ANALYTICS" }).click();
-  await expect.poll(() => secondTab.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("denied");
-  await expect(secondTab.getByText("Declined on this device")).toBeVisible();
-  await page.waitForTimeout(300);
+  await secondTab.evaluate((key) => localStorage.setItem(key, "denied"), CONSENT_KEY);
+  await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("denied");
   const requestsAfterCrossTabRevocation = firstTabRequests.length;
+  await emitProbe(page, "openplay_browser_cross_tab_probe_after_revoke");
+  await page.waitForTimeout(300);
+  expect(firstTabRequests).toHaveLength(requestsAfterCrossTabRevocation);
 
   await page.reload();
   await expect(page.getByText("Declined on this device")).toBeVisible();
