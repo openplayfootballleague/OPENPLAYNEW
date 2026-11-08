@@ -13,6 +13,7 @@ do $profile_avatar_permissions$
 declare
   v_profile_rls boolean;
   v_policy record;
+  v_non_avatar_update_columns text;
 begin
   if has_table_privilege('authenticated', 'public.profiles', 'UPDATE') then
     raise exception 'Authenticated users must not have table-level UPDATE on profiles';
@@ -22,15 +23,17 @@ begin
     raise exception 'Authenticated users must retain UPDATE on profiles.avatar_path';
   end if;
 
-  if has_column_privilege('authenticated', 'public.profiles', 'first_name', 'UPDATE')
-     or has_column_privilege('authenticated', 'public.profiles', 'last_name', 'UPDATE')
-     or has_column_privilege('authenticated', 'public.profiles', 'display_name', 'UPDATE')
-     or has_column_privilege('authenticated', 'public.profiles', 'date_of_birth', 'UPDATE')
-     or has_column_privilege('authenticated', 'public.profiles', 'phone', 'UPDATE')
-     or has_column_privilege('authenticated', 'public.profiles', 'emergency_contact_name', 'UPDATE')
-     or has_column_privilege('authenticated', 'public.profiles', 'emergency_contact_phone', 'UPDATE')
-     or has_column_privilege('authenticated', 'public.profiles', 'preferred_position', 'UPDATE') then
-    raise exception 'Authenticated users retain UPDATE on a non-avatar profile field';
+  select string_agg(c.column_name, ', ' order by c.ordinal_position)
+    into v_non_avatar_update_columns
+  from information_schema.columns c
+  where c.table_schema = 'public'
+    and c.table_name = 'profiles'
+    and c.column_name <> 'avatar_path'
+    and has_column_privilege('authenticated', 'public.profiles', c.column_name, 'UPDATE');
+
+  if v_non_avatar_update_columns is not null then
+    raise exception 'Authenticated users retain UPDATE on non-avatar profile fields: %',
+      v_non_avatar_update_columns;
   end if;
 
   select c.relrowsecurity
