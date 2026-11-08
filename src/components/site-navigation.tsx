@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { deriveAccountAccess } from "../lib/account/access";
 
 type Access = {
   signedIn: boolean;
@@ -59,17 +60,14 @@ export function SiteNavigation() {
       if (!alive) return;
 
       const roleNames = (roles ?? []).map((row) => row.role);
-      const approvedPlayer = player?.registration_status === "registered" && player.is_banned !== true;
+      const derivedAccess = deriveAccountAccess(player, (memberships ?? []).length > 0, roleNames);
       const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ").trim();
       const avatarUrl = profile?.avatar_path
         ? supabase.storage.from("profile-avatars").getPublicUrl(profile.avatar_path).data.publicUrl
         : null;
       setAccess({
         signedIn: true,
-        approvedPlayer,
-        captain: approvedPlayer && (memberships ?? []).length > 0,
-        admin: roleNames.some((role) => ["admin", "super_admin", "league_admin"].includes(role)),
-        finance: roleNames.some((role) => ["admin", "super_admin", "finance_admin"].includes(role)),
+        ...derivedAccess,
         loading: false,
       });
       setAccount({
