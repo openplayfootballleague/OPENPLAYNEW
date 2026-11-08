@@ -158,6 +158,13 @@ begin
     if sqlerrm = 'Global administrator permission required' then v_denied := true; else raise; end if;
   end;
   if not v_denied then raise exception 'Location admin accessed global assignment administration'; end if;
+  v_denied := false;
+  begin
+    perform public.admin_set_location_assignment('00000000-0000-4000-8000-000000000003','00000000-0000-4000-8000-000000000011',true);
+  exception when others then
+    if sqlerrm = 'Global administrator permission required' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin changed a global location assignment'; end if;
   execute 'reset role';
 
   -- Global admin: global visibility and assignment administration remain available.
@@ -172,8 +179,9 @@ begin
   if v_count <> 3 then raise exception 'Global admin cannot read all player profiles'; end if;
   select count(*) into v_count from public.leagues where id in ('00000000-0000-4000-8000-000000000020','00000000-0000-4000-8000-000000000021');
   if v_count <> 2 then raise exception 'Global admin cannot read both private leagues'; end if;
+  perform public.admin_set_location_assignment('00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000011',true);
   select count(*) into v_count from public.admin_list_location_assignments(null);
-  if v_count <> 1 then raise exception 'Global admin cannot list location assignments'; end if;
+  if v_count <> 2 then raise exception 'Global admin cannot manage and list location assignments'; end if;
   v_setup := public.get_admin_competition_setup();
   if jsonb_array_length(v_setup->'locations') <> 2 then raise exception 'Global admin setup did not return all locations'; end if;
   execute 'reset role';
