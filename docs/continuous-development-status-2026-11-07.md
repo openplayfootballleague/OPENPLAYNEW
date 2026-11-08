@@ -166,3 +166,13 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - Verified by refetching all four source files: Join has 4 scoped main states, Captain Hub 2, player registration 3 and password reset 2; none of these files retains an unscoped `notice-page` main.
 - GitHub Actions build verification runs 42429529130 and 42429537132 were still in progress at the time of this update. Do not count these changes as CI-passed until those runs complete successfully.
 - The previous visual-foundation build run 42429350785 completed successfully. This does not substitute for browser/device visual acceptance.
+
+
+## 8 November 2026 — player-facing component styling expansion
+
+- Extended the scoped player-facing design system to cover match rows and scores, public team-directory cards, captain request and availability rows, fixture selection controls, league tables, form validation states, and disabled/selected button states.
+- Added responsive table handling and mobile panel adjustments. Styling is scoped under `.player-facing`; public marketing pages, Finance and Admin Dashboard are not intentionally restyled.
+- This is presentation-only CSS. No business logic, permissions, routes, Supabase policies or payment behaviour changed.
+- Prior route-state consistency commits all passed GitHub Actions: runs 42429529130 (Captain Hub), 42429537132 (password reset), and 42429580279 (status documentation).
+- CSS expansion commit: `559fef809eb4f94f066691de1aad237980a15173`. CI status for this exact commit must be checked before treating it as verified.
+- The exact official logo and shared navigation remain blocked on safe transfer of the supplied binary asset. No substitute logo or fabricated icon package was introduced.
