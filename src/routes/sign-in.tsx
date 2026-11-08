@@ -20,6 +20,17 @@ function SignInPage() {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (authError) throw authError;
       if (!authData.user) throw new Error("Your account could not be loaded. Please sign in again.");
+      const { data: roleRows, error: roleError } = await supabase.from("user_roles").select("role").eq("user_id", authData.user.id);
+      if (roleError) throw roleError;
+      const roles = (roleRows ?? []).map((row) => row.role);
+      if (roles.some((role) => ["admin", "super_admin", "league_admin"].includes(role))) {
+        await navigate({ to: "/admin" });
+        return;
+      }
+      if (roles.includes("finance_admin")) {
+        await navigate({ to: "/finance" });
+        return;
+      }
       const { data: player, error: playerError } = await supabase.from("players").select("registration_status,is_banned").eq("user_id", authData.user.id).maybeSingle();
       if (playerError) throw playerError;
       await navigate({ to: player?.registration_status === "registered" && !player.is_banned ? "/player" : "/register-player" });
