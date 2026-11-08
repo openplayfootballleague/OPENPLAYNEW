@@ -1297,6 +1297,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_get_team_social_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          season_team_id: string
+          team_name: string
+          season_name: string
+          location_name: string
+          instagram_profile_url: string | null
+        }[]
+      }
+      get_captain_team_social_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          season_team_id: string
+          team_name: string
+          instagram_profile_url: string | null
+        }[]
+      }
+      update_team_instagram_profile: {
+        Args: {
+          p_season_team_id: string
+          p_instagram_profile_url: string | null
+        }
+        Returns: string | null
+      }
       admin_add_player_to_team: {
         Args: {
           p_make_captain?: boolean
