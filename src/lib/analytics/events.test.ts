@@ -95,6 +95,19 @@ describe("consent and role-gated analytics capture", () => {
     });
   });
 
+  it("allows non-privileged account events after explicit consent", () => {
+    const capture = vi.fn();
+    expect(captureOpenPlayEvent(
+      { capture },
+      "granted",
+      false,
+      "account_user",
+      "account_verification_completed",
+      { route_category: "account" },
+    )).toBe(true);
+    expect(capture).toHaveBeenCalledOnce();
+  });
+
   it("allows anonymous product events after explicit consent", () => {
     const capture = vi.fn();
     expect(captureOpenPlayEvent(
