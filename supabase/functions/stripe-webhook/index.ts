@@ -82,6 +82,7 @@ Deno.serve(async (req) => {
     "checkout.session.async_payment_failed",
     "checkout.session.expired",
     "charge.refunded",
+    "charge.succeeded",
   ]);
   if (paymentEvents.has(eventType) && !resolvedPaymentId) {
     await admin.from("stripe_webhook_events").update({
