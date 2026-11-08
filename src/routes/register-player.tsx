@@ -3,12 +3,14 @@ import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { useOpenPlayAnalytics } from "../components/analytics-provider";
 
 type ExistingPlayer = { registration_status: "registered" | "pending_review" | "rejected"; is_banned: boolean };
 
 export const Route = createFileRoute("/register-player")({ component: RegisterPlayerPage });
 
 function RegisterPlayerPage() {
+  const capture = useOpenPlayAnalytics();
   const navigate=useNavigate(); const [session,setSession]=useState<Session|null>(null); const [loading,setLoading]=useState(true);
   const [name,setName]=useState(""); const [phone,setPhone]=useState(""); const [dob,setDob]=useState("");
   const [error,setError]=useState(""); const [message,setMessage]=useState(""); const [submitted,setSubmitted]=useState(false); const [busy,setBusy]=useState(false);
@@ -34,15 +36,17 @@ function RegisterPlayerPage() {
   },[]);
   async function submit(event:React.FormEvent<HTMLFormElement>){
     event.preventDefault();setError("");setMessage("");setBusy(true);
+    capture("player_registration_started", { feature: "player_registration" });
     try{
       if(!session?.user.email||!session.user.email_confirmed_at) throw new Error("Please verify your email address before registering as a player.");
       const {data:playerData,error:rpcError}=await getSupabaseClient().rpc("register_player",{p_full_name:name.trim(),p_phone:phone.trim(),p_email:session.user.email,p_date_of_birth:dob});
       if(rpcError) throw rpcError;
       if(!playerData)throw new Error("Your registration could not be confirmed. Please try again.");
+      capture("player_registration_submitted", { feature: "player_registration", outcome: "success" });
       setExistingPlayer({registration_status:playerData.registration_status,is_banned:playerData.is_banned});
       setMessage("Your player registration has been submitted. If it needs a manual identity check, it will remain pending review. Your account and player registration are separate from joining a team.");
       setSubmitted(true);
-    }catch(cause){setError(cause instanceof Error?cause.message:"Unable to submit player registration.");}
+    }catch(cause){capture("workflow_error", { feature: "player_registration", error_code: "unexpected_error", outcome: "failure" });setError(cause instanceof Error?cause.message:"Unable to submit player registration.");}
     finally{setBusy(false);}
   }
   async function resendVerification(){
