@@ -10,7 +10,7 @@ function AdminHelpPage(){
  const [tourStep,setTourStep]=useState(0);
  useEffect(()=>{let active=true;const verify=async()=>{try{const {data,error:rpcError}=await getSupabaseClient().rpc("has_platform_role");if(!active)return;if(rpcError){setError(rpcError.message);setAllowed(false);}else setAllowed(Boolean(data));}catch(cause){if(!active)return;setError(cause instanceof Error?cause.message:"Unable to verify administrator access.");setAllowed(false);}};void verify();return()=>{active=false;};},[]);
  if(allowed===null)return <main className="notice-page"><section className="notice-panel"><p className="eyebrow eyebrow-dark">ADMIN HELP</p><h1>Loading<br/><em>guide.</em></h1></section></main>;
- if(!allowed)return <main className="notice-page"><section className="notice-panel"><Link className="notice-brand" to="/">OPEN PLAY</Link><p className="eyebrow eyebrow-dark">RESTRICTED</p><h1>Admin<br/><em>access.</em></h1><p className="form-error">{error||"This guide is available to approved platform administrators only."}</p><Link className="auth-switch" to="/sign-in">Sign in</Link></section></main>;
+ if(!allowed)return <main className="notice-page"><section className="notice-panel"><Link className="notice-brand" to="/player"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link><p className="eyebrow eyebrow-dark">RESTRICTED</p><h1>Admin<br/><em>access.</em></h1><p className="form-error">{error||"This guide is available to approved platform administrators only."}</p><Link className="auth-switch" to="/sign-in">Sign in</Link></section></main>;
  const steps=[
   ["01","Set up a competition","Create or confirm the location, league, season and season-specific teams. Keep new leagues unpublished and seasons private until the owner has checked the details and registration rules."],
   ["02","Review registrations","Treat player registration and team registration as separate decisions. Check the submitted details and required declarations; approve only when the record is complete. An account alone is not a registered player."],
@@ -25,7 +25,7 @@ function AdminHelpPage(){
   ["11","Use the audit history","Search the audit history by action, record ID or reason. The page shows metadata only; private before/after payloads are intentionally not exposed there."],
  ];
  return <main className="notice-page admin-help-page"><section className="notice-panel admin-help-panel">
-  <Link className="notice-brand" to="/admin">OPEN PLAY · ADMIN</Link>
+  <Link className="notice-brand" to="/player"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link>
   <p className="eyebrow eyebrow-dark">OPERATIONS GUIDE</p><h1>Run the<br/><em>league.</em></h1>
   <p className="admin-help-intro">A practical guide to the main administration workflows. Use the protected workflows in the dashboard; do not bypass them with direct database edits.</p>
   <section className="admin-help-tour">
