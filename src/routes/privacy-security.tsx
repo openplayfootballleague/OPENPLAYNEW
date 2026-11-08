@@ -50,7 +50,7 @@ function PrivacySecurityPage() {
     if (!result.persisted) {
       setMessage("Your browser would not save this preference. Optional analytics will remain off on this device.");
     } else if (result.consent === "granted") {
-      setMessage("Your optional analytics preference is saved on this device. Analytics capture is not active in this build yet.");
+      setMessage("Your optional analytics preference is saved on this device. Analytics only run when the deployment's privacy settings have been verified.");
     } else {
       setMessage("Optional analytics are turned off on this device.");
     }
@@ -126,7 +126,7 @@ function PrivacySecurityPage() {
         <button type="button" className="button" disabled={analyticsConsent === "granted"} onClick={() => updateAnalyticsPreference("granted")}>ALLOW OPTIONAL ANALYTICS</button>
         <button type="button" className="auth-text-button" disabled={analyticsConsent === "denied"} onClick={() => updateAnalyticsPreference("denied")}>TURN OFF</button>
       </div>}
-      <p className="form-note">Your choice is stored locally on this device. Analytics capture is not active in this build yet; this preference will be honoured before any PostHog tracking is enabled.</p>
+      <p className="form-note">Your choice is stored locally on this device. Analytics only run when the deployment's PostHog configuration and privacy settings have been verified. You can change this preference at any time.</p>
     </section>
     <section className="account-security-section">
       <h2>More security controls</h2>
