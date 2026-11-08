@@ -296,3 +296,13 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - Found that team registration approval appointed the proposed captain without rechecking current player eligibility or existing active membership in another team. Added and applied `20261108110000_validate_team_registration_captain_approval.sql`. It now requires an open registration season, a registered/non-banned applicant, and no active membership in another team in that season, under the same player/season advisory lock.
 - Extended the repeatable database assertions to 11 checks. Executed against development; all 11 returned true.
 - CI for membership approval, admin assignment, transfer approval and team registration changes is being monitored; no in-progress run is being described as passed.
+
+
+## 8 November 2026 — captain handover implemented end-to-end
+
+- Completed the captain lifecycle review and found no existing public captain-handover RPC, despite other workflows requiring a replacement captain before removal or transfer.
+- Added `20261108120000_add_secure_captain_handover.sql` and applied it to development. The new RPC requires an authenticated active captain, locks the team handover, validates the replacement as an active team member and registered/non-banned player, updates captain status transactionally, and writes an audit record plus notifications for both affected users.
+- Added `20261108121000_restrict_captain_handover_execute.sql`; verified anonymous execution is false and authenticated execution is true.
+- Added a "Make captain" action to each eligible active non-captain squad member in the Captain Hub. The action confirms the transfer of responsibility, calls the guarded RPC, reloads the captain data and reports success/failure.
+- Extended the repeatable SQL security assertions to 12 checks. All 12 returned true in development.
+- The feature has not yet been exercised with real authenticated test accounts because no disposable test-user creation/deletion workflow is currently available through the connected services. CI is required to confirm frontend compilation.
