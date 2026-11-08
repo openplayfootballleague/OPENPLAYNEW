@@ -179,6 +179,7 @@ begin
   perform public.register_player('Alice Example','+447700900201','ci-name-phone@openplay.invalid',date '1990-01-01');
   select registration_status::text into v_player_status from public.players where user_id='00000000-0000-4000-8000-000000000204';
   if v_player_status <> 'pending_review' then raise exception 'Name plus phone match did not trigger review'; end if;
+  execute 'reset role';
   select r.* into v_review from public.player_registration_reviews r join public.players p on p.id=r.player_id where p.user_id='00000000-0000-4000-8000-000000000204';
   if v_review.matched_player_ids <> array[v_candidate_a]::uuid[]
      or jsonb_array_length(v_review.match_evidence) <> 1
@@ -187,6 +188,7 @@ begin
      or (v_review.match_evidence->0->>'email_matched')::boolean is not false then
     raise exception 'Name plus phone review evidence is not candidate-specific';
   end if;
+  execute 'set local role authenticated';
 
   -- Name + email against one candidate.
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000205',true);
@@ -199,6 +201,7 @@ begin
   perform public.register_player('Charlie Example','+447700900202','ci-phone-email@openplay.invalid',date '1990-01-02');
   select registration_status::text into v_player_status from public.players where user_id='00000000-0000-4000-8000-000000000206';
   if v_player_status <> 'pending_review' then raise exception 'Phone plus email match against a banned candidate was not evaluated consistently'; end if;
+  execute 'reset role';
   select r.* into v_review from public.player_registration_reviews r join public.players p on p.id=r.player_id where p.user_id='00000000-0000-4000-8000-000000000206';
   if v_review.matched_player_ids <> array[v_candidate_b]::uuid[]
      or jsonb_array_length(v_review.match_evidence) <> 1
