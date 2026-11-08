@@ -16,7 +16,7 @@ export function validateCheckoutSettlement(record: PaymentSettlementRecord, obje
   const paymentId = String(metadata?.payment_record_id ?? object.client_reference_id ?? "");
   const metadataAttempt = checkoutAttemptFromIntentMetadata(metadata);
   const attemptMatches = metadataAttempt === null ? record.checkout_attempt === 0 : metadataAttempt === record.checkout_attempt;
-  if (!sessionId || (record.stripe_checkout_session_id && record.stripe_checkout_session_id !== sessionId && !attemptMatches) ||
+  if (!sessionId || (record.stripe_checkout_session_id && record.stripe_checkout_session_id !== sessionId) ||
     paymentId !== record.id || !attemptMatches) {
     return { ok: false, reason: "Checkout session identity mismatch; held for finance review" };
   }
