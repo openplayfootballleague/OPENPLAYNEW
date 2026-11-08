@@ -3,6 +3,47 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import type { Database } from "../../../src/lib/supabase/database.types.ts";
 import { isRefundedPaymentStatus, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "../../../src/lib/payments/stripe-settlement.ts";
 
+type StripeWebhookDatabase = Database & {
+  public: Database["public"] & {
+    Tables: Database["public"]["Tables"] & {
+      stripe_webhook_events: {
+        Row: {
+          id: string;
+          event_type: string;
+          payment_record_id: string | null;
+          livemode: boolean;
+          processed_at: string | null;
+          processing_error: string | null;
+          created_at: string;
+          processing_started_at: string | null;
+        };
+        Insert: {
+          id: string;
+          event_type: string;
+          payment_record_id?: string | null;
+          livemode?: boolean;
+          processed_at?: string | null;
+          processing_error?: string | null;
+          created_at?: string;
+          processing_started_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          event_type?: string;
+          payment_record_id?: string | null;
+          livemode?: boolean;
+          processed_at?: string | null;
+          processing_error?: string | null;
+          created_at?: string;
+          processing_started_at?: string | null;
+        };
+        Relationships: [];
+      };
+    };
+  };
+};
+
+
 function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;
@@ -47,7 +88,7 @@ Deno.serve(async (req) => {
   try { event = JSON.parse(raw); } catch { return new Response("Invalid event payload", { status: 400 }); }
   if (event.livemode !== false) return new Response("Live-mode events are disabled", { status: 400 });
 
-  const admin = createClient<Database>(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const admin = createClient<StripeWebhookDatabase>(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const object = (event.data as Record<string, unknown> | undefined)?.object as Record<string, unknown> | undefined;
   const metadata = object?.metadata as Record<string, unknown> | undefined;
   const paymentId = String(metadata?.payment_record_id ?? object?.client_reference_id ?? "");
