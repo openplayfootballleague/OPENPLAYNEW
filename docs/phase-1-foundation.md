@@ -10,17 +10,24 @@
 - [x] Automatic approval below the two-of-three identity threshold; manual review at two or more metrics against the same candidate.
 - [x] Pending/rejected registration states and global-admin-only identity-review evidence.
 - [x] Player Hub access only for approved registered players or active captains.
+- [ ] Implement the approved age/access policy: under-16 basic view only; player registration from age 16; mandatory verified parent/legal-guardian consent for ages 16–17.
+- [ ] Implement the approved ban policy: revoke active participation, preserve history, transfer captaincy by current-season appearances then full registered name, and require fresh registration after unban.
+- [ ] Implement canonical E.164 phone normalisation and matching regression coverage.
+- [ ] Complete privacy notice, children's-data safeguards and the proposed retention schedule review before launch.
 - [x] Player picture upload is the only direct profile self-service edit; storage ownership and database column grants enforce it.
-- [ ] Verify authenticated end-to-end signup, email delivery, reset and registration with disposable test identities.
+- [x] Verify authenticated signup, confirmation-email delivery, verified sign-in, separate player registration, duplicate-registration rejection, password recovery/update and sign-out with disposable local Auth identities (CI run `42519046139`).
 - [ ] Verify the exact original 1619 × 971 OP asset is integrated (the current smaller PNG is not provenance-verified).
 - [ ] Complete browser and real-device accessibility/responsive acceptance.
 - [ ] Complete secure first super-admin bootstrap using an owner-approved identity.
 
 ## Database release
-- [x] Reconcile the 98 applied migration versions to canonical source files and Git blob SHAs.
+- [x] Reconcile all 99 applied migration versions to canonical source files and Git blob SHAs.
 - [x] Consolidate outstanding forward-only corrections into one release migration.
 - [x] Clean local Supabase replay and all SQL authorization/identity regression tests passed in CI.
 - [x] Apply the reviewed consolidated migration to the dedicated Open Play New Supabase project; hosted ledger records version `20261108194831`.
 
+## Policy decisions
+The approved product, player and data policies are recorded in [docs/open-play-policies.md](open-play-policies.md). Documentation does not count as implementation or legal approval; the outstanding policy implementation and review gates below must be completed and verified.
+
 ## Completion criteria
-Phase 1 is complete only when the account and player-registration lifecycle is fully implemented, the consolidated database release has passed clean replay and role-matrix tests, hosted schema is verified at the intended project, and the remaining authenticated/browser acceptance gates have been completed. Implemented, verified and released remain separate states.
+Phase 1 is complete only when the account and player-registration lifecycle is fully implemented, the consolidated database release has passed clean replay and role-matrix tests, hosted schema is verified at the intended project, and the remaining real-browser/device, canonical-logo and owner-approved bootstrap gates have been completed. Implemented, verified and released remain separate states.

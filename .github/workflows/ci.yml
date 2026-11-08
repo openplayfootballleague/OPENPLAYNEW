@@ -51,6 +51,17 @@ jobs:
         run: supabase start -x studio,edge-runtime,logflare,vector
       - name: Replay every migration against a clean local database
         run: supabase db reset --local --no-seed
+      - name: Set up Node.js for Auth lifecycle integration
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install locked dependencies for Auth lifecycle integration
+        run: npm ci --no-audit --no-fund
+      - name: Verify Auth signup, email confirmation and password recovery
+        shell: bash
+        run: |
+          eval "$(supabase status --output env)"
+          SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" MAILPIT_URL="http://127.0.0.1:54324" node scripts/test-auth-lifecycle.mjs
       - name: Install PostgreSQL client for multi-statement role tests
         run: sudo apt-get update && sudo apt-get install --yes postgresql-client
       - name: Verify player self-service profile permission assertions
