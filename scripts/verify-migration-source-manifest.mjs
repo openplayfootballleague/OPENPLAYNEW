@@ -10,14 +10,14 @@ const expectedForwardOnly = [
 ];
 
 function fail(message) {
-  console.error(`Migration source manifest verification failed: ${message}`);
+  console.error("Migration source manifest verification failed: " + message);
   process.exit(1);
 }
 
-if (!existsSync(manifestPath)) fail(`missing manifest ${manifestPath}`);
+if (!existsSync(manifestPath)) fail("missing manifest " + manifestPath);
 
 const manifest = readFileSync(manifestPath, "utf8");
-const rowPattern = /^\\|\\s*(\\d{14})\\s*\\|\\s*([^|]+?)\\s*\\|\\s*`([^ `]+)`\\s*\\|\\s*`([0-9a-f]{40})`\\s*\\|$/gm;
+const rowPattern = /^\|\s*(\d{14})\s*\|\s*([^|]+?)\s*\|\s*\`([^ \`]+)\`\s*\|\s*\`([0-9a-f]{40})\`\s*\|$/gm;
 const rows = [...manifest.matchAll(rowPattern)].map((match) => ({
   version: match[1],
   name: match[2].trim(),
@@ -25,7 +25,7 @@ const rows = [...manifest.matchAll(rowPattern)].map((match) => ({
   expectedSha: match[4],
 }));
 
-if (rows.length !== 99) fail(`expected 99 applied ledger rows, found ${rows.length}`);
+if (rows.length !== 99) fail("expected 99 applied ledger rows, found " + rows.length);
 
 const versions = rows.map((row) => row.version);
 const paths = rows.map((row) => row.path);
@@ -33,14 +33,14 @@ if (new Set(versions).size !== versions.length) fail("duplicate applied versions
 if (new Set(paths).size !== paths.length) fail("duplicate source paths in manifest");
 
 for (const row of rows) {
-  if (!row.path.startsWith(`${migrationDirectory}/`)) fail(`source path outside migration directory: ${row.path}`);
-  if (basename(row.path).slice(0, 14) !== row.version) fail(`version prefix mismatch for ${row.path}`);
-  if (!existsSync(row.path)) fail(`missing source file ${row.path}`);
+  if (!row.path.startsWith(migrationDirectory + "/")) fail("source path outside migration directory: " + row.path);
+  if (basename(row.path).slice(0, 14) !== row.version) fail("version prefix mismatch for " + row.path);
+  if (!existsSync(row.path)) fail("missing source file " + row.path);
 
   const bytes = readFileSync(row.path);
-  const header = Buffer.from(`blob ${bytes.length}\\0`, "utf8");
+  const header = Buffer.from("blob " + bytes.length + "\0", "utf8");
   const actualSha = createHash("sha1").update(header).update(bytes).digest("hex");
-  if (actualSha !== row.expectedSha) fail(`Git blob SHA mismatch for ${row.path}: expected ${row.expectedSha}, got ${actualSha}`);
+  if (actualSha !== row.expectedSha) fail("Git blob SHA mismatch for " + row.path + ": expected " + row.expectedSha + ", got " + actualSha);
 }
 
 const migrationFiles = readdirSync(migrationDirectory)
@@ -52,7 +52,7 @@ if (new Set(actualPrefixes).size !== actualPrefixes.length) fail("duplicate migr
 
 const expectedFiles = new Set([...paths, ...expectedForwardOnly]);
 const actualFiles = new Set(migrationFiles);
-for (const path of expectedFiles) if (!actualFiles.has(path)) fail(`expected migration file is missing: ${path}`);
-for (const path of actualFiles) if (!expectedFiles.has(path)) fail(`unmanifested migration file found: ${path}`);
+for (const path of expectedFiles) if (!actualFiles.has(path)) fail("expected migration file is missing: " + path);
+for (const path of actualFiles) if (!expectedFiles.has(path)) fail("unmanifested migration file found: " + path);
 
-console.log(`Verified ${rows.length} applied migration sources, ${migrationFiles.length} unique migration files, and ${expectedForwardOnly.length} declared forward-only migrations.`);
+console.log("Verified " + rows.length + " applied migration sources, " + migrationFiles.length + " unique migration files, and " + expectedForwardOnly.length + " declared forward-only migrations.");
