@@ -70,11 +70,16 @@ export function writeBrowserAnalyticsConsent(
   if (typeof window === "undefined") {
     return { consent: "denied", persisted: false };
   }
+  let result: { consent: Exclude<AnalyticsConsent, "unset">; persisted: boolean };
   try {
-    const result = writeAnalyticsConsent(requested, window.localStorage, globalPrivacyControl);
-    window.dispatchEvent(new Event(ANALYTICS_CONSENT_EVENT));
-    return result;
+    result = writeAnalyticsConsent(requested, window.localStorage, globalPrivacyControl);
   } catch {
-    return { consent: "denied", persisted: false };
+    result = { consent: "denied", persisted: false };
   }
+  try {
+    window.dispatchEvent(new Event(ANALYTICS_CONSENT_EVENT));
+  } catch {
+    // The preference result remains fail-closed if event dispatch is unavailable.
+  }
+  return result;
 }
