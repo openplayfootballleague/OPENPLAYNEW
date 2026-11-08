@@ -10,3 +10,9 @@ create policy player_registration_reviews_admin_only
   for select
   to authenticated
   using (public.has_global_admin_role());
+
+-- Identity-review rows are private to global administrators. Remove any
+-- inherited/default grants to anonymous or PUBLIC while retaining the
+-- authenticated SELECT grant required for the global-admin RLS policy.
+revoke all privileges on table public.player_registration_reviews from anon, public;
+grant select on table public.player_registration_reviews to authenticated;
