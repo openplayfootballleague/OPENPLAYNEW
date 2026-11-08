@@ -110,3 +110,7 @@ Fresh PR metadata/compare checks:
 **No code implementation, merge, deployment, Stripe secret configuration, test account creation, or production data change was made in this follow-up.**
 
 **Project-boundary note:** the Library reports include material from the earlier Lovable/live application. They are historical context only and are not treated as evidence that OPENPLAYNEW contains or has accepted those features. OPENPLAYNEW's repository, Supabase project and current branch evidence remain the sole implementation source of truth for this development run.
+
+
+## Fresh PR #6 CI recheck — 8 November 2026
+A later refresh of PR #6 metadata shows its head at `e69178622ef00a520c4fac0057322062dd0657d0`; GitHub now reports `mergeable=true` (still draft). The exact head has one completed `Build verification` workflow run, **42435119130**, with the single `build` job successful. All recorded steps passed: locked dependency install, Deno setup, Supabase Edge Function type-check, domain tests, TypeScript/build, and Cloudflare Worker dry-run. This supersedes the earlier zero-check-runs observation for the previous head. It does not clear the three static checkout/payment findings documented separately, nor does it constitute end-to-end Stripe acceptance. No merge was performed.
