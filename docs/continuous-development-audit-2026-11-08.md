@@ -372,3 +372,14 @@ Read-only inspection of `admin_set_location_active(uuid,boolean,text)`, `has_pla
 2. Prepare forward migrations for issues #9 and #10 using the Supabase CLI workflow, with regression tests; do not apply them until reviewed and reconciled.
 3. Continue role-by-role SECURITY DEFINER review and add authenticated acceptance coverage when approved test identities become available.
 4. Complete Stripe test-mode, player/captain/admin browser acceptance, PWA real-device checks and production gates.
+
+
+## Continuous execution continuation — 8 November 2026, 02:34 UTC
+
+### Confirmed finance-admin player-fee authorization mismatch — GitHub issue #11
+Read-only inspection of the live finance RPCs confirms `has_finance_access()` is the shared global finance authorization boundary for `get_finance_options`, `get_finance_ledger`, `get_finance_summary`, `admin_create_finance_entry` and `get_admin_stripe_payments`. Those RPCs return all seasons/teams and do not require a location-admin assignment. The player-fee configuration RPC is an outlier: it first requires `can_administer_location()`, which excludes `finance_admin`, and only then checks `has_finance_access()`. The finance page exposes this fee form to authorised finance users, so finance_admin-only users are blocked from a valid finance workflow.
+
+- Tracked: https://github.com/openplayfootballleague/OPENPLAYNEW/issues/11
+- Follow-up review supports treating `finance_admin` as a global finance role unless product ownership explicitly changes the role model.
+- Required remediation: align `admin_set_player_fixture_fee` with the shared finance role model (or deliberately introduce a separate finance-location assignment model), retaining fee/gameweek validation and audit logging.
+- No live database changes were made.
