@@ -156,3 +156,30 @@ A separate cross-PR path review found two local files on the core feature branch
 
 - PR #13 PostHog guard commit: **GitHub Actions passed**.
 - PR #6 profile regression-test commit: GitHub Actions run `42483998963` was still in progress at the time of this addendum; do not count it as passed until its final conclusion is checked.
+
+
+## 8. Continued execution addendum — 8 November 2026, 13:30 UTC
+
+### Authorization migration filename corrected
+
+PR #22's migration was renamed from the invalid-hour local prefix `20261108290000` to `20261109000000_correct_membership_location_and_finance_authorization.sql`. The new file was read back from GitHub (4,966 characters), and the old path now returns 404. SQL content was preserved unchanged. The new UTC timestamp is valid and sorts after the existing 8 November migrations. PR #22 remains draft/unmerged.
+
+A read-only query against the live database confirmed all six source fragments required by the migration's three guarded function replacements are present. This validates the string-replacement preconditions only; it does not execute DDL, compile the replacements or validate runtime permissions.
+
+### Profile regression test CI
+
+The core feature branch commit adding `supabase/tests/profile_avatar_only_permissions.sql` triggered GitHub Actions run `42483998963`, which completed successfully:
+- Edge Function type-check passed.
+- **80/80 Vitest tests passed across 8 files.**
+- TypeScript and production build passed.
+- Cloudflare Worker dry-run passed.
+
+The new SQL regression file is not executed by this CI workflow. Its database assertions and the two-user Data API tests remain outstanding. The workflow emitted a Deno peer-dependency compatibility warning during dependency resolution, but the job completed successfully with no failed steps.
+
+### Updated verified status
+
+- PR #13 analytics provider guard: CI passed after the fix.
+- PR #6 profile permission regression-test addition: CI passed; SQL test itself not run.
+- PR #22 migration filename: corrected and source preconditions checked; no CI or database replay.
+- Live database: unchanged.
+- Supabase paid branch / isolated environment: still intentionally deferred until development is complete.
