@@ -223,3 +223,7 @@ Fresh security/performance/health advisor results:
 - 52 unused-index notices and 15 multiple-permissive-policy notices remain. Do not drop indexes or consolidate policies without workload and semantic tests.
 - Health advisor returned no lints.
 - Read-only source inspection confirms `admin_register_gallery_item` and `admin_set_gallery_item_published` call `assert_admin_location_context`; `get_admin_gallery_items` checks platform role and `can_administer_location`; `get_my_team_request_statuses` filters strictly to `auth.uid()`. These new RPCs are executable by `authenticated` and `postgres`, not `anon`.
+
+
+### SECURITY DEFINER function triage
+A read-only SQL triage of all 80 authenticated-executable SECURITY DEFINER functions found: all 80 have an explicit function `search_path` setting; 79 contain `auth.uid()` checks; the remaining function is `get_admin_stripe_payments(uuid)`, which gates access through `has_finance_access()`. 53 include an explicit platform/location/finance role-scope helper. No function was found lacking both `auth.uid()` and a role/scope guard by this simple pattern scan. This is a useful triage signal, **not** a substitute for reviewing all 80 function bodies, nested helper behavior, argument validation and cross-tenant data boundaries.
