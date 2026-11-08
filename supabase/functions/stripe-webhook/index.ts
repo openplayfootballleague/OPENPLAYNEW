@@ -243,13 +243,36 @@ Deno.serve(async (req) => {
       if (typeof object?.payment_intent === "string") patch.stripe_payment_intent_id = object.payment_intent;
     }
 
-    const { error: paymentUpdateError } = await admin.from("payment_records")
-      .update(patch).eq("id", resolvedPaymentId);
+    // Compare-and-set the payment row against the exact state inspected above.
+    // A retry may advance checkout_attempt while this webhook is retrieving the
+    // balance transaction; without these predicates a delayed event from the
+    // previous attempt could overwrite the new attempt's state.
+    let paymentUpdate = admin.from("payment_records")
+      .update(patch)
+      .eq("id", resolvedPaymentId)
+      .eq("status", currentPayment.status)
+      .eq("checkout_attempt", currentPayment.checkout_attempt);
+    paymentUpdate = currentPayment.stripe_checkout_session_id
+      ? paymentUpdate.eq("stripe_checkout_session_id", currentPayment.stripe_checkout_session_id)
+      : paymentUpdate.is("stripe_checkout_session_id", null);
+    paymentUpdate = currentPayment.last_stripe_event_at
+      ? paymentUpdate.eq("last_stripe_event_at", currentPayment.last_stripe_event_at)
+      : paymentUpdate.is("last_stripe_event_at", null);
+    const { data: updatedPayment, error: paymentUpdateError } = await paymentUpdate
+      .select("id").maybeSingle();
     if (paymentUpdateError) {
       await admin.from("stripe_webhook_events").update({
         processing_error: paymentUpdateError.message, processing_started_at: null,
       }).eq("id", eventId);
       return new Response("Could not update payment record", { status: 500 });
+    }
+    if (!updatedPayment) {
+      await admin.from("stripe_webhook_events").update({
+        payment_record_id: resolvedPaymentId,
+        processing_error: "Payment record changed during webhook settlement; retry against the latest attempt",
+        processing_started_at: null,
+      }).eq("id", eventId);
+      return new Response("Payment state changed during settlement", { status: 409 });
     }
     await admin.from("stripe_webhook_events").update({
       payment_record_id: resolvedPaymentId,
