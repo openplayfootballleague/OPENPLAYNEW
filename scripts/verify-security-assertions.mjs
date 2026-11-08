@@ -4,10 +4,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const sourcePath = "supabase/tests/security_privilege_assertions.sql";
-const source = readFileSync(sourcePath, "utf8").trim().replace(/;\s*$/, "");
+const rawSource = readFileSync(sourcePath, "utf8").trim();
+const source = rawSource
+  .replace(/^(?:\s*--.*(?:\r?\n|$))+/, "")
+  .trim()
+  .replace(/;\s*$/, "");
 
 if (!source.toLowerCase().startsWith("select")) {
-  throw new Error(`Expected a SELECT assertion query in ${sourcePath}`);
+  throw new Error(`Expected a SELECT assertion query in ${sourcePath} after leading comments`);
 }
 
 const sql = `
