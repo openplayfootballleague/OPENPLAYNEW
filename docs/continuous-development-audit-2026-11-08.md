@@ -161,3 +161,7 @@ PR #7's current-head build check was observed in progress at the last poll. No l
 PR #6 now has captain-only Player Hub checkout and personal payment-history UI, hardened webhook settlement validation and seven regression tests for session/charge validation. Latest CI run `42435790150` passed all steps including Edge Function type-check, domain tests, TS/build and Cloudflare dry-run. PR remains draft and unmerged.
 
 The remaining retry-lifecycle defect requires a new atomic server-side transition and a properly generated migration source. The available connected tooling does not expose the Supabase CLI `migration new` workflow; I have not fabricated a migration filename or edited an already-applied migration to bypass that requirement. This is the next technical blocker to resolve. No database schema or live payment state was changed during this continuation.
+
+
+## Admin Needs Attention navigation consolidation — 8 November 2026
+Ported the four admin summary shortcuts and their target section IDs onto the current-main-based Bideford policy PR #7, retaining the Bideford activation controls. Keyboard focus styling and accessible labels were included. The older PR #5 was closed as superseded; its navigation changes are preserved in PR #7. PR #7's latest head `36e3247380eb2b8289a468d27b4c76eff08e9b1d` has a new build verification run `42435893691` in progress at the last check. Browser acceptance remains outstanding.
