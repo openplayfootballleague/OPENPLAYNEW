@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
 
   let resolvedPaymentId = paymentId;
   let chargePaymentIntentMetadata: unknown = null;
-  if (eventType === "charge.succeeded") {
+  if (eventType === "charge.succeeded" || eventType === "charge.refunded") {
     const intentId = typeof object?.payment_intent === "string" ? object.payment_intent : "";
     if (!intentId) return new Response("Charge has no PaymentIntent", { status: 400 });
     // Always inspect the PaymentIntent, not just the Charge object: the
@@ -100,14 +100,6 @@ Deno.serve(async (req) => {
       return new Response("PaymentIntent metadata does not match the charge payment record", { status: 409 });
     }
     resolvedPaymentId = metadataPaymentId;
-  } else if (!resolvedPaymentId && eventType === "charge.refunded") {
-    const intentId = typeof object?.payment_intent === "string" ? object.payment_intent : "";
-    if (intentId) {
-      const { data: linkedPayment, error: lookupError } = await admin.from("payment_records")
-        .select("id").eq("stripe_payment_intent_id", intentId).maybeSingle();
-      if (lookupError) return new Response("Could not map refund to payment", { status: 500 });
-      resolvedPaymentId = linkedPayment?.id ?? "";
-    }
   }
 
   const paymentEvents = new Set([
@@ -139,7 +131,7 @@ Deno.serve(async (req) => {
     const settlementRecord = currentPayment as PaymentSettlementRecord;
     const settlementValidation = eventType.startsWith("checkout.session.")
       ? validateCheckoutSettlement(settlementRecord, object ?? {})
-      : eventType === "charge.succeeded"
+      : eventType === "charge.succeeded" || eventType === "charge.refunded"
         ? validateChargeSettlement(settlementRecord, object ?? {}, chargePaymentIntentMetadata)
         : { ok: true as const };
     if (!settlementValidation.ok) {
