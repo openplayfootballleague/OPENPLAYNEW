@@ -10,7 +10,7 @@ select e.*,st.name t_name,st.season_id s_id,se.name s_name,f.gameweek,
 sum(case when e.entry_type in ('charge','fine','refund') then e.amount_pence::bigint when e.entry_type in ('payment','credit') then -e.amount_pence::bigint else 0 end) over(partition by e.season_team_id) balance
 from public.finance_entries e join public.season_teams st on st.id=e.season_team_id join public.seasons se on se.id=st.season_id left join public.fixtures f on f.id=e.fixture_id
 where (p_season_id is null or st.season_id=p_season_id) and (p_team_id is null or st.id=p_team_id))
-select s.id,s.season_team_id,s.t_name,s.s_id,s.s_name,s.fixture_id,s.gameweek,s.entry_type,s.amount_pence,s.description,s.due_at,s.occurred_at,s.payment_method,s.reference,s.notes,s.created_by,s.created_at,s.balance from scoped s order by s.created_at desc,s.id;
+select s.id,s.season_team_id,s.t_name,s.s_id,s.s_name,s.fixture_id,s.gameweek,s.entry_type,s.amount_pence,s.description,s.due_at,s.occurred_at,s.payment_method,s.reference,s.notes,s.created_by,s.created_at,s.balance::bigint from scoped s order by s.created_at desc,s.id;
 end; $$;
 
 create or replace function public.get_finance_summary(p_season_id uuid default null)

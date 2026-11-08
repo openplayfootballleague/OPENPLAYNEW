@@ -1,0 +1,13 @@
+# Local Supabase configuration for Open Play New.
+# This project configuration contains no credentials and is safe to commit.
+project_id = "openplaynew"
+
+[db]
+major_version = 17
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[db.seed]
+enabled = false
