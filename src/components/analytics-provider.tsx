@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { PostHogProvider, usePostHog } from "@posthog/react";
 import { useLocation } from "@tanstack/react-router";
@@ -13,8 +13,10 @@ import {
   captureOpenPlayEvent,
   type AnalyticsActor,
   type AnalyticsCaptureClient,
+  type AnalyticsProperties,
+  type OpenPlayAnalyticsEvent,
 } from "../lib/analytics/events";
-import { getSupabaseClient, isSupabaseConfigured } from "../lib/supabase/client";
+import { getSupabaseClient } from "../lib/supabase/client";
 
 const POSTHOG_OPTIONS = {
   defaults: "2026-08-30",
@@ -34,6 +36,18 @@ const POSTHOG_OPTIONS = {
   disable_conversations: true,
   logs: { captureConsoleLogs: false },
 } as const;
+
+type AnalyticsCapture = (
+  event: OpenPlayAnalyticsEvent,
+  properties?: AnalyticsProperties,
+) => boolean;
+
+const noOpCapture: AnalyticsCapture = () => false;
+const AnalyticsCaptureContext = createContext<AnalyticsCapture>(noOpCapture);
+
+export function useOpenPlayAnalytics() {
+  return useContext(AnalyticsCaptureContext);
+}
 
 function PostHogConsentInitializer() {
   const posthog = usePostHog();
@@ -87,16 +101,12 @@ function routeFeature(category: ReturnType<typeof routeCategory>) {
   }
 }
 
-function AnalyticsRouteTracker() {
+function PostHogCaptureProvider({ children }: { children: ReactNode }) {
   const posthog = usePostHog();
   const location = useLocation();
   const [actor, setActor] = useState<AnalyticsActor>("unknown");
 
   useEffect(() => {
-    // Analytics must never make the app fail when account services are not configured.
-    // Without a verified auth source, keep the actor unknown and fail closed.
-    if (!isSupabaseConfigured()) return;
-
     let alive = true;
     const supabase = getSupabaseClient();
 
@@ -121,29 +131,19 @@ function AnalyticsRouteTracker() {
         .eq("user_id", session.user.id)
         .maybeSingle();
       if (playerError) return "unknown";
-      return player?.registration_status === "registered" && !player.is_banned
-        ? "player"
-        : "unknown";
+      if (player?.is_banned) return "unknown";
+      return player?.registration_status === "registered" ? "player" : "account_user";
     }
 
-    void resolveActor()
-      .then((resolved) => {
-        if (alive) setActor(resolved);
-      })
-      .catch(() => {
-        // Analytics is optional; auth/network failures must never affect the app.
-        if (alive) setActor("unknown");
-      });
+    void resolveActor().then((resolved) => {
+      if (alive) setActor(resolved);
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
       setActor("unknown");
-      void resolveActor()
-        .then((resolved) => {
-          if (alive) setActor(resolved);
-        })
-        .catch(() => {
-          if (alive) setActor("unknown");
-        });
+      void resolveActor().then((resolved) => {
+        if (alive) setActor(resolved);
+      });
     });
 
     return () => {
@@ -152,26 +152,34 @@ function AnalyticsRouteTracker() {
     };
   }, []);
 
-  useEffect(() => {
-    if (actor === "unknown") return;
-    const category = routeCategory(location.pathname);
+  const capture = useCallback<AnalyticsCapture>((event, properties) => {
     const client: AnalyticsCaptureClient = {
-      capture: (event, properties) => posthog.capture(event, properties),
+      capture: (capturedEvent, safeProperties) => posthog.capture(capturedEvent, safeProperties),
     };
-    captureOpenPlayEvent(
+    return captureOpenPlayEvent(
       client,
       "granted",
       isGlobalPrivacyControlEnabled(),
       actor,
-      "navigation_section_viewed",
-      {
-        route_category: category,
-        feature: routeFeature(category),
-      },
+      event,
+      properties,
     );
-  }, [actor, location.pathname, posthog]);
+  }, [actor, posthog]);
 
-  return null;
+  useEffect(() => {
+    if (actor === "unknown") return;
+    const category = routeCategory(location.pathname);
+    capture("navigation_section_viewed", {
+      route_category: category,
+      feature: routeFeature(category),
+    });
+  }, [actor, capture, location.pathname]);
+
+  return (
+    <AnalyticsCaptureContext.Provider value={capture}>
+      {children}
+    </AnalyticsCaptureContext.Provider>
+  );
 }
 
 export function AnalyticsConsentBanner({ enabled }: { enabled: boolean }) {
@@ -249,15 +257,14 @@ export function ConsentAwareAnalytics({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <>
+    <AnalyticsCaptureContext.Provider value={noOpCapture}>
       {configured && allowed ? (
         <PostHogProvider apiKey={projectToken!} options={{ ...POSTHOG_OPTIONS, api_host: projectHost! }}>
           <PostHogConsentInitializer />
-          <AnalyticsRouteTracker />
-          {children}
+          <PostHogCaptureProvider>{children}</PostHogCaptureProvider>
         </PostHogProvider>
       ) : children}
       <AnalyticsConsentBanner enabled={configured} />
-    </>
+    </AnalyticsCaptureContext.Provider>
   );
 }
