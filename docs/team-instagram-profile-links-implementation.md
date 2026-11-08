@@ -19,6 +19,10 @@ The current branch's team registration form contains team name and colours, but 
 
 The migration source has been committed but **not applied**. The connected Supabase migration ledger has source/version mismatches and duplicate/renamed entries compared with the branch migration directory. The existing migration-source recovery task must be reconciled before applying any new migration. Consequently the current production database does not yet have the new column or RPCs, and this feature is not production-ready until the migration is safely reconciled, applied in the approved environment and verified.
 
+## CI verification
+
+The application commit `6215449ccb32f0ee6ef77d4a211972807dd53483` passed GitHub Actions run `42468952054`: Deno Edge Function type-check, domain tests, TypeScript/production build, and Cloudflare Worker dry-run bundle validation. This verifies the current client code and type contracts; it does not apply or validate the database migration against production.
+
 ## Remaining verification
 
 - Await CI for the latest app commit.
