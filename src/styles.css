@@ -1206,3 +1206,14 @@ a { color: inherit; text-decoration: none; }
   .join-request-item-top { flex-direction: column; }
   .join-request-status { max-width: none; }
 }
+
+/* Optional analytics consent — shown only when the EU PostHog client is configured. */
+.analytics-consent-banner{position:fixed;z-index:1000;inset-inline:16px;bottom:calc(16px + env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:space-between;gap:20px;width:min(100% - 2rem,900px);margin-inline:auto;padding:18px 20px;background:#151b16;border:1px solid #f36b32;border-radius:14px;box-shadow:0 14px 44px #0009;color:#f4f3ed}
+.analytics-consent-copy{min-width:0}
+.analytics-consent-copy strong{display:block;margin-bottom:5px;color:#fff;font-size:14px}
+.analytics-consent-copy p{max-width:580px;margin:0;color:#c8cbc5;font-size:11px;line-height:1.55}
+.analytics-consent-copy .form-error{margin-top:7px;color:#ff9b8f}
+.analytics-consent-actions{display:flex;flex:0 0 auto;align-items:center;gap:12px}
+.analytics-consent-actions .button{white-space:nowrap}
+.analytics-consent-actions .auth-text-button{white-space:nowrap;color:#e5e7df}
+@media(max-width:640px){.analytics-consent-banner{inset-inline:10px;bottom:calc(10px + env(safe-area-inset-bottom));width:auto;display:grid;gap:12px;padding:15px}.analytics-consent-actions{display:flex;flex-wrap:wrap;gap:10px}.analytics-consent-actions .button{flex:1 1 auto}.analytics-consent-actions .auth-text-button{padding:10px}}
