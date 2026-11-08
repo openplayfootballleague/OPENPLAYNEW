@@ -119,7 +119,7 @@ function JoinPage() {
     <PlayerCompetitionSelector context={competition}/>
     {competition.error&&<p className="form-error" role="alert">{competition.error}</p>}
     {error&&<p className="form-error" role="alert">{error}</p>}{message&&<p className="form-note" role="status">{message}</p>}
-    <div className="auth-mode-switch"><button type="button" className={mode==="join"?"active":""} onClick={()=>{setMode("join");setError("");setMessage("");}}>JOIN A TEAM</button><button type="button" className={mode==="register"?"active":""} onClick={()=>{setMode("register");setError("");setMessage("");}}>REGISTER A TEAM</button></div>
+    <div className="auth-mode-switch"><button type="button" className={mode==="join"?"active":""} onClick={()=>{setMode("join");setError("");setMessage("");}}>JOIN A TEAM</button><button type="button" className={mode==="register"?"active":""} onClick={()=>{setMode("register");capture("team_registration_started",{feature:"team_registration"});setError("");setMessage("");}}>REGISTER A TEAM</button></div>
     {competition.loading?<p className="form-note">Loading locations and seasons…</p>:!registrationOpen?<p className="form-note">There is no public season currently accepting registrations for this location. Choose another location or check back when registration opens.</p>:<>
       <p className="form-note">Registration is open for {selectedSeason?.name}.</p>
       {mode==="join"?<form className="auth-form" onSubmit={submitJoin}>
