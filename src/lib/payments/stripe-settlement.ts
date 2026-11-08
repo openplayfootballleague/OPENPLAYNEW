@@ -4,6 +4,7 @@ export type PaymentSettlementRecord = {
   currency: string;
   stripe_checkout_session_id: string | null;
   stripe_payment_intent_id: string | null;
+  checkout_attempt: number;
 };
 
 type StripeObject = Record<string, unknown>;
@@ -13,7 +14,10 @@ export function validateCheckoutSettlement(record: PaymentSettlementRecord, obje
   const sessionId = typeof object.id === "string" ? object.id : "";
   const metadata = object.metadata as Record<string, unknown> | undefined;
   const paymentId = String(metadata?.payment_record_id ?? object.client_reference_id ?? "");
-  if (!sessionId || record.stripe_checkout_session_id !== sessionId || paymentId !== record.id) {
+  const metadataAttempt = checkoutAttemptFromIntentMetadata(metadata);
+  const attemptMatches = metadataAttempt === null ? record.checkout_attempt === 0 : metadataAttempt === record.checkout_attempt;
+  if (!sessionId || (record.stripe_checkout_session_id && record.stripe_checkout_session_id !== sessionId && !attemptMatches) ||
+    paymentId !== record.id || !attemptMatches) {
     return { ok: false, reason: "Checkout session identity mismatch; held for finance review" };
   }
   if (object.payment_status === "paid" || object.amount_total !== undefined) {
@@ -29,11 +33,15 @@ export function validateCheckoutSettlement(record: PaymentSettlementRecord, obje
   return { ok: true };
 }
 
-export function validateChargeSettlement(record: PaymentSettlementRecord, object: StripeObject): SettlementValidation {
+export function validateChargeSettlement(record: PaymentSettlementRecord, object: StripeObject, intentMetadata?: unknown): SettlementValidation {
   const intentId = typeof object.payment_intent === "string" ? object.payment_intent : "";
   const amount = object.amount;
   const currency = String(object.currency ?? "").toLowerCase();
-  if (!intentId || (record.stripe_payment_intent_id && record.stripe_payment_intent_id !== intentId) ||
+  const metadataPaymentId = paymentRecordIdFromIntentMetadata(intentMetadata);
+  const metadataAttempt = checkoutAttemptFromIntentMetadata(intentMetadata);
+  const attemptMatches = metadataAttempt === null ? record.checkout_attempt === 0 : metadataAttempt === record.checkout_attempt;
+  if (!intentId || metadataPaymentId !== record.id || !attemptMatches ||
+    (record.stripe_payment_intent_id && record.stripe_payment_intent_id !== intentId) ||
     !Number.isSafeInteger(amount) || Number(amount) !== record.amount_pence ||
     currency !== record.currency.toLowerCase() || object.paid !== true) {
     return { ok: false, reason: "Charge amount, currency or payment intent mismatch; held for finance review" };
