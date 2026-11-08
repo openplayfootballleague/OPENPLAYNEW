@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - feat/visual-system-refresh-2026-11-08
-    paths:
-      - .github/workflows/openplay-continuous-verify.yml
 
 permissions:
   contents: read
