@@ -51,7 +51,9 @@ Deno.serve(async (req) => {
   const paymentId = String(metadata?.payment_record_id ?? object?.client_reference_id ?? "");
   const eventId = String(event.id ?? "");
   const eventType = String(event.type ?? "");
-  if (!eventId || !eventType) return new Response("Incomplete event", { status: 400 });
+  if (!eventId || !eventType || !Number.isSafeInteger(event.created) || Number(event.created) <= 0) {
+    return new Response("Incomplete or invalid event metadata", { status: 400 });
+  }
 
   const { error: eventInsertError } = await admin.from("stripe_webhook_events")
     .insert({ id: eventId, event_type: eventType, payment_record_id: paymentId || null, livemode: false })
@@ -86,6 +88,35 @@ Deno.serve(async (req) => {
         .select("id").eq("stripe_payment_intent_id", intentId).maybeSingle();
       if (lookupError) return new Response("Could not map refund to payment", { status: 500 });
       resolvedPaymentId = linkedPayment?.id ?? "";
+    }
+  }
+
+  // Stripe can deliver events out of order. Do not let an older checkout
+  // completion/expiry/failure overwrite a newer payment or refund state.
+  if (paymentId && eventType.startsWith("checkout.session.")) {
+    const { data: currentPayment, error: currentPaymentError } = await admin.from("payment_records")
+      .select("last_stripe_event_at")
+      .eq("id", paymentId)
+      .maybeSingle();
+    if (currentPaymentError) {
+      await admin.from("stripe_webhook_events").update({
+        processing_error: "Could not inspect current payment event ordering",
+        processing_started_at: null,
+      }).eq("id", eventId);
+      return new Response("Could not inspect payment event ordering", { status: 500 });
+    }
+    const previousEventTime = currentPayment?.last_stripe_event_at
+      ? Date.parse(currentPayment.last_stripe_event_at)
+      : 0;
+    const incomingEventTime = Number(event.created) * 1000;
+    if (previousEventTime > incomingEventTime) {
+      await admin.from("stripe_webhook_events").update({
+        payment_record_id: paymentId,
+        processed_at: new Date().toISOString(),
+        processing_error: null,
+        processing_started_at: null,
+      }).eq("id", eventId);
+      return Response.json({ received: true, stale: true });
     }
   }
 
