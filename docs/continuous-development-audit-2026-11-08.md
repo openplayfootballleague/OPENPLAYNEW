@@ -165,3 +165,9 @@ The remaining retry-lifecycle defect requires a new atomic server-side transitio
 
 ## Admin Needs Attention navigation consolidation — 8 November 2026
 Ported the four admin summary shortcuts and their target section IDs onto the current-main-based Bideford policy PR #7, retaining the Bideford activation controls. Keyboard focus styling and accessible labels were included. The older PR #5 was closed as superseded; its navigation changes are preserved in PR #7. PR #7's latest head `36e3247380eb2b8289a468d27b4c76eff08e9b1d` has a new build verification run `42435893691` in progress at the last check. Browser acceptance remains outstanding.
+
+
+## Latest build verification — 8 November 2026
+- PR #7 latest head `36e3247380eb2b8289a468d27b4c76eff08e9b1d`: workflow run `42435893691` completed successfully. Deno Edge Function type-check, domain tests, TypeScript/build and Cloudflare Worker dry-run passed. The Bideford activation UI, restored migration source and Needs Attention shortcuts compile together. PR #7 remains draft pending browser/admin acceptance and review.
+- PR #6 latest head `f09481620c8e90759ca3dac872a3477efa586a01`: workflow run `42435790150` completed successfully with Edge Function type-check, domain tests, TypeScript/build and Cloudflare dry-run all passed. Stripe test flow remains draft pending retry migration, test secrets/accounts, Stripe event tests and browser acceptance.
+- PR #5 is closed as superseded; its shortcut-navigation work is included in PR #7.
