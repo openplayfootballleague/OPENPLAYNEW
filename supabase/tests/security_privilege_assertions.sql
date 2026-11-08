@@ -174,3 +174,34 @@ begin
   end if;
 end;
 $location_admin_rls_boundary$;
+
+-- Permissive ALL policies also apply to SELECT; assert they no longer
+-- grant every league_admin platform-wide visibility.
+do $platform_role_rls_regression$
+declare
+  v_broad_policy text;
+begin
+  select policyname into v_broad_policy
+  from pg_catalog.pg_policies
+  where schemaname='public'
+    and policyname = any(array[
+      'fixture_results_admin_manage','fixture_team_sheet_players_admin_manage',
+      'fixture_team_sheets_admin_manage','fixtures_admin_manage','leagues_admin_manage',
+      'locations_admin_manage','season_registrations_admin_manage','season_teams_admin_manage',
+      'seasons_admin_manage','team_memberships_admin_manage','teams_admin_manage',
+      'transfer_requests_admin_manage'
+    ])
+    and (coalesce(qual,'') ilike '%has_platform_role()%' or coalesce(with_check,'') ilike '%has_platform_role()%')
+  limit 1;
+  if v_broad_policy is not null then
+    raise exception 'Permissive admin policy still uses has_platform_role(): %',v_broad_policy;
+  end if;
+
+  if not exists(select 1 from pg_catalog.pg_policies where schemaname='public' and policyname='season_registrations_select_self_or_global_admin') then
+    raise exception 'Season registration reads must be owner/global-admin only';
+  end if;
+  if exists(select 1 from pg_catalog.pg_policies where schemaname='public' and policyname='season_registrations_select_self_or_admin' and coalesce(qual,'') ilike '%has_platform_role()%') then
+    raise exception 'Legacy season registration policy still exposes rows to all location admins';
+  end if;
+end;
+$platform_role_rls_regression$;
