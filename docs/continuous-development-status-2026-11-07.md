@@ -403,3 +403,26 @@ Additional static inspection found 79 SECURITY DEFINER functions callable by aut
 ### Next execution priority
 
 Use the available approved Auth Admin path to provision disposable development-only global-admin and location-admin identities, then execute authenticated browser acceptance. If that capability remains unavailable, continue with the independent admin information-architecture and gallery backlog without weakening authentication or access controls.
+
+
+## Session update — 8 November 2026, 02:02 UTC
+
+The earlier status snapshot above is historical (its 69-migration count and Stripe acceptance description are superseded by later live checks and PR work). Current verified notes:
+
+- Hosted Supabase migration ledger was re-read: 97 applied records. Current branch has 92 migration SQL files; the union of inspected branches contains 128 distinct filenames. Six exact applied migration sources remain unrecovered: `fixture_player_appearance_tracking`, `finance_options_for_finance_roles`, `finance_summary_team_balance_rollup`, `audit_log_explicit_deny_policy`, `fixture_goal_records_explicit_deny_policy`, and `20261108190000_location_admin_assignments`. Do not fabricate these sources or alter the live migration ledger.
+- Checkout retry is implemented using a compare-and-set claim on payment status, attempt counter and prior Checkout session ID. The Stripe idempotency key includes the attempt number. An open session is reused; an expired or failed attempt can be advanced without allowing two callers to claim the same attempt.
+- Webhook payment settlement now uses compare-and-set predicates on the captured payment status, attempt, Checkout session and last Stripe event timestamp. This prevents a delayed webhook from overwriting a newer retry attempt. A concurrent state change releases the event lease and returns HTTP 409 for retry.
+- Checkout no longer tells the player a completed Stripe session is paid until the webhook has updated the authoritative payment ledger.
+- Finance Stripe payment table now displays gross amount, status, refunded amount, Stripe fee, net proceeds and paid date. Fee/net values come from verified balance-transaction webhook reconciliation; they remain blank until received.
+- CI run `42436746697` passed on commit `c8df25d33f9d858f6c97744229fd1a42b775cee4`: Deno Edge Function type-check, Vitest domain tests, TypeScript/build and Cloudflare Worker dry-run. The newer finance-table commit `d15f48f59e3693c517a139ea0cb54920696a477c` has its own CI run `42436764026` in progress at the time of this update.
+- CI attempts `42436591172`, `42436617056`, `42436636643`, `42436676396`, `42436717709`, and `42436738527` failed on intermediate nullability/scope/type issues; fixes were committed subsequently. Do not describe these intermediate runs as passed.
+- Outstanding Stripe acceptance: configure test-only secrets and test webhook endpoint; exercise test Checkout success/cancel/expiry/async failure/retry, charge-only and duplicate/concurrent/out-of-order webhooks, refunds, fee reconciliation and cross-user denial. Admin refund initiation and payout-level reconciliation remain unimplemented. No test credentials, accounts, fixture records, Stripe sessions or live payments were created in this session.
+- Current PR #6 remains draft/unmerged: https://github.com/openplayfootballleague/OPENPLAYNEW/pull/6. Current PR #7 remains draft/unmerged: https://github.com/openplayfootballleague/OPENPLAYNEW/pull/7. PR #7 restores the missing Bideford policy migration source and ports admin activation controls/navigation; its latest checked build passed. Browser/admin acceptance remains outstanding.
+- Read-only location policy spot-check confirmed zero location rows in the designated Supabase project, a Bideford-only active-town constraint, a single-active-location unique index, and admin RPC permissions. Bideford must be created and activated by an authorised administrator before first-release use; no live rows were changed.
+
+### Immediate next actions
+1. Confirm CI for current PR #6 head `d15f48f59e3693c517a139ea0cb54920696a477c`.
+2. Implement finance-admin refund initiation safely with idempotent server-side reservations and audit logging; do not expose refunds until tested in Stripe test mode.
+3. Design and implement payout-level reconciliation against Stripe payout and balance-transaction records, preserving the existing append-only finance ledger.
+4. Recover the six original migration files from an authoritative archive/export or source backup.
+5. Complete browser acceptance for PR #7 admin controls and PR #1 PWA install/offline behavior.
