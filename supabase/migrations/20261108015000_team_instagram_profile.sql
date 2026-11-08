@@ -87,15 +87,21 @@ as $$
 declare
   v_user_id uuid := auth.uid();
   v_team_id uuid;
+  v_location_id uuid;
   v_url text := nullif(trim(p_instagram_profile_url), '');
 begin
   if v_user_id is null then raise exception 'Authentication required'; end if;
-  select st.team_id into v_team_id
+  select st.team_id, l.location_id into v_team_id, v_location_id
   from public.season_teams st
+  join public.seasons s on s.id=st.season_id
+  join public.leagues l on l.id=s.league_id
   where st.id=p_season_team_id;
   if v_team_id is null then raise exception 'Team not found'; end if;
 
-  if not public.has_platform_role() and not exists (
+  if not exists (
+    select 1 from public.user_roles ur
+    where ur.user_id=v_user_id and ur.role in ('admin','super_admin')
+  ) and not public.can_administer_location(v_location_id) and not exists (
     select 1 from public.team_memberships tm
     where tm.season_team_id=p_season_team_id
       and tm.user_id=v_user_id
@@ -183,7 +189,8 @@ as $$
   join public.teams t on t.id=st.team_id
   join public.seasons s on s.id=st.season_id
   join public.leagues l on l.id=s.league_id
-  where public.has_platform_role()
+  where exists (select 1 from public.user_roles ur where ur.user_id=auth.uid() and ur.role in ('admin','super_admin'))
+     or public.can_administer_location(l.location_id)
   order by l.name, s.name, st.name;
 $$;
 
