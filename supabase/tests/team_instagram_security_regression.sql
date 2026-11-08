@@ -9,6 +9,7 @@ declare
   v_profile_constraint text;
   v_handle_constraint text;
   v_public_is_definer boolean;
+  v_public_has_empty_search_path boolean;
 begin
   select lower(pg_catalog.pg_get_constraintdef(oid))
     into v_profile_constraint
@@ -34,8 +35,12 @@ begin
   select prosecdef into v_public_is_definer
     from pg_catalog.pg_proc
    where oid='public.get_public_team_directory(uuid)'::regprocedure;
+  select coalesce(p.proconfig @> array['search_path=""'],false)
+    into v_public_has_empty_search_path
+    from pg_catalog.pg_proc p
+   where p.oid='public.get_public_team_directory(uuid)'::regprocedure;
   if not coalesce(v_public_is_definer,false)
-     or position('set search_path = ''''' in v_public_definition)=0 then
+     or not coalesce(v_public_has_empty_search_path,false) then
     raise exception 'Public team directory must be SECURITY DEFINER with an empty search_path';
   end if;
 
@@ -50,7 +55,8 @@ begin
     raise exception 'Public team directory must not expose team creator identity';
   end if;
 
-  if position('is_active_team_captain' in v_update_definition)=0
+  if position('tm.status=''active''' in v_update_definition)=0
+     or position('tm.is_captain=true' in v_update_definition)=0
      or position('can_administer_location' in v_update_definition)=0 then
     raise exception 'Instagram profile updates must remain captain/location-admin scoped';
   end if;
