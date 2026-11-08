@@ -663,3 +663,9 @@ button:disabled { opacity: .55; }
 .notification-preference-panel input{accent-color:#f36b32}
 .notification-preference-panel .button{justify-self:start}
 @media(max-width:520px){.notification-card{flex-direction:column}.notification-card-actions{flex-direction:row;align-items:center}.notification-page-heading{align-items:flex-start}}
+
+
+.inbox-empty-state{display:grid;justify-items:center;gap:12px;margin:28px 0;padding:30px 22px;background:#202820;border:1px solid #39443b;border-radius:14px;text-align:center}
+.inbox-empty-state>span{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:#35261f;color:#ff9a68;font-size:25px}
+.inbox-empty-state h2{margin:0;color:#f4f3ed;font-size:23px}
+.inbox-empty-state p{max-width:440px;margin:0 0 8px;color:#c8cbc5;font-size:13px;line-height:1.65}
