@@ -1,5 +1,7 @@
 export type TeamRequestStatus = {
   membership_id: string;
+  season_team_id: string;
+  season_id: string;
   team_name: string;
   season_name: string;
   team_registration_status: string;
