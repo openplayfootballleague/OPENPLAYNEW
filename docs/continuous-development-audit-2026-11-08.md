@@ -323,3 +323,13 @@ PR #6 description has been updated with this evidence. The PR remains draft; CI 
 - Static source check: 15 in-page admin navigation anchors, all 15 have target IDs; labels are sequential `01`–`16` with no duplicate numbers. This is a source-level check only, not browser/device acceptance.
 - PR #6 head `a345997ed11e3c96aeacb6f6b242434cc64aece0` passed full CI: 7 test files / 78 tests, Edge Function type-check, TypeScript/Vite build and Cloudflare dry-run. A small location-help-text update is on newer head `8698acc3c6fa5700786a2e4deb1c86eb37b557d2`; its workflow was still running at the time of this note.
 - PR #7 contains no remaining unique implementation after the port. It will be closed as superseded only after the latest PR #6 CI is verified. PR #6 remains draft and unmerged.
+
+
+## Session close — 8 November 2026, 02:25 UTC
+
+- PR #6 current head `8698acc3c6fa5700786a2e4deb1c86eb37b557d2` passed workflow `42438352387`: Edge Function type-check, **7 test files / 78 tests**, TypeScript/Vite build and Cloudflare Worker dry-run.
+- PR #6 now contains the Bideford policy UI, the exact Bideford migration source and policy note, accessible Needs Attention shortcuts, corrected admin workspace numbering and four additional player-context regression tests. PR #6 remains draft and unmerged.
+- PR #7 was closed unmerged as superseded; its exact source and UI changes are consolidated into PR #6. No Supabase migrations or data were changed.
+- Static admin navigation check passed: all 15 in-page anchors have targets; numbers 01–16 are unique.
+- The six unrecovered original migration SQL sources, nine duplicate filename prefixes and version drift remain blockers. Current PR #6 branch has 94 migration files and two exact version-prefix matches against the 98-row live ledger.
+- Hosted Stripe functions remain older than PR #6 source; no Stripe secrets/test webhook/test checkout, Auth test users or production deployment were configured.
