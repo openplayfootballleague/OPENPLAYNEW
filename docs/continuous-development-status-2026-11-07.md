@@ -144,3 +144,16 @@ Separate Open Play reports in the Library document substantial Stage 2–4 work 
 ## Next execution priority
 
 Complete approved finance-role, audit-history, admin-help and player-database acceptance tests. Continue with the full matchday lifecycle and authenticated end-to-end tests. Keep production deployment blocked until the owner-approved test identities, provider configuration, real Bideford data and launch checks are complete.
+
+
+## 8 November 2026 — player-facing visual foundation progress
+
+- Added the permanent visual authority and implementation/acceptance specification at `docs/player-facing-visual-design-master-specification.md` (commit `7eea1bf21a2ac81e38b547e410b033d22668dbd6`).
+- Added the `player-facing` scope to Player Hub, Captain Hub, Match Centre, Teams, Join, sign-in, sign-up, player registration and password-reset routes. This allows the new visual system to be isolated from the public marketing site and Admin Dashboard.
+- Added Oswald and Inter font loading and scoped player-facing design tokens: black/charcoal surfaces, white/grey text, #FF6500 accent, dark cards/inputs and orange focus outlines. Existing global typography and public/admin styles were not globally replaced.
+- Verified GitHub Actions success for route commits `5930acd1`, `455d5f6b`, `a4261916`, `2191d68d` and stylesheet commit `dab8a4cc`. Workflow runs: `42429035522`, `42429042008`, `42429048694`, `42429059233`, `42429074635` respectively. These are build/typecheck CI results, not visual/browser acceptance.
+- Retrieved and visually inspected the Library asset named `Connected Orange OP Monogram.png`. It is the orange connected OP mark on black and is a candidate source for the official asset. It is not yet committed to the repository. The repository tree currently contains only `public/favicon.svg` among image assets; therefore do not point UI code at a nonexistent logo path or substitute a recreated mark. Next asset task is to transfer the exact original bytes into the repository using a supported binary upload route, then implement the shared clickable logo header. The image source is the Library asset, not a newly generated logo.
+- Remaining visual work: shared header and bottom navigation, standardised reusable cards/buttons/tables/status components, route-by-route styling, mobile/tablet/desktop screenshot review, exact logo integration, and functional regression testing.
+- Team badge upload/background removal/quality-review workflow remains unimplemented. Do not publish low-confidence processed badges.
+- Stripe work remains test-mode only; captain payer semantics are unresolved and checkout remains unavailable until the payer model is decided.
+- Admin Dashboard remains excluded from player-facing visual CSS scope.
