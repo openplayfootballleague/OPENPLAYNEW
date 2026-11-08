@@ -16,7 +16,7 @@ type AccountSummary = {
   name: string;
   avatarUrl: string | null;
   status: string;
-  unread: number;
+  unread: number | null;
 };
 
 const signedOut: Access = {
@@ -105,7 +105,7 @@ export function SiteNavigation() {
         name: player?.full_name || fullName || session.user.email || "Open Play account",
         avatarUrl,
         status: derivedAccess.approvedPlayer ? "Registered player" : player ? "Player registration pending" : "Account not registered as a player",
-        unread: unreadCount ?? 0,
+        unread: unreadCount ?? null,
       });
       if (accountChannelUserId !== session.user.id) {
         if (accountChannel) void supabase.removeChannel(accountChannel);
@@ -113,7 +113,7 @@ export function SiteNavigation() {
         accountChannel = supabase.channel("account-indicators-" + session.user.id)
           .on("postgres_changes", { event: "*", schema: "public", table: "notification_events", filter: "user_id=eq." + session.user.id }, async () => {
             const { count } = await supabase.from("notification_events").select("id", { count: "exact", head: true }).eq("user_id", session.user.id).eq("channel", "in_app").eq("status", "sent").is("read_at", null);
-            if (alive) setAccount(previous => ({ ...previous, unread: count ?? 0 }));
+            if (alive) setAccount(previous => ({ ...previous, unread: count ?? null }));
           })
           .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: "id=eq." + session.user.id }, async () => {
             const { data: updated } = await supabase.from("profiles").select("avatar_path").eq("id", session.user.id).maybeSingle();
