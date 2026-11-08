@@ -113,11 +113,11 @@ export function SiteNavigation() {
         accountChannel = supabase.channel("account-indicators-" + session.user.id)
           .on("postgres_changes", { event: "*", schema: "public", table: "notification_events", filter: "user_id=eq." + session.user.id }, async () => {
             const { count } = await supabase.from("notification_events").select("id", { count: "exact", head: true }).eq("user_id", session.user.id).eq("channel", "in_app").eq("status", "sent").is("read_at", null);
-            if (alive) setAccount(previous => ({ ...previous, unread: count ?? null }));
+            if (alive && accountChannelUserId === session.user.id) setAccount(previous => ({ ...previous, unread: count ?? null }));
           })
           .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: "id=eq." + session.user.id }, async () => {
             const { data: updated } = await supabase.from("profiles").select("avatar_path").eq("id", session.user.id).maybeSingle();
-            if (alive) setAccount(previous => ({ ...previous, avatarUrl: updated?.avatar_path ? supabase.storage.from("profile-avatars").getPublicUrl(updated.avatar_path).data.publicUrl : null }));
+            if (alive && accountChannelUserId === session.user.id) setAccount(previous => ({ ...previous, avatarUrl: updated?.avatar_path ? supabase.storage.from("profile-avatars").getPublicUrl(updated.avatar_path).data.publicUrl : null }));
           })
           .subscribe();
       }
