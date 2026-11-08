@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { PostHogProvider, usePostHog } from "@posthog/react";
+import posthog from "posthog-js";
 import { useLocation } from "@tanstack/react-router";
 import {
   isGlobalPrivacyControlEnabled,
@@ -65,38 +66,26 @@ function PostHogConsentInitializer() {
     };
 
     syncConsent();
-    const testProbe = () => {
-      if (
-        import.meta.env.VITE_OPENPLAY_ANALYTICS_E2E === "true"
-        && isAnalyticsAllowed(readBrowserAnalyticsConsent(), isGlobalPrivacyControlEnabled())
-      ) {
-        posthog.capture("openplay_e2e_consent_probe", { test_mode: true });
-      }
-    };
-    window.addEventListener("openplay:analytics-e2e-probe", testProbe);
-    const unsubscribe = subscribeToBrowserAnalyticsConsent(syncConsent);
-    return () => {
-      window.removeEventListener("openplay:analytics-e2e-probe", testProbe);
-      unsubscribe();
-    };
+    return subscribeToBrowserAnalyticsConsent(syncConsent);
   }, [posthog]);
 
   return null;
 }
 
 /**
- * This button exists only in the dedicated browser-test Vite mode. It dispatches
- * a probe event; only the consent-mounted PostHog provider can send it.
+ * A deterministic browser-test probe. It is compiled into the dedicated
+ * analytics E2E Vite mode only and never appears in normal dev or production.
+ * The browser test intercepts its request before it can leave the runner.
  */
-function AnalyticsE2EProbe({ allowed }: { allowed: boolean }) {
+function PostHogE2EProbe() {
+  const client = usePostHog();
   if (import.meta.env.VITE_OPENPLAY_ANALYTICS_E2E !== "true") return null;
 
   return (
     <button
       type="button"
       data-testid="analytics-e2e-probe"
-      data-posthog-allowed={String(allowed)}
-      onClick={() => window.dispatchEvent(new Event("openplay:analytics-e2e-probe"))}
+      onClick={() => client.capture("openplay_e2e_consent_probe", { test_mode: true })}
     >
       Send analytics test probe
     </button>
@@ -275,6 +264,7 @@ export function AnalyticsConsentBanner({ enabled }: { enabled: boolean }) {
 
 export function ConsentAwareAnalytics({ children }: { children: ReactNode }) {
   const [allowed, setAllowed] = useState(false);
+  const [sdkReady, setSdkReady] = useState(false);
   const projectToken = import.meta.env.VITE_POSTHOG_PROJECT_TOKEN?.trim();
   const projectHost = import.meta.env.VITE_POSTHOG_HOST?.trim();
   const privacySettingsVerified = import.meta.env.VITE_POSTHOG_PRIVACY_SETTINGS_VERIFIED === "true";
@@ -292,16 +282,35 @@ export function ConsentAwareAnalytics({ children }: { children: ReactNode }) {
     return subscribeToBrowserAnalyticsConsent(refresh);
   }, [configured]);
 
+  // Initialise the singleton only after explicit consent and verified project
+  // privacy settings. On revocation, opt out before unmounting the provider.
+  useEffect(() => {
+    if (!configured || !allowed || !projectToken || !projectHost) {
+      if (posthog.__loaded) posthog.opt_out_capturing();
+      setSdkReady(false);
+      return;
+    }
+
+    if (!posthog.__loaded) {
+      posthog.init(projectToken, {
+        ...POSTHOG_OPTIONS,
+        api_host: projectHost,
+      });
+    }
+    posthog.opt_in_capturing();
+    setSdkReady(true);
+  }, [allowed, configured, projectHost, projectToken]);
+
   return (
     <AnalyticsCaptureContext.Provider value={noOpCapture}>
-      {configured && allowed ? (
-        <PostHogProvider apiKey={projectToken!} options={{ ...POSTHOG_OPTIONS, api_host: projectHost! }}>
+      {configured && allowed && sdkReady ? (
+        <PostHogProvider client={posthog}>
           <PostHogConsentInitializer />
+          <PostHogE2EProbe />
           <PostHogCaptureProvider>{children}</PostHogCaptureProvider>
         </PostHogProvider>
       ) : children}
       <AnalyticsConsentBanner enabled={configured} />
-      <AnalyticsE2EProbe allowed={configured && allowed} />
     </AnalyticsCaptureContext.Provider>
   );
 }
