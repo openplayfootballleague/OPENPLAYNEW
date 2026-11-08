@@ -102,6 +102,7 @@ Deno.serve(async (req) => {
   ]);
   // Stripe can deliver events out of order. Do not let an older checkout
   // completion/expiry/failure overwrite a newer payment or refund state.
+  let paymentStatusBeforeEvent: string | null = null;
   if (paymentEvents.has(eventType) && resolvedPaymentId) {
     const { data: currentPayment, error: currentPaymentError } = await admin.from("payment_records")
       .select("id,amount_pence,currency,status,stripe_checkout_session_id,stripe_payment_intent_id,last_stripe_event_at")
@@ -115,6 +116,7 @@ Deno.serve(async (req) => {
       return new Response("Could not inspect payment record", { status: 500 });
     }
 
+    paymentStatusBeforeEvent = paymentStatusBeforeEvent ?? "pending";
     // Reject mismatched settlement events without mutating the payment ledger.
     const settlementRecord = currentPayment as PaymentSettlementRecord;
     const settlementValidation = eventType.startsWith("checkout.session.")
@@ -166,15 +168,15 @@ Deno.serve(async (req) => {
 
       if (eventType === "checkout.session.completed") {
         if (object?.payment_status === "paid") {
-          if (!isRefundedPaymentStatus(currentPayment.status)) {
+          if (!isRefundedPaymentStatus(paymentStatusBeforeEvent ?? "pending")) {
             patch.status = "paid";
             patch.paid_at = new Date().toISOString();
           }
-        } else if (!isRefundedPaymentStatus(currentPayment.status)) {
+        } else if (!isRefundedPaymentStatus(paymentStatusBeforeEvent ?? "pending")) {
           patch.status = "processing";
         }
       } else if (eventType === "checkout.session.async_payment_succeeded") {
-        if (!isRefundedPaymentStatus(currentPayment.status)) {
+        if (!isRefundedPaymentStatus(paymentStatusBeforeEvent ?? "pending")) {
           patch.status = "paid";
           patch.paid_at = new Date().toISOString();
         }
@@ -212,7 +214,7 @@ Deno.serve(async (req) => {
       // A charge.succeeded event is independently authoritative proof of a
       // successful charge. Do not leave the ledger pending if checkout.session
       // completion was delayed or not delivered.
-      if (!isRefundedPaymentStatus(currentPayment.status)) {
+      if (!isRefundedPaymentStatus(paymentStatusBeforeEvent ?? "pending")) {
         patch.status = "paid";
         patch.paid_at = new Date().toISOString();
       }
