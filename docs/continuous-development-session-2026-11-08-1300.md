@@ -89,3 +89,14 @@ Continue the migration reconciliation without creating a Supabase branch: build 
 Reviewed the current picture-only Edit Profile route and queried live profile permissions read-only. The UI writes only `avatar_path`, but the database grants `authenticated` column-level UPDATE on `first_name`, `last_name`, `display_name`, `phone`, `preferred_position` and `avatar_path`. The owner-row RLS policy therefore does not enforce the picture-only restriction against direct Data API calls. No table-level UPDATE is granted, but column-level grants are sufficient for those columns.
 
 Created issue #25 and linked it from issue #23. Required fix: retain own-row RLS, restrict ordinary self-service column UPDATE to `avatar_path`, preserve verified email changes through Supabase Auth, and add negative permission tests for all other profile fields. No production permission was changed; migration work remains blocked on canonical source reconciliation and isolated replay.
+
+
+### Additional CI refreshes — PRs #6 and #12
+
+- PR #6 current head `309b5394d9ebb5ddc880f588033c384529ed4080`: workflow `42471613171` passed Edge Function type-check, **8 files / 80 tests**, TypeScript/production build and Cloudflare Worker dry-run. Exact test totals were read from the job log. Stripe end-to-end acceptance remains outstanding.
+- PR #12 current head `7ebc3d35cbbd5aa8fef2f761167253979f889ceb`: workflow `42439535124` passed Edge Function type-check, **3 files / 32 tests**, TypeScript/production build and Cloudflare Worker dry-run. Browser/device and database authorization acceptance remain outstanding.
+- Fresh CI comments were added to both PR conversations. These results do not imply that the PRs are merged, database-tested or deployed.
+
+### Live migration ledger count refresh
+
+A fresh read-only `list_migrations` call returned **98 rows and 98 unique version values**. The name `admin_fixture_management` occurs twice at distinct applied versions `20261107224311` and `20261107224351`; both must remain distinct in the canonical source map. This confirms the live ledger count but does not resolve the local filename/source mapping or prove a clean replay.
