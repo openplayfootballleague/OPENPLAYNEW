@@ -218,7 +218,8 @@ export function ConsentAwareAnalytics({ children }: { children: ReactNode }) {
   const [allowed, setAllowed] = useState(false);
   const projectToken = import.meta.env.VITE_POSTHOG_PROJECT_TOKEN?.trim();
   const projectHost = import.meta.env.VITE_POSTHOG_HOST?.trim();
-  const configured = Boolean(projectToken && projectHost);
+  const privacySettingsVerified = import.meta.env.VITE_POSTHOG_PRIVACY_SETTINGS_VERIFIED === "true";
+  const configured = Boolean(projectToken && projectHost && privacySettingsVerified);
 
   useEffect(() => {
     const refresh = () => {
