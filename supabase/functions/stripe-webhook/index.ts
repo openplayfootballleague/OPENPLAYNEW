@@ -91,12 +91,20 @@ Deno.serve(async (req) => {
     }
   }
 
+  const paymentEvents = new Set([
+    "checkout.session.completed",
+    "checkout.session.async_payment_succeeded",
+    "checkout.session.async_payment_failed",
+    "checkout.session.expired",
+    "charge.refunded",
+    "charge.succeeded",
+  ]);
   // Stripe can deliver events out of order. Do not let an older checkout
   // completion/expiry/failure overwrite a newer payment or refund state.
-  if (paymentId && eventType.startsWith("checkout.session.")) {
+  if (paymentEvents.has(eventType) && resolvedPaymentId) {
     const { data: currentPayment, error: currentPaymentError } = await admin.from("payment_records")
       .select("last_stripe_event_at")
-      .eq("id", paymentId)
+      .eq("id", resolvedPaymentId)
       .maybeSingle();
     if (currentPaymentError) {
       await admin.from("stripe_webhook_events").update({
@@ -111,7 +119,7 @@ Deno.serve(async (req) => {
     const incomingEventTime = Number(event.created) * 1000;
     if (previousEventTime > incomingEventTime) {
       await admin.from("stripe_webhook_events").update({
-        payment_record_id: paymentId,
+        payment_record_id: resolvedPaymentId,
         processed_at: new Date().toISOString(),
         processing_error: null,
         processing_started_at: null,
@@ -120,14 +128,6 @@ Deno.serve(async (req) => {
     }
   }
 
-  const paymentEvents = new Set([
-    "checkout.session.completed",
-    "checkout.session.async_payment_succeeded",
-    "checkout.session.async_payment_failed",
-    "checkout.session.expired",
-    "charge.refunded",
-    "charge.succeeded",
-  ]);
   if (paymentEvents.has(eventType) && !resolvedPaymentId) {
     await admin.from("stripe_webhook_events").update({
       processing_error: "No matching Open Play payment record", processing_started_at: null,
