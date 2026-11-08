@@ -85,3 +85,7 @@ Both Checkout Session and PaymentIntent metadata now include the attempt number.
 PR #6 current code-bearing head `d15f48f59e3693c517a139ea0cb54920696a477c` passed CI run `42436764026`: Deno Edge Function type-check, TypeScript/Vite build, Cloudflare dry-run, and 67 total Vitest tests across 6 files (27 Stripe-specific tests). This is automated test/build evidence; the retry path has not yet been exercised against a real Stripe test account/session because test secrets and an approved disposable test identity are not configured.
 
 The remaining Stripe blockers are test-mode end-to-end acceptance, admin refund controls, payout reconciliation, and deployment after review. Hosted functions remain checkout v1/webhook v5; branch fixes are not deployed.
+
+
+## Latest PR verification — 8 November 2026
+PR #6 head `0754c34f9d3b2f1bdaed79c9d0905145b26d6ba8` passed workflow `42437517983`: Deno Edge Function type-check, 74 tests across 7 files, TypeScript/Vite production build and Cloudflare Worker dry-run. This supersedes earlier failing runs caused by admin-context nullable RPC arguments and missing team/season fields in the `TeamRequestStatus` type; those compile issues were fixed. Migration version-prefix/duplicate blockers remain separate and unresolved.
