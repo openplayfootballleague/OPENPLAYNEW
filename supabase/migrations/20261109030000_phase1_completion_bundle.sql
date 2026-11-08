@@ -860,7 +860,7 @@ create policy player_registration_reviews_admin_only
 -- Identity-review rows are private to global administrators. Remove any
 -- inherited/default grants to anonymous or PUBLIC while retaining the
 -- authenticated SELECT grant required for the global-admin RLS policy.
-revoke all privileges on table public.player_registration_reviews from anon, public;
+revoke all privileges on table public.player_registration_reviews from anon, authenticated, public;
 grant select on table public.player_registration_reviews to authenticated;
 
 -- END supabase/migrations/20261109021000_restrict_identity_reviews_to_global_admins.sql
