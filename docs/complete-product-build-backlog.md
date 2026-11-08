@@ -93,3 +93,14 @@ This is the authoritative workflow. It supersedes any implication that a club cr
 
 
 The detailed owner-confirmed acceptance specification is now documented in `docs/player-club-matchday-workflow.md` (commit `20a728799d3563e8359081e7511d5eed90bde66b`). It distinguishes implemented code observations from end-to-end verification and lists the acceptance checks for each phase. The unapproved initial-squad helper and tests were removed from this workspace (commits `ba0e84e53025f2fc8e4d0602b56efdd551e62aff` and `2e79a0fbd87388a62731e7c9958018437f7b26fe`).
+
+
+### Captain next-fixture sequencing and post-match amendments (8 November 2026)
+
+Implemented on `integration/complete-product-build`:
+- Migration `20261108021000_captain_next_required_fixture_and_admin_amendment.sql` adds the server-side next-required fixture resolver, limits the captain fixture projection, enforces captain sheet access/writes at the database boundary, and restricts admin amendments to locked sheets on completed fixtures with a reason and audit record.
+- The captain screen automatically selects the first available next-required fixture. Where a user captains more than one club, the remaining choices are limited to one next-required fixture per club, never arbitrary earlier/later gameweeks.
+- `supabase/tests/captain_next_required_fixture_regression.sql` adds isolated-database regression assertions for the resolver, guards, projection, sheet reader and amendment safeguards.
+- `docs/player-club-matchday-workflow.md` records completed/cancelled/postponed/in-progress progression semantics and post-match admin correction rules.
+
+Verification status: **implemented, not yet verified**. The repository CI workflow does not execute `supabase/tests/*.sql`; the SQL regression file requires replay against an isolated Supabase/PostgreSQL database. The GitHub Actions run lookup for the latest branch head has not yet returned a run. No hosted migration, merge or deployment has been performed.
