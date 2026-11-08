@@ -59,18 +59,24 @@ The approved player chooses either **Join an existing club** or **Create a club*
 5. Existing membership/transfer rules prevent a player being active in conflicting clubs in the same season.
 
 ### Weekly fixture-specific match sheet
-1. Once fixtures/gameweeks are available, captain opens one of their club's scheduled fixtures.
-2. The sheet is tied to that fixture and that club, not to a general squad profile.
-3. Captain selects players only from the club's active, eligible membership list.
-4. For 6-a-side: exactly 6 starters and up to 3 substitutes. For 7-a-side: exactly 7 starters and up to 4 substitutes.
-5. Captain confirms one goalkeeper from the selected starters.
-6. Captain may save a draft, return to it, review the sheet and submit it for that fixture.
-7. Submission locks the sheet against ordinary captain edits; any later amendment follows the authorised admin/referee amendment process.
-8. The referee/matchday process records actual appearances and match events separately from the captain's pre-match selection.
+1. The system automatically identifies the club's **next required fixture** and preselects that match sheet when the captain opens the Match Sheet area. The captain does not choose an arbitrary gameweek from a list.
+2. Only that next required fixture is available for captain draft/save/submit. Previous gameweeks are historical; later gameweeks remain unavailable until they become next in sequence.
+3. Example: if Gameweek 5 is the last completed gameweek and it is Thursday before the next matchday, the only available sheet is Gameweek 6. Gameweeks 1–5 cannot be resubmitted and Gameweek 7 cannot be submitted early.
+4. The system advances to the next fixture/gameweek when the prior fixture is completed/closed according to the competition's authoritative fixture lifecycle. Do not advance merely because the calendar date changed or because a sheet was submitted.
+5. The sheet is tied to that fixture and that club, not to a general squad profile.
+6. Captain selects players only from the club's active, eligible membership list.
+7. For 6-a-side: exactly 6 starters and up to 3 substitutes. For 7-a-side: exactly 7 starters and up to 4 substitutes.
+8. Captain confirms one goalkeeper from the selected starters.
+9. Captain may save a draft, return to it, review the sheet and submit it for that fixture. Drafts are keyed to the same next-required fixture.
+10. Submission locks the sheet against ordinary captain edits; any later amendment follows the authorised admin/referee amendment process.
+11. The referee/matchday process records actual appearances and match events separately from the captain's pre-match selection.
 
 **Acceptance checks**
-- A captain can access only fixtures for their own active club.
-- The chosen club must be one of the fixture's two participants.
+- A captain can access only the single next-required fixture for their own active club in the selected active season.
+- The next fixture is preselected automatically; there is no free choice of an earlier or later gameweek.
+- The next fixture is derived from authoritative fixture/gameweek completion state, not simply the current date or team-sheet submission timestamp.
+- A captain cannot submit an earlier gameweek again or submit a later gameweek early.
+- The selected club must be one of the fixture's two participants.
 - The server independently verifies captain authority, fixture status, format, player membership, registration status, ban status, duplicate selections and goalkeeper selection.
 - A pending join request, member of another club, banned player or unregistered player cannot be selected.
 - The sheet is unique per fixture/club; drafts restore correctly; submitted sheets lock; privileged amendments are audited.
@@ -83,7 +89,8 @@ The approved player chooses either **Join an existing club** or **Create a club*
 - The club application calls `register_team`; the database creates a pending season club and pending applicant membership.
 - `resolve_team_registration` is intended to activate the applicant as captain only after administrator approval.
 - Membership request and captain decision RPCs already exist.
-- `/captain` already contains a fixture selector, active-member selection, starters/substitutes, goalkeeper confirmation, draft save/restore and submit flow.
+- `/captain` currently contains a fixture selector (this must be replaced with automatic next-fixture selection), active-member selection, starters/substitutes, goalkeeper confirmation, draft save/restore and submit flow.
+- `get_captain_fixtures()` currently returns all scheduled fixtures for captain teams; this is not sufficient for the owner-confirmed next-gameweek-only rule. It must be replaced or wrapped by a server-authoritative next-required-fixture projection, and the draft/get/submit RPCs must independently enforce that same fixture eligibility.
 - Database `submit_team_sheet` validates fixture participation and active eligible membership; the later goalkeeper-confirmation migration must be checked together with the client call before declaring parity.
 
 These observations identify existing implementation; they do not prove end-to-end correctness. The remaining work is to reconcile the migrations, generated database types, client RPC signatures, permissions, and acceptance tests against every rule above.
