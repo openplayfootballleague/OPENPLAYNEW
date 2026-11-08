@@ -96,3 +96,28 @@ Stage 1 is the shared identity and permission foundation on which every later pr
 ## Completion rule
 
 Stage 1 is complete only when all applicable checklist items are implemented and the external configuration/policy items are resolved. Items requiring owner approval or provider configuration must remain clearly marked as blocked; they must not be simulated or reported as complete. Later product stages may proceed against these documented contracts, but must not bypass them.
+
+
+## Read-only permission audit — 8 November 2026
+
+A further inspection was performed against the currently deployed Supabase project using SELECT-only catalog queries. No database writes or configuration changes were made.
+
+### Confirmed in the deployed database
+
+- `user_roles` has a SELECT policy for the account owner or platform administrator; authenticated users have SELECT only, with no direct INSERT/UPDATE/DELETE grant.
+- `profiles` has owner/platform-admin read and update policies, plus owner insert policy; the authenticated table grant currently exposes SELECT only, so profile writes must use the approved RPC/server path.
+- `players` has a self/platform-admin SELECT policy and authenticated SELECT only.
+- `team_memberships` has self/active-captain/platform-admin SELECT policy and authenticated SELECT only.
+- `audit_log` has an explicit deny-all client policy and no authenticated/anonymous table grant in the inspected grants.
+- The inspected grants show no direct client write privileges for these identity/role tables.
+
+### Reconciliation required before Stage 1 can be marked complete
+
+The deployed policy catalogue is not identical to the integration branch's original policy migration text. For example, deployed `season_teams` contains policy names and expressions that differ from the branch's initial migration. This is a migration-history/source-of-truth reconciliation item, not permission to overwrite deployed policies. Compare the complete applied migration ledger and current catalog definitions before authoring any forward-only correction.
+
+### Next implementation priorities
+
+1. Build a route/RPC access matrix from every protected page and every called RPC, distinguishing UI navigation from authoritative database authorization.
+2. Trace `/admin`, `/finance`, `/captain` and `/player` page load paths and verify fail-closed handling when session/role/context lookups fail.
+3. Reconcile role vocabulary and scoped admin checks with the deployed schema; do not assume a `user_roles` row alone grants location access.
+4. Add free, repository-level tests for pure access/routing decisions and static permission invariants. SQL behaviour remains unverified without a separate database, and no paid environment will be created.
