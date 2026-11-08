@@ -63,7 +63,7 @@ describe("analytics consent", () => {
     expect(readAnalyticsConsent(storage)).toBe("unset");
     storage.failReads = false;
     storage.failWrites = true;
-    expect(writeAnalyticsConsent("granted", storage)).toEqual({ consent: "granted", persisted: false });
+    expect(writeAnalyticsConsent("granted", storage)).toEqual({ consent: "denied", persisted: false });
     expect(isAnalyticsAllowed("unset")).toBe(false);
   });
 
