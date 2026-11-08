@@ -287,3 +287,12 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - Added and applied `20261108090000_serialize_admin_player_team_assignment.sql`. Admin assignment now validates eligible player/team/season and uses the same player/season advisory lock before checking other active memberships.
 - Verified both development function definitions contain the locks and eligibility checks. Extended the SQL security assertions to cover both paths; all nine assertions returned true.
 - CI for the captain payment and its preceding migrations completed successfully. Latest membership-approval and admin-assignment migrations plus their assertion/docs updates are queued/running and will be checked before claiming CI success.
+
+
+## 8 November 2026 — transfer and team registration lifecycle hardening
+
+- Found a related race in admin transfer approval: it could move a player to a destination team while another concurrent admin assignment or membership approval created a second active membership in the same season.
+- Added and applied `20261108100000_serialize_transfer_approval.sql`. Transfer approval now shares the player/season advisory lock used by team membership approval and admin assignment, validates source membership ownership and source team consistency, explicitly checks destination and season existence, and refuses to transfer a player with another active membership. Existing locked-upcoming-team-sheet protection is retained.
+- Found that team registration approval appointed the proposed captain without rechecking current player eligibility or existing active membership in another team. Added and applied `20261108110000_validate_team_registration_captain_approval.sql`. It now requires an open registration season, a registered/non-banned applicant, and no active membership in another team in that season, under the same player/season advisory lock.
+- Extended the repeatable database assertions to 11 checks. Executed against development; all 11 returned true.
+- CI for membership approval, admin assignment, transfer approval and team registration changes is being monitored; no in-progress run is being described as passed.
