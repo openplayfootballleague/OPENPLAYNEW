@@ -313,3 +313,13 @@ Workflow `42437938149` completed successfully on PR #6 head `31b5615944ddd7665bb
 - Cloudflare Worker validation (dry run): passed.
 
 PR #6 description has been updated with this evidence. The PR remains draft; CI does not replace browser acceptance, Stripe test-mode acceptance or migration reconciliation.
+
+
+## PR #6 consolidation and admin navigation audit — 8 November 2026, 02:24 UTC
+
+- The exact Bideford first-release policy migration (original blob SHA `0f039bc23f94cebf0d5cd9094fd67d13d65f0195`) and its policy note are now present byte-for-byte on PR #6's primary feature branch. The migration has not been executed.
+- Ported the Bideford-only activation/deactivation confirmation workflow into PR #6. The UI exposes controls only to `isGlobalAdmin`; activation is limited in the UI to Bideford; the action requires a 5+ character reason and explicit checkbox confirmation. Live database RPC/constraint/index checks remain the server-side enforcement. No location records were seeded.
+- Ported the Needs Attention shortcuts into PR #6, targeting the actual player-review, team-approval, membership-request and season-setup sections. Added keyboard focus styling.
+- Static source check: 15 in-page admin navigation anchors, all 15 have target IDs; labels are sequential `01`–`16` with no duplicate numbers. This is a source-level check only, not browser/device acceptance.
+- PR #6 head `a345997ed11e3c96aeacb6f6b242434cc64aece0` passed full CI: 7 test files / 78 tests, Edge Function type-check, TypeScript/Vite build and Cloudflare dry-run. A small location-help-text update is on newer head `8698acc3c6fa5700786a2e4deb1c86eb37b557d2`; its workflow was still running at the time of this note.
+- PR #7 contains no remaining unique implementation after the port. It will be closed as superseded only after the latest PR #6 CI is verified. PR #6 remains draft and unmerged.
