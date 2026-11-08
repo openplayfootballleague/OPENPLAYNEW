@@ -62,13 +62,13 @@ The approved player chooses either **Join an existing club** or **Create a club*
 1. The system automatically identifies the club's **next required fixture** and preselects that match sheet when the captain opens the Match Sheet area. The captain does not choose an arbitrary gameweek from a list.
 2. Only that next required fixture is available for captain draft/save/submit. Previous gameweeks are historical; later gameweeks remain unavailable until they become next in sequence.
 3. Example: if Gameweek 5 is the last completed gameweek and it is Thursday before the next matchday, the only available sheet is Gameweek 6. Gameweeks 1–5 cannot be resubmitted and Gameweek 7 cannot be submitted early.
-4. The system advances to the next fixture/gameweek when the prior fixture is completed/closed according to the competition's authoritative fixture lifecycle. Do not advance merely because the calendar date changed or because a sheet was submitted.
+4. The system advances to the next fixture/gameweek only when the prior fixture is marked completed (or cancelled, which is skipped) in the authoritative fixture lifecycle. A postponed or in-progress fixture remains the blocking next fixture until it is rescheduled and completed. Do not advance merely because the calendar date changed or because a sheet was submitted.
 5. The sheet is tied to that fixture and that club, not to a general squad profile.
 6. Captain selects players only from the club's active, eligible membership list.
 7. For 6-a-side: exactly 6 starters and up to 3 substitutes. For 7-a-side: exactly 7 starters and up to 4 substitutes.
 8. Captain confirms one goalkeeper from the selected starters.
 9. Captain may save a draft, return to it, review the sheet and submit it for that fixture. Drafts are keyed to the same next-required fixture.
-10. Submission locks the sheet against ordinary captain edits; any later amendment follows the authorised admin/referee amendment process.
+10. Submission locks the sheet against ordinary captain edits. Once the fixture is marked completed, the sheet is expired for captain access. An administrator may amend the locked sheet only after fixture completion, with a reason of at least five characters; the amendment is audited with before/after data and does not reopen captain editing.
 11. The referee/matchday process records actual appearances and match events separately from the captain's pre-match selection.
 
 **Acceptance checks**
