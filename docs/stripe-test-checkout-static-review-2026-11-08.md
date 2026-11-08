@@ -45,3 +45,9 @@ For `checkout.session.completed`, the webhook trusts `payment_status === 'paid'`
 ## Safety
 
 No source code was changed by this review. No secrets, production settings, database rows, payment records, webhook events, or deployments were modified.
+
+
+### 4. No player-facing checkout entry point in PR #6 — feature not end-to-end
+A fresh changed-file inventory of PR #6 shows the payment work adds the checkout Edge Function, webhook, SQL migrations and generated database types, but no player route/component that invokes `create-player-checkout` or displays a checkout action/payment history. The existing Player Hub source inspected in the PR branch displays a return-from-Checkout query message, but that alone does not start checkout or show the payment ledger.
+
+**Required fix:** add the agreed player/captain-facing entry point and status/history UI, wire it to the Edge Function, and test permission boundaries. Confirm the intended payer model before exposing a payment action: the latest migration requires an active team captain, whereas the original RPC draft was member-scoped. The UI must match the final server-side policy rather than assume every player can pay.
