@@ -154,8 +154,8 @@ begin
   from public.audit_log
   where entity_type='user_role'
     and action in ('user_role.initial_super_admin_bootstrapped','user_role.granted','user_role.revoked');
-  if v_count <> 7 then
-    raise exception 'Expected seven audited role changes, found %', v_count;
+  if v_count <> 6 then
+    raise exception 'Expected six audited role changes, found %', v_count;
   end if;
   if not exists (
     select 1 from public.audit_log

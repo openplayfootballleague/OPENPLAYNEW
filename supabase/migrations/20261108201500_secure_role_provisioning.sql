@@ -96,7 +96,8 @@ begin
   if v_actor is null then
     raise exception 'Authentication required' using errcode = '42501';
   end if;
-  if p_target_user_id is null or p_role not in ('admin','super_admin','finance_admin','league_admin')
+  if p_target_user_id is null or p_role is null or p_action is null
+     or p_role not in ('admin','super_admin','finance_admin','league_admin')
      or p_action not in ('grant','revoke') then
     raise exception 'Invalid role provisioning request' using errcode = '22023';
   end if;
