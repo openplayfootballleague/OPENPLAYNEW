@@ -134,3 +134,10 @@ for select to authenticated using (
   user_id=(select auth.uid())
   or exists(select 1 from public.user_roles ur where ur.user_id=(select auth.uid()) and ur.role in ('admin','super_admin'))
 );
+
+drop policy if exists season_registrations_select_self_or_admin on public.season_registrations;
+create policy season_registrations_select_self_or_global_admin on public.season_registrations
+for select to authenticated using (
+  user_id=(select auth.uid())
+  or exists(select 1 from public.user_roles ur where ur.user_id=(select auth.uid()) and ur.role in ('admin','super_admin'))
+);
