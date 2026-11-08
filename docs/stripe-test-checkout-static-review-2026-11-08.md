@@ -69,3 +69,9 @@ Read-only Supabase function inventory and source retrieval confirms the hosted O
 - `stripe-webhook` version 5, `verify_jwt=false`.
 
 The hosted sources are older than the current PR #6 branch changes: the deployed webhook does not yet contain the new settlement identity/amount/currency checks or the `charge.succeeded` paid-state transition; the deployed checkout function does not contain a retry-attempt repair. Do not mistake a passing GitHub CI build for a deployed fix. No function deployment was performed because the PR is still draft, test secrets/provider configuration are not available through the connected tools, and no test-mode end-to-end acceptance has been run. Existing `verify_jwt` settings were not changed.
+
+
+## Latest regression and CI result — 8 November 2026
+PR #6 current head `1b6b0fa412aed40f6a9c45ec05263a8a22ba82d3` passed workflow `42436207960`. The workflow completed all steps successfully: Edge Function type-check, domain tests, TypeScript/build and Cloudflare Worker dry-run. The settlement helper suite now has 12 tests, including missing amount on paid Checkout sessions, PaymentIntent metadata mapping and preservation of full/partial refund states. This is not a Stripe API integration test or browser acceptance run.
+
+The remaining checkout retry transition still needs a safe atomic attempt increment and distinct idempotency key after an expired/failed session. No new migration was fabricated; no database schema was changed. The latest hosted Edge Function versions remain checkout v1 and webhook v5, so these branch fixes are not deployed.
