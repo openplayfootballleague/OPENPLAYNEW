@@ -10,6 +10,8 @@ declare
   v_handle_constraint text;
   v_public_is_definer boolean;
   v_public_has_empty_search_path boolean;
+  v_register_five_args text := pg_catalog.pg_get_function_arguments('public.register_team(uuid,text,text,text,text)'::regprocedure);
+  v_register_six_args text := pg_catalog.pg_get_function_arguments('public.register_team(uuid,text,text,text,text,text)'::regprocedure);
 begin
   select lower(pg_catalog.pg_get_constraintdef(oid))
     into v_profile_constraint
@@ -75,6 +77,11 @@ begin
      or position('tm.is_captain=true' in v_update_definition)=0
      or position('can_administer_location' in v_update_definition)=0 then
     raise exception 'Instagram profile updates must remain captain/location-admin scoped';
+  end if;
+
+  if position('default' in lower(v_register_five_args))>0
+     or position('default' in lower(v_register_six_args))>0 then
+    raise exception 'Five- and six-argument register_team overloads must not use defaults that conflict with the existing four-argument overload';
   end if;
 
   if has_table_privilege('anon','public.teams','select')
