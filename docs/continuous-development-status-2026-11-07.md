@@ -209,3 +209,14 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - No production changes. No user notifications were dispatched during this permission change.
 - CI for the navigation route changes and preceding documentation commits is green (runs 42429967967 and 42429943236 both successful). The security migration has been applied to dev; CI for its repository migration commit is pending.
 - Remaining security review: the other SECURITY DEFINER functions need per-function verification of authorization semantics, and the full RLS policy set still needs review.
+
+
+## 8 November 2026 — public table privilege hardening
+
+- Completed a direct privilege/RLS inventory of all 24 public application tables and 50 public RLS policies in the development database. RLS was enabled on all 24 inspected tables.
+- The inventory exposed a separate high-priority issue: the Supabase default table grants included `TRUNCATE`, `REFERENCES` and `TRIGGER` privileges for anon/authenticated on public application tables. These privileges are not constrained by row-level security in the same way as ordinary row operations; in particular, TRUNCATE bypasses row policies.
+- Added and applied migration `20261108043000_revoke_client_table_bypass_privileges.sql`. It revokes those three privileges from anon and authenticated on all existing public tables and updates the postgres role's default privileges in the public schema to prevent them being reintroduced for future tables.
+- Verified with `has_table_privilege` across all public tables: zero tables remain where anon or authenticated can TRUNCATE, declare REFERENCES, or create TRIGGER privileges.
+- Existing SELECT/INSERT/UPDATE/DELETE grants were not changed; row access remains controlled by the existing RLS policies. No application feature permissions were broadened.
+- The earlier notification internal-function permission migration is also applied and verified. Its CI run 42430099570 passed. The follow-up documentation CI run is still pending at the time of this entry.
+- This is development-project hardening only. The same migrations must be reviewed and applied through the production release process after staging/acceptance verification; production was not modified.
