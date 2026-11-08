@@ -8,7 +8,7 @@ export type PaymentSettlementRecord = {
 };
 
 type StripeObject = Record<string, unknown>;
-export type SettlementValidation = { ok: true } | { ok: false; reason: string };
+export type SettlementValidation = { ok: true } | { ok: false; reason: string; stale?: true };
 
 export function validateCheckoutSettlement(record: PaymentSettlementRecord, object: StripeObject): SettlementValidation {
   const sessionId = typeof object.id === "string" ? object.id : "";
@@ -16,8 +16,9 @@ export function validateCheckoutSettlement(record: PaymentSettlementRecord, obje
   const paymentId = String(metadata?.payment_record_id ?? object.client_reference_id ?? "");
   const metadataAttempt = checkoutAttemptFromIntentMetadata(metadata);
   const attemptMatches = metadataAttempt === null ? record.checkout_attempt === 0 : metadataAttempt === record.checkout_attempt;
+  if (!attemptMatches) return { ok: false, reason: "Previous checkout attempt event ignored", stale: true };
   if (!sessionId || (record.stripe_checkout_session_id && record.stripe_checkout_session_id !== sessionId) ||
-    paymentId !== record.id || !attemptMatches) {
+    paymentId !== record.id) {
     return { ok: false, reason: "Checkout session identity mismatch; held for finance review" };
   }
   if (object.payment_status === "paid" || object.amount_total !== undefined) {
@@ -40,7 +41,8 @@ export function validateChargeSettlement(record: PaymentSettlementRecord, object
   const metadataPaymentId = paymentRecordIdFromIntentMetadata(intentMetadata);
   const metadataAttempt = checkoutAttemptFromIntentMetadata(intentMetadata);
   const attemptMatches = metadataAttempt === null ? record.checkout_attempt === 0 : metadataAttempt === record.checkout_attempt;
-  if (!intentId || metadataPaymentId !== record.id || !attemptMatches ||
+  if (!attemptMatches) return { ok: false, reason: "Previous PaymentIntent attempt event ignored", stale: true };
+  if (!intentId || metadataPaymentId !== record.id ||
     (record.stripe_payment_intent_id && record.stripe_payment_intent_id !== intentId) ||
     !Number.isSafeInteger(amount) || Number(amount) !== record.amount_pence ||
     currency !== record.currency.toLowerCase() || object.paid !== true) {
