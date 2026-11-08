@@ -39,8 +39,12 @@ begin
   if v_player.id is null or v_player.registration_status <> 'registered' or v_player.is_banned then
     raise exception 'An approved, eligible player registration is required to register a team';
   end if;
-  select * into v_season from public.seasons where id=p_season_id and status='registration_open' for share;
-  if v_season.id is null then raise exception 'This season is not accepting team registrations'; end if;
+  select s.* into v_season
+  from public.seasons s join public.leagues l on l.id=s.league_id
+  where s.id=p_season_id and s.status='registration_open'
+    and s.is_public=true and l.is_published=true
+  for share of s;
+  if v_season.id is null then raise exception 'This season is not accepting public team registrations'; end if;
 
   v_instagram_url := nullif(trim(p_instagram_profile_url), '');
   if v_instagram_url is not null then
