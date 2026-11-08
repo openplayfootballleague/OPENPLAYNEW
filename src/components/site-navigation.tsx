@@ -64,10 +64,12 @@ export function SiteNavigation() {
     const supabase = getSupabaseClient();
     let accountChannel: ReturnType<typeof supabase.channel> | null = null;
     let accountChannelUserId: string | null = null;
+    let loadSequence = 0;
 
     async function load() {
+      const sequence = ++loadSequence;
       const { data: { session } } = await supabase.auth.getSession();
-      if (!alive) return;
+      if (!alive || sequence !== loadSequence) return;
       if (!session) {
         if (accountChannel) {
           void supabase.removeChannel(accountChannel);
@@ -86,7 +88,7 @@ export function SiteNavigation() {
         supabase.from("profiles").select("first_name,last_name,avatar_path").eq("id", session.user.id).maybeSingle(),
         supabase.from("notification_events").select("id", { count: "exact", head: true }).eq("user_id", session.user.id).eq("channel", "in_app").eq("status", "sent").is("read_at", null),
       ]);
-      if (!alive) return;
+      if (!alive || sequence !== loadSequence) return;
 
       const roleNames = (roles ?? []).map((row) => row.role);
       const derivedAccess = deriveAccountAccess(player, (memberships ?? []).length > 0, roleNames);
