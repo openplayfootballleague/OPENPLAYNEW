@@ -177,3 +177,5 @@ Ported the four admin summary shortcuts and their target section IDs onto the cu
 - Closed stale PR #3 as superseded after porting all three of its changed files (Bideford migration, admin activation UI, and policy documentation) to PR #7. No changes were merged from its diverged branch.
 
 - PR #6 current head `1b6b0fa412aed40f6a9c45ec05263a8a22ba82d3` passed CI run `42436207960` after the Stripe settlement hardening. The workflow passed Edge Function type-check, domain tests (including 12 settlement regression cases), TypeScript/build and Cloudflare dry-run. The retry-attempt transition and live test-mode acceptance remain open.
+
+- Exact CI log inspection for PR #6 run `42436207960`: 5 Vitest files passed, 48 total tests passed (including all 12 Stripe settlement tests); Deno type-check, Vite/TypeScript production build and Cloudflare Worker dry-run all succeeded.
