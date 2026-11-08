@@ -160,7 +160,7 @@ begin
   update public.profiles set avatar_path=v_user_a::text||'/other-user.png' where id=v_user_b;
   get diagnostics v_rows = row_count;
   if v_rows <> 0 then
-    raise exception 'A player must not update another user's avatar path';
+    raise exception 'A player must not update another user avatar path';
   end if;
 
   execute 'reset role';
