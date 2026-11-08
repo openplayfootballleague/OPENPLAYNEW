@@ -32,7 +32,7 @@ export type PlayerCompetitionContext = {
 
 const STORAGE_KEY = "open-play:player-competition-context";
 
-function preferredSeason(options: PlayerSeasonOption[]) {
+export function getPreferredPlayerSeason(options: PlayerSeasonOption[]) {
   return options.find((season) => season.status === "registration_open")
     ?? options.find((season) => season.status === "active")
     ?? options[0]
@@ -138,7 +138,7 @@ export function usePlayerCompetitionContext(): PlayerCompetitionContext {
       const availableSeasons = seasonOptions.filter((season) => season.location_id === locationId);
       const seasonId = availableSeasons.some((season) => season.id === saved.seasonId)
         ? saved.seasonId!
-        : preferredSeason(availableSeasons)?.id ?? "";
+        : getPreferredPlayerSeason(availableSeasons)?.id ?? "";
 
       setSelectedLocationId(locationId);
       setSelectedSeasonId(seasonId);
@@ -162,7 +162,7 @@ export function usePlayerCompetitionContext(): PlayerCompetitionContext {
   function setLocation(locationId: string) {
     if (!locations.some((location) => location.id === locationId)) return;
     const available = seasons.filter((season) => season.location_id === locationId);
-    const nextSeason = preferredSeason(available)?.id ?? "";
+    const nextSeason = getPreferredPlayerSeason(available)?.id ?? "";
     setSelectedLocationId(locationId);
     setSelectedSeasonId(nextSeason);
     persist(locationId, nextSeason);
@@ -181,7 +181,7 @@ export function PlayerCompetitionSelector({ context }: { context: PlayerCompetit
   if (context.loading) return null;
 
   if (context.locations.length === 0) {
-    return <p className="player-competition-empty" role="status">Location and season selection will appear when the first Open Play location is published.</p>;
+    return <>{context.error && <p className="form-error" role="alert">{context.error}</p>}<p className="player-competition-empty" role="status">Location and season selection will appear when the first Open Play location is published.</p></>;
   }
 
   const availableSeasons = context.seasons.filter((season) => season.location_id === context.selectedLocationId);
