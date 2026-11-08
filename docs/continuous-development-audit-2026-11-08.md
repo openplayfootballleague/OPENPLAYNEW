@@ -383,3 +383,19 @@ Read-only inspection of the live finance RPCs confirms `has_finance_access()` is
 - Follow-up review supports treating `finance_admin` as a global finance role unless product ownership explicitly changes the role model.
 - Required remediation: align `admin_set_player_fixture_fee` with the shared finance role model (or deliberately introduce a separate finance-location assignment model), retaining fee/gameweek validation and audit logging.
 - No live database changes were made.
+
+
+## Live-state refresh — 8 November 2026, 12:21 UTC
+
+A fresh read-only check of Supabase project `ghnrsysvrlgkjmdlwdmp` confirms:
+- **98** applied migration records.
+- **30** public base tables; **30/30** have RLS enabled.
+- **0** Auth users, **0** `user_roles` rows, **0** location rows and **0** active locations.
+- **95** public SECURITY DEFINER functions; all **95** have a configured fixed `search_path`.
+- Effective function ACL inventory: `authenticated` has EXECUTE on **80** functions, `postgres` on **95**, and `service_role` on **10**. No EXECUTE grant to `PUBLIC` or `anon` appeared in the expanded ACL inventory.
+- The three RLS-enabled/no-policy tables (`admin_context_preferences`, `gallery_items`, `location_admin_assignments`) have no direct grants to `PUBLIC`, `anon` or `authenticated`; their RPC-only access model remains intentional, subject to function-level authorization tests.
+- Security Advisor: 80 authenticated-executable SECURITY DEFINER notices and the same three RLS/no-policy informational notices. These are review signals, not proof of exploitable vulnerabilities.
+- Performance Advisor: 7 unindexed foreign-key notices and 52 unused-index notices. Do not remove indexes without workload evidence.
+- Health Advisor: no lints.
+
+This refresh supersedes older 97-migration/79-warning snapshots. It does not change the migration reconciliation blocker, and it does not establish authenticated role acceptance: the project still has no test users or role assignments. No database, Auth, secrets, Edge Functions or deployment changes were made.
