@@ -28,6 +28,7 @@ export default defineConfig({
       VITE_POSTHOG_PROJECT_TOKEN: "phc_openplay_browser_test_only",
       VITE_POSTHOG_HOST: "https://eu.i.posthog.com",
       VITE_POSTHOG_PRIVACY_SETTINGS_VERIFIED: "true",
+      VITE_OPENPLAY_ANALYTICS_E2E: "true",
       VITE_SUPABASE_URL: "http://127.0.0.1:54321",
       VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_browser_test_only",
     },
