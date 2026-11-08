@@ -727,6 +727,47 @@ export type Database = {
           },
         ]
       }
+      stripe_webhook_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          livemode: boolean
+          payment_record_id: string | null
+          processed_at: string | null
+          processing_error: string | null
+          processing_started_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id: string
+          livemode?: boolean
+          payment_record_id?: string | null
+          processed_at?: string | null
+          processing_error?: string | null
+          processing_started_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          livemode?: boolean
+          payment_record_id?: string | null
+          processed_at?: string | null
+          processing_error?: string | null
+          processing_started_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_webhook_events_payment_record_id_fkey"
+            columns: ["payment_record_id"]
+            isOneToOne: false
+            referencedRelation: "payment_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_registration_reviews: {
         Row: {
           created_at: string
