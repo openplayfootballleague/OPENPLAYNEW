@@ -44,3 +44,9 @@ export function validateChargeSettlement(record: PaymentSettlementRecord, object
 export function isRefundedPaymentStatus(status: string): boolean {
   return status === "refunded" || status === "partially_refunded";
 }
+
+export function paymentRecordIdFromIntentMetadata(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, unknown>).payment_record_id;
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
