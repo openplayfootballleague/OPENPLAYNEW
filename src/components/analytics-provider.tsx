@@ -57,6 +57,32 @@ export function useOpenPlayAnalytics() {
   return useContext(AnalyticsCaptureContext);
 }
 
+function routeCategory(pathname: string): string {
+  if (pathname === "/") return "home";
+  if (/\\/(?:player|player-hub)(?:\\/|$)/.test(pathname)) return "player_hub";
+  if (/\\/(?:fixtures|results|match-centre)(?:\\/|$)/.test(pathname)) return "match_centre";
+  if (/\\/teams?(?:\\/|$)/.test(pathname)) return "teams";
+  if (/\\/(?:register|registration|onboarding)(?:\\/|$)/.test(pathname)) return "registration";
+  if (/\\/notifications?(?:\\/|$)/.test(pathname)) return "notifications";
+  if (/\\/gallery(?:\\/|$)/.test(pathname)) return "gallery";
+  if (/\\/(?:account|profile|settings)(?:\\/|$)/.test(pathname)) return "account";
+  return "other";
+}
+
+function routeFeature(category: string): string | null {
+  const features: Record<string, string> = {
+    home: "player_hub",
+    player_hub: "player_hub",
+    match_centre: "match_centre",
+    teams: "team_directory",
+    registration: "player_registration",
+    notifications: "notifications",
+    gallery: "gallery",
+    account: "profile",
+  };
+  return features[category] ?? null;
+}
+
 function PostHogCaptureProvider({ children }: { children: ReactNode }) {
   const posthog = usePostHog();
   const location = useLocation();
@@ -199,6 +225,59 @@ export function AnalyticsConsentBanner({ enabled }: { enabled: boolean }) {
         <button type="button" className="auth-text-button" onClick={() => choose("denied")}>NO THANKS</button>
       </div>
     </aside>
+  );
+}
+
+function AnalyticsE2EDiagnostics({
+  configured,
+  allowed,
+  sdkReady,
+  tokenConfigured,
+  host,
+  error,
+}: {
+  configured: boolean;
+  allowed: boolean;
+  sdkReady: boolean;
+  tokenConfigured: boolean;
+  host: string | undefined;
+  error: string | null;
+}) {
+  const [captureCalled, setCaptureCalled] = useState(false);
+  const [captureResult, setCaptureResult] = useState("not-called");
+  if (import.meta.env.VITE_OPENPLAY_ANALYTICS_E2E !== "true") return null;
+
+  return (
+    <div
+      data-testid="analytics-e2e-diagnostics"
+      data-posthog-configured={String(configured)}
+      data-consent-allowed={String(allowed)}
+      data-sdk-ready={String(sdkReady)}
+      data-posthog-loaded={String(posthog.__loaded)}
+      data-posthog-capturing={String(allowed && sdkReady)}
+      data-posthog-opted-in={String(allowed && sdkReady)}
+      data-posthog-token={tokenConfigured ? "present" : "missing"}
+      data-posthog-host={host ?? "missing"}
+      data-posthog-error={error ?? ""}
+      data-posthog-capture-called={String(captureCalled)}
+      data-posthog-capture-result={captureResult}
+    >
+      <button
+        type="button"
+        data-testid="analytics-e2e-probe"
+        onClick={() => {
+          setCaptureCalled(true);
+          const result = posthog.capture(
+            "openplay_e2e_consent_probe",
+            { test_mode: true },
+            { send_instantly: true, transport: "fetch" },
+          );
+          setCaptureResult(String(result ?? "undefined"));
+        }}
+      >
+        Send analytics test probe
+      </button>
+    </div>
   );
 }
 
