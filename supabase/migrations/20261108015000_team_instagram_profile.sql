@@ -15,7 +15,7 @@ create or replace function public.register_team(
   p_team_name text,
   p_primary_colour text default null,
   p_secondary_colour text default null,
-  p_instagram_profile_url text
+  p_instagram_profile_url text default null
 )
 returns public.season_teams
 language plpgsql
