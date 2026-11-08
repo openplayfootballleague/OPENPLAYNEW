@@ -118,3 +118,59 @@ begin
   end if;
 end;
 $location_activation_role_boundary$;
+
+-- Location-scoped league administrators must not inherit platform-wide
+-- direct-table access to personal data, team sheets or notification payloads.
+do $location_admin_rls_boundary$
+declare
+  v_policy record;
+  v_expected text[] := array[
+    'players_select_self_or_global_admin',
+    'profiles_select_self_or_global_admin',
+    'profiles_update_self_or_global_admin',
+    'team_memberships_select_self_captain_or_scoped_admin',
+    'fixture_team_sheets_select_team_or_scoped_admin',
+    'fixture_team_sheet_players_select_team_or_scoped_admin',
+    'fixture_availability_select_player_captain_or_scoped_admin',
+    'fixture_availability_global_admin_manage',
+    'notification_events_select_owner_or_global_admin',
+    'audit_log_global_admin_read'
+  ];
+begin
+  foreach v_policy in array v_expected loop
+    if not exists (
+      select 1 from pg_catalog.pg_policies
+      where schemaname='public' and policyname=v_policy
+    ) then
+      raise exception 'Missing location-admin RLS boundary policy: %', v_policy;
+    end if;
+  end loop;
+
+  if exists (
+    select 1 from pg_catalog.pg_policies
+    where schemaname='public'
+      and policyname in (
+        'players_select_self_or_global_admin',
+        'profiles_select_self_or_global_admin',
+        'profiles_update_self_or_global_admin',
+        'team_memberships_select_self_captain_or_scoped_admin',
+        'fixture_team_sheets_select_team_or_scoped_admin',
+        'fixture_team_sheet_players_select_team_or_scoped_admin',
+        'fixture_availability_select_player_captain_or_scoped_admin',
+        'notification_events_select_owner_or_global_admin',
+        'audit_log_global_admin_read'
+      )
+      and coalesce(qual,'') ilike '%has_platform_role()%'
+  ) then
+    raise exception 'Sensitive RLS policy still uses the platform-wide role helper';
+  end if;
+
+  if exists (
+    select 1 from pg_catalog.pg_policies
+    where schemaname='public' and tablename='fixture_availability'
+      and policyname='fixture_availability_admin_manage'
+  ) then
+    raise exception 'Over-broad fixture_availability admin policy still exists';
+  end if;
+end;
+$location_admin_rls_boundary$;
