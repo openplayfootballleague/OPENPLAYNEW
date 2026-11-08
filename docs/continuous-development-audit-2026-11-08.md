@@ -144,3 +144,14 @@ The live Supabase ledger includes `first_release_bideford_location_policy`, but 
 - PR #7 is draft; no check-runs were available at the first post-create check. It is not merged. This is source restoration only, not a migration re-run or a change to the live location state.
 
 This leaves the small admin activation UI changes from PR #3 unported. They must be ported against the current `main` version of `src/routes/admin.tsx` separately and tested; the stale PR #3 branch must not be merged wholesale.
+
+
+## Live first-release location policy spot-check
+Read-only Supabase inspection against `ghnrsysvrlgkjmdlwdmp` confirms:
+- `locations` currently contains **zero rows**. Therefore no Bideford location is currently active or configured in this project; the admin UI will need an authorised location creation before activation can be exercised.
+- The database check constraint `locations_first_release_active_bideford_check` restricts active rows to town `Bideford`.
+- The unique partial index `locations_single_active_first_release_idx` allows at most one active location.
+- `admin_set_location_active` and `admin_create_location` are executable by `authenticated` and `postgres`; no `anon` execute grant was returned.
+- The live `admin_set_location_active` function also calls `can_administer_location(p_location_id)` before the platform-role check, reflecting the later location-admin scope hardening. The restored original migration remains the historical source; subsequent scope migrations remain authoritative for the current function body.
+
+PR #7's current-head build check was observed in progress at the last poll. No live rows or activation state were changed.
