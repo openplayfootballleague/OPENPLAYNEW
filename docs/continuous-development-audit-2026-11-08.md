@@ -293,3 +293,23 @@ The Stripe functions are intentionally not redeployed: test secrets and test-mod
 
 ### Player location/season selection regression coverage
 On PR #6, extracted the existing saved-context resolution into a pure helper and added tests for valid saved context, cross-location stale-season rejection, stale-location fallback and empty-location fallback. This is a behaviour-preserving refactor; GitHub Actions workflow `42437938149` for head `31b5615944ddd7665bb47583d27218d35c68622e` was still running at the time of this addendum. No test pass is claimed until that workflow completes.
+
+
+## Final verification addendum — 8 November 2026, 02:19 UTC
+
+### Direct grants on RLS/no-policy tables
+A read-only PostgreSQL privilege check confirmed that `anon` and `authenticated` have **no SELECT, INSERT, UPDATE or DELETE privileges** on any of:
+- `admin_context_preferences`
+- `gallery_items`
+- `location_admin_assignments`
+
+All three have RLS enabled and no direct policies. This confirms the intended RPC-only access boundary at the table-grant layer; each exposed RPC still requires its own authorization and location-scope review.
+
+### Regression-test CI outcome
+Workflow `42437938149` completed successfully on PR #6 head `31b5615944ddd7665bb47583d27218d35c68622e`:
+- Supabase Edge Function type-check: passed.
+- Vitest: **7 test files / 78 tests passed**.
+- TypeScript and Vite production build: passed.
+- Cloudflare Worker validation (dry run): passed.
+
+PR #6 description has been updated with this evidence. The PR remains draft; CI does not replace browser acceptance, Stripe test-mode acceptance or migration reconciliation.
