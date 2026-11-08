@@ -2,24 +2,28 @@ import { useState } from "react";
 import { SiteNavigation } from "../components/site-navigation";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { useOpenPlayAnalytics } from "../components/analytics-provider";
 
 export const Route = createFileRoute("/sign-up")({ component: SignUpPage });
 
 function SignUpPage() {
   const navigate = useNavigate();
+  const capture = useOpenPlayAnalytics();
   const [email,setEmail]=useState(""); const [password,setPassword]=useState(""); const [confirm,setConfirm]=useState("");
   const [error,setError]=useState(""); const [message,setMessage]=useState(""); const [busy,setBusy]=useState(false);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(""); setMessage("");
     if(password.length<10){setError("Use a password with at least 10 characters.");return;}
     if(password!==confirm){setError("Your passwords do not match.");return;}
+    capture("account_signup_started", { route_category: "registration" });
     setBusy(true);
     try {
       const {data,error:authError}=await getSupabaseClient().auth.signUp({email:email.trim(),password,options:{emailRedirectTo:window.location.origin+"/player"}});
       if(authError) throw authError;
+      capture("account_signup_completed", { route_category: "registration", outcome: "success" });
       if(data.session) await navigate({to:"/player"});
       else setMessage("Your account request is in. Check your inbox to verify your email before signing in. Creating an account does not register you as a player or make you a captain.");
-    } catch(cause){setError(cause instanceof Error?cause.message:"Unable to create your account. Please try again.");}
+    } catch(cause){capture("workflow_error", { feature: "profile", error_code: "unexpected_error", outcome: "failure" });setError(cause instanceof Error?cause.message:"Unable to create your account. Please try again.");}
     finally{setBusy(false);}
   }
   return <main className="notice-page"><SiteNavigation /><section className="notice-panel auth-panel">
