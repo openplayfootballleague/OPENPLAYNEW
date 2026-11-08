@@ -17,7 +17,7 @@
 - [ ] Complete secure first super-admin bootstrap using an owner-approved identity.
 
 ## Database release
-- [x] Reconcile the 98 applied migration versions to canonical source files and Git blob SHAs.
+- [x] Reconcile all 99 applied migration versions to canonical source files and Git blob SHAs.
 - [x] Consolidate outstanding forward-only corrections into one release migration.
 - [x] Clean local Supabase replay and all SQL authorization/identity regression tests passed in CI.
 - [x] Apply the reviewed consolidated migration to the dedicated Open Play New Supabase project; hosted ledger records version `20261108194831`.
