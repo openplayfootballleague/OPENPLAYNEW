@@ -29,11 +29,13 @@ test("does not contact PostHog before opt-in and stops after same-tab revocation
   expect(requests).toHaveLength(0);
 
   await page.locator(".account-security-section").getByRole("button", { name: "ALLOW OPTIONAL ANALYTICS" }).click();
+  await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("granted");
   await expect(page.getByText("Allowed on this device")).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Optional analytics preferences" })).toHaveCount(0);
   await expect.poll(() => requests.length).toBeGreaterThan(0);
 
   await page.getByRole("button", { name: "TURN OFF OPTIONAL ANALYTICS" }).click();
+  await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("denied");
   await expect(page.getByText("Declined on this device")).toBeVisible();
   await page.waitForTimeout(300);
   const requestsAfterRevocation = requests.length;
@@ -76,11 +78,13 @@ test("cross-tab opt-in and revocation update the other tab", async ({ page, cont
   expect(secondTabRequests).toHaveLength(0);
 
   await secondTab.locator(".account-security-section").getByRole("button", { name: "ALLOW OPTIONAL ANALYTICS" }).click();
+  await expect.poll(() => secondTab.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("granted");
   await expect(secondTab.getByText("Allowed on this device")).toBeVisible();
   await expect(secondTab.getByRole("complementary", { name: "Optional analytics preferences" })).toHaveCount(0);
   await expect.poll(() => firstTabRequests.length).toBeGreaterThan(0);
 
   await secondTab.getByRole("button", { name: "TURN OFF OPTIONAL ANALYTICS" }).click();
+  await expect.poll(() => secondTab.evaluate((key) => localStorage.getItem(key), CONSENT_KEY)).toBe("denied");
   await expect(secondTab.getByText("Declined on this device")).toBeVisible();
   await page.waitForTimeout(300);
   const requestsAfterCrossTabRevocation = firstTabRequests.length;
