@@ -137,8 +137,13 @@ begin
     end if;
   end;
   if not v_denied then raise exception 'Captain unexpectedly resolved a different team request'; end if;
+  -- Captain A cannot read Team B's request directly; inspect its unchanged state
+  -- as the database test owner, then restore the captain JWT for the remaining checks.
+  execute 'reset role';
   select count(*) into v_count from public.team_memberships where id='00000000-0000-4000-8000-000000000064' and status='pending';
   if v_count <> 1 then raise exception 'Cross-team request changed despite authorization denial'; end if;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000002',true);
 
   select count(*) into v_count from public.team_memberships where season_team_id='00000000-0000-4000-8000-000000000052';
   if v_count <> 0 then raise exception 'Captain can see another location roster'; end if;
