@@ -60,3 +60,21 @@ A fresh read of the live Supabase migration ledger and GitHub recursive trees ma
 **Disposition:** PR #2 is not ready to merge. Its stated 35↔35 reconciliation describes an earlier ledger state and does not cover the current 97 applied records. Do not merge it, rerun migrations, edit the live migration ledger, or rename/delete files on the basis of name-only matching.
 
 **Safe next step:** inventory all migration files across the relevant OPENPLAYNEW branches/PR heads; retrieve the exact SQL blobs for each live-missing migration where present; match by content and history (including duplicate versions); then create a reviewed, deterministic local filename/snapshot reconciliation on a dedicated branch. Any live migration with no recoverable SQL source must be explicitly reported as an unreconciled historical migration, not reconstructed speculatively.
+
+
+## Cross-branch migration coverage — PR #6 head (8 November 2026)
+Recursive Git tree inspection of all six open PR heads found migration-file counts of #1: 35, #2: 35, #3: 39, #4: 59, #5: 62 and #6: 92. PR #6 is the broadest migration-bearing branch, but it is still not an exact representation of the live ledger.
+
+Against PR #6's 92 migration files, normalized-name comparison found these live ledger entries without a matching local file:
+- `admin_fixture_management` — **two separate applied versions** (`20261107224311`, `20261107224351`); neither is preserved by PR #6's local filename set.
+- `first_release_bideford_location_policy`.
+- `fixture_player_appearance_tracking`.
+- `finance_options_for_finance_roles`.
+- `finance_summary_team_balance_rollup`.
+- `audit_log_explicit_deny_policy`.
+- `fixture_goal_records_explicit_deny_policy`.
+- `location_admin_assignments`.
+
+PR #6 also has three local migration names without same-named live ledger records: `finance_balance_semantics`, `audit_log_deny_all_policy`, and `fixture_goal_records_deny_all`. This is a name-level comparison only; the files may correspond to differently named applied versions, so inspect SQL and version history before concluding they are unapplied or safe to omit. The separate PR #3/#4 trees contain some of these earlier local-only / Bideford files, but no cross-branch exact one-to-one reconciliation has yet been demonstrated.
+
+**Current conclusion:** no available PR head has been verified as a complete, exact, safe 97-record migration source. PR #2 is stale; PR #6 is closest but still has unresolved historical coverage. Do not merge PR #2 or #6 as a migration-ledger fix, and do not apply any of these SQL files to the live project as part of reconciliation.
