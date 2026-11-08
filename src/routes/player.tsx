@@ -3,6 +3,7 @@ import { SiteNavigation } from "../components/site-navigation";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { useOpenPlayAnalytics } from "../components/analytics-provider";
 
 type NotificationPreferences={email_enabled:boolean;sms_enabled:boolean;in_app_enabled:boolean};
 type PlayerNotification={id:string;event_type:string;payload:unknown;created_at:string;read_at:string|null};
@@ -17,6 +18,7 @@ type PlayerFixture={id:string;gameweek:number;scheduled_at:string|null;home_team
 export const Route=createFileRoute("/player")({component:PlayerHubPage});
 
 function PlayerHubPage(){
+ const capture=useOpenPlayAnalytics();
  const navigate=useNavigate();const [session,setSession]=useState<Session|null>(null);const [player,setPlayer]=useState<Player|null>(null);const [profile,setProfile]=useState<Profile|null>(null);const [memberships,setMemberships]=useState<Membership[]>([]);const [avatarUrl,setAvatarUrl]=useState("");const [isAdmin,setIsAdmin]=useState(false);const [fixtures,setFixtures]=useState<PlayerFixture[]>([]);const [availability,setAvailability]=useState<Availability[]>([]);const [availabilityBusy,setAvailabilityBusy]=useState("");const [teams,setTeams]=useState<Team[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [notificationPrefs,setNotificationPrefs]=useState<NotificationPreferences|null>(null);const [notificationSaving,setNotificationSaving]=useState(false);const [notifications,setNotifications]=useState<PlayerNotification[]>([]);const [transferDestinations,setTransferDestinations]=useState<TransferDestination[]>([]);const [transferRequests,setTransferRequests]=useState<TransferRequest[]>([]);const [transferSelection,setTransferSelection]=useState("");const [transferReason,setTransferReason]=useState("");const [transferSaving,setTransferSaving]=useState(false);
  useEffect(()=>{let alive=true;const supabase=getSupabaseClient();
   async function load(){const {data:{session:current}}=await supabase.auth.getSession();if(!alive)return;setSession(current);
@@ -43,6 +45,11 @@ function PlayerHubPage(){
   void load();const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,next)=>{setSession(next);if(!next){setPlayer(null);setMemberships([]);setTeams([]);}});
   return()=>{alive=false;subscription.unsubscribe();};
  },[]);
+ useEffect(()=>{
+  if(player?.registration_status==="registered"&&!player.is_banned){
+   capture("player_profile_viewed",{feature:"profile"});
+  }
+ },[capture,player?.registration_status,player?.is_banned]);
  async function signOut(){await getSupabaseClient().auth.signOut();await navigate({to:"/"});}
  async function setFixtureAvailability(fixtureId:string,value:boolean){if(!session)return;setAvailabilityBusy(fixtureId);setError("");try{const {error:saveError}=await getSupabaseClient().from("fixture_availability").upsert({fixture_id:fixtureId,user_id:session.user.id,is_available:value},{onConflict:"fixture_id,user_id"});if(saveError)throw saveError;setAvailability(old=>[...old.filter(a=>a.fixture_id!==fixtureId),{fixture_id:fixtureId,is_available:value}]);}catch(cause){setError(cause instanceof Error?cause.message:"Unable to save your availability.");}finally{setAvailabilityBusy("");}}
  async function submitTransferRequest(event:React.FormEvent<HTMLFormElement>){event.preventDefault();if(!transferSelection)return;const [sourceMembershipId,destinationTeamId]=transferSelection.split("|");setTransferSaving(true);setError("");try{const {error:requestError}=await getSupabaseClient().rpc("request_player_transfer",{p_source_membership_id:sourceMembershipId,p_destination_season_team_id:destinationTeamId,p_reason:transferReason});if(requestError)throw requestError;setTransferReason("");setTransferSelection("");const [{data:options,error:optionsError},{data:requests,error:requestsError}]=await Promise.all([getSupabaseClient().rpc("get_my_transfer_destinations"),getSupabaseClient().rpc("get_my_transfer_requests")]);if(optionsError||requestsError)throw optionsError??requestsError;setTransferDestinations((options??[]) as unknown as TransferDestination[]);setTransferRequests((requests??[]) as unknown as TransferRequest[]);setError("");}catch(cause){setError(cause instanceof Error?cause.message:"Unable to submit transfer request.");}finally{setTransferSaving(false);}}
