@@ -1326,6 +1326,14 @@ export type Database = {
         Args: { p_effective_from_gameweek: number; p_player_fee_pence: number; p_reason: string; p_season_id: string }
         Returns: string
       }
+      get_admin_team_sheets_contextual: {
+        Args: { p_location_id?: string | null; p_league_id?: string | null; p_season_id?: string | null }
+        Returns: {
+          team_sheet_id: string; fixture_id: string; season_team_id: string; team_name: string; opponent_name: string;
+          gameweek: number; scheduled_at: string | null; competition_format: Database["public"]["Enums"]["competition_format"];
+          is_locked: boolean; submitted_at: string | null; players: Json; roster: Json
+        }[]
+      }
       get_admin_player_register_contextual: {
         Args: { p_search?: string | null; p_status?: string | null; p_limit?: number; p_offset?: number; p_location_id?: string | null; p_league_id?: string | null; p_season_id?: string | null }
         Returns: {
