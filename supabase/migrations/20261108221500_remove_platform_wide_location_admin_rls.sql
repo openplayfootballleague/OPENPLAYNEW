@@ -1,3 +1,14 @@
+-- Non-recursive global-admin predicate for policies on user_roles itself.
+create or replace function public.has_global_admin_role()
+returns boolean language sql stable security definer set search_path=''
+as $
+  select exists (
+    select 1 from public.user_roles ur
+    where ur.user_id=(select auth.uid()) and ur.role in ('admin','super_admin')
+  );
+$;
+revoke all on function public.has_global_admin_role() from public,anon;
+grant execute on function public.has_global_admin_role() to authenticated;
 -- Remove the implicit platform-wide access granted by has_platform_role()
 -- from permissive ALL policies. These policies also participate in SELECT
 -- and otherwise override the narrower read policies introduced previously.
@@ -131,8 +142,7 @@ for select to authenticated using (
 drop policy if exists user_roles_select_self_or_admin on public.user_roles;
 create policy user_roles_select_self_or_global_admin on public.user_roles
 for select to authenticated using (
-  user_id=(select auth.uid())
-  or exists(select 1 from public.user_roles ur where ur.user_id=(select auth.uid()) and ur.role in ('admin','super_admin'))
+  user_id=(select auth.uid()) or public.has_global_admin_role()
 );
 
 drop policy if exists season_registrations_select_self_or_admin on public.season_registrations;
