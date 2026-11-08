@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isRefundedPaymentStatus, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "./stripe-settlement";
+import { isRefundedPaymentStatus, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "./stripe-settlement";
 
 const record: PaymentSettlementRecord = {
   id: "payment-1",
@@ -86,5 +86,17 @@ describe("Stripe payment state ordering", () => {
     expect(isRefundedPaymentStatus("pending")).toBe(false);
     expect(isRefundedPaymentStatus("processing")).toBe(false);
     expect(isRefundedPaymentStatus("paid")).toBe(false);
+  });
+});
+
+describe("Stripe PaymentIntent record mapping", () => {
+  it("reads the server-created payment record metadata", () => {
+    expect(paymentRecordIdFromIntentMetadata({ payment_record_id: "payment-1" })).toBe("payment-1");
+  });
+
+  it("rejects absent, malformed or blank mapping metadata", () => {
+    expect(paymentRecordIdFromIntentMetadata(null)).toBeNull();
+    expect(paymentRecordIdFromIntentMetadata([])).toBeNull();
+    expect(paymentRecordIdFromIntentMetadata({ payment_record_id: "  " })).toBeNull();
   });
 });
