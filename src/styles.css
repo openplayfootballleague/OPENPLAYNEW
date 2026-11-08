@@ -578,5 +578,4 @@ button:disabled { opacity: .55; }
 .directory-team-profile-link:hover strong,.directory-team-profile-link:focus-visible strong{color:#f36b32;text-decoration:underline}
 .team-profile-colour{display:block;width:12px;height:56px;margin:12px 0}
 .team-profile-colours{display:grid;gap:8px;margin:20px 0;padding:16px;background:#e7e5dc;color:#292b28}
-.team-profile-instagram{width:auto;flex-basis:auto;gap:9px;padding:0 14px;border-radius:999px}
-.team-profile-instagram span{font-size:12px;font-weight:700}
+.team-profile-instagram{width:34px;height:34px;flex-basis:34px;gap:0;padding:0;border-radius:50%}
