@@ -285,7 +285,7 @@ Use the established Open Play charcoal/orange visual system. Provide compact met
 
 ## 9. Delivery gates
 
-- Confirm PostHog cloud region and project token from the owner/project settings; current connected project metadata does not expose the token or region in the available project response.
+- Connected PostHog project metadata has been verified: EU Cloud ingestion host is `https://eu.i.posthog.com`. The project token is available through the connected project configuration; provision it as `VITE_PUBLIC_POSTHOG_PROJECT_TOKEN` in the app build environment and never commit the real value to source control. Provision `VITE_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com` through the environment as well.
 - Add SDK via package manager and lockfile, configure environment variables and proxy/host correctly for Cloudflare/TanStack Start.
 - Implement consent-aware provider, auth identify/reset, pageview policy, event catalogue and server-side authoritative events.
 - Implement analytics data contracts/RPCs with location/league/season permission enforcement and reconciliation tests.
