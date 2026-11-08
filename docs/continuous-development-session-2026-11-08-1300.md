@@ -100,3 +100,8 @@ Created issue #25 and linked it from issue #23. Required fix: retain own-row RLS
 ### Live migration ledger count refresh
 
 A fresh read-only `list_migrations` call returned **98 rows and 98 unique version values**. The name `admin_fixture_management` occurs twice at distinct applied versions `20261107224311` and `20261107224351`; both must remain distinct in the canonical source map. This confirms the live ledger count but does not resolve the local filename/source mapping or prove a clean replay.
+
+
+### PR #22 timestamp review correction
+
+The initial review flagged the `20261108290000` migration prefix as an invalid hour. A subsequent check of the target feature branch found existing ordered migration filenames using `20261108270000` and `20261108280000`. The repository therefore appears to use extended numeric ordering labels in this sequence; the earlier timestamp concern is **not a confirmed defect** and was corrected in a follow-up PR comment. The actual blockers remain missing CI, clean replay/SQL compilation and authenticated role-matrix evidence.
