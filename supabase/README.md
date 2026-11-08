@@ -4,9 +4,9 @@
 
 The dedicated **Open Play New** Supabase project is the only Supabase project intended for this application. Never run destructive reset commands against a hosted/linked project, and never use the older Open Play production project for this repository.
 
-As of 8 November 2026, the connected Open Play New database reports 98 applied migration-ledger entries. The migration source manifest in `docs/supabase-migration-source-manifest-2026-11-08.md` maps all 98 applied versions to canonical source files and Git blob SHAs.
+As of 8 November 2026, the connected Open Play New database reports 99 applied migration-ledger entries. The migration source manifest in `docs/supabase-migration-source-manifest-2026-11-08.md` maps all 99 applied versions to canonical source files and Git blob SHAs.
 
-The repository now contains one consolidated forward-only migration not yet present in the 98-entry applied ledger: `20261109030000_phase1_completion_bundle.sql`. It combines the seven previously pending finance, global-admin RLS, legacy RPC, captain membership, location/finance authorization and player identity corrections, plus the picture-only player profile write restriction. It must pass isolated local replay and role-matrix tests before hosted application. Location administrators must use the location-scoped admin RPCs; direct table RLS access does not grant them global visibility.
+The consolidated Phase 1 release migration `20261108194831_phase1_completion_bundle.sql` is recorded as applied in the hosted ledger. It combines the finance, global-admin RLS, legacy RPC, captain membership, location/finance authorization and player identity corrections, plus the picture-only player profile write restriction. Before application it passed a clean local replay and the complete SQL authorization/identity regression suite in CI. Location administrators must use the location-scoped admin RPCs; direct table RLS access does not grant them global visibility.
 
 ## Local development and clean replay
 
@@ -24,7 +24,7 @@ CI runs the full migration replay on an isolated local database, then executes c
 
 ## Applying migrations
 
-Hosted migration deployment is a separate, deliberate release operation. It requires a reviewed migration plan, confirmation of the exact target project, backup/rollback planning, and explicit release approval. Never use `supabase db reset --linked` against a hosted project.
+Hosted migration deployment is a separate, deliberate release operation. The Phase 1 migration above has been applied to the dedicated Open Play New project. Future migrations require a reviewed migration plan, confirmation of the exact target project, backup/rollback planning, and explicit release approval. Never use `supabase db reset --linked` against a hosted project.
 
 ## Important implementation constraints
 

@@ -19,8 +19,8 @@
 ## Database release
 - [x] Reconcile the 98 applied migration versions to canonical source files and Git blob SHAs.
 - [x] Consolidate outstanding forward-only corrections into one release migration.
-- [ ] Clean local Supabase replay and all SQL authorization/identity regression tests must pass.
-- [ ] Apply the reviewed consolidated migration to the dedicated Open Play New Supabase project.
+- [x] Clean local Supabase replay and all SQL authorization/identity regression tests passed in CI.
+- [x] Apply the reviewed consolidated migration to the dedicated Open Play New Supabase project; hosted ledger records version `20261108194831`.
 
 ## Completion criteria
 Phase 1 is complete only when the account and player-registration lifecycle is fully implemented, the consolidated database release has passed clean replay and role-matrix tests, hosted schema is verified at the intended project, and the remaining authenticated/browser acceptance gates have been completed. Implemented, verified and released remain separate states.

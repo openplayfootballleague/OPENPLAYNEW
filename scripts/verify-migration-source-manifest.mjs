@@ -4,9 +4,7 @@ import { basename, join } from "node:path";
 
 const manifestPath = "docs/supabase-migration-source-manifest-2026-11-08.md";
 const migrationDirectory = "supabase/migrations";
-const expectedForwardOnly = [
-  "supabase/migrations/20261109030000_phase1_completion_bundle.sql",
-];
+const expectedForwardOnly = [];
 
 function fail(message) {
   console.error(`Migration source manifest verification failed: ${message}`);
@@ -24,7 +22,7 @@ const rows = [...manifest.matchAll(rowPattern)].map((match) => ({
   expectedSha: match[4],
 }));
 
-if (rows.length !== 98) fail(`expected 98 applied ledger rows, found ${rows.length}`);
+if (rows.length !== 99) fail(`expected 99 applied ledger rows, found ${rows.length}`);
 
 const versions = rows.map((row) => row.version);
 const paths = rows.map((row) => row.path);
