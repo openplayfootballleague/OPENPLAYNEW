@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import type { Database } from "../../../src/lib/supabase/database.types.ts";
-import { isRefundedPaymentStatus, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "../../../src/lib/payments/stripe-settlement.ts";
+import { isFinalizedPaymentStatus, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "../../../src/lib/payments/stripe-settlement.ts";
 
 type StripeWebhookDatabase = Database & {
   public: Database["public"] & {
@@ -219,22 +219,22 @@ Deno.serve(async (req) => {
 
       if (eventType === "checkout.session.completed") {
         if (object?.payment_status === "paid") {
-          if (!isRefundedPaymentStatus(paymentStatusBeforeEvent ?? "pending")) {
+          if (!isFinalizedPaymentStatus(paymentStatusBeforeEvent ?? "pending")) {
             patch.status = "paid";
             patch.paid_at = new Date().toISOString();
           }
-        } else if (!isRefundedPaymentStatus(paymentStatusBeforeEvent ?? "pending")) {
+        } else if (!isFinalizedPaymentStatus(paymentStatusBeforeEvent ?? "pending")) {
           patch.status = "processing";
         }
       } else if (eventType === "checkout.session.async_payment_succeeded") {
-        if (!isRefundedPaymentStatus(paymentStatusBeforeEvent ?? "pending")) {
+        if (!isFinalizedPaymentStatus(paymentStatusBeforeEvent ?? "pending")) {
           patch.status = "paid";
           patch.paid_at = new Date().toISOString();
         }
       } else if (eventType === "checkout.session.async_payment_failed") {
-        patch.status = "failed";
+        if (!isFinalizedPaymentStatus(paymentStatusBeforeEvent ?? "pending")) patch.status = "failed";
       } else if (eventType === "checkout.session.expired") {
-        patch.status = "cancelled";
+        if (!isFinalizedPaymentStatus(paymentStatusBeforeEvent ?? "pending")) patch.status = "cancelled";
       }
     } else if (eventType === "charge.succeeded") {
       const balanceTransaction = object?.balance_transaction;
@@ -265,7 +265,7 @@ Deno.serve(async (req) => {
       // A charge.succeeded event is independently authoritative proof of a
       // successful charge. Do not leave the ledger pending if checkout.session
       // completion was delayed or not delivered.
-      if (!isRefundedPaymentStatus(paymentStatusBeforeEvent ?? "pending")) {
+      if (!isFinalizedPaymentStatus(paymentStatusBeforeEvent ?? "pending")) {
         patch.status = "paid";
         patch.paid_at = new Date().toISOString();
       }
