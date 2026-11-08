@@ -2402,6 +2402,19 @@ export type Database = {
           instagram_profile_url: string | null
         }[]
       }
+      get_public_team_directory: {
+        Args: { p_season_team_id?: string | null }
+        Returns: {
+          season_team_id: string
+          team_name: string
+          season_id: string
+          season_name: string
+          starts_on: string
+          primary_colour: string | null
+          secondary_colour: string | null
+          instagram_profile_url: string | null
+        }[]
+      }
       update_team_instagram_profile: {
         Args: {
           p_season_team_id: string
