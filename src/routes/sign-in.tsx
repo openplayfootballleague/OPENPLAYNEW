@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { usePostHog } from "posthog-js/react";
 import { getSupabaseClient } from "../lib/supabase/client";
 
 export const Route = createFileRoute("/sign-in")({ component: SignInPage });
 
 function SignInPage() {
   const navigate = useNavigate();
+  const posthog = usePostHog();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -17,6 +19,7 @@ function SignInPage() {
     try {
       const { error: authError } = await getSupabaseClient().auth.signInWithPassword({ email: email.trim(), password });
       if (authError) throw authError;
+      posthog.capture("user_signed_in");
       await navigate({ to: "/player" });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to sign in. Please try again.");
@@ -29,6 +32,7 @@ function SignInPage() {
       if (!email.trim()) throw new Error("Enter your email address first.");
       const { error: resetError } = await getSupabaseClient().auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin + "/reset-password" });
       if (resetError) throw resetError;
+      posthog.capture("password_reset_requested");
       setMessage("If an account exists for that address, a password reset email has been sent.");
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to request a password reset."); }
     finally { setBusy(false); }

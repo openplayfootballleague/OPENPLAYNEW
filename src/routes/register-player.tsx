@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { usePostHog } from "posthog-js/react";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase/client";
 
 export const Route = createFileRoute("/register-player")({ component: RegisterPlayerPage });
 
 function RegisterPlayerPage() {
-  const navigate=useNavigate(); const [session,setSession]=useState<Session|null>(null); const [loading,setLoading]=useState(true);
+  const navigate=useNavigate(); const posthog=usePostHog(); const posthogLogger=posthog.logger; const [session,setSession]=useState<Session|null>(null); const [loading,setLoading]=useState(true);
   const [name,setName]=useState(""); const [phone,setPhone]=useState(""); const [dob,setDob]=useState("");
   const [error,setError]=useState(""); const [message,setMessage]=useState(""); const [submitted,setSubmitted]=useState(false); const [busy,setBusy]=useState(false);
   useEffect(()=>{
@@ -21,6 +22,8 @@ function RegisterPlayerPage() {
       if(!session?.user.email) throw new Error("Please sign in with a verified email address first.");
       const {error:rpcError}=await getSupabaseClient().rpc("register_player",{p_full_name:name.trim(),p_phone:phone.trim(),p_email:session.user.email,p_date_of_birth:dob});
       if(rpcError) throw rpcError;
+      posthog.capture("player_registration_submitted");
+      posthogLogger.info("player registration submitted",{workflow:"player_registration",outcome:"submitted"});
       setMessage("Your player registration has been submitted. If it needs a manual identity check, it will remain pending review. Your account and player registration are separate from joining a team.");
       setSubmitted(true);
     }catch(cause){setError(cause instanceof Error?cause.message:"Unable to submit player registration.");}

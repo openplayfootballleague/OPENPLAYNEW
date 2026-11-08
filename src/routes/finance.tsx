@@ -1,5 +1,6 @@
 import { useCallback,useEffect,useMemo,useState } from "react";
 import { Link,createFileRoute } from "@tanstack/react-router";
+import { usePostHog } from "posthog-js/react";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { poundsToPence } from "../lib/finance/ledger";
 
@@ -11,6 +12,7 @@ const dateTime=(value:string|null)=>value?new Date(value).toLocaleString("en-GB"
 
 export const Route=createFileRoute("/finance")({component:FinancePage});
 function FinancePage(){
+ const posthog=usePostHog();
  const [options,setOptions]=useState<FinanceOption[]>([]);
  const [entries,setEntries]=useState<FinanceEntry[]>([]);
  const [summary,setSummary]=useState<FinanceSummary[]>([]);
@@ -54,6 +56,7 @@ function FinancePage(){
     p_reference:reference.trim()||undefined,p_notes:notes.trim()||undefined,
    });
    if(rpcError)throw rpcError;
+   posthog.capture("finance_entry_recorded",{entry_type:entryType,payment_method:entryType==="payment"?paymentMethod:undefined});
    setNotice("Finance entry recorded and audit logged. Ledger entries cannot be edited or deleted; add a correcting entry if needed.");
    setAmount("");setDescription("");setDueDate("");setReference("");setNotes("");
    await load();
