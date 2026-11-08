@@ -148,3 +148,10 @@ This is a useful high-level invariant check, not a substitute for reviewing ever
 The latest integration-branch commit at the time of this audit is 86f6a11a4c4ad3427ae1b47e1f3fff0225f6d6c4. GitHub reports its Build verification workflow completed successfully. This confirms the repository's configured CI for that commit; it does not exercise live Supabase role combinations or provider configuration.
 
 No hosted writes, migrations, paid branches, test accounts, deployment or merge were performed.
+### Additional privilege-boundary finding — location activation
+
+The deeper function-body review identified an over-broad role gate in the deployed definition of `admin_set_location_active`: it checked `can_administer_location(...)` and `has_platform_role()`, and `has_platform_role()` includes `league_admin`. This meant an assigned location administrator could reach a platform-wide location activation/deactivation control through a direct RPC call even though the UI hid that control. The function's Bideford-first-release constraints limited the impact, but the role boundary was still incorrect.
+
+A new forward migration, `20261108220000_restrict_location_activation_to_global_admin.sql`, now replaces that broad gate with an explicit `admin`/`super_admin` requirement. A regression assertion was added to `supabase/tests/security_privilege_assertions.sql`. These are repository changes only: the migration has NOT been applied to the hosted project, and the regression test has NOT yet been replayed against an isolated database. Until the migration is approved and applied, this remains a live-project finding and Stage 1 must not be signed off.
+
+The audit also confirmed the intended helper semantics: `has_platform_role()` includes `admin`, `super_admin` and `league_admin`; `can_administer_location()` grants global admins all locations and `league_admin` only assigned locations; `has_finance_access()` grants `admin`, `super_admin` and `finance_admin`; and captain actions use active captain membership. This role distinction must be preserved in the final role/action matrix.
