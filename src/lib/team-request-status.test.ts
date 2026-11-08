@@ -3,6 +3,8 @@ import { getTeamRequestDisplay, type TeamRequestStatus } from "./team-request-st
 
 const base: TeamRequestStatus = {
   membership_id: "m-1",
+  season_team_id: "team-1",
+  season_id: "season-1",
   team_name: "North Devon FC",
   season_name: "Season 1",
   team_registration_status: "approved",
