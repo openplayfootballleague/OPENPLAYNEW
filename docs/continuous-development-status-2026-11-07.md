@@ -220,3 +220,10 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - Existing SELECT/INSERT/UPDATE/DELETE grants were not changed; row access remains controlled by the existing RLS policies. No application feature permissions were broadened.
 - The earlier notification internal-function permission migration is also applied and verified. Its CI run 42430099570 passed. The follow-up documentation CI run is still pending at the time of this entry.
 - This is development-project hardening only. The same migrations must be reviewed and applied through the production release process after staging/acceptance verification; production was not modified.
+
+
+## 8 November 2026 — repeatable database security assertions
+
+- Added `supabase/tests/security_privilege_assertions.sql` with executable assertions that: every public application table has RLS enabled; anon/authenticated have no TRUNCATE, REFERENCES or TRIGGER privileges on public tables; anon cannot execute public SECURITY DEFINER functions; and authenticated cannot execute the 15 internal notification worker/trigger functions.
+- Executed the assertions against development immediately after the privilege migrations. Result: `security privilege assertions passed`.
+- These are explicit database regression assertions, not a substitute for full user-role integration testing. Authenticated SECURITY DEFINER functions that remain callable must continue to be reviewed for their in-function ownership/role checks.
