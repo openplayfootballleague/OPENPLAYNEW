@@ -247,3 +247,13 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - Verified the deployed development function definition contains `pg_advisory_xact_lock`; anon execution remains false and authenticated execution remains true, with the function's own authenticated-membership validation retained.
 - Reworked `supabase/tests/security_privilege_assertions.sql` into a plain SQL result set to avoid procedural-block delimiter ambiguity in the SQL execution runner. Executed it successfully; all five assertions returned true, including the payment-creation serialization check.
 - The full 63-function review is still open. This pass specifically validated captain-scoped team sheet and membership functions, finance/admin read RPCs, and player payment ownership. No claim of exhaustive authorization sign-off is made.
+
+
+## 8 November 2026 — self-service profile column security
+
+- The RLS review found that the `profiles_update_self_or_admin` policy restricted row ownership but the authenticated role had table-wide UPDATE permission. This meant a user could bypass the Player Hub form and directly change DOB and emergency-contact fields that the approved self-service UI intentionally does not expose.
+- Added and applied `20261108060000_limit_self_service_profile_update_columns.sql`. It removes table-wide UPDATE from authenticated and grants column-level UPDATE only for first_name, last_name, display_name, phone, preferred_position and avatar_path. Admin corrections continue through SECURITY DEFINER admin RPCs.
+- Verified all six intended self-service columns return true for UPDATE privilege; date_of_birth, emergency_contact_name and emergency_contact_phone return false; table-wide UPDATE returns false.
+- Extended `supabase/tests/security_privilege_assertions.sql` with a sixth assertion for this exact column boundary. Executed against development; all six result columns returned true.
+- Reviewed the corresponding Player Hub save and avatar-upload code: it writes only the permitted profile columns. No change to the UI was needed.
+- This is a development-only security change; production migration remains gated by the release process.
