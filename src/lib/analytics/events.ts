@@ -32,6 +32,7 @@ export const OPEN_PLAY_ANALYTICS_EVENTS = [
 export type OpenPlayAnalyticsEvent = (typeof OPEN_PLAY_ANALYTICS_EVENTS)[number];
 export type AnalyticsActor =
   | "anonymous"
+  | "account_user"
   | "player"
   | "captain"
   | "admin"
@@ -118,7 +119,7 @@ export function captureOpenPlayEvent(
   properties: AnalyticsProperties = {},
 ): boolean {
   if (!client || !isAnalyticsAllowed(consent, globalPrivacyControl)) return false;
-  if (actor !== "anonymous" && actor !== "player" && actor !== "captain") return false;
+  if (actor !== "anonymous" && actor !== "account_user" && actor !== "player" && actor !== "captain") return false;
   client.capture(event, sanitizeAnalyticsProperties(properties));
   return true;
 }
