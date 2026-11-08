@@ -57,17 +57,24 @@ function NotificationsPage() {
 
   useEffect(() => {
     let alive = true;
+    let notificationChannel: ReturnType<ReturnType<typeof getSupabaseClient>["channel"]> | null = null;
     async function load() {
       try {
         const { data: { session } } = await getSupabaseClient().auth.getSession();
         if (!session) { await navigate({ to: "/sign-in" }); return; }
+        const supabase = getSupabaseClient();
         await refresh();
+        notificationChannel = supabase.channel("notification-centre-" + session.user.id)
+          .on("postgres_changes", { event: "*", schema: "public", table: "notification_events", filter: "user_id=eq." + session.user.id }, () => {
+            void refresh().catch(cause => { if (alive) setError(cause instanceof Error ? cause.message : "Unable to refresh notifications."); });
+          })
+          .subscribe();
       } catch (cause) {
         if (alive) setError(cause instanceof Error ? cause.message : "Unable to load notifications.");
       } finally { if (alive) setLoading(false); }
     }
     void load();
-    return () => { alive = false; };
+    return () => { alive = false; if (notificationChannel) void getSupabaseClient().removeChannel(notificationChannel); };
   }, [navigate]);
 
   const unreadCount = rows.filter(row => !row.read_at).length;
