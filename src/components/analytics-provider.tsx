@@ -14,7 +14,7 @@ import {
   type AnalyticsActor,
   type AnalyticsCaptureClient,
 } from "../lib/analytics/events";
-import { getSupabaseClient } from "../lib/supabase/client";
+import { getSupabaseClient, isSupabaseConfigured } from "../lib/supabase/client";
 
 const POSTHOG_OPTIONS = {
   defaults: "2026-08-30",
@@ -93,6 +93,10 @@ function AnalyticsRouteTracker() {
   const [actor, setActor] = useState<AnalyticsActor>("unknown");
 
   useEffect(() => {
+    // Analytics must never make the app fail when account services are not configured.
+    // Without a verified auth source, keep the actor unknown and fail closed.
+    if (!isSupabaseConfigured()) return;
+
     let alive = true;
     const supabase = getSupabaseClient();
 
