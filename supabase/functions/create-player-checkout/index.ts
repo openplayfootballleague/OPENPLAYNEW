@@ -54,12 +54,57 @@ Deno.serve(async (req) => {
   if (payment.already_paid) return json({ paid: true, message: "This fixture has already been paid." });
 
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data: record, error: recordError } = await admin.from("payment_records")
+  const { data: loadedRecord, error: recordError } = await admin.from("payment_records")
     .select("id,amount_pence,currency,status,stripe_checkout_session_id,checkout_attempt")
     .eq("id", payment.payment_record_id).single();
-  if (recordError || !record) return json({ error: "Payment record could not be loaded" }, 500);
+  if (recordError || !loadedRecord) return json({ error: "Payment record could not be loaded" }, 500);
+  let record = loadedRecord;
   if (record.status === "paid") return json({ paid: true, message: "This fixture has already been paid." });
-  if (record.status !== "pending" && record.status !== "processing") {
+
+  // Reuse an existing open session rather than creating duplicate Checkout pages.
+  // A new attempt is claimed with a compare-and-set update, so simultaneous
+  // retries cannot increment the same attempt twice.
+  if (record.stripe_checkout_session_id) {
+    const existingResponse = await fetch(
+      `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(record.stripe_checkout_session_id)}`,
+      { headers: { Authorization: `Bearer ${stripeKey}` } },
+    );
+    const existingSession = await existingResponse.json().catch(() => ({}));
+    if (!existingResponse.ok) return json({ error: "Existing Checkout session could not be verified" }, 502);
+    if (existingSession.status === "open" && typeof existingSession.url === "string") {
+      return json({ checkout_url: existingSession.url, payment_record_id: record.id });
+    }
+    if (existingSession.status === "complete" && existingSession.payment_status === "paid") {
+      return json({ paid: true, message: "This fixture has already been paid." });
+    }
+    const canRetry = existingSession.status === "expired" ||
+      (existingSession.status === "complete" && ["failed", "cancelled"].includes(record.status) && existingSession.payment_status !== "paid");
+    if (!canRetry) return json({ error: "This Checkout is still processing. Refresh the Player Hub shortly." }, 409);
+  } else if (record.status !== "pending" && record.status !== "failed" && record.status !== "cancelled") {
+    return json({ error: "This payment cannot be checked out" }, 409);
+  }
+
+  const retryRequired = Boolean(record.stripe_checkout_session_id) ||
+    record.status === "failed" || record.status === "cancelled";
+  if (retryRequired) {
+    const previousStatus = record.status;
+    const previousAttempt = record.checkout_attempt;
+    let claim = admin.from("payment_records").update({
+      status: "pending",
+      checkout_attempt: previousAttempt + 1,
+      stripe_checkout_session_id: null,
+      stripe_payment_intent_id: null,
+    }).eq("id", record.id).eq("status", previousStatus).eq("checkout_attempt", previousAttempt);
+    claim = record.stripe_checkout_session_id
+      ? claim.eq("stripe_checkout_session_id", record.stripe_checkout_session_id)
+      : claim.is("stripe_checkout_session_id", null);
+    const { data: claimedRecord, error: claimError } = await claim
+      .select("id,amount_pence,currency,status,stripe_checkout_session_id,checkout_attempt")
+      .maybeSingle();
+    if (claimError) return json({ error: "Checkout retry could not be prepared" }, 500);
+    if (!claimedRecord) return json({ error: "Another checkout attempt is already being prepared. Refresh and try again." }, 409);
+    record = claimedRecord;
+  } else if (record.status !== "pending") {
     return json({ error: "This payment cannot be checked out" }, 409);
   }
 
@@ -75,7 +120,9 @@ Deno.serve(async (req) => {
   form.set("line_items[0][price_data][product_data][description]", "One-off player match fee");
   form.set("metadata[payment_record_id]", record.id);
   form.set("metadata[player_user_id]", authData.user.id);
+  form.set("metadata[checkout_attempt]", String(record.checkout_attempt));
   form.set("payment_intent_data[metadata][payment_record_id]", record.id);
+  form.set("payment_intent_data[metadata][checkout_attempt]", String(record.checkout_attempt));
 
   const stripeResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
@@ -91,11 +138,23 @@ Deno.serve(async (req) => {
     return json({ error: "Stripe could not create a Checkout session" }, 502);
   }
 
-  // Do not overwrite a webhook that may have completed while Checkout was being created.
-  const { error: updateError } = await admin.from("payment_records").update({
+  // Persist only if this attempt is still current and no other session was stored.
+  const { data: savedRecord, error: updateError } = await admin.from("payment_records").update({
     stripe_checkout_session_id: session.id,
-  }).eq("id", record.id);
-  if (updateError) return json({ error: "Checkout was created but payment state could not be saved. Contact Open Play before retrying." }, 500);
+  }).eq("id", record.id).eq("checkout_attempt", record.checkout_attempt)
+    .in("status", ["pending", "processing"]).is("stripe_checkout_session_id", null)
+    .select("id").maybeSingle();
+  if (updateError) return json({ error: "Checkout was created but payment state could not be saved. Refresh the Player Hub before retrying." }, 500);
+  if (!savedRecord) {
+    const { data: latestRecord } = await admin.from("payment_records")
+      .select("status,stripe_checkout_session_id,checkout_attempt")
+      .eq("id", record.id).maybeSingle();
+    if (latestRecord?.status === "paid") return json({ paid: true, message: "This fixture has already been paid." });
+    if (latestRecord?.stripe_checkout_session_id === session.id && latestRecord.checkout_attempt === record.checkout_attempt) {
+      return json({ checkout_url: session.url, payment_record_id: record.id });
+    }
+    return json({ error: "Payment state changed while Checkout was being created. Refresh before trying again." }, 409);
+  }
 
   return json({ checkout_url: session.url, payment_record_id: record.id });
 });
