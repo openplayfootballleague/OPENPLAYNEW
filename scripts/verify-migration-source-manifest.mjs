@@ -4,7 +4,10 @@ import { basename, join } from "node:path";
 
 const manifestPath = "docs/supabase-migration-source-manifest-2026-11-08.md";
 const migrationDirectory = "supabase/migrations";
-const expectedForwardOnly = [];
+const expectedForwardOnly = [
+  "supabase/migrations/20261108150000_canonicalize_player_phone.sql",
+  "supabase/migrations/20261108160000_enforce_player_ban_and_captain_succession.sql",
+];
 
 function fail(message) {
   console.error(`Migration source manifest verification failed: ${message}`);
@@ -14,7 +17,7 @@ function fail(message) {
 if (!existsSync(manifestPath)) fail(`missing manifest ${manifestPath}`);
 
 const manifest = readFileSync(manifestPath, "utf8");
-const rowPattern = /^\|\s*(\d{14})\s*\|\s*([^|]+?)\s*\|\s*`([^ `]+)`\s*\|\s*`([0-9a-f]{40})`\s*\|$/gm;
+const rowPattern = /^\\|\\s*(\\d{14})\\s*\\|\\s*([^|]+?)\\s*\\|\\s*`([^ `]+)`\\s*\\|\\s*`([0-9a-f]{40})`\\s*\\|$/gm;
 const rows = [...manifest.matchAll(rowPattern)].map((match) => ({
   version: match[1],
   name: match[2].trim(),
@@ -35,7 +38,7 @@ for (const row of rows) {
   if (!existsSync(row.path)) fail(`missing source file ${row.path}`);
 
   const bytes = readFileSync(row.path);
-  const header = Buffer.from(`blob ${bytes.length}\0`, "utf8");
+  const header = Buffer.from(`blob ${bytes.length}\\0`, "utf8");
   const actualSha = createHash("sha1").update(header).update(bytes).digest("hex");
   if (actualSha !== row.expectedSha) fail(`Git blob SHA mismatch for ${row.path}: expected ${row.expectedSha}, got ${actualSha}`);
 }
