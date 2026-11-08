@@ -3,6 +3,7 @@ import { SiteNavigation } from "../components/site-navigation";
 import { Link,createFileRoute } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { canTransitionFixtureStatus, hasOneScorerPerGoal, hasOnlyAppearedScorers } from "../lib/competition/rules";
+import { resolveAdminWorkspace } from "../lib/admin/workspace";
 type PlayerReview={player_id:string;full_name:string;email:string;phone:string;created_at:string;name_matched:boolean;phone_matched:boolean;email_matched:boolean};
 type TeamApplication={season_team_id:string;team_name:string;season_name:string;created_at:string};
 type MembershipRequest={membership_id:string;team_name:string;player_name:string;created_at:string};
@@ -82,10 +83,11 @@ function AdminDashboardPage(){
  if(loading)return <main className="notice-page"><SiteNavigation /><section className="notice-panel"><p>Loading Admin Dashboard…</p></section></main>;
  if(error&&!data)return <main className="notice-page"><SiteNavigation /><section className="notice-panel"><Link className="notice-brand" to="/">OPEN PLAY</Link><p className="eyebrow eyebrow-dark">ADMIN ACCESS</p><h1>Admin<br/><em>dashboard.</em></h1><p className="form-error" role="alert">{error}</p><p className="form-note">This dashboard requires an approved platform administrator role.</p><Link className="auth-switch" to="/player">Back to Player Hub</Link></section></main>;
  if(!data)return null;
- const workspaceSeasons=setup.seasons.filter(x=>workspaceLocationId==="all"||setup.leagues.some(l=>l.id===x.league_id&&l.location_id===workspaceLocationId));
- const workspaceSeasonIds=new Set(workspaceSeasons.filter(x=>workspaceSeasonId==="all"||x.id===workspaceSeasonId).map(x=>x.id));
- const workspaceLeagues=setup.leagues.filter(x=>workspaceLocationId==="all"||x.location_id===workspaceLocationId);
- const workspaceTeams=setup.season_teams.filter(x=>workspaceSeasonIds.has(x.season_id));
+ const {workspaceSeasons,workspaceLeagues,workspaceTeams}=resolveAdminWorkspace({
+  leagues:setup.leagues,
+  seasons:setup.seasons,
+  seasonTeams:setup.season_teams,
+ },workspaceLocationId,workspaceSeasonId);
  return <main className="notice-page"><SiteNavigation /><section className="notice-panel hub-panel"><Link className="notice-brand" to="/">OPEN PLAY</Link><p className="eyebrow eyebrow-dark">ADMINISTRATION</p><h1>League<br/><em>control.</em></h1><p>Needs Attention — the operational queue for Open Play.</p><p className="admin-finance-link"><Link to="/finance">OPEN FINANCE LEDGER <span>↗</span></Link></p><p className="admin-finance-link"><Link to="/admin-help">ADMIN HELP &amp; GUIDES <span>↗</span></Link></p>
   {error&&<p className="form-error" role="alert">{error}</p>}{notice&&<p className="form-success" role="status">{notice}</p>}
   <div className="admin-stat-grid"><div><strong>{data.counts.pending_player_reviews}</strong><span>Player reviews</span></div><div><strong>{data.counts.pending_team_applications}</strong><span>Team applications</span></div><div><strong>{data.counts.pending_membership_requests}</strong><span>Join requests</span></div><div><strong>{data.counts.open_seasons}</strong><span>Open seasons</span></div></div>
