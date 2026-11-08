@@ -6,7 +6,7 @@ The dedicated **Open Play New** Supabase project is the only Supabase project in
 
 As of 8 November 2026, the connected Open Play New database reports 98 applied migration-ledger entries. The migration source manifest in `docs/supabase-migration-source-manifest-2026-11-08.md` maps all 98 applied versions to canonical source files and Git blob SHAs.
 
-The repository also contains one additional forward-only migration, `20261108014200_finance_balance_semantics.sql`, which is not in that 98-entry applied ledger. It must be reviewed and validated through the isolated local replay before any decision is made about applying it to a hosted environment.
+The repository contains two additional forward-only migrations that are not in the 98-entry applied ledger: `20261108014200_finance_balance_semantics.sql` (finance balance semantics) and `20261108030000_scope_rls_to_global_admins.sql` (separates global-admin RLS access from location-scoped `league_admin` access). Both must be reviewed and validated through isolated local replay and role-matrix tests before any decision is made about applying them to a hosted environment. Location administrators must use the location-scoped admin RPCs; direct table RLS access does not grant them global visibility.
 
 ## Local development and clean replay
 
