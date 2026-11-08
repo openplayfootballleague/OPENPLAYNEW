@@ -43,6 +43,7 @@ select
       and pg_get_functiondef(p.oid) ilike '%pg_advisory_xact_lock%'
   ) as player_fixture_payment_creation_is_serialized,
   (select pg_get_functiondef('public.create_player_fixture_payment(uuid,uuid)'::regprocedure) ilike '%is_active_team_captain(p_season_team_id)%') as fixture_payment_requires_active_captain,
+  (select pg_get_functiondef('public.resolve_team_membership_request(uuid,text)'::regprocedure) ilike '%pg_advisory_xact_lock%' and pg_get_functiondef('public.resolve_team_membership_request(uuid,text)'::regprocedure) ilike '%v_player.is_banned%' and pg_get_functiondef('public.resolve_team_membership_request(uuid,text)'::regprocedure) ilike '%tm.season_team_id<>v_membership.season_team_id%') as membership_approval_checks_eligibility_and_one_team_per_season,
   has_column_privilege('authenticated','public.profiles','first_name','UPDATE')
     and has_column_privilege('authenticated','public.profiles','last_name','UPDATE')
     and has_column_privilege('authenticated','public.profiles','display_name','UPDATE')
