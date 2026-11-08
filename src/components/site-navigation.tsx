@@ -38,6 +38,7 @@ export function SiteNavigation() {
   useEffect(() => {
     let alive = true;
     const supabase = getSupabaseClient();
+    let accountChannel: ReturnType<typeof supabase.channel> | null = null;
 
     async function load() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -77,6 +78,18 @@ export function SiteNavigation() {
         status: approvedPlayer ? "Registered player" : player ? "Player registration pending" : "Account not registered as a player",
         unread: unreadCount ?? 0,
       });
+      if (!accountChannel) {
+        accountChannel = supabase.channel("account-indicators-" + session.user.id)
+          .on("postgres_changes", { event: "*", schema: "public", table: "notification_events", filter: "user_id=eq." + session.user.id }, async () => {
+            const { count } = await supabase.from("notification_events").select("id", { count: "exact", head: true }).eq("user_id", session.user.id).eq("channel", "in_app").eq("status", "sent").is("read_at", null);
+            if (alive) setAccount(previous => ({ ...previous, unread: count ?? 0 }));
+          })
+          .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: "id=eq." + session.user.id }, async () => {
+            const { data: updated } = await supabase.from("profiles").select("avatar_path").eq("id", session.user.id).maybeSingle();
+            if (alive) setAccount(previous => ({ ...previous, avatarUrl: updated?.avatar_path ? supabase.storage.from("profile-avatars").getPublicUrl(updated.avatar_path).data.publicUrl : null }));
+          })
+          .subscribe();
+      }
     }
 
     void load();
@@ -86,6 +99,7 @@ export function SiteNavigation() {
     return () => {
       alive = false;
       subscription.unsubscribe();
+      if (accountChannel) void supabase.removeChannel(accountChannel);
     };
   }, []);
 
