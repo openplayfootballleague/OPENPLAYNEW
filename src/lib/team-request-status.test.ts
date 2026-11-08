@@ -34,6 +34,10 @@ describe("getTeamRequestDisplay", () => {
     expect(getTeamRequestDisplay({ ...base, team_registration_status: "rejected" }).label).toBe("Team application declined");
   });
 
+  it("shows suspended memberships as restricted", () => {
+    expect(getTeamRequestDisplay({ ...base, membership_status: "suspended" }).label).toBe("Membership suspended");
+  });
+
   it("identifies transfer requests separately", () => {
     expect(getTeamRequestDisplay({ ...base, is_transfer_request: true }).label).toBe("Transfer awaiting approval");
   });
