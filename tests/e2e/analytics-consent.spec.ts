@@ -87,7 +87,6 @@ test("does not contact PostHog before opt-in and stops after same-tab revocation
   await expect(page.getByRole("complementary", { name: "Optional analytics preferences" })).toHaveCount(0);
   await expectPostHogReady(page);
   await probe.click();
-  const diagnostics = page.getByTestId("analytics-e2e-diagnostics");
   await expect(diagnostics).toHaveAttribute("data-posthog-capture-called", "true");
   // Distinguish an SDK-level capture rejection from a transport/interception failure.
   await expect(diagnostics).not.toHaveAttribute("data-posthog-capture-result", "undefined");
