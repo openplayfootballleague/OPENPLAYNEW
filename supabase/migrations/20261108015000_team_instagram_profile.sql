@@ -165,3 +165,27 @@ using (
       and l.is_published=true
   )
 );
+
+create or replace function public.admin_get_team_social_profiles()
+returns table (
+  season_team_id uuid,
+  team_name text,
+  season_name text,
+  location_name text,
+  instagram_profile_url text
+)
+language sql
+security definer
+set search_path = ''
+as $$
+  select st.id, st.name, s.name, l.name, t.instagram_profile_url
+  from public.season_teams st
+  join public.teams t on t.id=st.team_id
+  join public.seasons s on s.id=st.season_id
+  join public.leagues l on l.id=s.league_id
+  where public.has_platform_role()
+  order by l.name, s.name, st.name;
+$$;
+
+revoke all on function public.admin_get_team_social_profiles() from public,anon;
+grant execute on function public.admin_get_team_social_profiles() to authenticated;
