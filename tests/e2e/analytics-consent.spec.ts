@@ -28,7 +28,7 @@ async function interceptPostHog(page: Page, requests: string[]) {
     }
 
     requests.push(url);
-    const isScript = /\\.js(?:\\?|$)/i.test(url);
+    const isScript = /\.js(?:\?|$)/i.test(url);
     await route.fulfill({
       status: 200,
       contentType: isScript ? "application/javascript" : "application/json",
