@@ -62,3 +62,30 @@ One first run exposed an incorrect expected value in the new analytics finance t
 ## Completion status
 
 This session completes a specification and calculation foundation, not the Analytics feature. No overall project percentage is claimed from these partial foundations; the previous 35% estimate remains provisional and has not been remeasured. Project completion remains well below acceptance because core integrations, role-scoped reporting, UI, exports, privacy review and production verification are outstanding.
+
+## Follow-on continuous development — 8 November 2026
+
+### Additional metric foundations
+
+11. Corrected outstanding-balance semantics: balances are now point-in-time amounts as of the reporting period end and include earlier ledger entries. Period-flow measures (charges, fines, payments, refunds and credits) remain restricted to the selected start-inclusive/end-exclusive window. This avoids incorrectly reporting old unpaid charges as zero in a current-period report.
+12. Added a regression test proving earlier charges contribute to the current outstanding balance while transactions at/after the exclusive end are excluded.
+13. Added distinct-cohort player retention calculation, returning unavailable for an empty prior cohort, with tests for duplicates and empty cohorts.
+14. Added registration growth calculations for distinct registered records, withdrawals, and location-level recruitment counts, plus returning-team cohort counts. Pending/rejected registrations are not counted as registered growth. Added boundary, duplicate and cohort tests.
+
+### CI status
+
+- Commit `96d0e7b4c8a3eb00f945dac7bda7a53fe949e866`: CI passed.
+- Commit `2ffb0588954e3ac7396f8ff0ffad74e4d24efe83`: CI passed, including the player-retention test.
+- Intermediate commits `779e10e` and `23b998e` failed at the Deno setup action before tests ran; logs show GitHub release download HTTP 504, not an application test failure.
+- The registration-growth commits `4953719` and `ce251f4` have a CI run queued at report update time; verification is pending.
+
+### Updated next tasks
+
+1. Verify CI for registration-growth calculations.
+2. Integrate PostHog client SDK using package-manager installation and a committed lockfile; add EU host config, consent-gated capture, stable Supabase Auth UUID identify/reset, and pageview handling. Do not enable autocapture or replay before consent/masking/privacy review.
+3. Resolve a Cloudflare Worker-compatible trusted server-event transport; do not add a Node-only SDK to the edge runtime without compatibility verification.
+4. Design and implement secure, role-scoped aggregate data contracts; do not apply database migrations until the outstanding migration-source reconciliation is complete.
+5. Build all nine Analytics sections, global filters and comparison periods.
+6. Implement authorised PDF/CSV/Excel-compatible exports and acceptance reconciliation.
+
+The PostHog SDK, UI, aggregate reporting, exports, and end-to-end acceptance remain unimplemented. No production database changes, merge or deployment occurred.
