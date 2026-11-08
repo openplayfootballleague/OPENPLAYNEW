@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "../../../src/lib/payments/stripe-settlement.ts";
+import { isRefundedPaymentStatus, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "../../../src/lib/payments/stripe-settlement.ts";
 
 function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
@@ -166,14 +166,18 @@ Deno.serve(async (req) => {
 
       if (eventType === "checkout.session.completed") {
         if (object?.payment_status === "paid") {
-          patch.status = "paid";
-          patch.paid_at = new Date().toISOString();
-        } else {
+          if (!isRefundedPaymentStatus(currentPayment.status)) {
+            patch.status = "paid";
+            patch.paid_at = new Date().toISOString();
+          }
+        } else if (!isRefundedPaymentStatus(currentPayment.status)) {
           patch.status = "processing";
         }
       } else if (eventType === "checkout.session.async_payment_succeeded") {
-        patch.status = "paid";
-        patch.paid_at = new Date().toISOString();
+        if (!isRefundedPaymentStatus(currentPayment.status)) {
+          patch.status = "paid";
+          patch.paid_at = new Date().toISOString();
+        }
       } else if (eventType === "checkout.session.async_payment_failed") {
         patch.status = "failed";
       } else if (eventType === "checkout.session.expired") {
@@ -208,8 +212,10 @@ Deno.serve(async (req) => {
       // A charge.succeeded event is independently authoritative proof of a
       // successful charge. Do not leave the ledger pending if checkout.session
       // completion was delayed or not delivered.
-      patch.status = "paid";
-      patch.paid_at = new Date().toISOString();
+      if (!isRefundedPaymentStatus(currentPayment.status)) {
+        patch.status = "paid";
+        patch.paid_at = new Date().toISOString();
+      }
     } else if (eventType === "charge.refunded") {
       const refunded = Number(object?.amount_refunded ?? 0);
       const total = Number(object?.amount ?? 0);
