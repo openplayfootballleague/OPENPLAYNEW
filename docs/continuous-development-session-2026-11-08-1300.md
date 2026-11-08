@@ -82,3 +82,10 @@ The older Stage 1/Stage 2 completion reports in the Library describe a separate 
 ## 6. Precise next task
 
 Continue the migration reconciliation without creating a Supabase branch: build a canonical 98-row applied-version-to-source manifest from the live ledger and PR #21 recovery set, resolve the three unmatched local files without replaying duplicates, and document the exact clean-replay input set. Only after that source set is internally consistent should isolated replay be scheduled at the end of development, using the agreed no-cost-until-end boundary.
+
+
+### Profile-edit permission audit — issue #25
+
+Reviewed the current picture-only Edit Profile route and queried live profile permissions read-only. The UI writes only `avatar_path`, but the database grants `authenticated` column-level UPDATE on `first_name`, `last_name`, `display_name`, `phone`, `preferred_position` and `avatar_path`. The owner-row RLS policy therefore does not enforce the picture-only restriction against direct Data API calls. No table-level UPDATE is granted, but column-level grants are sufficient for those columns.
+
+Created issue #25 and linked it from issue #23. Required fix: retain own-row RLS, restrict ordinary self-service column UPDATE to `avatar_path`, preserve verified email changes through Supabase Auth, and add negative permission tests for all other profile fields. No production permission was changed; migration work remains blocked on canonical source reconciliation and isolated replay.
