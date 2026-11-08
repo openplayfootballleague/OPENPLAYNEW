@@ -652,3 +652,48 @@ a { color: inherit; text-decoration: none; }
   }
   .player-facing:has(.player-bottom-nav) { padding-bottom: 112px; }
 }
+
+
+/* Administrative workspace navigation: anchors only target implemented workspaces. */
+.notice-page .admin-workspace-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 22px 0;
+  padding: 14px 0;
+  border-top: 1px solid rgba(255,255,255,.12);
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+.notice-page .admin-workspace-nav a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 13px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 10px;
+  color: inherit;
+  background: rgba(255,255,255,.035);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.notice-page .admin-workspace-nav a:hover {
+  border-color: #ff6500;
+  background: rgba(255,101,0,.09);
+}
+.notice-page .admin-workspace-nav a:focus-visible {
+  outline: 3px solid #ff6500;
+  outline-offset: 3px;
+}
+.notice-page [id^="admin-"] {
+  scroll-margin-top: 18px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .notice-page .admin-workspace-nav a { transition: none; }
+}
+@media (max-width: 600px) {
+  .notice-page .admin-workspace-nav { gap: 7px; }
+  .notice-page .admin-workspace-nav a { flex: 1 1 calc(50% - 7px); }
+}
