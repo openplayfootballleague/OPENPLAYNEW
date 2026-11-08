@@ -84,6 +84,8 @@ function PostHogConsentInitializer() {
  */
 function PostHogE2EProbe() {
   const client = usePostHog();
+  const [captureCalled, setCaptureCalled] = useState(false);
+  const [captureResult, setCaptureResult] = useState("not-called");
   if (import.meta.env.VITE_OPENPLAY_ANALYTICS_E2E !== "true") return null;
 
   return (
@@ -93,11 +95,19 @@ function PostHogE2EProbe() {
       data-posthog-loaded={String(client.__loaded)}
       data-posthog-capturing={String(client.is_capturing())}
       data-posthog-opted-in={String(client.has_opted_in_capturing())}
-      onClick={() => client.capture(
-        "openplay_e2e_consent_probe",
-        { test_mode: true },
-        { send_instantly: true, transport: "fetch" },
-      )}
+      data-posthog-token={client.get_config("token") ? "present" : "missing"}
+      data-posthog-host={String(client.get_config("api_host") ?? "missing")}
+      data-posthog-capture-called={String(captureCalled)}
+      data-posthog-capture-result={captureResult}
+      onClick={() => {
+        setCaptureCalled(true);
+        const result = client.capture(
+          "openplay_e2e_consent_probe",
+          { test_mode: true },
+          { send_instantly: true, transport: "fetch" },
+        );
+        setCaptureResult(String(result ?? "undefined"));
+      }}
     >
       Send analytics test probe
     </button>
