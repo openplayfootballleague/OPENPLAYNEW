@@ -1,0 +1,98 @@
+# Open Play New — Stage 1: Account foundations, security and permissions
+
+**Scope:** The entire application, including public entry points, player, captain, finance and administrator areas.
+**Working branch:** `integration/complete-product-build`
+**Release state:** Development only. No merge, deployment, hosted migration or production configuration change is authorised.
+**Cost rule:** No paid test branches, paid test services or other testing expenditure.
+
+Stage 1 is the shared identity and permission foundation on which every later product stage depends. A screen is not Stage 1-complete merely because it hides a link: protected data and actions must be authorised by Supabase/RPC/server rules as well.
+
+## Required product contract
+
+1. A Supabase Auth account is not a registered Open Play player.
+2. A registered player is not automatically a club member.
+3. Club membership is not automatically captain authority.
+4. Captain authority is tied to an approved active season-club membership.
+5. Administrator authority is explicitly provisioned and, where applicable, scoped to assigned locations.
+6. Platform/super-admin privileges are never self-service and cannot be granted by an ordinary account.
+7. The account email remains governed by verified Supabase Auth; it is not editable through an ordinary profile-table update.
+8. Sensitive identity, eligibility, ban, emergency-contact and role fields are not client-writable.
+9. Public browsing remains available without authentication; protected personal, captain, finance and administrator data does not.
+10. A user must never be able to elevate access by changing client state, route URLs, request payloads or local profile fields.
+
+## Stage 1 checklist
+
+### A. Account lifecycle
+
+- [x] Email/password account creation route exists.
+- [x] Email verification is required before player registration.
+- [x] Password sign-in route exists.
+- [x] Sign-out is available in the player registration/account flow.
+- [x] Password recovery request is wired from sign-in.
+- [x] Password reset route updates the password and signs the user out after success.
+- [x] Expired/invalid reset-link page now allows a fresh reset email request.
+- [ ] Confirm Supabase Auth site URL and redirect allowlist for local/preview/release origins.
+- [ ] Confirm email provider/SMTP delivery and verification templates.
+- [ ] Confirm rate limits and anti-bot/CAPTCHA policy for sign-up, sign-in, resend and password recovery.
+- [ ] Confirm duplicate Auth account responses remain privacy-safe and actionable.
+- [ ] Confirm session expiry, refresh, cross-tab sign-out and revoked-session behaviour across all protected areas.
+
+### B. Player identity and registration boundary
+
+- [x] Account and player registration are separate records/states.
+- [x] Player registration RPC is authenticated-only and requires verified email in the client flow.
+- [x] Player identity matching/approval is performed by the database RPC, not trusted client state.
+- [x] Pending-review/rejected/banned states are represented separately from an ordinary Auth session.
+- [x] The account email is sourced from the verified Auth session in the registration form.
+- [ ] Reconcile and document duplicate-identity edge cases, including concurrent submissions and privacy-safe review outcomes.
+- [ ] Confirm returning-player identity linking and account recovery/relinking policy without creating duplicate player identities.
+
+### C. Profile and personal-data permissions
+
+- [x] Player self-service fields are limited by database column grants.
+- [x] Date of birth and emergency-contact fields are excluded from ordinary authenticated client updates.
+- [x] Profile avatar storage policies are owner-folder scoped.
+- [x] Account/player IDs, registration status, ban state, genuine-player state, captain status and membership are system/approval controlled.
+- [ ] Confirm the complete player-visible/admin-visible/captain-visible field matrix and publish the privacy notice.
+- [ ] Confirm account email change uses Supabase's verified email-change flow, not a direct profile update.
+- [ ] Review account deletion/data-retention and subject-access/correction procedures.
+
+### D. Roles, permissions and administrator provisioning
+
+- [x] Anonymous execution of public-schema SECURITY DEFINER helpers is revoked in the deployed migration history.
+- [x] Authenticated clients cannot directly mutate user_roles.
+- [x] Location administrator assignments are stored behind RPC-only permissions.
+- [x] Location-scoped administrator reads and mutations use server-side location checks.
+- [x] Finance access has a separate permission boundary.
+- [x] Captain operations are enforced through database RPCs and membership state rather than client labels.
+- [ ] Complete one documented role/action matrix for anonymous, account-only, registered player, captain, finance admin, location admin, platform admin and super admin across every route and RPC.
+- [ ] Complete secure first-super-admin bootstrap using a verified owner-approved identity and a one-time controlled grant; no self-promotion.
+- [ ] Confirm role assignment/revocation and location assignment changes are audited and take effect promptly in active sessions.
+- [ ] Review every protected route for direct-URL access and fail-closed behaviour when role/context lookup fails.
+
+### E. App-wide access and session handling
+
+- [ ] Apply one reusable session/authorization boundary across Player Hub, Captain Hub, Finance and all 15 administrator workspaces.
+- [ ] Ensure every data-loading query and mutation has a server/database authorization check, not just a client route guard.
+- [ ] Ensure users with multiple roles are routed to the correct permitted workspace without granting broader privileges.
+- [ ] Ensure sign-out and session loss clear sensitive in-memory state and return users to an appropriate public page.
+- [ ] Ensure public pages remain browseable without requiring an account or exposing private records.
+
+### F. Policy and operational readiness
+
+- [ ] Approve and publish the privacy notice, including identity matching, date of birth, contact data, analytics and retention.
+- [ ] Confirm the player transfer/one-club-per-season policy and ensure the same policy is reflected in player-facing wording and admin actions.
+- [ ] Confirm support/recovery route for lost access, duplicate identity disputes and rejected registrations.
+- [ ] Record the approved Auth redirect origins, email provider, anti-abuse settings and account recovery runbook without storing secrets in Git.
+
+## Work recorded in this Stage 1 pass
+
+- Updated `src/routes/reset-password.tsx` so an expired reset link can request a fresh email directly instead of dead-ending at sign-in.
+- After a successful password change, the user is signed out and prompted to sign in again.
+- The existing sign-up, sign-in, player registration, profile grants, RLS/RPC and location-scoped role protections were inspected.
+- Read-only inspection confirmed the deployed database exposes the player registration and role-check RPCs to authenticated users but not anonymous users. No database changes were made.
+- No paid test branch was created, no test identities were provisioned, no hosted migration was applied, and no deployment or merge occurred.
+
+## Completion rule
+
+Stage 1 is complete only when all applicable checklist items are implemented and the external configuration/policy items are resolved. Items requiring owner approval or provider configuration must remain clearly marked as blocked; they must not be simulated or reported as complete. Later product stages may proceed against these documented contracts, but must not bypass them.
