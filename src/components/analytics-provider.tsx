@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { PostHogProvider, usePostHog } from "@posthog/react";
 import { useLocation } from "@tanstack/react-router";
 import {
-  ANALYTICS_CONSENT_EVENT,
   isGlobalPrivacyControlEnabled,
   isAnalyticsAllowed,
   readBrowserAnalyticsConsent,
