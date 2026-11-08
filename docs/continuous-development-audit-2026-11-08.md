@@ -227,3 +227,41 @@ Fresh security/performance/health advisor results:
 
 ### SECURITY DEFINER function triage
 A read-only SQL triage of all 80 authenticated-executable SECURITY DEFINER functions found: all 80 have an explicit function `search_path` setting; 79 contain `auth.uid()` checks; the remaining function is `get_admin_stripe_payments(uuid)`, which gates access through `has_finance_access()`. 53 include an explicit platform/location/finance role-scope helper. No function was found lacking both `auth.uid()` and a role/scope guard by this simple pattern scan. This is a useful triage signal, **not** a substitute for reviewing all 80 function bodies, nested helper behavior, argument validation and cross-tenant data boundaries.
+
+
+## Continuous execution session — live verification addendum (8 November 2026, 02:15 UTC)
+
+This addendum supersedes any earlier point-in-time counts in this report where they differ.
+
+### Live database snapshot
+- Supabase project `ghnrsysvrlgkjmdlwdmp` remains `ACTIVE_HEALTHY`.
+- `supabase_migrations.schema_migrations`: **98 rows** (read-only SQL count).
+- Public tables: **30**, all **30/30 RLS enabled**.
+- Auth users: **0**; `public.user_roles`: **0**. No approved authenticated acceptance identities or production-like match data exist in this project.
+- Storage buckets: **2**; scheduled cron jobs: **2**.
+- Active Edge Functions: `deliver-notifications` v8, `create-player-checkout` v1, `stripe-webhook` v5, `public-gallery` v3. The public-gallery hosted function is not yet demonstrated to match the latest repository source; verify before changing it.
+
+### SECURITY DEFINER ACL and search-path verification
+A read-only catalog query across public functions returned:
+- 95 total `SECURITY DEFINER` functions.
+- 80 executable by `authenticated`.
+- **0 executable by `anon`**.
+- 15 not executable by either client role.
+- 0 SECURITY DEFINER functions without an explicit pinned `search_path`.
+- 16 functions did not contain one of the direct authorization markers used by the simple scan. Manual inspection of those 16 showed 15 are internal service/trigger functions not executable by authenticated users; the remaining `get_admin_stripe_payments(uuid)` checks `has_finance_access()`. That helper checks `auth.uid()` against `user_roles` and permits only `admin`, `super_admin` or `finance_admin`.
+- The 80 authenticated-executable functions remain subject to full semantic review of authorization, input validation, nested helper behaviour and location/season isolation. The advisor warning is not treated as proof of a vulnerability or as automatically accepted.
+
+### Current advisor snapshot
+- Security: 3 RLS-enabled/no-policy tables (`admin_context_preferences`, `gallery_items`, `location_admin_assignments`); their direct client table grants are revoked and access is intended through guarded RPCs. 80 authenticated-executable SECURITY DEFINER warnings.
+- Performance: 7 unindexed foreign keys, 52 unused-index notices and 15 multiple-permissive-policy notices.
+- Health: no lints.
+- No security or performance changes were made during this verification.
+
+### CI and release gates
+- PR #6 head `0754c34f9d3b2f1bdaed79c9d0905145b26d6ba8` passed workflow `42437517983`: Deno Edge Function type-check, Vitest (7 files / 74 tests), TypeScript/Vite production build and Cloudflare Worker dry-run all succeeded.
+- PR #6 remains draft and unmerged. This CI result does not prove hosted Checkout/webhook/refund acceptance.
+- Migration source recovery and deployability remain blocked: six exact applied SQL sources are unrecovered; live ledger version prefixes do not match candidate filenames and duplicate local prefixes remain. Do not push/merge a migration baseline or run migrations to production.
+- No Auth users, test Stripe credentials, approved test mailbox, production secrets or production deployment were created/configured.
+
+### Execution decision
+Continue with independent application work and verification while keeping the migration and production gates closed. The next database-related action is to obtain an authoritative archive of the six missing original migration SQL files, then perform exact content/version reconciliation; do not reconstruct or backdate them.
