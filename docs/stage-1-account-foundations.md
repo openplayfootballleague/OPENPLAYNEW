@@ -121,3 +121,30 @@ The deployed policy catalogue is not identical to the integration branch's origi
 2. Trace `/admin`, `/finance`, `/captain` and `/player` page load paths and verify fail-closed handling when session/role/context lookups fail.
 3. Reconcile role vocabulary and scoped admin checks with the deployed schema; do not assume a `user_roles` row alone grants location access.
 4. Add free, repository-level tests for pure access/routing decisions and static permission invariants. SQL behaviour remains unverified without a separate database, and no paid environment will be created.
+
+## Route-to-RPC security audit — 8 November 2026 (read-only)
+
+The current integration branch was traced through the Player, Captain, Finance and Administrator route files. The protected workspaces use Supabase RPCs for privileged actions rather than writing role, finance, membership or administrative records directly from the browser. The Player Hub also reads the signed-in user's own profile, player, membership and notification records under the deployed table policies.
+
+A read-only query of the deployed PostgreSQL function catalogue checked the 56 privileged RPCs called by the current Captain, Finance and Administrator routes:
+
+- All 56 inspected functions are SECURITY DEFINER.
+- All 56 deny execution to anon and grant execution to authenticated.
+- All 56 function definitions contain an authentication/authorisation guard marker (auth.uid() or a recognised role/scope helper).
+- Captain RPCs explicitly check active captain membership; finance RPCs use the finance permission helper; administrator RPCs use platform-role and/or location-scope checks.
+
+This is a useful high-level invariant check, not a substitute for reviewing every function body and testing each role against every resource. A text-pattern check can confirm that a guard is present but cannot prove that the guard is correctly placed or that every returned row is scoped correctly. The full role/action matrix and per-function location-scope review remain open.
+
+### Route-level findings
+
+- /captain loads dashboard, fixture, availability and team-sheet data through dedicated captain RPCs. The database functions check active captain membership. The route itself does not yet share a reusable signed-in session boundary.
+- /finance loads and mutates data only through finance/admin RPCs. The database functions check finance access. The route itself does not yet share a reusable signed-in session boundary.
+- /admin loads and mutates through admin RPCs, including contextual location/league/season parameters. The database functions perform role and scope checks; the selected UI context is not itself authority. The route itself does not yet share a reusable signed-in session boundary.
+- /player checks the Supabase session and clears key player state on sign-out, while reading the user's own records. Its sign-out/session-loss handling and asynchronous load cancellation still need a full pass.
+- Public browse routes (/, /teams, /match-centre, /gallery, /join) remain separate from the protected workspaces; their query exposure and registration entry points still need a route-by-route public-data audit.
+
+### Verification state
+
+The latest integration-branch commit at the time of this audit is 86f6a11a4c4ad3427ae1b47e1f3fff0225f6d6c4. GitHub reports its Build verification workflow completed successfully. This confirms the repository's configured CI for that commit; it does not exercise live Supabase role combinations or provider configuration.
+
+No hosted writes, migrations, paid branches, test accounts, deployment or merge were performed.
