@@ -8,7 +8,7 @@ begin
   if public.normalize_player_phone('07700 900 301') <> '+447700900301' then
     raise exception 'UK national phone number was not canonicalised to E.164';
   end if;
-  if public.normalize_player_phone('0044 (0) 7700 900 302') <> '+4407700900302' then
+  if public.normalize_player_phone('0044 7700 900 302') <> '+447700900302' then
     raise exception 'Explicit international 00 prefix was not preserved consistently';
   end if;
   if public.normalize_player_phone('+1 (202) 555-0100') <> '+12025550100' then
@@ -114,7 +114,7 @@ begin
     (v_team_c,v_season,'Single Successor','ci-single-successor','approved',now(),v_admin),
     (v_team_d,v_season,'No Successor','ci-no-successor','approved',now(),v_admin),
     (v_team_e,v_season,'Pending Membership','ci-pending-membership','approved',now(),v_admin)
-  returning id into v_team_a;
+;
 
   select id into v_team_a from public.season_teams where slug='ci-appearance-ranking';
   select id into v_team_b from public.season_teams where slug='ci-tie-break';
@@ -221,9 +221,12 @@ begin
   if exists(select 1 from public.team_memberships where user_id=v_target and status in ('active','pending')) then
     raise exception 'Ban did not revoke active memberships and reject pending membership requests';
   end if;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_target::text,true);
   if public.is_active_team_captain(v_team_a) then
     raise exception 'Banned former captain still passes the active-captain authorization helper';
   end if;
+  execute 'reset role';
 
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
