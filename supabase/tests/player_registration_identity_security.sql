@@ -212,12 +212,12 @@ begin
 
   -- A single matching metric must not trigger review; DOB alone is never a metric.
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000207',true);
-  perform public.register_player('Alice Example','+447700900207','ci-one-match@openplay.invalid',date '1990-01-01');
+  perform public.register_player('Alice Example','+447700900277','ci-one-match@openplay.invalid',date '1990-01-01');
   select registration_status::text into v_player_status from public.players where user_id='00000000-0000-4000-8000-000000000207';
   if v_player_status <> 'registered' then raise exception 'A single identity metric incorrectly triggered review'; end if;
 
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000208',true);
-  perform public.register_player('Charlie Example','+447700900299','ci-no-match@openplay.invalid',date '1990-01-01');
+  perform public.register_player('Different Person','+447700900288','ci-no-match@openplay.invalid',date '1990-01-01');
   select registration_status::text into v_player_status from public.players where user_id='00000000-0000-4000-8000-000000000208';
   if v_player_status <> 'registered' then raise exception 'DOB-only overlap incorrectly triggered identity review'; end if;
 
