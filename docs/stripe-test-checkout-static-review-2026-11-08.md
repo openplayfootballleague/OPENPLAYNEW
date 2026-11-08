@@ -51,3 +51,13 @@ No source code was changed by this review. No secrets, production settings, data
 A fresh changed-file inventory of PR #6 shows the payment work adds the checkout Edge Function, webhook, SQL migrations and generated database types, but no player route/component that invokes `create-player-checkout` or displays a checkout action/payment history. The existing Player Hub source inspected in the PR branch displays a return-from-Checkout query message, but that alone does not start checkout or show the payment ledger.
 
 **Required fix:** add the agreed player/captain-facing entry point and status/history UI, wire it to the Edge Function, and test permission boundaries. Confirm the intended payer model before exposing a payment action: the latest migration requires an active team captain, whereas the original RPC draft was member-scoped. The UI must match the final server-side policy rather than assume every player can pay.
+
+
+## Follow-up implementation and CI — 8 November 2026
+The Stripe test checkout PR now includes a captain-only Player Hub fixture checkout action, personal payment-history/status panel, and extracted pure settlement validators. Webhook processing now verifies checkout session identity and payment-record metadata; checks checkout amount, currency and known PaymentIntent; checks charge amount, currency, paid flag and PaymentIntent; and marks a matching `charge.succeeded` event paid with `paid_at` while retaining fee/net reconciliation. Mismatches are left unprocessed with a finance-review error.
+
+Regression tests cover matching checkout settlement, wrong session ID, wrong payment-record metadata, amount mismatch, currency mismatch, matching charge-only settlement, and mismatched/unpaid charges.
+
+Current-head PR #6 workflow run `42435790150` completed successfully: locked dependency install, Deno setup, Edge Function type-check, domain tests, TypeScript/build and Cloudflare Worker dry-run all passed. This does not constitute Stripe API or browser end-to-end acceptance.
+
+Still open: atomic retry-attempt transition for expired/failed sessions; Stripe test secrets and test account/fixture setup; actual checkout/webhook/refund/fee tests; admin refund controls and payout reconciliation; browser acceptance. No live payments were used.
