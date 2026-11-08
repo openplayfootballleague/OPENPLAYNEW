@@ -1,4 +1,5 @@
 import { useEffect,useMemo,useState } from "react";
+import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
 import { Link,createFileRoute } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 type Season={id:string;name:string};type Team={id:string;name:string};type Fixture={id:string;gameweek:number;scheduled_at:string|null;status:string;home_team_id:string;away_team_id:string};type Result={fixture_id:string;home_score:number;away_score:number};
@@ -16,5 +17,5 @@ function MatchCentrePage(){
    {fixtures.length===0?<p className="form-note">No fixtures have been published for this season.</p>:fixtures.map(f=>{const r=resultMap.get(f.id);return <article className="match-row" key={f.id}><div className="match-meta"><span>GAMEWEEK {f.gameweek}</span><span>{f.scheduled_at?new Date(f.scheduled_at).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"}):f.status.replace("_"," ")}</span></div><div className="match-score"><strong>{teamName(f.home_team_id)}</strong><b>{r?`${r.home_score} – ${r.away_score}`:"v"}</b><strong>{teamName(f.away_team_id)}</strong></div></article>;})}
   </section><section className="match-fixtures"><div className="hub-section-heading"><span className="hub-kicker">LEAGUE TABLE</span><span>{standings.length} teams</span></div>{standings.length===0?<p className="form-note">No approved teams in this season.</p>:<div className="table-scroll"><table className="league-table"><thead><tr><th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th></tr></thead><tbody>{standings.map((s,i)=><tr key={s.id}><td>{i+1}</td><td>{s.name}</td><td>{s.played}</td><td>{s.won}</td><td>{s.drawn}</td><td>{s.lost}</td><td>{s.for}</td><td>{s.against}</td><td>{s.for-s.against}</td><td><strong>{s.points}</strong></td></tr>)}</tbody></table></div>}</section></>}
   <Link className="auth-switch" to="/teams">Explore teams</Link><Link className="auth-switch" to="/">Back to Open Play</Link>
- </section></main>;
+ </section><PlayerBottomNavigation /></main>;
 }
