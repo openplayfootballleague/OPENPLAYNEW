@@ -559,3 +559,7 @@ button:disabled { opacity: .55; }
 .captain-instagram-form button{padding:.7rem .85rem;border:1px solid #f36b32;background:transparent;color:#f36b32;font-size:.7rem;font-weight:750;letter-spacing:.04em;cursor:pointer}
 .captain-instagram-form button:disabled{opacity:.55;cursor:wait}
 @media(max-width:560px){.captain-instagram-form{grid-template-columns:1fr}.captain-instagram-form button{width:100%}}
+
+.captain-instagram-form{border-radius:3px}
+.directory-team .team-instagram-link{margin-left:auto}
+.auth-form input[type="url"]{width:100%}
