@@ -13,7 +13,8 @@ begin
    ('00000000-0000-4000-8000-000000000003','authenticated','authenticated','ci-player-b@openplay.invalid','','{}'::jsonb,now(),now()),
    ('00000000-0000-4000-8000-000000000004','authenticated','authenticated','ci-location-admin@openplay.invalid','','{}'::jsonb,now(),now()),
    ('00000000-0000-4000-8000-000000000005','authenticated','authenticated','ci-global-admin@openplay.invalid','','{}'::jsonb,now(),now()),
-   ('00000000-0000-4000-8000-000000000006','authenticated','authenticated','ci-player-c@openplay.invalid','','{}'::jsonb,now(),now());
+   ('00000000-0000-4000-8000-000000000006','authenticated','authenticated','ci-player-c@openplay.invalid','','{}'::jsonb,now(),now()),
+   ('00000000-0000-4000-8000-000000000007','authenticated','authenticated','ci-finance-admin@openplay.invalid','','{}'::jsonb,now(),now());
 
   insert into public.locations (id,name,slug,town,region,is_active)
   values
@@ -23,7 +24,8 @@ begin
   insert into public.user_roles (user_id,role,granted_by)
   values
    ('00000000-0000-4000-8000-000000000004','league_admin','00000000-0000-4000-8000-000000000005'),
-   ('00000000-0000-4000-8000-000000000005','admin','00000000-0000-4000-8000-000000000005');
+   ('00000000-0000-4000-8000-000000000005','admin','00000000-0000-4000-8000-000000000005'),
+   ('00000000-0000-4000-8000-000000000007','finance_admin','00000000-0000-4000-8000-000000000005');
 
   insert into public.location_admin_assignments (user_id,location_id,assigned_by)
   values ('00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000010','00000000-0000-4000-8000-000000000005');
@@ -179,7 +181,36 @@ begin
     if sqlerrm = 'Captain or assigned location administrator permission required' then v_denied := true; else raise; end if;
   end;
   if not v_denied then raise exception 'Location admin approved a membership request outside their assignment'; end if;
+  v_denied := false;
+  begin
+    perform public.admin_set_location_active('00000000-0000-4000-8000-000000000011',false,'CI location admin scope test');
+  exception when others then
+    if sqlerrm = 'Global administrator permission required' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin changed a platform-wide location activation state'; end if;
+  v_denied := false;
+  begin
+    perform public.admin_set_player_fixture_fee('00000000-0000-4000-8000-000000000031',500,1,'CI location admin finance scope test');
+  exception when others then
+    if sqlerrm = 'Finance access required' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin changed finance settings without finance permission'; end if;
   execute 'reset role';
+
+  -- Finance admin: may manage fees without a platform-admin or location assignment.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000007',true);
+  if not public.has_finance_access() then raise exception 'Finance admin does not have finance access'; end if;
+  if public.has_platform_role() or public.has_global_admin_role() then raise exception 'Finance admin was incorrectly granted platform-admin access'; end if;
+  perform public.admin_set_player_fixture_fee('00000000-0000-4000-8000-000000000031',500,1,'CI finance role scope test');
+  execute 'reset role';
+  select count(*) into v_count
+  from public.season_fee_configs
+  where season_id='00000000-0000-4000-8000-000000000031'
+    and player_fee_pence=500
+    and effective_from_gameweek=1
+    and changed_by='00000000-0000-4000-8000-000000000007';
+  if v_count <> 1 then raise exception 'Finance admin could not manage fees without a location assignment'; end if;
 
   -- Global admin: global visibility and assignment administration remain available.
   execute 'set local role authenticated';
