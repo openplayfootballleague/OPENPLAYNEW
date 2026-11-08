@@ -426,3 +426,52 @@ The earlier status snapshot above is historical (its 69-migration count and Stri
 3. Design and implement payout-level reconciliation against Stripe payout and balance-transaction records, preserving the existing append-only finance ledger.
 4. Recover the six original migration files from an authoritative archive/export or source backup.
 5. Complete browser acceptance for PR #7 admin controls and PR #1 PWA install/offline behavior.
+
+
+---
+
+## Continuous execution update — 8 November 2026, 02:15 UTC
+
+### Completed in this execution window
+
+**Admin Settings overview**
+- Replaced the disabled Settings & Feature Management navigation entry with a working section.
+- Added role-aware links to existing competition setup, fixture operations, finance, gallery, communications, location assignments and audit workspaces.
+- Explicitly labels feature flags, branding, role creation and advanced rules as unavailable rather than exposing non-functional controls.
+- Static navigation check found no broken in-page anchor targets.
+
+**Public Gallery**
+- Added the public `/gallery` route and homepage navigation link.
+- Added location-grouped gallery presentation and a location filter.
+- Added four unit tests covering grouping, location filtering, empty galleries and exclusion of items outside the active-location list.
+- Added a public Edge Function that only reads published items belonging to active locations, creates short-lived signed image URLs from the private `open-play-gallery` bucket, and never returns raw storage object paths.
+- The function accepts GET/OPTIONS only, validates optional location IDs, caps each response at 48 items, and returns no-store responses.
+- Added the new function to the CI Deno type-check command.
+- Deployed to the **development** project only. Latest verified function state: ACTIVE, version 2, `verify_jwt=true`. The frontend uses the legacy JWT anon key, so public anonymous calls can retain gateway JWT verification.
+- Confirmed deployed function source matches the repository branch.
+
+**Stripe webhook type safety**
+- The branch now includes the current database types for `checkout_attempt` and the private `stripe_webhook_events` table.
+- The payment snapshot needed for compare-and-set settlement is retained outside its original conditional block, removing the out-of-scope reference found by CI.
+
+### Latest verification
+
+- PR #6 head: `d15f48f59e3693c517a139ea0cb54920696a477c`; CI run **42436764026** passed.
+- Passed steps: Deno Edge Function type-check (including `public-gallery`), all domain tests, application type-check/build, and Cloudflare Worker dry-run.
+- PR #7 head: `cd9178fb39c7ced51b93f710c9be081e2b711c16`; CI run **42435993565** passed.
+- Both PRs remain open drafts and unmerged. No production deployment has occurred.
+
+### Runtime verification still outstanding
+
+- The development database currently contains no auth users, assigned roles, locations or published gallery items. Therefore, real signed-in admin acceptance and photo rendering cannot yet be demonstrated.
+- The public Gallery route's build and helper tests pass; the deployed Edge Function is active and its source is verified, but a live HTTP invocation and a real published-image response have not been verified in this session.
+- The exact canonical logo source exists in the Library as `Vivid Orange Sporty Op Monogram.png` (1254 × 1254 RGBA, 459,212 bytes). The repository currently contains a much smaller `public/open-play-logo.png` (208 × 115). The available GitHub file-edit connector only accepts text content and cannot transfer this binary asset. Do not redraw, regenerate or substitute the logo; the original binary needs an approved upload path.
+
+### Next execution priority
+
+1. Obtain an approved Auth Admin provisioning path for disposable development-only global-admin and location-admin test identities; do not insert rows directly into `auth.users`.
+2. Run authenticated positive and negative tests for global admin, location admin, cross-location denial, Bideford-only activation and deactivation safeguards.
+3. Run an end-to-end Gallery test with a real uploaded image, publish/unpublish it, and verify that unpublished objects never receive signed URLs.
+4. Complete the full Settings workspace and remaining admin information-architecture requirements; the current Settings page is an overview, not the full settings implementation.
+5. Transfer the exact canonical logo binary through an approved file-upload path.
+6. Continue remaining player, captain, finance, notification, reporting and production-readiness work. Production remains blocked until seeded acceptance, external provider configuration, regression testing and deployment checks are complete.
