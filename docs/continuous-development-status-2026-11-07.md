@@ -257,3 +257,14 @@ Complete approved finance-role, audit-history, admin-help and player-database ac
 - Extended `supabase/tests/security_privilege_assertions.sql` with a sixth assertion for this exact column boundary. Executed against development; all six result columns returned true.
 - Reviewed the corresponding Player Hub save and avatar-upload code: it writes only the permitted profile columns. No change to the UI was needed.
 - This is a development-only security change; production migration remains gated by the release process.
+
+
+## 8 November 2026 — captain-scoped payment action and RPC review
+
+- Extended the targeted review to all 63 authenticated-executable public SECURITY DEFINER RPCs. No functions were found without an actor/role/ownership check pattern. This is a static definition review; the Supabase advisor warning remains until every function is proven with role-based integration tests.
+- Inspected the captain-facing read RPCs: `get_captain_dashboard`, `get_captain_fixtures`, `get_captain_availability` and `get_captain_team_sheet`. Their result queries are scoped to active captain memberships owned by `auth.uid()`; squad and availability details are limited to those teams. The payment history RPC is restricted to `player_user_id = auth.uid()`.
+- Found an important mismatch with the agreed product rule: although the Player Hub payment UI had been removed, `create_player_fixture_payment` still allowed any active team member to create a payment record by calling the RPC directly.
+- Added and applied `20261108070000_require_captain_for_fixture_payment_actions.sql`. The RPC now requires `is_active_team_captain(p_season_team_id)` before it creates or returns a fixture payment. The existing auth check, fixture/team validation, server-side fee lookup and advisory concurrency lock remain.
+- Verified development function definition contains the active-captain guard; anon execution remains false; authenticated RPC execution remains true but is constrained by the server-side guard.
+- Extended the repeatable SQL security assertions to include the captain-only payment guard. Executed against development: all seven assertions returned true.
+- This gates ordinary players from directly creating payment records; it does not decide whether captains pay individually or for a whole team. Checkout UI and end-to-end payment remain gated pending that payer-model decision.
