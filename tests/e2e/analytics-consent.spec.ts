@@ -74,7 +74,9 @@ test("does not contact PostHog before opt-in and stops after same-tab revocation
   await expect(page.getByText("No choice saved")).toBeVisible();
   await expect(page.getByRole("complementary", { name: "Optional analytics preferences" })).toBeVisible();
   const probe = page.getByTestId("analytics-e2e-probe");
+  const diagnostics = page.getByTestId("analytics-e2e-diagnostics");
   await expect(probe).toBeVisible();
+  await expect(diagnostics).toBeVisible();
   await expectPostHogBlocked(page);
   await probe.click();
   await page.waitForTimeout(300);
@@ -136,6 +138,7 @@ test("cross-tab opt-in and revocation update the other tab", async ({ page, cont
   await page.goto("/privacy-security");
   await secondTab.goto("/privacy-security");
   const firstTabProbe = page.getByTestId("analytics-e2e-probe");
+  const firstTabDiagnostics = page.getByTestId("analytics-e2e-diagnostics");
   await expectPostHogBlocked(page);
   await firstTabProbe.click();
   await page.waitForTimeout(200);
