@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap");
 
 :root {
   font-family: "DM Sans", sans-serif;
@@ -382,3 +383,66 @@ a { color: inherit; text-decoration: none; }
 .notification-dispatch-control .admin-genuine-form > button { margin-top:12px; }
 .notification-dispatch-control .sheet-confirm-check { display:flex; align-items:flex-start; gap:9px; margin-top:12px; color:#45463f; font-size:11px; line-height:1.5; }
 .notification-dispatch-control .sheet-confirm-check input { flex:0 0 auto; margin-top:2px; }
+
+
+/* Open Play player-facing visual system. Deliberately scoped away from
+   the public marketing site and the separately designed Admin Dashboard. */
+.player-facing {
+  --op-bg: #000000;
+  --op-surface: #101010;
+  --op-card: #171717;
+  --op-raised: #1d1d1d;
+  --op-orange: #ff6500;
+  --op-text: #ffffff;
+  --op-secondary: #bdbdbd;
+  --op-muted: #777777;
+  --op-border: #303030;
+  min-height: 100svh;
+  background: var(--op-bg);
+  color: var(--op-text);
+  font-family: "Inter", sans-serif;
+  color-scheme: dark;
+}
+.player-facing :is(h1,h2,h3,h4,.hub-kicker,.eyebrow) {
+  font-family: "Oswald", sans-serif;
+  font-synthesis: none;
+}
+.player-facing :is(h1,h2,h3,h4) { color: var(--op-text); }
+.player-facing .notice-panel {
+  background: var(--op-surface);
+  color: var(--op-text);
+  border: 1px solid var(--op-border);
+  border-radius: 18px;
+}
+.player-facing .notice-panel h1 { font-size: clamp(32px, 7vw, 46px); line-height: 1.05; letter-spacing: .01em; }
+.player-facing .notice-panel h1 em { color: var(--op-orange); }
+.player-facing .notice-brand { color: var(--op-text); font-family: "Oswald", sans-serif; }
+.player-facing :is(.hub-empty,.hub-profile,.hub-memberships,.hub-team-row,.player-notification,.availability-row,.player-transfer-history article) {
+  background: var(--op-card);
+  color: var(--op-text);
+  border: 1px solid var(--op-border);
+  border-radius: 16px;
+}
+.player-facing :is(.hub-empty p,.hub-profile p,.notice-panel > p:not(.eyebrow),.form-note,.hub-email) { color: var(--op-secondary); }
+.player-facing :is(.hub-kicker,.eyebrow) { color: var(--op-orange); }
+.player-facing :is(.hub-section-heading,.hub-section-heading span) { color: var(--op-text); }
+.player-facing :is(.hub-profile h2,.hub-empty h2,.hub-memberships strong,.player-notification strong,.availability-row strong) { color: var(--op-text); font-family: "Inter", sans-serif; }
+.player-facing :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) {
+  background: var(--op-raised);
+  color: var(--op-text);
+  border: 1px solid var(--op-border);
+  border-radius: 10px;
+}
+.player-facing :is(input,select,textarea)::placeholder { color: var(--op-muted); }
+.player-facing :is(.button,button[type="submit"]) { font-family: "Inter", sans-serif; }
+.player-facing .button { background: var(--op-orange); color: #111111; }
+.player-facing :is(.auth-text-button,.auth-switch,.notice-panel a:not(.button)) { color: var(--op-orange); }
+.player-facing :is(.hub-team-row span,.player-notification small,.player-transfer-history small) { color: var(--op-secondary); }
+.player-facing :is(.player-notification.unread) { border-color: var(--op-orange); }
+.player-facing :is(.status-active) { color: #65c98a; }
+.player-facing :is(.status-pending) { color: #eab45b; }
+.player-facing :is(button,a,input,select,textarea):focus-visible { outline: 2px solid var(--op-orange); outline-offset: 3px; }
+@media (max-width: 600px) {
+  .player-facing { padding-left: 16px; padding-right: 16px; }
+  .player-facing .notice-panel { padding: 22px 18px; }
+}
