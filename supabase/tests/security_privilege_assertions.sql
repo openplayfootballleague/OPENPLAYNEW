@@ -100,3 +100,21 @@ select
     and pg_get_functiondef('public.get_my_team_request_statuses()'::regprocedure) ilike '%tm.user_id = auth.uid()%'
     and pg_get_functiondef('public.get_my_team_request_statuses()'::regprocedure) ilike '%limit 100%') as team_request_status_rpc_is_self_scoped_and_bounded,
   (select count(*) = 0 from public.get_my_team_request_statuses()) as team_request_status_rpc_returns_no_rows_without_auth_claim;
+
+-- Location activation/deactivation is a platform-wide control, not a
+-- location-admin capability. A league_admin must never pass this RPC.
+do $location_activation_role_boundary$
+declare
+  v_definition text := pg_catalog.pg_get_functiondef(
+    'public.admin_set_location_active(uuid,boolean,text)'::regprocedure
+  );
+begin
+  if v_definition not ilike '%role in (''admin'', ''super_admin'')%' then
+    raise exception 'Location activation must explicitly require a global admin or super admin role';
+  end if;
+  if pg_catalog.has_function_privilege('anon',
+      'public.admin_set_location_active(uuid,boolean,text)', 'EXECUTE') then
+    raise exception 'Anonymous role must not execute location activation';
+  end if;
+end;
+$location_activation_role_boundary$;
