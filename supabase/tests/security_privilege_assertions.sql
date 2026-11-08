@@ -118,7 +118,7 @@ select
     has_function_privilege('authenticated','public.admin_list_location_assignments(uuid)','EXECUTE')
     and not has_function_privilege('anon','public.admin_list_location_assignments(uuid)','EXECUTE')
     and pg_get_functiondef('public.admin_list_location_assignments(uuid)'::regprocedure) ilike '%ur.user_id = auth.uid()%'
-    and pg_get_functiondef('public.admin_list_location_assignments(uuid)'::regprocedure) ilike '%ur.role in (''admin'', ''super_admin'')%'
+    and pg_get_functiondef('public.admin_list_location_assignments(uuid)'::regprocedure) ilike '%ur.role in (''admin'',''super_admin'')%'
   ) as location_assignment_listing_is_global_admin_only_and_unambiguous,
   (exists(select 1 from pg_proc p where p.oid='public.get_my_team_request_statuses()'::regprocedure and p.prosecdef)
     and not has_function_privilege('anon','public.get_my_team_request_statuses()','EXECUTE')) as team_request_status_rpc_is_security_definer_and_denies_anon,
