@@ -40,7 +40,7 @@ const POSTHOG_OPTIONS = {
   // Flush the single synthetic probe immediately in browser acceptance tests;
   // production keeps the SDK defaults and never enables the probe.
   ...(import.meta.env.VITE_OPENPLAY_ANALYTICS_E2E === "true"
-    ? { flushAt: 1, flushInterval: 1_000, api_transport: "XHR" }
+    ? { flushAt: 1, flushInterval: 1_000, api_transport: "XHR" as const }
     : {}),
 } as const;
 
@@ -272,9 +272,6 @@ function AnalyticsE2EDiagnostics({
             { send_instantly: true, transport: "XHR" },
           );
           setCaptureResult(String(result ?? "undefined"));
-          // Force the synthetic E2E event out of the SDK queue so the browser
-          // test can verify the intercepted request without contacting PostHog.
-          void posthog.flush();
         }}
       >
         Send analytics test probe
