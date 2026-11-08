@@ -109,3 +109,16 @@ export function calculateTeamRetention(
   for (const id of previous) if (current.has(id)) retained += 1;
   return retained / previous.size;
 }
+
+/** Player retention is only meaningful for a stable, comparable player cohort. */
+export function calculatePlayerRetention(
+  previousPeriodPlayerIds: readonly string[],
+  currentPeriodPlayerIds: readonly string[],
+): number | null {
+  const previous = new Set(previousPeriodPlayerIds);
+  if (previous.size === 0) return null;
+  const current = new Set(currentPeriodPlayerIds);
+  let retained = 0;
+  for (const id of previous) if (current.has(id)) retained += 1;
+  return retained / previous.size;
+}
