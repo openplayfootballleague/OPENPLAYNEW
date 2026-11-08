@@ -123,7 +123,7 @@ $location_activation_role_boundary$;
 -- direct-table access to personal data, team sheets or notification payloads.
 do $location_admin_rls_boundary$
 declare
-  v_policy record;
+  v_policy text;
   v_expected text[] := array[
     'players_select_self_or_global_admin',
     'profiles_select_self_or_global_admin',
