@@ -194,7 +194,7 @@ export function PlayerCompetitionSelector({ context }: { context: PlayerCompetit
       </div>
       <div className="player-competition-context-fields">
         <label>
-          Location
+          <span className="player-context-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>Location</span>
           <select value={context.selectedLocationId} onChange={(event) => context.setLocation(event.target.value)}>
             {context.locations.map((location) => (
               <option key={location.id} value={location.id}>{location.name} · {location.town}</option>
@@ -202,7 +202,7 @@ export function PlayerCompetitionSelector({ context }: { context: PlayerCompetit
           </select>
         </label>
         <label>
-          Season
+          <span className="player-context-label"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Season</span>
           <select value={context.selectedSeasonId} disabled={availableSeasons.length === 0} onChange={(event) => context.setSeason(event.target.value)}>
             {availableSeasons.length === 0
               ? <option value="">No public seasons available</option>
