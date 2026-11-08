@@ -103,8 +103,6 @@ function AnalyticsE2EDiagnostics({
       data-posthog-loaded={String(posthog.__loaded)}
       data-posthog-capturing={String(posthog.is_capturing())}
       data-posthog-opted-in={String(posthog.has_opted_in_capturing())}
-      data-posthog-token={posthog.get_config("token") ? "present" : "missing"}
-      data-posthog-host={String(posthog.get_config("api_host") ?? "missing")}
       data-posthog-error={error ?? ""}
     >
       <button
