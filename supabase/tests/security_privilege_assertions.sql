@@ -41,4 +41,15 @@ select
     select 1 from pg_proc p
     where p.oid='public.create_player_fixture_payment(uuid,uuid)'::regprocedure
       and pg_get_functiondef(p.oid) ilike '%pg_advisory_xact_lock%'
-  ) as player_fixture_payment_creation_is_serialized;
+  ) as player_fixture_payment_creation_is_serialized,
+  has_column_privilege('authenticated','public.profiles','first_name','UPDATE')
+    and has_column_privilege('authenticated','public.profiles','last_name','UPDATE')
+    and has_column_privilege('authenticated','public.profiles','display_name','UPDATE')
+    and has_column_privilege('authenticated','public.profiles','phone','UPDATE')
+    and has_column_privilege('authenticated','public.profiles','preferred_position','UPDATE')
+    and has_column_privilege('authenticated','public.profiles','avatar_path','UPDATE')
+    and not has_column_privilege('authenticated','public.profiles','date_of_birth','UPDATE')
+    and not has_column_privilege('authenticated','public.profiles','emergency_contact_name','UPDATE')
+    and not has_column_privilege('authenticated','public.profiles','emergency_contact_phone','UPDATE')
+    and not has_table_privilege('authenticated','public.profiles','UPDATE')
+    as profile_self_service_columns_are_restricted;
