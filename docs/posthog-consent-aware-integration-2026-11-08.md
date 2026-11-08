@@ -106,23 +106,23 @@ Environment:
 
 The provider must be conditional on the consent state. Keep default pageview/autocapture/replay options explicit rather than inheriting broad project defaults. Server-side capture, if added, must be limited to non-spoofable business events and must use the same consent/identity policy; do not emit authentication, payment or sensitive profile payloads.
 
-## 7. Event taxonomy to implement after SDK installation
+## 7. Event taxonomy and instrumentation status
 
-Candidate minimal events:
-- `account_signup_completed` (no email or identity fields);
-- `email_verification_completed`;
-- `player_registration_started`;
-- `player_registration_submitted`;
-- `player_registration_decision_viewed`;
-- `team_registration_started`;
-- `team_registration_submitted`;
-- `team_membership_request_submitted`;
-- `team_membership_decision_recorded` (only safe aggregate metadata; exclude privileged actor data);
-- `location_season_selected`;
-- `fixture_details_viewed`;
-- `notification_preferences_updated`.
+The typed allow-list in `src/lib/analytics/events.ts` defines the permitted event names. Current client call sites instrument:
+- `navigation_section_viewed` (fixed route categories only);
+- `account_signup_started` and `account_signup_completed`;
+- `player_registration_started` and `player_registration_submitted`;
+- `team_registration_started` and `team_registration_submitted`;
+- `player_join_request_submitted`;
+- `fixture_viewed` and `result_viewed`;
+- `team_profile_viewed` and `player_profile_viewed`;
+- `workflow_error` with a generic allow-listed error code only.
 
-Event names and properties must be reviewed against the actual code paths before capture is added. Do not treat account creation as player registration. Do not record event properties containing personal data or private IDs.
+The event contract also reserves names for later implementation, including email verification, onboarding completion, location/season selection, gallery/announcement views, feature interactions and data-load failures. They are not claimed as captured until real call sites are added and verified.
+
+No administrative approval, finance action, role-management, support-message or moderation event is captured. These privileged workflows remain in the authoritative Supabase audit trail, not ordinary product analytics.
+
+Do not treat account creation as player registration. Do not record event properties containing personal data, message content, payment data or direct identifiers.
 
 
 ## 9. Latest implementation verification
