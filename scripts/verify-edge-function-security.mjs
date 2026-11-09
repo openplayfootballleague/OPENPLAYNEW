@@ -7,7 +7,7 @@ function verifyJwtSetting(functionName, expected) {
   const escaped = functionName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = config.match(new RegExp(`\\[functions\\.${escaped}\\]([^\\[]*)`));
   assert.ok(match, `Missing Supabase function config for ${functionName}`);
-  const setting = match[1].match(/verify_jwt\\s*=\\s*(true|false)/);
+  const setting = match[1].match(/verify_jwt\s*=\s*(true|false)/);
   assert.ok(setting, `Missing explicit verify_jwt setting for ${functionName}`);
   assert.equal(setting[1] === "true", expected, `Unexpected verify_jwt setting for ${functionName}`);
 }
