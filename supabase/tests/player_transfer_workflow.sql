@@ -37,6 +37,7 @@ declare
   v_opponent_c_st uuid;
   v_opponent_d_st uuid;
   v_e_st uuid;
+  v_e_season_one_st uuid;
   v_f_st uuid;
   v_other_st uuid;
   v_fixture_b uuid;
