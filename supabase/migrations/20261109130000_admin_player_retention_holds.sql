@@ -88,7 +88,11 @@ begin
     raise exception 'The account has entered the final erasure process; a retention hold can no longer be applied safely';
   end if;
   if v_previous_hold = p_hold then
-    raise exception case when p_hold then 'A retention hold is already active' else 'No retention hold is active' end;
+    if p_hold then
+      raise exception 'A retention hold is already active';
+    else
+      raise exception 'No retention hold is active';
+    end if;
   end if;
 
   v_before := jsonb_build_object(
