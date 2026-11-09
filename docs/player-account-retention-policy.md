@@ -83,6 +83,7 @@ The standard admin team-sheet amendment flow refuses to rewrite sheets containin
 - Use service-role-only database operations and server-side Auth Admin API calls; never expose service-role credentials to the client.
 - Use idempotent processing and audit every closure/reactivation/erasure decision.
 - Keep safeguarding/legal holds and financial record retention separate from ordinary player inactivity.
+- Global administrators can apply or clear a documented retention hold while an account is active or in its restricted archive. Each change requires a reason and is audited. A hold cannot safely be introduced after the account reaches `erasure_due`.
 - Send advance warning notices before closure when the notification schedule is configured; the final cadence must be operationally approved before activation.
 
 ## Acceptance scenarios
