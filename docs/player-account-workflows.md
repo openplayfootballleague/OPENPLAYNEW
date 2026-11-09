@@ -159,7 +159,7 @@ Account retention is separate from player registration and team membership.
 - The inactivity clock is based on the last successful sign-in. A successful sign-in resets the clock.
 - A registered player is exempt from automatic closure while they have any active or pending team membership, even if they have not signed in recently.
 - A registered player with no active or pending team membership and no successful sign-in for 12 consecutive months is eligible for account closure.
-- Account closure disables authentication and revokes existing sessions. It does not delete the player's historical identity, results, appearances or competition records.
+- Account closure applies a long Auth ban, blocking new sign-ins and token refresh. Already-issued access tokens may remain valid until their normal expiry; the app checks the closed-account state and signs the user out when that state is observed. It does not delete the player's historical identity, results, appearances or competition records.
 - Closure starts a restricted 12-month archive period. The player cannot sign in during this period.
 - During the archive period, the player may request reactivation using a verified email link sent to the account's existing email address. The request must be single-use, time-limited and rate-limited.
 - Successful reactivation restores the existing registered player account and profile, but does not restore any club/team membership, pending membership request, captaincy or team permissions. The player returns as a registered player without a club and must use the normal team-joining workflow.
