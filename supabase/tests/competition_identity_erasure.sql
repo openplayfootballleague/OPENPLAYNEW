@@ -199,10 +199,10 @@ begin
 
   insert into public.player_transfer_requests(
     user_id,source_membership_id,source_season_team_id,destination_season_team_id,
-    reason,status,resolved_at,resolved_by,resolution_reason
+    league_id,reason,status,resolved_at,resolved_by,resolution_reason
   ) values(
     v_player,v_membership,v_home_season_team,v_away_season_team,
-    'Test historical transfer reason','cancelled',now(),v_player,'Test resolution note'
+    v_league,'Test historical transfer reason','cancelled',now(),v_player,'Test resolution note'
   ) returning id into v_transfer;
 
   insert into public.payment_records(
