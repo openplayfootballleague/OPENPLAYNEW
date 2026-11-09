@@ -84,6 +84,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [ ] Finance workspace waits for a verified signed-in session before loading protected finance RPCs; password recovery offers a non-enumerating resend path for expired links and signs out after password change. Static CI assertions added.
 
 - [ ] Fixture scheduling rejects active venues belonging to a different location than the selected season. Forward-only SQL migration and function-definition regression test added.
+- [ ] Clean migration replay reproduces the deployed location checks for admin result entry, scorer options and season statistics; static security assertions accept both approved location guard helpers.
 
 ## 5. Manual product and security review
 
