@@ -761,6 +761,7 @@ begin
  select * into v_fixture from public.fixtures where id = p_fixture_id for update;
  if not found then raise exception 'Fixture not found'; end if;
  if v_fixture.status in ('cancelled','postponed') then raise exception 'A cancelled or postponed fixture cannot receive a result'; end if;
+ perform public.assert_admin_location_context((select l.location_id from public.seasons s join public.leagues l on l.id=s.league_id where s.id=v_fixture.season_id));
 
  select * into v_home_sheet from public.fixture_team_sheets
  where fixture_id = p_fixture_id and season_team_id = v_fixture.home_team_id and is_locked = true;
@@ -1114,6 +1115,7 @@ begin
     v_location:=v_league_location;
   end if;
   if v_location is not null and not exists(select 1 from public.locations where id=v_location) then raise exception 'Selected location was not found'; end if;
+  perform public.assert_admin_location_context(v_location);
   return query
   select sh.id,sh.fixture_id,sh.season_team_id,st.name,opponent.name,f.gameweek,f.scheduled_at,l.format,sh.is_locked,sh.submitted_at,
     coalesce((
@@ -1179,8 +1181,9 @@ begin
   order by f.scheduled_at desc nulls last,f.gameweek desc,st.name;
 end;
 $$;
-revoke all on function public.get_admin_team_sheets() from public,anon;
-grant execute on function public.get_admin_team_sheets() to authenticated;
+-- The legacy unscoped reader is retired. The admin UI uses the contextual
+-- reader above, which enforces the selected assigned location.
+revoke all on function public.get_admin_team_sheets() from public,anon,authenticated;
 
 create or replace function public.admin_amend_team_sheet(
  p_team_sheet_id uuid,p_starters uuid[],p_substitutes uuid[] default '{}'::uuid[],
@@ -1302,6 +1305,7 @@ begin
     v_location:=v_league_location;
   end if;
   if v_location is not null and not exists(select 1 from public.locations where id=v_location) then raise exception 'Selected location was not found'; end if;
+  perform public.assert_admin_location_context(v_location);
   return query
   select r.id,r.user_id,coalesce(p.full_name,'Former player'),r.source_membership_id,
     src.name,dst.id,dst.name,se.name,l.name,r.reason,r.status,r.requested_at
