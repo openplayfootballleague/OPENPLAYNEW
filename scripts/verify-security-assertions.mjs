@@ -84,9 +84,19 @@ const sqlPath = join(directory, "assertions.sql");
 try {
   writeFileSync(sqlPath, sql, "utf8");
   execFileSync(
-    "supabase",
-    ["db", "query", "--local", "--file", sqlPath],
-    { stdio: "inherit" },
+    "psql",
+    [
+      "--host", "127.0.0.1",
+      "--port", "54322",
+      "--username", "postgres",
+      "--dbname", "postgres",
+      "--set", "ON_ERROR_STOP=1",
+      "--file", sqlPath,
+    ],
+    {
+      stdio: "inherit",
+      env: { ...process.env, PGPASSWORD: process.env.PGPASSWORD ?? "postgres" },
+    },
   );
 } finally {
   rmSync(directory, { recursive: true, force: true });
