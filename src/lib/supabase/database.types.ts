@@ -3078,6 +3078,7 @@ export type Database = {
         }[]
       }
       has_referee_role: { Args: never; Returns: boolean }
+      has_global_admin_role: { Args: never; Returns: boolean }
       submit_referee_application: {
         Args: {
           p_additional_notes?: string
