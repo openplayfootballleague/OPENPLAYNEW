@@ -19,6 +19,7 @@ declare
   v_marked boolean;
   v_status text;
   v_archive_expires_at timestamptz;
+  v_closed_at timestamptz;
 begin
   insert into auth.users
     (id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at,last_sign_in_at)
@@ -54,6 +55,8 @@ begin
     raise exception 'A client role can execute a privileged account-retention function';
   end if;
 
+  v_token_hash:=public.hash_guardian_consent_token(v_token);
+
   execute 'set local role service_role';
   perform set_config('request.jwt.claim.role','service_role',true);
   select count(*) into v_count from public.admin_list_inactive_player_accounts();
@@ -70,7 +73,6 @@ begin
   end if;
 
   -- A second request within the cooldown returns no row.
-  v_token_hash:=public.hash_guardian_consent_token(v_token);
   perform * from public.request_player_account_reactivation('ci-retention-inactive@openplay.invalid',v_token_hash);
   select count(*) into v_count
   from public.request_player_account_reactivation('ci-retention-inactive@openplay.invalid',repeat('f',64));
@@ -82,8 +84,8 @@ begin
   select public.complete_player_account_reactivation(v_inactive,v_token_hash) into v_reactivated;
   if not v_reactivated then raise exception 'Valid reactivation token did not reactivate the account'; end if;
 
-  select account_retention_status,account_closed_at,archive_expires_at
-    into v_status,v_archive_expires_at,v_archive_expires_at
+  select account_retention_status,account_closed_at
+    into v_status,v_closed_at
   from public.profiles where id=v_inactive;
   if v_status <> 'active' or exists (
     select 1 from public.team_memberships where user_id=v_inactive and status in ('active','pending')
