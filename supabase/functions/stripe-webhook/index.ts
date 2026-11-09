@@ -114,6 +114,7 @@ Deno.serve(async (req) => {
   // completion/expiry/failure overwrite a newer payment or refund state.
   let paymentStatusBeforeEvent: Database["public"]["Enums"]["payment_status"] | null = null;
   let paymentAttemptBeforeEvent: number | null = null;
+  let paymentRefundedBeforeEvent: number | null = null;
   let paymentSessionBeforeEvent: string | null = null;
   let lastStripeEventBeforeEvent: string | null = null;
   if (paymentEvents.has(eventType) && resolvedPaymentId) {
@@ -131,6 +132,7 @@ Deno.serve(async (req) => {
 
     paymentStatusBeforeEvent = currentPayment.status;
     paymentAttemptBeforeEvent = currentPayment.checkout_attempt;
+    paymentRefundedBeforeEvent = currentPayment.amount_refunded_pence;
     paymentSessionBeforeEvent = currentPayment.stripe_checkout_session_id;
     lastStripeEventBeforeEvent = currentPayment.last_stripe_event_at;
     // Reject mismatched settlement events without mutating the payment ledger.
@@ -283,6 +285,19 @@ Deno.serve(async (req) => {
     paymentUpdate = lastStripeEventBeforeEvent
       ? paymentUpdate.eq("last_stripe_event_at", lastStripeEventBeforeEvent)
       : paymentUpdate.is("last_stripe_event_at", null);
+    // Refund totals are cumulative. Include the inspected amount in the
+    // compare-and-set so concurrent events with the same Stripe timestamp
+    // cannot overwrite a newer cumulative refund snapshot.
+    if (eventType === "charge.refunded") {
+      if (paymentRefundedBeforeEvent === null) {
+        await admin.from("stripe_webhook_events").update({
+          processing_error: "Refund snapshot missing during webhook settlement",
+          processing_started_at: null,
+        }).eq("id", eventId);
+        return new Response("Refund snapshot missing", { status: 500 });
+      }
+      paymentUpdate = paymentUpdate.eq("amount_refunded_pence", paymentRefundedBeforeEvent);
+    }
     const { data: updatedPayment, error: paymentUpdateError } = await paymentUpdate
       .select("id").maybeSingle();
     if (paymentUpdateError) {
