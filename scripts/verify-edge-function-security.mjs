@@ -31,6 +31,10 @@ assert.ok(!guardian.includes("Their date of birth is"), "Guardian email must not
 const retention = readFileSync("supabase/functions/player-account-retention/index.ts", "utf8");
 assert.ok(retention.includes('req.headers.get("x-account-retention-secret")'), "Retention worker must validate its cron secret");
 assert.ok(retention.includes("get_player_account_reactivation_target") && retention.includes("complete_player_account_reactivation"), "Reactivation must use the token-bound database lifecycle");
+const retentionMigration = readFileSync("supabase/migrations/20261109150000_retry_failed_player_account_erasure.sql", "utf8");
+assert.ok(retentionMigration.includes("account_retention_status in ('closed','erasure_due')"), "Expired archive listing must retry accounts already marked erasure_due");
+assert.ok(retentionMigration.includes("payment_records") && retentionMigration.includes("partially_refunded") && retentionMigration.includes("player_transfer_requests") && retentionMigration.includes("location_admin_assignments"), "Retention eligibility must preserve unresolved payment, transfer and administrator exclusions");
+assert.ok(retentionMigration.includes("if v_previous_status = 'closed' then"), "Repeated erasure queue processing must not duplicate the initial erasure_due audit event");
 const reactivationHandler = retention.slice(retention.indexOf('if (req.method === "POST" && mode === "reactivate")'), retention.indexOf('if (req.method !== "POST")'));
 assert.ok(!reactivationHandler.includes('updateUserById(userId, { ban_duration: "876000h" })'), "A failed concurrent reactivation attempt must not re-ban an account another request may have successfully reactivated");
 
