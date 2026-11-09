@@ -1,6 +1,6 @@
 # Phase 1 final audit checklist
 
-Status: **Audit preparation in progress — not signed off**
+Status: **Automated verification passed — manual audit and release prerequisites remain open**
 
 Scope: Open Play New Phase 1 registration safeguards, identity/consent controls, player access restrictions, account retention and permanent competition-history preservation.
 
@@ -8,21 +8,21 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 ## 1. Automated verification
 
-- [ ] Latest commit has a fully green GitHub Actions run.
-- [ ] Clean local Supabase migration replay succeeds from an empty database.
-- [ ] Migration source manifest matches the actual migration files and Git blobs.
-- [ ] Deno type-check succeeds for all Edge Functions.
-- [ ] Domain tests pass.
-- [ ] TypeScript application type-check/build succeeds.
-- [ ] Cloudflare Worker bundle dry-run succeeds.
-- [ ] Database security assertions pass.
-- [ ] Existing RLS, grants, role-scope, finance, membership and identity-review regression suites pass.
-- [ ] Phone canonicalisation and player-ban/captain-succession suites pass.
-- [ ] Age-tier, guardian-consent, withdrawal, cooldown and admin-review suites pass.
-- [ ] Retention/reactivation lifecycle suite passes.
-- [ ] Global-admin retention-hold permissions, closure exclusion and audit lifecycle suite passes.
-- [ ] Permanent competition-identity and safe-erasure suite passes.
-- [ ] Auth signup, email confirmation and password-recovery lifecycle passes.
+- [x] Latest implementation commit has a fully green GitHub Actions run (run [#1370](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42623167322)).
+- [x] Clean local Supabase migration replay succeeds from an empty database.
+- [x] Migration source manifest matches the actual migration files and Git blobs.
+- [x] Deno type-check succeeds for all Edge Functions.
+- [x] Domain tests pass.
+- [x] TypeScript application type-check/build succeeds.
+- [x] Cloudflare Worker bundle dry-run succeeds.
+- [x] Database security assertions pass.
+- [x] Existing RLS, grants, role-scope, finance, membership and identity-review regression suites pass.
+- [x] Phone canonicalisation and player-ban/captain-succession suites pass.
+- [x] Age-tier, guardian-consent, withdrawal, cooldown and admin-review suites pass.
+- [x] Retention/reactivation lifecycle suite passes.
+- [x] Global-admin retention-hold permissions, closure exclusion and audit lifecycle suite passes.
+- [x] Permanent competition-identity and safe-erasure suite passes.
+- [x] Auth signup, email confirmation and password-recovery lifecycle passes.
 
 ## 2. Registration and account security
 
