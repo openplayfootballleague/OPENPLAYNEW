@@ -37,7 +37,7 @@ begin
     (v_location_admin,'authenticated','authenticated','ci-competition-location-admin@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '13 months');
 
   insert into public.user_roles(user_id,role,granted_by)
-  values(v_admin,'admin',v_admin);
+  values(v_admin,'admin',v_player);
 
   update public.profiles
   set last_sign_in_at=now()-interval '13 months',
@@ -160,8 +160,8 @@ begin
   );
 
   insert into public.player_registration_reviews(
-    player_id,name_matched,phone_matched,email_matched,matched_player_ids
-  ) values(v_other_player_row,true,true,true,array[v_player_row]);
+    player_id,name_matched,phone_matched,email_matched,matched_player_ids,reviewed_by,reviewed_at
+  ) values(v_other_player_row,true,true,true,array[v_player_row],v_player,now());
 
   insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
   values(
@@ -183,6 +183,17 @@ begin
       archive_expires_at=now()-interval '1 day',
       retention_hold=false
   where id=v_player;
+
+  -- A closed/erasure-due account cannot acquire a new active or pending membership.
+  begin
+    insert into public.team_memberships(season_team_id,user_id,status,is_captain)
+    values(v_away_season_team,v_player,'active',false);
+    raise exception 'A closed player account was incorrectly allowed to join a team';
+  exception when others then
+    if sqlerrm not like 'An active registered player account is required%' then
+      raise;
+    end if;
+  end;
 
   if not exists (
     select 1 from public.players
