@@ -14,6 +14,8 @@ describe("UK player age calculation", () => {
   });
 
   it("handles leap-day birthdays consistently", () => {
+    expect(ageOnUkDate("2008-02-29", new Date("2024-02-28T12:00:00.000Z"))).toBe(15);
+    expect(ageOnUkDate("2008-02-29", new Date("2024-02-29T12:00:00.000Z"))).toBe(16);
     expect(ageOnUkDate("2008-02-29", new Date("2025-02-28T12:00:00.000Z"))).toBe(16);
     expect(ageOnUkDate("2008-02-29", new Date("2025-03-01T12:00:00.000Z"))).toBe(17);
   });
