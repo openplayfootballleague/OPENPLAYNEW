@@ -919,6 +919,7 @@ begin
   if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
   select * into v_fixture from public.fixtures where id = p_fixture_id;
   if not found then raise exception 'Fixture not found'; end if;
+  perform public.assert_admin_location_context((select l.location_id from public.seasons s join public.leagues l on l.id=s.league_id where s.id=v_fixture.season_id));
   select * into v_home_sheet from public.fixture_team_sheets where fixture_id=p_fixture_id and season_team_id=v_fixture.home_team_id and is_locked=true;
   select * into v_away_sheet from public.fixture_team_sheets where fixture_id=p_fixture_id and season_team_id=v_fixture.away_team_id and is_locked=true;
   return jsonb_build_object(
@@ -969,6 +970,7 @@ begin
   if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
   select * into v_season from public.seasons where id=p_season_id;
   if not found then raise exception 'Season not found'; end if;
+  perform public.assert_admin_location_context((select l.location_id from public.leagues l where l.id=v_season.league_id));
 
   return (
     with published_results as (
@@ -1203,6 +1205,7 @@ begin
  if not v_sheet.is_locked then raise exception 'Only submitted, locked team sheets can be amended here'; end if;
  select * into v_fixture from public.fixtures where id=v_sheet.fixture_id;
  if not found then raise exception 'Fixture not found'; end if;
+ perform public.assert_admin_location_context((select l.location_id from public.seasons s join public.leagues l on l.id=s.league_id where s.id=v_fixture.season_id));
  if v_sheet.season_team_id not in (v_fixture.home_team_id,v_fixture.away_team_id) then raise exception 'Team sheet does not belong to this fixture'; end if;
  select l.format into v_format from public.seasons s join public.leagues l on l.id=s.league_id where s.id=v_fixture.season_id;
  v_expected_starters:=case when v_format='six_a_side' then 6 else 7 end;
