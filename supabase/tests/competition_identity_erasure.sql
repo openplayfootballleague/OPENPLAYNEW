@@ -177,7 +177,9 @@ begin
   values(v_transfer_fixture,v_transfer_away_season_team,v_location_admin,true,now())
   returning id into v_transfer_away_sheet;
 
-  perform set_config('request.jwt.claim.sub',v_player::text,true);
+  -- The destination club captain writes the destination sheet; the player
+  -- being recorded is not the actor submitting the sheet.
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
   insert into public.fixture_team_sheet_players(team_sheet_id,user_id,role,is_goalkeeper,squad_number_snapshot)
   values(v_transfer_home_sheet,v_player,'starter',false,8);
 
