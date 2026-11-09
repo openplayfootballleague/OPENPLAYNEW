@@ -1191,7 +1191,7 @@ begin
     join public.season_teams st on st.id=tm.season_team_id
     join public.seasons s on s.id=st.season_id
     where tm.user_id=v_user and tm.status='active' and s.league_id=v_season.league_id
-      and active_st.team_id<>v_team.team_id
+      and st.team_id<>v_team.team_id
   ) then
     raise exception 'You are already attached to a club in this league';
   end if;
