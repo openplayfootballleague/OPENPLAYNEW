@@ -1514,6 +1514,7 @@ export type Database = {
       }
       request_player_guardian_consent: {
         Args: {
+          p_player_user_id: string
           p_guardian_email: string
           p_guardian_full_name: string
           p_player_date_of_birth: string
