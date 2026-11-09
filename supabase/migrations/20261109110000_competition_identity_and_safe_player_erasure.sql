@@ -496,7 +496,7 @@ begin
   where user_id = p_user_id;
 
   update public.fixture_goal_records
-  set scorer_user_id = null,
+  set scorer_user_id = case when scorer_user_id = p_user_id then null else scorer_user_id end,
       created_by = case when created_by = p_user_id then null else created_by end,
       voided_by = case when voided_by = p_user_id then null else voided_by end
   where scorer_user_id = p_user_id
@@ -513,11 +513,11 @@ begin
   where player_user_id = p_user_id;
 
   update public.player_transfer_requests
-  set user_id = null,
-      source_membership_id = null,
+  set user_id = case when user_id = p_user_id then null else user_id end,
+      source_membership_id = case when user_id = p_user_id then null else source_membership_id end,
       resolved_by = case when resolved_by = p_user_id then null else resolved_by end,
-      reason = 'Anonymised following account retention',
-      resolution_reason = null
+      reason = case when user_id = p_user_id then 'Anonymised following account retention' else reason end,
+      resolution_reason = case when user_id = p_user_id or resolved_by = p_user_id then null else resolution_reason end
   where user_id = p_user_id
      or resolved_by = p_user_id;
 
@@ -541,8 +541,11 @@ begin
   where user_id = p_user_id;
 
   update public.notification_events
-  set payload = public.anonymise_player_audit_json(payload, p_user_id)
-  where payload::text like '%' || p_user_id::text || '%';
+  set payload = public.anonymise_player_audit_json(
+    public.anonymise_player_audit_json(payload, p_user_id), v_player_id
+  )
+  where payload::text like '%' || p_user_id::text || '%'
+     or payload::text like '%' || v_player_id::text || '%';
 
   update public.player_registration_reviews
   set matched_player_ids = array_remove(matched_player_ids, v_player_id)
@@ -560,12 +563,18 @@ begin
           or coalesce(before_data::text, '') like '%' || p_user_id::text || '%'
           or coalesce(after_data::text, '') like '%' || p_user_id::text || '%'
         then null else reason end,
-      before_data = public.anonymise_player_audit_json(before_data, p_user_id),
-      after_data = public.anonymise_player_audit_json(after_data, p_user_id)
+      before_data = public.anonymise_player_audit_json(
+        public.anonymise_player_audit_json(before_data, p_user_id), v_player_id
+      ),
+      after_data = public.anonymise_player_audit_json(
+        public.anonymise_player_audit_json(after_data, p_user_id), v_player_id
+      )
   where actor_user_id = p_user_id
      or entity_id in (p_user_id::text, v_player_id::text)
      or coalesce(before_data::text, '') like '%' || p_user_id::text || '%'
-     or coalesce(after_data::text, '') like '%' || p_user_id::text || '%';
+     or coalesce(after_data::text, '') like '%' || p_user_id::text || '%'
+     or coalesce(before_data::text, '') like '%' || v_player_id::text || '%'
+     or coalesce(after_data::text, '') like '%' || v_player_id::text || '%';
 
   -- Scrub the remaining live profile and player record before the Auth delete.
   -- If the Auth API is temporarily unavailable, the account stays banned and
