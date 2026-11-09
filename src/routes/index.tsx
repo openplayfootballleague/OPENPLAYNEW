@@ -75,7 +75,7 @@ function HomePage() {
   }
 
   return (
-    <>
+    <div className="site-home-page">
     <main className="site-shell">
       <header className="site-header">
         <a className="wordmark" href="/player" aria-label="Open Play Player Hub">
@@ -164,6 +164,6 @@ function HomePage() {
       </footer>
     </main>
     <PlayerBottomNavigation />
-    </>
+    </div>
   );
 }
