@@ -174,6 +174,16 @@ begin
   if v_reactivated then raise exception 'Reactivation token was reusable'; end if;
 
   -- An expired archive is moved to the controlled erasure queue, not hard-deleted.
+  -- Seed the warning history for this new inactivity anchor before simulating
+  -- the later closure transition.
+  insert into public.player_account_inactivity_warnings(
+    user_id,inactivity_started_at,warning_days,status,claimed_at,sent_at
+  )
+  select v_inactive,last_sign_in_at,stage,'sent',now()-interval '8 days',now()-interval '8 days'
+  from public.profiles
+  cross join (values (90),(30),(7)) as stages(stage)
+  where id=v_inactive;
+
   update public.profiles
   set account_retention_status='closed',
       account_closed_at=now()-interval '13 months',
