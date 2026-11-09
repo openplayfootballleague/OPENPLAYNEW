@@ -89,12 +89,18 @@ begin
   select count(*) into v_count from public.admin_claim_player_account_inactivity_warnings()
   where user_id=v_warning and warning_days=90;
   if v_count <> 1 then raise exception 'The 90-day inactivity warning was not claimable'; end if;
-  select public.admin_finish_player_account_inactivity_warning(v_warning,v_warning_anchor,90,true)
+  select public.admin_finish_player_account_inactivity_warning(v_warning,v_warning_anchor,90,false)
     into v_reactivated;
-  if not v_reactivated then raise exception 'The 90-day warning delivery was not recorded'; end if;
+  if not v_reactivated then raise exception 'A failed 90-day warning send was not released for retry'; end if;
   select count(*) into v_count from public.admin_claim_player_account_inactivity_warnings()
   where user_id=v_warning and warning_days=90;
-  if v_count <> 0 then raise exception 'A successfully delivered warning was claimed twice'; end if;
+  if v_count <> 1 then raise exception 'A failed warning send was not claimable again'; end if;
+  select public.admin_finish_player_account_inactivity_warning(v_warning,v_warning_anchor,90,true)
+    into v_reactivated;
+  if not v_reactivated then raise exception 'The successful 90-day warning send was not recorded'; end if;
+  select count(*) into v_count from public.admin_claim_player_account_inactivity_warnings()
+  where user_id=v_warning and warning_days=90;
+  if v_count <> 0 then raise exception 'A successfully sent warning was claimed twice'; end if;
 
   update public.profiles set last_sign_in_at=now()-interval '11 months' where id=v_warning;
   select count(*) into v_count from public.admin_claim_player_account_inactivity_warnings()
