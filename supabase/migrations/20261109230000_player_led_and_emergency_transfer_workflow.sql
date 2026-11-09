@@ -960,18 +960,33 @@ revoke all on function public.resolve_player_transfer_request(uuid,text,text) fr
 grant execute on function public.resolve_player_transfer_request(uuid,text,text) to authenticated;
 
 create or replace function public.admin_resolve_player_transfer_request(
-  p_request_id uuid,p_decision text,p_reason text
+  p_request_id uuid,
+  p_decision text,
+  p_reason text
 )
 returns public.player_transfer_requests
 language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  v_location_id uuid;
+  v_request public.player_transfer_requests;
 begin
-  if auth.uid() is null or not public.has_platform_role() then
-    raise exception 'Administrator permission required';
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  select l.location_id into v_location_id
+  from public.player_transfer_requests r
+  join public.season_teams destination on destination.id=r.destination_season_team_id
+  join public.seasons s on s.id=destination.season_id
+  join public.leagues l on l.id=s.league_id
+  where r.id=p_request_id;
+  if v_location_id is null or not public.can_administer_location(v_location_id) then
+    raise exception 'Administrator permission required for this location';
   end if;
-  return public._resolve_player_transfer_request(p_request_id,p_decision,p_reason,auth.uid(),true);
+
+  select * into v_request
+  from public._resolve_player_transfer_request(p_request_id,p_decision,p_reason,auth.uid(),true);
+  return v_request;
 end;
 $$;
 
@@ -1163,8 +1178,7 @@ begin
   join public.leagues l on l.id=s.league_id
   where st.id=v_membership.season_team_id;
 
-  if not public.has_platform_role()
-     and not public.is_active_team_captain(v_membership.season_team_id)
+  if not public.is_active_team_captain(v_membership.season_team_id)
      and not public.can_administer_location(v_location_id) then
     raise exception 'Captain or assigned location administrator permission required';
   end if;
