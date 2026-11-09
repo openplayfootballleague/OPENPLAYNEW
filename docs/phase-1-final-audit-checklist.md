@@ -92,7 +92,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [ ] Review registration form, error states and pending-review messaging on mobile and desktop.
 - [x] Static player-facing stylesheet coverage now applies Inter/Oswald, black/charcoal/orange surfaces, dark cards/forms, responsive spacing and the fixed four-tab bottom navigation. Route inspection confirms the player-facing class is applied to Player Hub, Match Centre, Teams, Join, Captain Hub, registration, sign-in, sign-up and password reset screens.
 - [ ] Complete real-device visual acceptance on mobile, tablet and desktop. Static CSS inspection is not a substitute for viewing and interacting with the screens at those breakpoints.
-- [ ] Define the exact under-16 basic-view screen allowlist and whether it is anonymous or account-based.
+- [x] Under-16s use account-based basic-view access (not anonymous-only). They may browse public Home, Match Centre and Teams/league information (fixtures, results and tables); Join Open Play must remain non-actionable for them. They cannot create a player identity, join/register a team, become captain or access player-only functions. Player registration starts at 16; ages 16–17 require verified guardian consent and separate administrator approval.
 - [ ] Review guardian verification, admin decision and withdrawal flows end-to-end.
 - [ ] Review ban/unban and captain succession screens against the database behaviour.
 - [ ] Review account closure/reactivation pages and session handling.
