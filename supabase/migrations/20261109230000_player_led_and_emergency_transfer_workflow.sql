@@ -84,6 +84,7 @@ comment on column public.player_transfer_requests.target_fixture_id is
 revoke insert,update,delete on public.team_memberships from anon,authenticated;
 revoke insert,update,delete on public.player_transfer_requests from anon,authenticated;
 revoke insert,update,delete on public.fixture_team_sheets from anon,authenticated;
+revoke insert,update,delete on public.fixture_team_sheet_players from anon,authenticated;
 
 -- One active club per player per league, including across different seasons.
 create or replace function public.enforce_one_active_club_per_player_per_league()
