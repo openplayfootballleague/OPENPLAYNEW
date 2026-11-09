@@ -67,6 +67,7 @@ $$;
 revoke all on function public.hash_guardian_consent_token(text) from public,anon,authenticated;
 
 create or replace function public.request_player_guardian_consent(
+  p_player_user_id uuid,
   p_player_date_of_birth date,
   p_guardian_full_name text,
   p_guardian_email text,
@@ -79,11 +80,12 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_user uuid := auth.uid();
+  v_user uuid := p_player_user_id;
   v_email text;
   v_now timestamptz := now();
 begin
-  if v_user is null then raise exception 'Authentication required'; end if;
+  if coalesce(auth.role(),'') <> 'service_role' then raise exception 'Trusted consent service required'; end if;
+  if v_user is null then raise exception 'Player account is required'; end if;
   select lower(trim(email)) into v_email from auth.users where id=v_user and email_confirmed_at is not null;
   if v_email is null then raise exception 'Verify your account email before requesting guardian consent'; end if;
   if p_player_date_of_birth is null
@@ -350,8 +352,8 @@ where tm.status in ('active','pending')
     and p.registration_status='rejected'
     and p.date_of_birth>current_date-interval '18 years');
 
-revoke all on function public.request_player_guardian_consent(date,text,text,text,text) from public,anon;
-grant execute on function public.request_player_guardian_consent(date,text,text,text,text) to authenticated;
+revoke all on function public.request_player_guardian_consent(uuid,date,text,text,text,text) from public,anon,authenticated;
+grant execute on function public.request_player_guardian_consent(uuid,date,text,text,text,text) to service_role;
 revoke all on function public.verify_player_guardian_consent(text) from public,authenticated;
 grant execute on function public.verify_player_guardian_consent(text) to anon;
 revoke all on function public.withdraw_player_guardian_consent(text) from public,authenticated;
