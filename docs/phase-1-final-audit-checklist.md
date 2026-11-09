@@ -8,7 +8,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 ## 1. Automated verification
 
-- [x] Latest Phase 1 branch state, including retryable erasure, financial/transfer exclusions and reactivation concurrency guard, passed application build, Deno checks, domain tests, Edge Function/navigation assertions, Cloudflare dry-run, clean migration replay and all SQL/Auth lifecycle suites in [#1410](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42643129331).
+- [x] Latest Phase 1 branch state, including retryable erasure, financial/transfer exclusions and reactivation concurrency guard, passed application build, Deno checks, domain tests, Edge Function/navigation assertions, Cloudflare dry-run, clean migration replay and all SQL/Auth lifecycle suites in [#1416](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42644521387).
 - [x] Clean local Supabase migration replay succeeds from an empty database.
 - [x] Migration source manifest matches the actual migration files and Git blobs.
 - [x] Deno type-check succeeds for all Edge Functions.
