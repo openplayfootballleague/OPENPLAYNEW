@@ -136,7 +136,7 @@ Deno.serve(async (req: Request) => {
       } catch (cause) {
         // Keep the public response generic. A fresh request can replace the
         // unusable token after the database-enforced cooldown.
-        console.error("Player account reactivation email failed", cause);
+        console.error("Player account reactivation email delivery failed");
       }
     }
     return json({ message: "If an eligible closed account exists for that email address, a reactivation link will be sent." });
@@ -156,7 +156,7 @@ Deno.serve(async (req: Request) => {
     let skipped = 0;
     for (const candidate of candidates ?? []) {
       const { error: banError } = await service.auth.admin.updateUserById(candidate.user_id, { ban_duration: "876000h" });
-      if (banError) { skipped++; console.error("Unable to close inactive player account", candidate.user_id, banError.message); continue; }
+      if (banError) { skipped++; console.error("Unable to close inactive player account", banError.code ?? "unknown"); continue; }
 
       const { data: didClose, error: closeError } = await service.rpc("admin_close_inactive_player_account", {
         p_user_id: candidate.user_id,
@@ -182,7 +182,7 @@ Deno.serve(async (req: Request) => {
       });
       if (markError || marked !== true) {
         erasureFailures++;
-        console.error("Unable to mark player archive erasure due", userId, markError?.message);
+        console.error("Unable to mark player archive erasure due", markError?.code ?? "unknown");
         continue;
       }
       markedErasureDue++;
@@ -196,7 +196,7 @@ Deno.serve(async (req: Request) => {
         .maybeSingle();
       if (profileError || !profile) {
         erasureFailures++;
-        console.error("Unable to load player avatar for erasure", userId, profileError?.message);
+        console.error("Unable to load player avatar for erasure", profileError?.code ?? "unknown");
         continue;
       }
       if (profile.avatar_path) {
@@ -205,7 +205,7 @@ Deno.serve(async (req: Request) => {
           .remove([profile.avatar_path]);
         if (avatarError) {
           erasureFailures++;
-          console.error("Unable to remove player avatar before erasure", userId, avatarError.message);
+          console.error("Unable to remove player avatar before erasure", avatarError.name ?? "unknown");
           continue;
         }
       }
@@ -215,7 +215,7 @@ Deno.serve(async (req: Request) => {
       });
       if (prepareError || prepared !== true) {
         erasureFailures++;
-        console.error("Unable to anonymise player competition identity", userId, prepareError?.message);
+        console.error("Unable to anonymise player competition identity", prepareError?.code ?? "unknown");
         continue;
       }
 
@@ -225,7 +225,7 @@ Deno.serve(async (req: Request) => {
       const { error: deleteError } = await service.auth.admin.deleteUser(userId);
       if (deleteError) {
         erasureFailures++;
-        console.error("Unable to delete anonymised Auth account; it remains banned for retry", userId, deleteError.message);
+        console.error("Unable to delete anonymised Auth account; it remains banned for retry", deleteError.name ?? "unknown");
         continue;
       }
       erasedAccounts++;
