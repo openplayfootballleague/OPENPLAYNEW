@@ -305,25 +305,30 @@ set search_path = ''
 as $$
 declare v_age integer;
 begin
-  v_age:=extract(year from age(current_date,new.date_of_birth))::integer;
-  if v_age<16 then raise exception 'Players must be at least 16 years old to register'; end if;
-  if v_age<18 and not exists(
-    select 1 from public.player_guardian_consents c
-    where c.player_user_id=new.user_id
-      and c.player_date_of_birth=new.date_of_birth
-      and c.status='approved'
-      and c.verified_at is not null
-      and c.reviewed_at is not null
-  ) then
-    raise exception 'Verified parent or legal-guardian consent and administrator approval are required for players aged 16 or 17';
+  -- Suspended/rejected records may remain in the database without consent.
+  -- Any new player identity or attempt to retain/restore player access must
+  -- satisfy the age and guardian-consent policy, including admin review RPCs.
+  if tg_op='INSERT' or new.registration_status<>'rejected' then
+    v_age:=extract(year from age(current_date,new.date_of_birth))::integer;
+    if v_age<16 then raise exception 'Players must be at least 16 years old to register'; end if;
+    if v_age<18 and not exists(
+      select 1 from public.player_guardian_consents c
+      where c.player_user_id=new.user_id
+        and c.player_date_of_birth=new.date_of_birth
+        and c.status='approved'
+        and c.verified_at is not null
+        and c.reviewed_at is not null
+    ) then
+      raise exception 'Verified parent or legal-guardian consent and administrator approval are required for players aged 16 or 17';
+    end if;
   end if;
   return new;
 end;
-$$;
+$;
 
 drop trigger if exists players_enforce_age_and_guardian_consent on public.players;
 create trigger players_enforce_age_and_guardian_consent
-before insert or update of date_of_birth on public.players
+before insert or update of date_of_birth,registration_status on public.players
 for each row execute function public.enforce_player_age_and_guardian_consent();
 
 -- Existing under-18 player records cannot retain access without the new consent.
