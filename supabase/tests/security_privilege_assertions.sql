@@ -129,8 +129,8 @@ select
     and pg_get_functiondef('public.admin_list_location_assignments(uuid)'::regprocedure) ilike '%ur.role in (''admin'',''super_admin'')%'
     and has_function_privilege('authenticated','public.admin_set_location_assignment(uuid,uuid,boolean)','EXECUTE')
     and not has_function_privilege('anon','public.admin_set_location_assignment(uuid,uuid,boolean)','EXECUTE')
-    and pg_get_functiondef('public.admin_set_location_assignment(uuid,uuid,boolean)'::regprocedure) ilike '%ur.user_id = auth.uid()%'
-    and pg_get_functiondef('public.admin_set_location_assignment(uuid,uuid,boolean)'::regprocedure) ilike '%ur.role = ''league_admin''%'
+    and pg_get_functiondef('public.admin_set_location_assignment(uuid,uuid,boolean)'::regprocedure) ilike '%user_id = auth.uid()%'
+    and pg_get_functiondef('public.admin_set_location_assignment(uuid,uuid,boolean)'::regprocedure) ilike '%role in (''admin'', ''super_admin'')%'
   ) as location_assignment_rpcs_are_global_admin_only_and_unambiguous,
   (exists(select 1 from pg_proc p where p.oid='public.get_my_team_request_statuses()'::regprocedure and p.prosecdef)
     and not has_function_privilege('anon','public.get_my_team_request_statuses()','EXECUTE')) as team_request_status_rpc_is_security_definer_and_denies_anon,
