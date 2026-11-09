@@ -57,6 +57,47 @@ Open Play`,
   if (!response.ok) throw new Error(`Reactivation email provider returned ${response.status}`);
 }
 
+async function sendInactivityWarningEmail(
+  apiKey: string,
+  from: string,
+  to: string,
+  warningDays: number,
+  closureAt: string,
+  idempotencyKey: string,
+) {
+  const closureDate = new Date(closureAt).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Europe/London",
+  });
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "Idempotency-Key": idempotencyKey,
+    },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject: `Open Play – your player account will close in ${warningDays} days`,
+      text: `You have not signed in to your Open Play registered-player account for some time.
+
+Unless you sign in before ${closureDate}, your account is scheduled to close on ${closureDate because of 12 months of inactivity.
+
+Sign in to Open Play before that date to keep your account active and reset the inactivity period.
+
+If your account closes, it will remain in a restricted archive for a further 12 months. You can request reactivation during that period. Your historic fixtures, appearances and goals are preserved.
+
+If you believe this notice is incorrect or need help, contact openplayfootballleague@gmail.com.
+
+Open Play`,
+    }),
+  });
+  if (!response.ok) throw new Error(`Inactivity warning email provider returned ${response.status}`);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -153,8 +194,68 @@ Deno.serve(async (req: Request) => {
       return json({ error: "Not authorised" }, 401);
     }
 
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+    const resendFrom = Deno.env.get("RESEND_FROM_EMAIL");
+    if (!resendKey || !resendFrom) {
+      return json({ error: "Inactivity warning email delivery is not configured; no accounts were processed" }, 503);
+    }
+
+    const { data: warnings, error: warningClaimError } = await service.rpc("admin_claim_player_account_inactivity_warnings");
+    if (warningClaimError) return json({ error: "Unable to claim inactivity warning emails; no accounts were processed" }, 500);
+
+    let warningsSent = 0;
+    let warningFailures = 0;
+    for (const warning of warnings ?? []) {
+      const idempotencyHash = await hashToken(
+        `${warning.user_id}:${warning.inactivity_started_at}:${warning.warning_days}`,
+      );
+      try {
+        await sendInactivityWarningEmail(
+          resendKey,
+          resendFrom,
+          warning.email,
+          Number(warning.warning_days),
+          warning.closure_at,
+          `openplay-inactivity-${idempotencyHash}`,
+        );
+      } catch {
+        await service.rpc("admin_finish_player_account_inactivity_warning", {
+          p_user_id: warning.user_id,
+          p_inactivity_started_at: warning.inactivity_started_at,
+          p_warning_days: warning.warning_days,
+          p_delivered: false,
+        });
+        warningFailures++;
+        console.error("Player inactivity warning delivery failed");
+        continue;
+      }
+
+      const { data: recorded, error: recordError } = await service.rpc(
+        "admin_finish_player_account_inactivity_warning",
+        {
+          p_user_id: warning.user_id,
+          p_inactivity_started_at: warning.inactivity_started_at,
+          p_warning_days: warning.warning_days,
+          p_delivered: true,
+        },
+      );
+      if (recordError || recorded !== true) {
+        warningFailures++;
+        console.error("Unable to record successful inactivity warning delivery");
+      } else {
+        warningsSent++;
+      }
+    }
+
+    // Fail closed: do not close or erase accounts during a run where a due
+    // warning could not be delivered or recorded. The SQL closure trigger also
+    // requires all three stages and a full seven-day grace period after stage 7.
+    if (warningFailures > 0) {
+      return json({ warningsSent, warningFailures, error: "Warning delivery incomplete; no account closure or erasure was attempted" }, 503);
+    }
+
     const { data: candidates, error: candidatesError } = await service.rpc("admin_list_inactive_player_accounts");
-    if (candidatesError) return json({ error: "Unable to load inactive player accounts" }, 500);
+    if (candidatesError) return json({ warningsSent, warningFailures, error: "Unable to load inactive player accounts" }, 500);
 
     let closed = 0;
     let skipped = 0;
@@ -236,6 +337,8 @@ Deno.serve(async (req: Request) => {
     }
 
     return json({
+      warningsSent,
+      warningFailures,
       closed,
       skipped,
       markedErasureDue,
