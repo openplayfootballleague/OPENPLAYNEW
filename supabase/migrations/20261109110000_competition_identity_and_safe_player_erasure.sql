@@ -1082,7 +1082,7 @@ begin
       ) order by case when tsp.role='starter' then 0 else 1 end,cpi.display_name)
       from public.fixture_team_sheet_players tsp
       join public.competition_player_identities cpi on cpi.id=tsp.competition_player_id
-      left join public.team_memberships tm on tm.user_id=tsp.user_id and tm.season_team_id=s.season_team_id
+      left join public.team_memberships tm on tm.user_id=tsp.user_id and tm.season_team_id=s.season_team_id and tm.status='active'
       where tsp.team_sheet_id=s.id
     ),'[]'::jsonb),
     coalesce((
@@ -1139,15 +1139,23 @@ begin
    )
  ) then raise exception 'Every selected player must have an active, approved membership in this team'; end if;
 
+ if exists(
+   select 1
+   from public.fixture_team_sheet_players tsp
+   left join public.team_memberships tm
+     on tm.user_id=tsp.user_id and tm.season_team_id=v_sheet.season_team_id and tm.status='active'
+   where tsp.team_sheet_id=v_sheet.id and tm.id is null
+ ) then
+   raise exception 'This sheet contains a former or anonymised player. Its historic appearance record is protected from standard roster amendments';
+ end if;
  select coalesce(jsonb_agg(jsonb_build_object(
    'competition_player_id',tsp.competition_player_id,'role',tsp.role,
    'is_goalkeeper',tsp.is_goalkeeper,'squad_number_snapshot',tsp.squad_number_snapshot
   )),'[]'::jsonb)
  into v_before from public.fixture_team_sheet_players tsp where tsp.team_sheet_id=v_sheet.id;
 
- -- Keep anonymised historic rows; only live account-linked rows are replaceable.
- delete from public.fixture_team_sheet_players
- where team_sheet_id=v_sheet.id and user_id is not null;
+ -- The guard above ensures every existing sheet row still maps to an active membership.
+ delete from public.fixture_team_sheet_players where team_sheet_id=v_sheet.id;
 
  insert into public.fixture_team_sheet_players(team_sheet_id,user_id,role,squad_number_snapshot,is_goalkeeper)
  select v_sheet.id,tm.user_id,'starter',tm.squad_number,tm.id=p_goalkeeper_membership_id
