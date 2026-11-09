@@ -1225,6 +1225,25 @@ begin
   end if;
 
   if exists(
+    select 1
+    from (
+      select source_team.team_id
+      from public.team_memberships source_membership
+      join public.season_teams source_team on source_team.id=source_membership.season_team_id
+      join public.seasons source_season on source_season.id=source_team.season_id
+      where source_membership.user_id=v_user
+        and source_membership.status='left'
+        and source_membership.voluntarily_left_at is not null
+        and source_season.league_id=v_season.league_id
+      order by source_membership.voluntarily_left_at desc
+      limit 1
+    ) latest_voluntary_departure
+    where latest_voluntary_departure.team_id<>v_team.team_id
+  ) then
+    raise exception 'Use the player transfer workflow after voluntarily leaving a different club in this league';
+  end if;
+
+  if exists(
     select 1 from public.team_memberships tm
     join public.season_teams st on st.id=tm.season_team_id
     join public.seasons s on s.id=st.season_id
