@@ -65,7 +65,9 @@ async function sendInactivityWarningEmail(
   closureAt: string,
   idempotencyKey: string,
 ) {
-  const closureDate = new Date(closureAt).toLocaleDateString("en-GB", {
+  const originalClosureAt = new Date(closureAt).getTime();
+  const minimumNoticeEnd = Date.now() + 7 * 24 * 60 * 60 * 1000;
+  const closureDate = new Date(Math.max(originalClosureAt, minimumNoticeEnd)).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -81,10 +83,10 @@ async function sendInactivityWarningEmail(
     body: JSON.stringify({
       from,
       to: [to],
-      subject: `Open Play – your player account will close in ${warningDays} days`,
+      subject: `Open Play – ${warningDays}-day account inactivity notice`,
       text: `You have not signed in to your Open Play registered-player account for some time.
 
-Unless you sign in before ${closureDate}, your account is scheduled to close on ${closureDate} because of 12 months of inactivity.
+This is the ${warningDays}-day warning stage in Open Play's 12-month inactivity process. If you do not sign in, your account may be closed no earlier than ${closureDate}. The date allows for the required final seven-day notice period, including where an earlier warning was delayed.
 
 Sign in to Open Play before that date to keep your account active and reset the inactivity period.
 
