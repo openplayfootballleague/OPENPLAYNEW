@@ -61,6 +61,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [x] Expired archives are processed idempotently; `erasure_due` accounts remain in the queue after transient storage/Auth failures, and repeated marking is safe without duplicate initial audit events.
 - [x] Worker logs do not disclose account UUIDs, email addresses or other direct identifiers.
 - [ ] Advance-warning email cadence is agreed and implemented before unattended closures are enabled. **Current documented gap:** 90/30/7-day advance notices are not yet implemented.
+- [x] The retention workflow is manual-only: its daily cron has been removed and overlapping runs are serialized until warning emails, controlled staging acceptance and release approval are complete.
 - [ ] Resend secrets, sender identity and live email round-trip are verified in a controlled staging environment before activation.
 
 ## 4. Permanent competition identity and erasure
