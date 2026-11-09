@@ -254,6 +254,14 @@ begin
 
   v_denied := false;
   begin
+    perform * from public.get_admin_contextual_fixtures('00000000-0000-4000-8000-000000000011',null,null);
+  exception when others then
+    if sqlerrm = 'You are not assigned to this location' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin read fixtures outside their assignment'; end if;
+
+  v_denied := false;
+  begin
     perform public.get_admin_season_statistics('00000000-0000-4000-8000-000000000031');
   exception when others then
     if sqlerrm = 'You are not assigned to this location' then v_denied := true; else raise; end if;
