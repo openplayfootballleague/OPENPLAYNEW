@@ -1,10 +1,10 @@
 import { execFileSync } from "node:child_process";
 import {
-  copyFileSync,
-  mkdirSync,
+  existsSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -15,21 +15,16 @@ const manifestPath = join(root, "docs/supabase-migration-source-manifest-2026-11
 const migrationDirectory = join(root, "supabase/migrations");
 const manifest = readFileSync(manifestPath, "utf8");
 const appliedPaths = [...manifest.matchAll(
-  /^\|\s*(\d{14})\s*\|[^|]*\|\s*`(supabase\/migrations\/[^\`]+\.sql)`\s*\|/gm,
+  /^\\|\\s*(\\d{14})\\s*\\|[^|]*\\|\\s*`(supabase\\/migrations\\/[^\\`]+\\.sql)`\\s*\\|/gm,
 )].map((match) => match[2]);
 
 if (appliedPaths.length !== 99 || new Set(appliedPaths).size !== 99) {
   throw new Error(`Expected 99 unique canonical applied migration sources; found ${appliedPaths.length}`);
 }
-
-for (const path of appliedPaths) {
-  if (!readFileSync(join(root, path))) {
-    throw new Error(`Applied migration source is missing: ${path}`);
-  }
-}
+for (const path of appliedPaths) readFileSync(join(root, path));
 
 const allMigrations = readdirSync(migrationDirectory)
-  .filter((name) => /^\d{14}_.+\.sql$/.test(name))
+  .filter((name) => /^\\d{14}_.+\\.sql$/.test(name))
   .sort();
 const appliedSet = new Set(appliedPaths.map((path) => path.split("/").at(-1)));
 const pending = allMigrations.filter((name) => !appliedSet.has(name));
@@ -42,11 +37,14 @@ const latestAppliedVersion = appliedPaths
   .sort()
   .at(-1);
 const pendingBeforeLatest = pending.filter((name) => name.slice(0, 14) <= latestAppliedVersion);
+const expectedOlder = [
+  "20261108021000_captain_next_required_fixture_and_admin_amendment.sql",
+  "20261108150000_canonicalize_player_phone.sql",
+  "20261108160000_enforce_player_ban_and_captain_succession.sql",
+];
 if (latestAppliedVersion !== "20261108194831" ||
-    pendingBeforeLatest.length !== 3 ||
-    pendingBeforeLatest[0] !== "20261108021000_captain_next_required_fixture_and_admin_amendment.sql" ||
-    pendingBeforeLatest[1] !== "20261108150000_canonicalize_player_phone.sql" ||
-    pendingBeforeLatest[2] !== "20261108160000_enforce_player_ban_and_captain_succession.sql") {
+    pendingBeforeLatest.length !== expectedOlder.length ||
+    pendingBeforeLatest.some((name, index) => name !== expectedOlder[index])) {
   throw new Error("The pending migration timestamp relationship has changed; review the release-order assumptions before continuing");
 }
 
@@ -55,25 +53,28 @@ console.log("Verified pending migrations:", pending.length);
 console.log("Older-than-baseline migrations that require include-all:");
 for (const name of pendingBeforeLatest) console.log(" -", name);
 
-const temporaryProject = mkdtempSync(join(tmpdir(), "openplay-hosted-order-"));
+const backupDirectory = mkdtempSync(join(tmpdir(), "openplay-hosted-order-"));
+const moved = new Set();
 try {
-  const temporaryMigrations = join(temporaryProject, "supabase", "migrations");
-  mkdirSync(temporaryMigrations, { recursive: true });
-  copyFileSync(
-    join(root, "supabase", "config.toml"),
-    join(temporaryProject, "supabase", "config.toml"),
-  );
-  for (const path of appliedPaths) {
-    copyFileSync(join(root, path), join(temporaryProject, path));
+  // Temporarily hide only the pending files, then reset the already-running
+  // local Supabase stack from the 99-source applied baseline. Keeping the same
+  // workdir avoids starting a second Docker project on the same ports.
+  for (const name of pending) {
+    renameSync(join(migrationDirectory, name), join(backupDirectory, name));
+    moved.add(name);
   }
 
-  // Recreate the exact current hosted baseline (99 recorded migrations) on the
-  // disposable local stack, then ask the pinned CLI to apply all missing files.
   execFileSync(
     "supabase",
     ["db", "reset", "--local", "--no-seed"],
-    { cwd: temporaryProject, stdio: "inherit" },
+    { cwd: root, stdio: "inherit" },
   );
+
+  // Restore the pending files before asking the pinned CLI to apply them.
+  for (const name of pending) {
+    renameSync(join(backupDirectory, name), join(migrationDirectory, name));
+    moved.delete(name);
+  }
 
   const databaseUrl = process.env.OPENPLAY_LOCAL_DATABASE_URL ??
     "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
@@ -117,5 +118,10 @@ try {
     `Hosted-order replay passed: ${appliedPaths.length} baseline migrations followed by ${pending.length} pending migrations (${migrationCount} total recorded).`,
   );
 } finally {
-  rmSync(temporaryProject, { recursive: true, force: true });
+  // Never leave the CI checkout with migration files hidden, even on failure.
+  for (const name of moved) {
+    const backup = join(backupDirectory, name);
+    if (existsSync(backup)) renameSync(backup, join(migrationDirectory, name));
+  }
+  rmSync(backupDirectory, { recursive: true, force: true });
 }
