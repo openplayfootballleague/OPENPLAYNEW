@@ -96,3 +96,19 @@ Therefore the final erasure/anonymisation worker must not be enabled until the h
 10. An account past the 24-month archive boundary is queued for controlled erasure/anonymisation, not hard-deleted until the historical identity refactor is deployed.
 11. Active/pending membership, privileged status or a documented legal/safeguarding hold prevents automatic erasure.
 12. Historic fixtures, results, appearances, goals and league tables remain intact after the eventual anonymisation process.
+
+## Deployment and activation requirements
+
+The implementation consists of the database migration, the `player-account-retention` Edge Function, the sign-in reactivation request, the app-level closed-account guard and the scheduled GitHub Actions workflow.
+
+Before activating the scheduled worker after release:
+
+1. Apply the forward-only migration to the intended Supabase environment.
+2. Deploy `supabase/functions/player-account-retention`.
+3. Configure Supabase Edge Function secrets: `ACCOUNT_RETENTION_CRON_SECRET`, `RESEND_API_KEY` and `RESEND_FROM_EMAIL`.
+4. Configure GitHub repository secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY` and the same `ACCOUNT_RETENTION_CRON_SECRET`.
+5. Run the workflow manually against controlled test accounts and verify Auth ban, reactivation email, single-use confirmation, no restored memberships and archive expiry handling.
+6. Confirm the advance-warning email cadence and operational support process before enabling unattended closures.
+
+The scheduled worker closes accounts and moves expired archives to `erasure_due`. It deliberately does not hard-delete Auth users or historical player records. The separate historical identity/anonymisation migration is a release prerequisite for final erasure; until that work is complete, erasure-due cases require controlled review rather than destructive deletion.
+
