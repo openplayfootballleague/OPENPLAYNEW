@@ -218,8 +218,7 @@ begin
     join public.fixtures f on f.id=ts.fixture_id
     where tsp.user_id=v_user
       and ts.season_team_id=v_membership.season_team_id
-      and f.status='scheduled'
-      and f.scheduled_at>now()
+      and f.status in ('scheduled','in_progress')
   ) then
     raise exception 'You are on a submitted upcoming team sheet. Ask an administrator to amend it before leaving';
   end if;
