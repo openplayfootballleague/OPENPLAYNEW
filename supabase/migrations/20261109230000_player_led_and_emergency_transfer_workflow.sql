@@ -83,6 +83,7 @@ comment on column public.player_transfer_requests.target_fixture_id is
 -- direct client table writes cannot bypass the league-level transaction rules.
 revoke insert,update,delete on public.team_memberships from anon,authenticated;
 revoke insert,update,delete on public.player_transfer_requests from anon,authenticated;
+revoke insert,update,delete on public.fixture_team_sheets from anon,authenticated;
 
 -- One active club per player per league, including across different seasons.
 create or replace function public.enforce_one_active_club_per_player_per_league()
@@ -193,7 +194,7 @@ begin
     raise exception 'Fixture not found';
   end if;
 
-  if v_status='scheduled' and v_scheduled_at is not null and v_scheduled_at<=now() then
+  if v_status='in_progress' or (v_status='scheduled' and v_scheduled_at is not null and v_scheduled_at<=now()) then
     raise exception 'Team sheets can only be edited, saved or submitted before kickoff';
   end if;
 
