@@ -8,7 +8,8 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 ## 1. Automated verification
 
-- [x] Latest Phase 1 branch state, including retryable erasure, financial/transfer exclusions, reactivation concurrency guard, points-only standings, tied-first-place final handling, fixture-location enforcement, finance session gating and password-recovery safeguards, passed application build, Deno checks, domain tests, Edge Function/navigation assertions, Cloudflare dry-run, clean migration replay and all SQL/Auth lifecycle suites in [#1424](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42646379541). Both CI jobs completed successfully.
+- [x] Earlier Phase 1 implementation state passed application build, Deno checks, domain tests, Edge Function/navigation assertions, Cloudflare dry-run, clean migration replay and SQL/Auth lifecycle suites in [#1424](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42646379541).
+- [ ] Latest audit corrections (UK civil-date age enforcement, under-16 private-data checks, two-year guardian withdrawal expiry and authenticated captain fixture sequencing) are awaiting a fresh full CI result. Run [#1484](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42671278961) passed build and both migration replay/order checks, and passed earlier SQL suites including phone/ban/captain safeguards, but stopped in the age-tier suite on a missing test counter. The counter and role-scoped date setup were corrected in commits `fc501d04` and `73f7f9c5`; rerun is required before sign-off.
 - [x] Clean local Supabase migration replay succeeds from an empty database.
 - [x] Migration source manifest matches the actual migration files and Git blobs.
 - [x] Deno type-check succeeds for all Edge Functions.
@@ -18,7 +19,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [x] Database security assertions pass.
 - [x] Existing RLS, grants, role-scope, finance, membership and identity-review regression suites pass.
 - [x] Phone canonicalisation and player-ban/captain-succession suites pass.
-- [x] Age-tier, guardian-consent, withdrawal, cooldown and admin-review suites pass.
+- [ ] Latest age-tier, guardian-consent, withdrawal, cooldown and admin-review suite includes UK date/DST/leap-day boundaries, under-16 private membership access, and expired/consumed withdrawal-token checks; latest full run is pending.
 - [x] Retention/reactivation lifecycle suite passes.
 - [x] Global-admin retention-hold permissions, closure exclusion and audit lifecycle suite passes.
 - [x] Permanent competition-identity and safe-erasure suite passes.
@@ -40,7 +41,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [x] Captain succession is deterministic and handles the no-eligible-successor case safely.
 - [x] Under-16 users cannot create a player identity or access player-only functions.
 - [x] Ages 16–17 require guardian verification and a separate global-admin decision.
-- [x] Guardian verification and withdrawal tokens are hashed, one-use, time-limited and rate-limited.
+- [ ] Guardian verification and withdrawal tokens are hashed, one-use, time-limited and rate-limited. Verification expires after 7 days; withdrawal expires after 2 years and is rejected at age 18. Latest expiry regression checks await full CI.
 - [x] Guardian withdrawal suspends access and removes active/pending memberships and captaincy without destroying history.
 
 ## 3. Account retention and reactivation
@@ -79,7 +80,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [x] Standard team-sheet amendment cannot overwrite a former player's protected historic appearance.
 - [ ] Payment/accounting records follow a separately documented retention schedule, with direct account/customer links detached where permitted.
 
-- [ ] Public Match Centre and admin season statistics use points-only rankings; teams level on points share positions and goal difference is display-only. Dedicated unit/SQL regression tests are included in CI.
+- [x] Public Match Centre and admin season statistics use points-only rankings; teams level on points share positions and goal difference is display-only. Dedicated unit/SQL regression tests passed in [#1484](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42671278961).
 
 - [x] Finance workspace waits for a verified signed-in session before loading protected finance RPCs; password recovery offers a non-enumerating resend path for expired links and signs out after password change. Static CI assertions passed in [#1424](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42646379541).
 
@@ -89,6 +90,8 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 ## 5. Manual product and security review
 
 - [ ] Review registration form, error states and pending-review messaging on mobile and desktop.
+- [ ] Validate the player-facing UI against the approved visual specification. Current CSS still uses DM Sans/Barlow and light panels in places; the approved player-facing spec requires Inter/Oswald and dark surfaces.
+- [ ] Define the exact under-16 basic-view screen allowlist and whether it is anonymous or account-based.
 - [ ] Review guardian verification, admin decision and withdrawal flows end-to-end.
 - [ ] Review ban/unban and captain succession screens against the database behaviour.
 - [ ] Review account closure/reactivation pages and session handling.
@@ -114,11 +117,12 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 ## 6. Release prerequisites (not part of local CI)
 
-- [ ] Confirm the final migration plan against the hosted migration ledger; do not reapply previously recorded migrations.
+- [x] Confirmed the hosted migration ledger contains 99 applied entries and 13 pending forward-only migrations. The clean hosted-order replay verified the 99-source baseline plus 13 pending files (112 total) using `--include-all`; three pending files are older than the latest applied version. Verified in [#1484](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42671278961). Do not reapply the 99 recorded migrations.
 - [ ] Configure required Supabase and GitHub secrets in the intended environment.
 - [ ] Apply migrations and deploy Edge Functions only after explicit release approval.
 - [ ] Verify guardian and reactivation email delivery in staging.
 - [ ] Verify the daily retention workflow manually against disposable test accounts before scheduling it.
+- [ ] Confirm the individual data controller's full legal name and final public contact details before publishing the privacy notice. Open Play is the currently unregistered trading name; the confirmed contact email is openplayfootballleague@gmail.com and no postal/business address is currently held.
 - [ ] Confirm legal/privacy review of the retention periods, legal-hold process, under-18 data, payment/accounting retention and the anonymisation-versus-pseudonymisation status of retained competition history.
 - [ ] Obtain explicit approval before merge, production migration, Edge Function deployment or enabling unattended account closure/erasure.
 
