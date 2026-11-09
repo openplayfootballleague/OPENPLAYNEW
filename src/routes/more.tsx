@@ -10,6 +10,7 @@ type MoreAccess = {
   captain: boolean;
   admin: boolean;
   finance: boolean;
+  referee: boolean;
 };
 
 const initialAccess: MoreAccess = {
@@ -19,6 +20,7 @@ const initialAccess: MoreAccess = {
   captain: false,
   admin: false,
   finance: false,
+  referee: false,
 };
 
 export const Route = createFileRoute("/more")({ component: MorePage });
@@ -45,6 +47,7 @@ function MorePage() {
         { data: memberships, error: membershipError },
         adminResult,
         financeResult,
+        refereeResult,
       ] = await Promise.all([
         supabase
           .from("players")
@@ -58,6 +61,7 @@ function MorePage() {
           .eq("status", "active"),
         supabase.rpc("get_admin_context_preference"),
         supabase.rpc("get_finance_options"),
+        supabase.rpc("has_referee_role"),
       ]);
 
       if (!active) return;
@@ -68,6 +72,7 @@ function MorePage() {
         captain: !membershipError && (memberships ?? []).some((membership) => membership.is_captain),
         admin: !adminResult.error && adminResult.data !== null,
         finance: !financeResult.error,
+        referee: !refereeResult.error && refereeResult.data === true,
       });
     }
 
@@ -87,7 +92,7 @@ function MorePage() {
     setAccess({ ...initialAccess, loading: false });
   }
 
-  const hasPrivateWorkspace = access.player || access.captain || access.admin || access.finance;
+  const hasPrivateWorkspace = access.player || access.captain || access.admin || access.finance || access.referee;
 
   return (
     <main className="notice-page player-facing">
@@ -104,6 +109,7 @@ function MorePage() {
           <Link className="admin-inline-action" to="/teams">TEAMS &amp; LEAGUES <span aria-hidden="true">↗</span></Link>
           <Link className="admin-inline-action" to="/gallery">MATCHDAY GALLERY <span aria-hidden="true">↗</span></Link>
           <Link className="admin-inline-action" to="/match-centre">FIXTURES, RESULTS &amp; TABLES <span aria-hidden="true">↗</span></Link>
+          {!access.referee && <Link className="admin-inline-action" to="/apply-referee">APPLY TO BECOME AN OPEN PLAY REFEREE <span aria-hidden="true">↗</span></Link>}
         </section>
 
         {access.loading ? (
@@ -115,6 +121,7 @@ function MorePage() {
             {access.captain && <Link className="admin-inline-action" to="/captain">CAPTAIN HUB <span aria-hidden="true">↗</span></Link>}
             {access.admin && <Link className="admin-inline-action" to="/admin">ADMIN DASHBOARD <span aria-hidden="true">↗</span></Link>}
             {access.finance && <Link className="admin-inline-action" to="/finance">FINANCE WORKSPACE <span aria-hidden="true">↗</span></Link>}
+            {access.referee && <Link className="admin-inline-action" to="/referee">REFEREE HUB <span aria-hidden="true">↗</span></Link>}
           </section>
         ) : access.signedIn ? (
           <p className="form-note">Your account has basic-view access. You can follow public fixtures, results and league tables. Player registration starts at age 16; team actions require an approved player registration.</p>
