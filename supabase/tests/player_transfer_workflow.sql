@@ -115,8 +115,7 @@ begin
     (v_opponent_c,v_season,'Transfer Opponent C','transfer-opponent-c','approved',v_opponent_c_captain),
     (v_opponent_d,v_season,'Transfer Opponent D','transfer-opponent-d','approved',v_opponent_d_captain),
     (v_team_e,v_season_two,'Transfer Season Two Club E','transfer-season-two-e','approved',v_captain_e),
-    (v_team_f,v_season_two,'Transfer Season Two Club F','transfer-season-two-f','approved',v_captain_e)
-  returning id into v_source_st;
+    (v_team_f,v_season_two,'Transfer Season Two Club F','transfer-season-two-f','approved',v_captain_e);
 
   select id into v_source_st from public.season_teams where team_id=v_source_team and season_id=v_season;
   select id into v_b_st from public.season_teams where team_id=v_team_b and season_id=v_season;
@@ -160,12 +159,28 @@ begin
     (v_season,v_d_st,v_opponent_d_st,1,'scheduled',now()+interval '12 hours')
   returning id into v_fixture_d;
 
+  -- A draft can be saved and edited before kickoff without excluding the club
+  -- from emergency transfer eligibility.
+  perform set_config('request.jwt.claim.sub',v_captain_b::text,true);
+  perform public.save_team_sheet_draft(v_fixture_b,v_b_st,'{}'::uuid[],'{}'::uuid[],null);
+  perform public.save_team_sheet_draft(v_fixture_b,v_b_st,'{}'::uuid[],'{}'::uuid[],null);
+
   -- Club D has already submitted; it must not be an emergency destination.
   perform set_config('request.jwt.claim.sub',v_captain_d::text,true);
   perform set_config('request.jwt.claim.role','authenticated',true);
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,submitted_at,is_locked)
   values(v_fixture_d,v_d_st,v_captain_d,now(),true)
   returning id into v_sheet_d;
+
+  -- A still-attached player cannot request a transfer.
+  perform set_config('request.jwt.claim.sub',v_player::text,true);
+  begin
+    perform public.request_player_transfer(v_b_st,'Attempt while still attached');
+    raise exception 'An attached player was incorrectly allowed to request a transfer';
+  exception when others then
+    get stacked diagnostics v_error=message_text;
+    if v_error not like 'Leave your current club in this league%' then raise; end if;
+  end;
 
   -- Both players leave their source club themselves, with no captain approval.
   perform set_config('request.jwt.claim.sub',v_player::text,true);
