@@ -35,7 +35,11 @@ begin
 
   -- Validate the complete E.164 form, not just its digits. This rejects
   -- embedded or repeated plus signs as well as invalid country-code prefixes.
-  if v_value !~ '^\\+[1-9][0-9]{7,14}
+  if v_value !~ '^\+[1-9][0-9]{7,14}$' then
+    raise exception 'Enter a valid international phone number';
+  end if;
+
+  return v_value;
 end;
 $$;
 
