@@ -1123,7 +1123,7 @@ begin
     if v_location is not null and v_location<>v_league_location then raise exception 'League does not belong to selected location'; end if;
     v_location:=v_league_location;
   end if;
-  if v_location is not null and not exists(select 1 from public.locations where id=v_location) then raise exception 'Selected location was not found'; end if;
+  if v_location is not null and not exists(select 1 from public.locations where public.locations.id=v_location) then raise exception 'Selected location was not found'; end if;
   perform public.assert_admin_location_context(v_location);
   return query
   select sh.id,sh.fixture_id,sh.season_team_id,st.name,opponent.name,f.gameweek,f.scheduled_at,l.format,sh.is_locked,sh.submitted_at,
