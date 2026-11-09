@@ -8,7 +8,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 ## 1. Automated verification
 
-- [x] Latest Phase 1 branch state, including retryable erasure, financial/transfer exclusions and reactivation concurrency guard, passed application build, Deno checks, domain tests, Edge Function/navigation assertions, Cloudflare dry-run, clean migration replay and all SQL/Auth lifecycle suites in [#1416](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42644521387).
+- [x] Latest Phase 1 branch state, including retryable erasure, financial/transfer exclusions and reactivation concurrency guard, passed application build, Deno checks, domain tests, Edge Function/navigation assertions, Cloudflare dry-run, clean migration replay and all SQL/Auth lifecycle suites in [#1422](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42645896667).
 - [x] Clean local Supabase migration replay succeeds from an empty database.
 - [x] Migration source manifest matches the actual migration files and Git blobs.
 - [x] Deno type-check succeeds for all Edge Functions.
@@ -25,6 +25,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [x] Auth signup, email confirmation and password-recovery lifecycle passes.
 - [x] Location administrator grants and revocations are audit-logged; duplicate grants do not duplicate events, stale grants remain revocable after role removal, and only global admins can mutate assignments (forward-only migration and SQL regression coverage).
 - [x] The fixed bottom navigation contains exactly Home, Match Centre, Join Open Play and More; the public Home route redirects registered players to Player Hub, and the More page exposes the teams, gallery and account workspaces.
+- [x] Banned players are redirected away from Player Hub to the restricted registration-status screen; public Home authentication lookups ignore stale responses after account changes and recover from failed session lookups instead of hanging. Static regression assertions and both CI jobs passed in [#1422](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42645896667).
 
 ## 2. Registration and account security
 
