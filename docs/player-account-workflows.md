@@ -138,6 +138,15 @@ A player may represent **only one club in the same league at a time**. This rest
 - Leaving or transferring teams must preserve historical memberships and records.
 - Squad numbers are optional.
 
+### Season statistics across club transfers
+
+- A player's season statistics belong to their permanent competition identity, not to their current club membership.
+- If a player represents Club A and later transfers to Club B during the same season, all verified appearances, starts, substitute appearances, goals and goalkeeper statistics accumulate into one season leaderboard record.
+- A transfer must never reset a player's goal tally or reduce their leaderboard position by splitting one person into separate player entries.
+- Club-specific history remains separately attributed to the club represented in each fixture. The player record therefore has both a combined season total and a per-club breakdown.
+- Career totals accumulate across seasons, while each season's leaderboard remains scoped to that season.
+- The appearance display remains starts(substitute appearances), for example 8(9); starts and substitute appearances are stored separately.
+
 ## 10. Minimum acceptance scenarios
 
 1. New account, no matching fields: player registration is automatically approved.
