@@ -32,3 +32,14 @@ const standings = readFileSync("src/lib/competition/standings.ts", "utf8");
 assert.ok(matchCentre.includes("Teams level on points share the same position"), "The public league table must disclose Open Play's no-tiebreaker rule");
 assert.ok(standings.includes("b.points-a.points || a.name.localeCompare(b.name)"), "League ranking must use points only, with name used solely for stable display order");
 assert.ok(standings.includes("if (standing.points !== previousPoints) position=index+1;"), "Teams level on points must share the same league position");
+
+const adminSource = readFileSync("src/routes/admin.tsx", "utf8");
+const adminNav = adminSource.match(/<nav className="admin-workspace-nav"[^>]*>([\s\S]*?)<\/nav>/)?.[1] ?? "";
+const adminNavNumbers = [...adminNav.matchAll(/>\s*(\d{2})\s+/g)].map((match) => Number(match[1]));
+assert.deepEqual(adminNavNumbers, Array.from({ length: 15 }, (_, index) => index + 1), "Admin workspace navigation must contain exactly 15 numbered sections");
+assert.ok(adminNav.includes("12 Analytics &amp; Reports"), "Analytics & Reports must remain a first-class admin section");
+assert.ok(!adminNav.includes("Guardian Consents") && !adminNav.includes("Player Retention"), "Guardian consent and retention workspaces must be nested, not extra top-level sections");
+const playerApprovalsSection = adminSource.match(/<section id="admin-player-approvals"[\s\S]*?<\/section>/)?.[0] ?? "";
+assert.ok(playerApprovalsSection.includes('to="/admin/guardian-consents"'), "Guardian consent review must be accessible within Player Approvals");
+const settingsSection = adminSource.match(/<section id="admin-settings"[\s\S]*?<\/section>/)?.[0] ?? "";
+assert.ok(settingsSection.includes('to="/admin/retention"'), "Player retention must be accessible within Settings & Feature Management");
