@@ -98,6 +98,7 @@ declare
   v_club_id uuid;
   v_latest_source_membership_id uuid;
   v_latest_source_team_id uuid;
+  v_has_active_same_club boolean:=false;
   v_transfer_request public.player_transfer_requests;
 begin
   if tg_op='UPDATE' and new.season_team_id is distinct from old.season_team_id then
@@ -121,6 +122,18 @@ begin
   perform pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtextextended(new.user_id::text || ':' || v_league_id::text, 0)
   );
+
+  select exists(
+    select 1
+    from public.team_memberships active_membership
+    join public.season_teams active_team on active_team.id=active_membership.season_team_id
+    join public.seasons active_season on active_season.id=active_team.season_id
+    where active_membership.user_id=new.user_id
+      and active_membership.status='active'
+      and active_season.league_id=v_league_id
+      and active_team.team_id=v_club_id
+      and active_membership.id is distinct from new.id
+  ) into v_has_active_same_club;
 
   select source_membership.id,source_team.team_id
     into v_latest_source_membership_id,v_latest_source_team_id
@@ -147,7 +160,8 @@ begin
       raise exception 'A transfer-linked membership requires the latest matching approved transfer request';
     end if;
   elsif v_latest_source_team_id is not null
-    and v_latest_source_team_id is distinct from v_club_id then
+    and v_latest_source_team_id is distinct from v_club_id
+    and not v_has_active_same_club then
     raise exception 'A player who voluntarily left a different club must join through an approved transfer request';
   end if;
 
