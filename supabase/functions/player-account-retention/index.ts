@@ -173,18 +173,71 @@ Deno.serve(async (req: Request) => {
     if (expiredError) return json({ closed, skipped, error: "Unable to load expired archives" }, 500);
 
     let markedErasureDue = 0;
+    let erasedAccounts = 0;
+    let erasureFailures = 0;
     for (const candidate of expired ?? []) {
-      const { data: marked, error } = await service.rpc("admin_mark_player_account_erasure_due", {
-        p_user_id: candidate.user_id,
+      const userId = String(candidate.user_id);
+      const { data: marked, error: markError } = await service.rpc("admin_mark_player_account_erasure_due", {
+        p_user_id: userId,
       });
-      if (!error && marked === true) markedErasureDue++;
+      if (markError || marked !== true) {
+        erasureFailures++;
+        console.error("Unable to mark player archive erasure due", userId, markError?.message);
+        continue;
+      }
+      markedErasureDue++;
+
+      // Remove the public avatar object before clearing its path from the profile.
+      // If storage deletion fails, leave the account record intact and retry tomorrow.
+      const { data: profile, error: profileError } = await service
+        .from("profiles")
+        .select("avatar_path")
+        .eq("id", userId)
+        .maybeSingle();
+      if (profileError || !profile) {
+        erasureFailures++;
+        console.error("Unable to load player avatar for erasure", userId, profileError?.message);
+        continue;
+      }
+      if (profile.avatar_path) {
+        const { error: avatarError } = await service.storage
+          .from("profile-avatars")
+          .remove([profile.avatar_path]);
+        if (avatarError) {
+          erasureFailures++;
+          console.error("Unable to remove player avatar before erasure", userId, avatarError.message);
+          continue;
+        }
+      }
+
+      const { data: prepared, error: prepareError } = await service.rpc("admin_prepare_player_account_erasure", {
+        p_user_id: userId,
+      });
+      if (prepareError || prepared !== true) {
+        erasureFailures++;
+        console.error("Unable to anonymise player competition identity", userId, prepareError?.message);
+        continue;
+      }
+
+      // The database transaction has removed personal links from competition history,
+      // scrubbed profile/contact data and detached restrictive historical foreign keys.
+      // Auth deletion now cascades only the live account/profile/player records.
+      const { error: deleteError } = await service.auth.admin.deleteUser(userId);
+      if (deleteError) {
+        erasureFailures++;
+        console.error("Unable to delete anonymised Auth account; it remains banned for retry", userId, deleteError.message);
+        continue;
+      }
+      erasedAccounts++;
     }
 
     return json({
       closed,
       skipped,
       markedErasureDue,
-      note: "Erasure-due accounts are queued for the separately audited historical anonymisation process; this worker does not hard-delete Auth users or competition history.",
+      erasedAccounts,
+      erasureFailures,
+      note: "Competition history is retained against a random account-independent identity labelled Former player. Live profile, registration and Auth account data are deleted after archive expiry; payment records remain subject to their separate retention schedule.",
     });
   }
 
