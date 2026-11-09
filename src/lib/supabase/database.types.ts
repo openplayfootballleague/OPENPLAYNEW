@@ -100,7 +100,7 @@ export type Database = {
         Row: {
           amount_pence: number
           created_at: string
-          created_by?: string | null
+          created_by: string | null
           description: string
           due_at: string | null
           entry_type: string
@@ -239,7 +239,7 @@ export type Database = {
           voided_by: string | null
         }
         Insert: {
-          competition_player_id: string
+          competition_player_id?: string
           created_at?: string
           created_by?: string | null
           fixture_id: string
@@ -394,7 +394,7 @@ export type Database = {
           is_locked: boolean
           season_team_id: string
           submitted_at: string | null
-          submitted_by?: string | null | null
+          submitted_by: string | null
         }
         Insert: {
           draft_saved_at?: string | null
@@ -514,7 +514,7 @@ export type Database = {
           location_id: string
           object_path: string
           published_at: string | null
-          uploaded_by?: string | null
+          uploaded_by: string | null
         }
         Insert: {
           caption?: string
@@ -592,7 +592,7 @@ export type Database = {
       }
       location_admin_assignments: {
         Row: {
-          assigned_by?: string | null
+          assigned_by: string | null
           created_at: string
           id: string
           location_id: string
@@ -950,11 +950,11 @@ export type Database = {
           resolution_reason: string | null
           resolved_at: string | null
           resolved_by: string | null
-          source_membership_id?: string | null
+          source_membership_id: string | null
           source_season_team_id: string
           status: string
           updated_at: string
-          user_id?: string | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string
