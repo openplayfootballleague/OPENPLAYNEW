@@ -171,10 +171,10 @@ begin
 
   insert into public.player_guardian_consents(
     player_user_id,player_date_of_birth,guardian_full_name,guardian_email,status,
-    withdrawal_token_hash,verified_at,reviewed_by,reviewed_at
+    withdrawal_token_hash,withdrawal_token_expires_at,verified_at,reviewed_by,reviewed_at
   ) values(
     v_player,date '1990-01-01','Guardian Personal Name','guardian-ci@openplay.invalid','approved',
-    repeat('a',64),now(),v_admin,now()
+    repeat('a',64),now()+interval '2 years',now(),v_admin,now()
   );
 
   insert into public.player_registration_reviews(
