@@ -51,8 +51,7 @@ begin
   insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status,is_genuine)
   values
     (v_player,'Competition History Player','+447700900001','ci-competition-player@openplay.invalid',date '1990-01-01','registered',true),
-    (v_location_admin,'Location Admin Player','+447700900002','ci-competition-location-admin@openplay.invalid',date '1990-02-01','registered',true)
-  returning id into v_player_row;
+    (v_location_admin,'Location Admin Player','+447700900002','ci-competition-location-admin@openplay.invalid',date '1990-02-01','registered',true);
 
   select id,competition_player_id into v_player_row,v_competition_player
   from public.players where user_id=v_player;
@@ -63,7 +62,7 @@ begin
   values('Competition Identity Test Location','competition-identity-test','Bideford')
   returning id into v_location;
 
-  insert into public.leagues(location_id,name,slug,format,is_public)
+  insert into public.leagues(location_id,name,slug,format,is_published)
   values(v_location,'Competition Identity Test League','competition-identity-test','six_a_side',true)
   returning id into v_league;
 
@@ -308,10 +307,10 @@ begin
       and p->>'full_name'='Former player'
   ) then raise exception 'Historic goalscorer options did not retain the anonymised competition identity'; end if;
 
-  select public.admin_record_fixture_result_with_appearances(
+  perform public.admin_record_fixture_result_with_appearances(
     v_fixture,1,0,'{}'::uuid[],'{}'::uuid[],array[v_competition_player],'{}'::uuid[],
     'Correction after account erasure'
-  ) into strict v_count;
+  );
 
   select public.get_admin_season_statistics(v_season) into v_stats;
   if not exists(
