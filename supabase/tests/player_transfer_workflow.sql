@@ -5,6 +5,7 @@ do $player_transfer_workflow$
 declare
   v_player uuid:=gen_random_uuid();
   v_player_two uuid:=gen_random_uuid();
+  v_player_three uuid:=gen_random_uuid();
   v_source_captain uuid:=gen_random_uuid();
   v_captain_b uuid:=gen_random_uuid();
   v_captain_c uuid:=gen_random_uuid();
@@ -48,6 +49,7 @@ declare
   v_player_membership uuid;
   v_player_two_membership uuid;
   v_membership uuid;
+  v_membership_three uuid;
   v_request_b uuid;
   v_request_c uuid;
   v_request_two uuid;
@@ -70,6 +72,7 @@ begin
   values
     (v_player,'authenticated','authenticated','ci-transfer-player@openplay.invalid','','{}'::jsonb,now(),now(),now()),
     (v_player_two,'authenticated','authenticated','ci-transfer-player-two@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    (v_player_three,'authenticated','authenticated','ci-transfer-player-three@openplay.invalid','','{}'::jsonb,now(),now(),now()),
     (v_source_captain,'authenticated','authenticated','ci-transfer-source-captain@openplay.invalid','','{}'::jsonb,now(),now(),now()),
     (v_captain_b,'authenticated','authenticated','ci-transfer-captain-b@openplay.invalid','','{}'::jsonb,now(),now(),now()),
     (v_captain_c,'authenticated','authenticated','ci-transfer-captain-c@openplay.invalid','','{}'::jsonb,now(),now(),now()),
@@ -83,6 +86,7 @@ begin
   values
     (v_player,'Transfer Test Player','+447700910001','ci-transfer-player@openplay.invalid',date '1990-01-01','registered',true),
     (v_player_two,'Transfer Test Player Two','+447700910002','ci-transfer-player-two@openplay.invalid',date '1990-01-02','registered',true),
+    (v_player_three,'Transfer Test Player Three','+447700910011','ci-transfer-player-three@openplay.invalid',date '1990-01-11','registered',true),
     (v_source_captain,'Transfer Source Captain','+447700910003','ci-transfer-source-captain@openplay.invalid',date '1990-01-03','registered',true),
     (v_captain_b,'Transfer Captain B','+447700910004','ci-transfer-captain-b@openplay.invalid',date '1990-01-04','registered',true),
     (v_captain_c,'Transfer Captain C','+447700910005','ci-transfer-captain-c@openplay.invalid',date '1990-01-05','registered',true),
@@ -313,7 +317,7 @@ begin
     raise exception 'Emergency mode remained open more than 24 hours before kickoff';
   end if;
 
-  select (public.request_player_transfer(v_b_st,'Normal transfer request to club B')).id
+  select (public.request_player_transfer(v_e_st,'Normal transfer request to club E')).id
   into v_request_two;
 
   begin
@@ -335,7 +339,14 @@ begin
 
   perform public.cancel_player_transfer_request(v_request_two);
 
-  -- Ordinary join requests are also single-destination within a league.
+  -- Re-request the destination through the transfer route and let its captain approve.
+  select (public.request_player_transfer(v_e_st,'Second transfer request to club E')).id
+  into v_request_two;
+  perform set_config('request.jwt.claim.sub',v_captain_e::text,true);
+  perform public.resolve_player_transfer_request(v_request_two,'approved','Destination captain approved');
+
+  -- Ordinary first-time join requests are also single-destination within a league.
+  perform set_config('request.jwt.claim.sub',v_player_three::text,true);
   perform public.request_team_membership(v_e_st);
   begin
     perform public.request_team_membership(v_f_st);
@@ -345,10 +356,10 @@ begin
     if v_error not like 'You already have a pending team request%' then raise; end if;
   end;
 
-  select id into v_membership from public.team_memberships
-  where season_team_id=v_e_st and user_id=v_player_two and status='pending';
+  select id into v_membership_three from public.team_memberships
+  where season_team_id=v_e_st and user_id=v_player_three and status='pending';
   perform set_config('request.jwt.claim.sub',v_captain_e::text,true);
-  perform public.resolve_team_membership_request(v_membership,'approved');
+  perform public.resolve_team_membership_request(v_membership_three,'approved');
 
   -- One active membership is enforced across seasons of the same league.
 
