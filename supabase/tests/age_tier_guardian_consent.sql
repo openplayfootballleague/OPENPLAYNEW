@@ -87,6 +87,22 @@ begin
   );
   execute 'reset role';
 
+  -- Repeated requests are throttled; they must not be used to spam a guardian.
+  execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
+  v_rejected:=false;
+  begin
+    perform * from public.request_player_guardian_consent(
+      v_minor,(current_date-interval '16 years')::date,'Guardian Test','guardian@openplay.invalid',
+      v_verify_hash_2,
+      v_withdraw_hash_2
+    );
+  exception when others then
+    v_rejected:=true;
+  end;
+  execute 'reset role';
+  if not v_rejected then raise exception 'Guardian consent request cooldown was not enforced'; end if;
+
   -- The guardian must explicitly confirm the single-use verification link.
   execute 'set local role service_role';
   perform set_config('request.jwt.claim.role','service_role',true);
@@ -190,6 +206,9 @@ begin
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_minor::text,true);
   execute 'reset role';
+  update public.player_guardian_consents
+  set requested_at=now()-interval '2 minutes'
+  where player_user_id=v_minor;
   execute 'set local role service_role';
   perform set_config('request.jwt.claim.role','service_role',true);
   perform * from public.request_player_guardian_consent(
