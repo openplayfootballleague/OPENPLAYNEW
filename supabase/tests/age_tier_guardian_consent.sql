@@ -18,6 +18,10 @@ declare
   v_withdraw_token constant text := repeat('b',64);
   v_verify_token_2 constant text := repeat('c',64);
   v_withdraw_token_2 constant text := repeat('d',64);
+  v_verify_hash text;
+  v_withdraw_hash text;
+  v_verify_hash_2 text;
+  v_withdraw_hash_2 text;
 begin
   insert into auth.users
     (id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
@@ -26,6 +30,14 @@ begin
     (v_minor,'authenticated','authenticated','ci-guardian-player@openplay.invalid','','{}'::jsonb,now(),now(),now()),
     (v_underage,'authenticated','authenticated','ci-underage-player@openplay.invalid','','{}'::jsonb,now(),now(),now());
   insert into public.user_roles(user_id,role,granted_by) values(v_admin,'admin',v_admin);
+
+  -- Hash test tokens as the migration/test owner. The helper is intentionally
+  -- not executable by authenticated clients; only the trusted Edge Function
+  -- supplies token hashes to the consent-request RPC.
+  v_verify_hash:=public.hash_guardian_consent_token(v_verify_token);
+  v_withdraw_hash:=public.hash_guardian_consent_token(v_withdraw_token);
+  v_verify_hash_2:=public.hash_guardian_consent_token(v_verify_token_2);
+  v_withdraw_hash_2:=public.hash_guardian_consent_token(v_withdraw_token_2);
 
   -- Under-16s may browse public information but cannot create player identities.
   execute 'set local role authenticated';
@@ -52,8 +64,8 @@ begin
 
   perform * from public.request_player_guardian_consent(
     (current_date-interval '16 years')::date,'Guardian Test','guardian@openplay.invalid',
-    public.hash_guardian_consent_token(v_verify_token),
-    public.hash_guardian_consent_token(v_withdraw_token)
+    v_verify_hash,
+    v_withdraw_hash
   );
   execute 'reset role';
 
@@ -134,8 +146,8 @@ begin
   perform set_config('request.jwt.claim.sub',v_minor::text,true);
   perform * from public.request_player_guardian_consent(
     (current_date-interval '16 years')::date,'Guardian Test','guardian@openplay.invalid',
-    public.hash_guardian_consent_token(v_verify_token_2),
-    public.hash_guardian_consent_token(v_withdraw_token_2)
+    v_verify_hash_2,
+    v_withdraw_hash_2
   );
   execute 'reset role';
   execute 'set local role anon';
