@@ -61,6 +61,14 @@ function RegisterPlayerPage() {
     const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,next)=>setSession(next));
     return ()=>{active=false;subscription.unsubscribe();};
   },[]);
+  const selectedAge=ageOn(dob);
+  const isUnderSixteen=selectedAge!==null&&selectedAge<16;
+  const isMinorPlayer=selectedAge!==null&&selectedAge>=16&&selectedAge<18;
+  const consentMatchesDate=guardianConsent?.player_date_of_birth===dob;
+  const consentApprovedForDate=isMinorPlayer&&consentMatchesDate&&guardianConsent?.status==="approved";
+  const waitingGuardianReview=isMinorPlayer&&consentMatchesDate&&guardianConsent?.status==="pending_admin_review";
+  const needsGuardianConsent=isMinorPlayer&&!consentApprovedForDate&&!waitingGuardianReview;
+
   async function submit(event:React.FormEvent<HTMLFormElement>){
     event.preventDefault();setError("");setMessage("");setBusy(true);
     try{
@@ -117,18 +125,18 @@ function RegisterPlayerPage() {
       <label>Full name<input autoComplete="name" required maxLength={120} value={name} onChange={e=>setName(e.target.value)}/></label>
       <label>Mobile number<input type="tel" autoComplete="tel" required maxLength={30} value={phone} onChange={e=>setPhone(e.target.value)}/></label>
       <label>Date of birth<input type="date" required max={new Date().toISOString().slice(0,10)} value={dob} onChange={e=>setDob(e.target.value)}/></label>
-      {dob&&ageOn(dob)!==null&&ageOn(dob)!==undefined&&ageOn(dob)!<16&&<p className="form-error" role="status">Under-16s can browse public Open Play information but cannot register as players or join teams.</p>}
-      {dob&&ageOn(dob)!>=16&&ageOn(dob)!<18&&guardianConsent?.player_date_of_birth===dob&&guardianConsent.status==="pending_verification"&&<p className="form-success" role="status">Waiting for your parent or legal guardian to verify the consent email.</p>}
-      {dob&&ageOn(dob)!>=16&&ageOn(dob)!<18&&guardianConsent?.player_date_of_birth===dob&&guardianConsent.status==="pending_admin_review"&&<p className="form-success" role="status">Guardian consent verified. Waiting for Open Play administrator review.</p>}
-      {dob&&ageOn(dob)!>=16&&ageOn(dob)!<18&&guardianConsent?.player_date_of_birth===dob&&guardianConsent.status==="approved"&&<p className="form-success" role="status">Guardian consent approved. You can now submit your player registration.</p>}
-      {dob&&ageOn(dob)!>=16&&ageOn(dob)!<18&&!(guardianConsent?.player_date_of_birth===dob&&(guardianConsent.status==="pending_admin_review"||guardianConsent.status==="approved"))&&<>
+      {isUnderSixteen&&<p className="form-error" role="status">Under-16s can browse public Open Play information but cannot register as players or join teams.</p>}
+      {isMinorPlayer&&consentMatchesDate&&guardianConsent?.status==="pending_verification"&&<p className="form-success" role="status">Waiting for your parent or legal guardian to verify the consent email.</p>}
+      {waitingGuardianReview&&<p className="form-success" role="status">Guardian consent verified. Waiting for Open Play administrator review.</p>}
+      {consentApprovedForDate&&<p className="form-success" role="status">Guardian consent approved. You can now submit your player registration.</p>}
+      {needsGuardianConsent&&<>
         <p>Players aged 16–17 need verified parent or legal-guardian consent and Open Play administrator approval before registration.</p>
         <label>Parent or legal guardian full name<input autoComplete="name" required maxLength={120} value={guardianName} onChange={e=>setGuardianName(e.target.value)}/></label>
         <label>Parent or legal guardian email<input type="email" autoComplete="email" required maxLength={254} value={guardianEmail} onChange={e=>setGuardianEmail(e.target.value)}/></label>
       </>}
       {error&&<p className="form-error" role="alert">{error}</p>}
       {message&&<p className="form-success" role="status">{message}</p>}
-      <button className="button" type="submit" disabled={busy||Boolean(dob&&ageOn(dob)!==null&&ageOn(dob)!<16)||Boolean(dob&&ageOn(dob)!==null&&ageOn(dob)!>=16&&ageOn(dob)!<18&&guardianConsent?.player_date_of_birth===dob&&guardianConsent.status==="pending_admin_review")}>{busy?"PLEASE WAIT…":dob&&ageOn(dob)!==null&&ageOn(dob)!>=16&&ageOn(dob)!<18&&!(guardianConsent?.status==="approved"&&guardianConsent.player_date_of_birth===dob)?"REQUEST GUARDIAN CONSENT":"SUBMIT PLAYER REGISTRATION"} <span aria-hidden="true">↗</span></button>
+      <button className="button" type="submit" disabled={busy||isUnderSixteen||waitingGuardianReview}>{busy?"PLEASE WAIT…":isMinorPlayer&&!consentApprovedForDate?"REQUEST GUARDIAN CONSENT":"SUBMIT PLAYER REGISTRATION"} <span aria-hidden="true">↗</span></button>
     </form>}<button className="auth-text-button" type="button" onClick={async()=>{await getSupabaseClient().auth.signOut();await navigate({to:"/"});}}>Sign out</button>
   </section><PlayerBottomNavigation /></main>;
 }
