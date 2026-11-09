@@ -1104,9 +1104,16 @@ begin
   where id=p_membership_id and status='pending' for update;
   if not found then raise exception 'No pending team request exists'; end if;
 
+  select l.location_id into v_location_id
+  from public.season_teams st
+  join public.seasons s on s.id=st.season_id
+  join public.leagues l on l.id=s.league_id
+  where st.id=v_membership.season_team_id;
+
   if not public.has_platform_role()
-     and not public.is_active_team_captain(v_membership.season_team_id) then
-    raise exception 'Captain permission required';
+     and not public.is_active_team_captain(v_membership.season_team_id)
+     and not public.can_administer_location(v_location_id) then
+    raise exception 'Captain or assigned location administrator permission required';
   end if;
 
   if p_decision='approved' then
