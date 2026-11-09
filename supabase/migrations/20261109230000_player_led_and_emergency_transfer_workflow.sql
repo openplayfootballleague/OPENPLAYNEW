@@ -270,7 +270,7 @@ begin
       and ts.season_team_id=v_membership.season_team_id
       and f.status in ('scheduled','in_progress')
   ) then
-    raise exception 'You are on a submitted upcoming team sheet. Ask an administrator to amend it before leaving';
+    raise exception 'You are on a submitted sheet for a fixture that has not been completed. Ask an administrator to amend it before leaving';
   end if;
 
   select name into v_team_name from public.season_teams where id=v_membership.season_team_id;
@@ -418,12 +418,19 @@ begin
     (c.target_fixture_id is not null),c.target_fixture_id,c.target_fixture_scheduled_at
   from candidates_with_fixture c
   join season_modes m on m.league_id=c.league_id
-  where
-    (m.emergency_open or m.has_emergency_request)
-    and c.target_fixture_id is not null
-    and not m.has_normal_request
+  where (
+    (
+      (m.emergency_open or m.has_emergency_request)
+      and c.target_fixture_id is not null
+      and not m.has_normal_request
+    )
     or
-    (not m.emergency_open and not m.has_emergency_request and not m.has_normal_request)
+    (
+      not m.emergency_open
+      and not m.has_emergency_request
+      and not m.has_normal_request
+    )
+  )
   order by c.league_name,c.season_name,c.destination_team_name;
 end;
 $$;
@@ -717,7 +724,7 @@ declare
   v_membership public.team_memberships;
 begin
   if p_actor is null then raise exception 'Authentication required'; end if;
-  if p_decision not in ('approved','rejected') then
+  if p_decision is null or p_decision not in ('approved','rejected') then
     raise exception 'Decision must be approved or rejected';
   end if;
   if p_reason is null or length(btrim(p_reason))<5 then
@@ -728,6 +735,8 @@ begin
   from public.player_transfer_requests
   where id=p_request_id;
   if not found then raise exception 'Transfer request not found'; end if;
+
+  if v_request.user_id is null then raise exception 'The transfer request no longer belongs to an active player account'; end if;
 
   perform pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtextextended(v_request.user_id::text || ':' || v_request.league_id::text,0)
