@@ -46,7 +46,7 @@ begin
   if position('is_active_team_captain' in lower(v_child_guard)) = 0
      or position('captain_next_required_fixture' in lower(v_child_guard)) = 0
      or position('v_locked' in lower(v_child_guard)) = 0
-     or position('v_status <> ''completed''' in lower(v_child_guard)) = 0 then
+     or position('v_status = ''completed''' in lower(v_child_guard)) = 0 then
     raise exception 'Team-sheet child writes do not preserve captain sequence and completed/locked admin amendment boundary';
   end if;
 

@@ -170,12 +170,17 @@ begin
 
   if not found then raise exception 'Team sheet not found'; end if;
 
-  if public.has_platform_role() and not public.is_active_team_captain(v_team_id) then
-    if not v_locked or v_status <> 'completed' then
+  if public.has_platform_role() then
+    -- Administrators may use the post-match amendment RPC for completed,
+    -- locked sheets. An administrator who is also the active team captain
+    -- can still use the captain workflow for the next scheduled fixture.
+    if v_locked and v_status = 'completed' then
+      if tg_op = 'DELETE' then return old; end if;
+      return new;
+    end if;
+    if not public.is_active_team_captain(v_team_id) then
       raise exception 'Administrators may amend only locked sheets for completed fixtures';
     end if;
-    if tg_op = 'DELETE' then return old; end if;
-    return new;
   end if;
 
   if not public.is_active_team_captain(v_team_id) then
