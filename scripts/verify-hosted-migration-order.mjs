@@ -8,7 +8,7 @@ import {
   rmSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 
 const root = process.cwd();
 const manifestPath = join(root, "docs/supabase-migration-source-manifest-2026-11-08.md");
@@ -33,8 +33,8 @@ const allMigrations = readdirSync(migrationDirectory)
   .sort();
 const appliedSet = new Set(appliedPaths.map((path) => path.split("/").at(-1)));
 const pending = allMigrations.filter((name) => !appliedSet.has(name));
-if (allMigrations.length !== 108 || pending.length !== 9) {
-  throw new Error(`Expected 108 local migrations (99 applied + 9 pending); found ${allMigrations.length} total and ${pending.length} pending`);
+if (allMigrations.length !== 109 || pending.length !== 10) {
+  throw new Error(`Expected 109 local migrations (99 applied + 10 pending); found ${allMigrations.length} total and ${pending.length} pending`);
 }
 
 const latestAppliedVersion = appliedPaths
@@ -43,9 +43,10 @@ const latestAppliedVersion = appliedPaths
   .at(-1);
 const pendingBeforeLatest = pending.filter((name) => name.slice(0, 14) <= latestAppliedVersion);
 if (latestAppliedVersion !== "20261108194831" ||
-    pendingBeforeLatest.length !== 2 ||
-    pendingBeforeLatest[0] !== "20261108150000_canonicalize_player_phone.sql" ||
-    pendingBeforeLatest[1] !== "20261108160000_enforce_player_ban_and_captain_succession.sql") {
+    pendingBeforeLatest.length !== 3 ||
+    pendingBeforeLatest[0] !== "20261108021000_captain_next_required_fixture_and_admin_amendment.sql" ||
+    pendingBeforeLatest[1] !== "20261108150000_canonicalize_player_phone.sql" ||
+    pendingBeforeLatest[2] !== "20261108160000_enforce_player_ban_and_captain_succession.sql") {
   throw new Error("The pending migration timestamp relationship has changed; review the release-order assumptions before continuing");
 }
 

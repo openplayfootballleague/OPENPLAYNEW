@@ -1212,6 +1212,7 @@ begin
  select * into v_fixture from public.fixtures where id=v_sheet.fixture_id;
  if not found then raise exception 'Fixture not found'; end if;
  perform public.assert_admin_location_context((select l.location_id from public.seasons s join public.leagues l on l.id=s.league_id where s.id=v_fixture.season_id));
+ if v_fixture.status <> 'completed' then raise exception 'A team sheet can be amended only after its fixture is marked completed'; end if;
  if not v_sheet.is_locked then raise exception 'Only submitted, locked team sheets can be amended here'; end if;
  if v_sheet.season_team_id not in (v_fixture.home_team_id,v_fixture.away_team_id) then raise exception 'Team sheet does not belong to this fixture'; end if;
  select l.format into v_format from public.seasons s join public.leagues l on l.id=s.league_id where s.id=v_fixture.season_id;
@@ -1284,11 +1285,14 @@ begin
     (array_agg(tm.id) filter(where tsp.is_goalkeeper and tm.id is not null))[1],
     s.is_locked,s.submitted_at,s.draft_saved_at
   from public.fixture_team_sheets s
+  join public.fixtures f on f.id=s.fixture_id
   join public.team_memberships captain on captain.season_team_id=s.season_team_id
     and captain.user_id=v_actor and captain.is_captain=true and captain.status='active'
   left join public.fixture_team_sheet_players tsp on tsp.team_sheet_id=s.id
   left join public.team_memberships tm on tm.user_id=tsp.user_id and tm.season_team_id=s.season_team_id and tm.status='active'
   where s.fixture_id=p_fixture_id
+    and f.status='scheduled'
+    and public.captain_next_required_fixture(s.season_team_id)=p_fixture_id
   group by s.id;
 end;
 $$;

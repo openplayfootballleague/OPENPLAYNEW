@@ -111,6 +111,10 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/competition_identity_erasure.sql
+      - name: Verify captain next-required fixture and post-match amendment guards
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/captain_next_required_fixture_regression.sql
 
       - name: Verify Auth signup, email confirmation and password recovery
         shell: bash
