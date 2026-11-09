@@ -117,10 +117,10 @@ function AdminDashboardPage(){
     {isGlobalAdmin?<a href="#admin-communications">13 Communications</a>:<span className="admin-nav-disabled" aria-disabled="true" title="Communications controls are restricted to platform administrators">13 Communications</span>}
     <a href="#admin-gallery">14 Gallery</a>
     <a href="#admin-settings">15 Settings &amp; Feature Management</a>
-    {isGlobalAdmin&&<Link to="/admin/referees">16 Referee applications</Link>}
    </nav>
    <div className="admin-workspace-utility-nav" aria-label="Additional administrative tools">
     <a href="#admin-transfers">Transfer queue</a>
+    {isGlobalAdmin&&<Link to="/admin/referees">Referee applications</Link>}
     {isGlobalAdmin&&<a href="#admin-audit">Audit history</a>}
    </div><p className="admin-finance-link"><Link to="/finance">OPEN FINANCE LEDGER <span>↗</span></Link></p><p className="admin-finance-link"><Link to="/admin-help">ADMIN HELP &amp; GUIDES <span>↗</span></Link></p>
   {error&&<p className="form-error" role="alert">{error}</p>}{notice&&<p className="form-success" role="status">{notice}</p>}
