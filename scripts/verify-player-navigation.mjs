@@ -58,3 +58,10 @@ assert.ok(requiredSession.includes("authEventSeen") && requiredSession.includes(
 const passwordRecovery = readFileSync("src/routes/reset-password.tsx", "utf8");
 assert.ok(passwordRecovery.includes("resetPasswordForEmail") && passwordRecovery.includes("If an account exists for that address"), "Expired password-reset links must offer a non-enumerating fresh reset request");
 assert.ok(passwordRecovery.includes("auth.signOut()") && passwordRecovery.includes("setUpdated(true)"), "Password reset completion must sign out and require a fresh sign-in");
+
+const adminStats = readFileSync("src/routes/admin.tsx", "utf8");
+const matchCentreSource = readFileSync("src/routes/match-centre.tsx", "utf8");
+const standingsSource = readFileSync("src/lib/competition/standings.ts", "utf8");
+assert.ok(standingsSource.includes("getJointFirstTeams") && standingsSource.includes("leaders.length > 1 ? leaders : []"), "Tied first-place teams must be detected without goal-difference tie-breaks");
+assert.ok(adminStats.includes("Final required:") && adminStats.includes("Schedule a final to decide the season winner"), "Admin season statistics must flag a tied first place and prompt a final");
+assert.ok(matchCentreSource.includes("Final required between") && matchCentreSource.includes("jointFirstTeams.length>1"), "Public Match Centre must disclose when a tied first place requires a final");
