@@ -89,6 +89,13 @@ alter table public.fixture_goal_records
     foreign key (competition_player_id)
     references public.competition_player_identities(id) on delete restrict;
 
+-- A voided goal remains historically voided after its actor is anonymised.
+-- Keep the void timestamp/reason while allowing the personal actor reference to be null.
+alter table public.fixture_goal_records
+  drop constraint fixture_goal_records_void_pair,
+  add constraint fixture_goal_records_void_pair
+    check (voided_at is not null or voided_by is null);
+
 create index fixture_goal_records_competition_identity_active_idx
   on public.fixture_goal_records(competition_player_id)
   where voided_at is null;
