@@ -352,6 +352,23 @@ begin
   if v_count <> 4 then raise exception 'Global admin cannot read all player profiles'; end if;
   select count(*) into v_count from public.leagues where id in ('00000000-0000-4000-8000-000000000020','00000000-0000-4000-8000-000000000021');
   if v_count <> 2 then raise exception 'Global admin cannot read both private leagues'; end if;
+
+  -- Global administrators may amend a sheet only after the fixture is completed.
+  v_denied := false;
+  begin
+    perform public.admin_amend_team_sheet(
+      v_cross_location_sheet,
+      '{}'::uuid[],'{}'::uuid[],null,'CI pre-match amendment rejection'
+    );
+  exception when others then
+    if sqlerrm = 'A team sheet can be amended only after its fixture is marked completed' then
+      v_denied := true;
+    else
+      raise;
+    end if;
+  end;
+  if not v_denied then raise exception 'Global admin amended a sheet before its fixture was completed'; end if;
+
   perform public.admin_set_location_assignment('00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000011',true);
   select count(*) into v_count from public.admin_list_location_assignments(null);
   if v_count <> 2 then raise exception 'Global admin cannot manage and list location assignments'; end if;
