@@ -22,3 +22,7 @@ schema_paths = []
 
 [db.seed]
 enabled = false
+
+[functions.guardian-consent]
+# The function validates authenticated requests itself; guardian links are public, single-use tokens.
+verify_jwt = false
