@@ -20,6 +20,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [ ] Phone canonicalisation and player-ban/captain-succession suites pass.
 - [ ] Age-tier, guardian-consent, withdrawal, cooldown and admin-review suites pass.
 - [ ] Retention/reactivation lifecycle suite passes.
+- [ ] Global-admin retention-hold permissions, closure exclusion and audit lifecycle suite passes.
 - [ ] Permanent competition-identity and safe-erasure suite passes.
 - [ ] Auth signup, email confirmation and password-recovery lifecycle passes.
 
@@ -42,7 +43,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [ ] Eligibility requires 12 months without successful sign-in and no active/pending membership.
 - [ ] Never-signed-in accounts use account creation time as the inactivity baseline.
 - [ ] Global and location administrators, legal/safeguarding holds and unresolved financial obligations are excluded.
-- [ ] An authorised, audited admin workflow exists to set, review and clear retention holds with a recorded reason. **Current gap:** the schema has a hold flag, but no verified admin UI/RPC workflow has been signed off.
+- [ ] The global-admin retention workspace can search player accounts and set/clear holds with a required reason; every change is recorded in the audit log. Holds cannot be applied after the final `erasure_due` stage.
 - [ ] Eligibility is rechecked under lock immediately before closure and erasure.
 - [ ] Closure bans Auth sign-in and the app rejects closed/erasure-due accounts when observed.
 - [ ] Restricted archive lasts 12 months.
