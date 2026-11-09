@@ -130,6 +130,30 @@ begin
     raise exception 'Guardian withdrawal left captaincy active';
   end if;
 
+  -- The separate identity-review RPC must not bypass the guardian-consent
+  -- requirement when an administrator attempts to restore player access.
+  insert into public.player_registration_reviews(
+    player_id,name_matched,phone_matched,email_matched,matched_player_ids
+  ) values(v_player.id,true,true,false,array[v_player.id]);
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  v_rejected:=false;
+  begin
+    perform public.resolve_player_registration_review(v_player.id,'approved','CI guardian bypass test');
+  exception when others then
+    v_rejected:=true;
+  end;
+  execute 'reset role';
+  if not v_rejected then
+    raise exception 'Admin identity-review approval bypassed withdrawn guardian consent';
+  end if;
+  if (select registration_status from public.players where user_id=v_minor)<>'rejected' then
+    raise exception 'Failed identity-review approval changed the suspended player registration';
+  end if;
+  if (select status from public.player_registration_reviews where player_id=v_player.id)<>'pending' then
+    raise exception 'Failed identity-review approval consumed the pending review';
+  end if;
+
   -- Withdrawal and verification links are one-use; a second withdrawal fails.
   execute 'set local role anon';
   v_rejected:=false;
