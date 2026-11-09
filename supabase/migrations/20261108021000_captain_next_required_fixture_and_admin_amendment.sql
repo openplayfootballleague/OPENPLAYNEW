@@ -376,3 +376,11 @@ revoke all on function public.get_captain_team_sheet(uuid) from public, anon;
 grant execute on function public.get_captain_team_sheet(uuid) to authenticated;
 revoke all on function public.admin_amend_team_sheet(uuid, uuid[], uuid[], uuid, text) from public, anon;
 grant execute on function public.admin_amend_team_sheet(uuid, uuid[], uuid[], uuid, text) to authenticated;
+
+-- Captains and administrators must use the protected RPCs for every sheet
+-- write. Keep SELECT access governed by RLS, but remove direct client DML so
+-- callers cannot bypass the next-fixture and audited-amendment boundaries.
+revoke insert, update, delete on table
+  public.fixture_team_sheets,
+  public.fixture_team_sheet_players
+from public, anon, authenticated;
