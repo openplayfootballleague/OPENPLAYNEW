@@ -4,7 +4,7 @@
 **Project:** `ghnrsysvrlgkjmdlwdmp`  
 **Branch:** `fix/phase1-player-identity-security-2026-11-08`  
 **Applied ledger rows:** 99  
-**Canonical source files:** 99/99 present, unique version prefixes  
+**Applied canonical source files:** 99/99 present, unique version prefixes  
 **Phase 1 release migration:** `20261108194831_phase1_completion_bundle.sql` is applied to the dedicated Open Play New project. It consolidates the seven outstanding security/authorization corrections plus the Phase 1 picture-only profile permission correction. A clean local replay and all SQL authorization/identity regression tests passed in CI before application.
 
 This manifest maps every applied ledger version/name to its canonical source path and Git blob SHA. The 24 previously unmapped source statements were recovered from the live migration ledger. The other 74 source statements were reconciled from the verified PR #2, PR #6 and PR #21 source sets. The migration ledger's `name` field may retain an older embedded timestamp; the source path is mapped by the authoritative 14-digit applied version prefix.
@@ -118,5 +118,6 @@ This manifest maps every applied ledger version/name to its canonical source pat
 - All 99 migration file prefixes are unique and every source file corresponds to an applied ledger version.
 - No duplicate synthetic-prefix copies of applied sources remain in this branch.
 - The canonical files are source artifacts. The consolidated Phase 1 release passed clean local replay and the complete SQL role/identity/authorization regression suite before being applied to the dedicated project.
+- Three additional forward-only migrations are present on the registration-safeguards branch and are not represented as applied ledger rows: phone canonicalisation, ban/captain succession, and age-tier/guardian-consent safeguards.
 - Do not reapply any of the already-recorded versions. Future schema changes must use new forward-only migration versions.
 
