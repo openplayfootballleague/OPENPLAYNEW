@@ -8,7 +8,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 ## 1. Automated verification
 
-- [x] Latest Phase 1 branch state, including retryable erasure, financial/transfer exclusions and reactivation concurrency guard, passed application build, Deno checks, domain tests, Edge Function/navigation assertions, Cloudflare dry-run, clean migration replay and all SQL/Auth lifecycle suites in [#1409](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42642606975).
+- [x] Latest Phase 1 branch state, including retryable erasure, financial/transfer exclusions and reactivation concurrency guard, passed application build, Deno checks, domain tests, Edge Function/navigation assertions, Cloudflare dry-run, clean migration replay and all SQL/Auth lifecycle suites in [#1410](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42643129331).
 - [x] Clean local Supabase migration replay succeeds from an empty database.
 - [x] Migration source manifest matches the actual migration files and Git blobs.
 - [x] Deno type-check succeeds for all Edge Functions.
@@ -23,7 +23,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [x] Global-admin retention-hold permissions, closure exclusion and audit lifecycle suite passes.
 - [x] Permanent competition-identity and safe-erasure suite passes.
 - [x] Auth signup, email confirmation and password-recovery lifecycle passes.
-- [x] The fixed bottom navigation contains exactly Home, Match Centre, Join Open Play and More; the public Home route redirects registered players to Player Hub, and the More page exposes the teams, gallery and account workspaces.
+- [x] Location administrator grants and revocations are audit-logged; duplicate grants do not duplicate events, stale grants remain revocable after role removal, and only global admins can mutate assignments (forward-only migration and SQL regression coverage).\n- [x] The fixed bottom navigation contains exactly Home, Match Centre, Join Open Play and More; the public Home route redirects registered players to Player Hub, and the More page exposes the teams, gallery and account workspaces.
 
 ## 2. Registration and account security
 
@@ -97,9 +97,9 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - The reviewed role helpers (has_finance_access, has_platform_role, has_global_admin_role, can_administer_location, is_active_team_captain and is_active_team_member) all use auth.uid() and have an explicit empty search_path.
 - The three advisor INFO tables (admin_context_preferences, gallery_items and location_admin_assignments) have RLS enabled and no policies. Direct SELECT/INSERT/UPDATE/DELETE privileges are all false for both anon and authenticated, consistent with the RPC-only access design.
 - A line-by-line review of all 77 authenticated-callable RPC definitions was completed against this hosted snapshot. The reviewed functions use direct `auth.uid()` checks or a reviewed caller-scoped helper; global player-detail, registration-review, notification-control, audit-history and location-assignment operations require global-admin roles; finance operations require the global finance/admin role; location operations enforce assigned-location context; player and captain operations are scoped to the signed-in user or an active team membership. No anonymous execution path or confirmed cross-user/cross-location authorization bypass was identified in the reviewed definitions. No dynamic SQL execution was found in the authenticated-callable SECURITY DEFINER set.
-- One non-authorization auditability gap was noted: `admin_set_location_assignment` is restricted to global administrators but does not currently write an `audit_log` entry when an assignment is granted or revoked. Record this for hardening before broad delegation of location administration.
+- The hosted snapshot predates the new location-assignment audit migration. The branch now records each actual grant/revocation in `audit_log`, avoids duplicate grant events, and permits stale assignment revocation after the league-admin role is removed. This is covered by a local SQL regression test; it has not been applied to the hosted project.
 - All six Edge Function sources were reviewed. `guardian-consent` and `player-account-retention` have public entrypoints but validate the signed-in user, one-use token or cron secret themselves; `stripe-webhook` validates Stripe's raw-body signature and rejects live-mode events; `public-gallery` exposes only published items in active locations; `create-player-checkout` validates the signed-in user; and `deliver-notifications` accepts the service-role worker path or a global administrator for manual dispatch. Function gateway settings are explicit and protected by CI assertions. Guardian emails omit date of birth, notification provider error records omit raw response bodies, and checkout no longer contains a Lovable-origin fallback.
-- The hosted snapshot predates the eight un-applied Phase 1 migrations; it does not certify their future hosted grants or function definitions. Those are covered by clean local replay and SQL regression tests, with deployment still blocked pending release approval.
+- The hosted snapshot predates the nine un-applied Phase 1 migrations; it does not certify their future hosted grants or function definitions. Those are covered by clean local replay and SQL regression tests, with deployment still blocked pending release approval.
 
 ## 6. Release prerequisites (not part of local CI)
 
