@@ -48,4 +48,7 @@ const checkout = readFileSync("supabase/functions/create-player-checkout/index.t
 assert.ok(checkout.includes("userClient.auth.getUser(token)"), "Checkout must validate the signed-in user");
 assert.ok(!checkout.includes("lovable.app"), "Open Play New must not fall back to the retired Lovable origin");
 
-console.log("Edge Function security configuration and boundary assertions passed.");
+const captainHub = readFileSync("src/routes/captain.tsx", "utf8");
+assert.ok(captainHub.includes("fixtures[0].fixture_id") && captainHub.includes("!fixtures.some(f=>f.fixture_id===selectedFixture)"), "Captains Hub must preselect the earliest scheduled fixture and restore its saved or submitted sheet");
+
+console.log("Edge Function security configuration and Phase 1 workflow boundary assertions passed.");
