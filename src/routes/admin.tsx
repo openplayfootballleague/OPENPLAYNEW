@@ -102,6 +102,7 @@ function AdminDashboardPage(){
     <a href="#admin-team-approvals">04 Team Approvals</a>
     <a href="#admin-player-approvals">05 Player Approvals</a>
     <Link to="/admin/guardian-consents">06 Guardian Consents ↗</Link>
+    {isGlobalAdmin?<Link to="/admin/retention">17 Player Retention ↗</Link>:null}
     <a href="#admin-team-registers">07 Teams &amp; Squads</a>
     <a href="#admin-players">08 Players</a>
     <a href="#admin-fixtures">09 Fixtures</a>
@@ -201,6 +202,7 @@ function AdminDashboardPage(){
     {isGlobalAdmin&&<article className="admin-setup-form"><h3>Administrator access</h3><p className="form-note">Assign existing league administrators to locations. This does not create accounts or grant a platform-wide administrator role.</p><a className="admin-inline-action" href="#admin-competitions">MANAGE LOCATION ASSIGNMENTS</a></article>}
     {isGlobalAdmin&&<article className="admin-setup-form"><h3>Notifications &amp; delivery</h3><p className="form-note">Review the notification outbox and automatic delivery controls. Delivery remains disabled until provider and Vault configuration is verified.</p><a className="admin-inline-action" href="#admin-communications">OPEN COMMUNICATIONS</a></article>}
     {isGlobalAdmin&&<article className="admin-setup-form"><h3>Audit history</h3><p className="form-note">Search administrative audit metadata. Private before/after payloads remain withheld from this view.</p><a className="admin-inline-action" href="#admin-audit">OPEN AUDIT HISTORY</a></article>}
+    {isGlobalAdmin&&<article className="admin-setup-form"><h3>Player account retention</h3><p className="form-note">Review inactivity and archive status. Apply or clear documented retention holds with a reason and audit trail.</p><Link className="admin-inline-action" to="/admin/retention">OPEN RETENTION WORKSPACE</Link></article>}
    </div>
    <div className="admin-setup-form"><h3>Not yet configurable here</h3><p className="form-note">Global feature flags, branding controls, role creation, advanced competition-rule overrides and central security settings are not yet backed by a complete settings workflow. They are deliberately not presented as editable controls. Existing permissions, database safeguards and audit controls remain in force.</p></div>
   </section><Link className="auth-switch" to="/player">Back to Player Hub</Link>
