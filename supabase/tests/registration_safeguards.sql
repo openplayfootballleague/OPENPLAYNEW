@@ -225,11 +225,11 @@ begin
       end if;
       return new;
     end;
-    $fn$;
-    create trigger ci_fail_captain_handover_notification
-    before insert on public.notification_events
-    for each row execute function pg_temp.fail_captain_handover_notification();
+    $fn$
   $ddl$;
+  execute 'create trigger ci_fail_captain_handover_notification
+    before insert on public.notification_events
+    for each row execute function pg_temp.fail_captain_handover_notification()';
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
   v_rejected := false;
