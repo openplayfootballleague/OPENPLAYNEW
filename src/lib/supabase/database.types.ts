@@ -1026,6 +1026,12 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_closed_at: string | null
+          account_retention_status: string
+          archive_expires_at: string | null
+          account_closed_at: string | null
+          account_retention_status: string
+          archive_expires_at: string | null
           avatar_path: string | null
           created_at: string
           date_of_birth: string | null
@@ -1035,11 +1041,23 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          last_sign_in_at: string
           phone: string | null
           preferred_position: string | null
+          reactivation_requested_at: string | null
+          reactivation_token_expires_at: string | null
+          reactivation_token_hash: string | null
+          retention_hold: boolean
+          retention_hold_reason: string | null
           updated_at: string
         }
         Insert: {
+          account_closed_at?: string | null
+          account_retention_status?: string
+          archive_expires_at?: string | null
+          account_closed_at?: string | null
+          account_retention_status?: string
+          archive_expires_at?: string | null
           avatar_path?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -1049,8 +1067,14 @@ export type Database = {
           first_name?: string | null
           id: string
           last_name?: string | null
+          last_sign_in_at?: string
           phone?: string | null
           preferred_position?: string | null
+          reactivation_requested_at?: string | null
+          reactivation_token_expires_at?: string | null
+          reactivation_token_hash?: string | null
+          retention_hold?: boolean
+          retention_hold_reason?: string | null
           updated_at?: string
         }
         Update: {
@@ -1481,6 +1505,38 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_close_inactive_player_account: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      admin_list_expired_player_account_archives: {
+        Args: never
+        Returns: { archive_expires_at: string; email: string | null; user_id: string }[]
+      }
+      admin_list_inactive_player_accounts: {
+        Args: never
+        Returns: { email: string | null; last_sign_in_at: string; user_id: string }[]
+      }
+      admin_mark_player_account_erasure_due: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      complete_player_account_reactivation: {
+        Args: { p_token_hash: string; p_user_id: string }
+        Returns: boolean
+      }
+      get_my_player_account_retention_status: {
+        Args: never
+        Returns: { account_closed_at: string | null; account_retention_status: string; archive_expires_at: string | null }[]
+      }
+      get_player_account_reactivation_target: {
+        Args: { p_token_hash: string }
+        Returns: string
+      }
+      request_player_account_reactivation: {
+        Args: { p_email: string; p_token_hash: string }
+        Returns: { email: string | null; user_id: string }[]
+      }
       admin_get_guardian_consent_queue: {
         Args: never
         Returns: {
