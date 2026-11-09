@@ -97,7 +97,7 @@ This manifest maps every applied ledger version/name to its canonical source pat
 | 20261108010502 | 20261108150000_context_scoped_admin_player_register | `supabase/migrations/20261108010502_context_scoped_admin_player_register.sql` | `ca907d7de32221c7c55035be2fe9ad5c21402cfa` |
 | 20261108010634 | 20261108160000_context_scoped_admin_team_sheets | `supabase/migrations/20261108010634_context_scoped_admin_team_sheets.sql` | `ffc6750082fb92a066297631d1871321fa6b7340` |
 | 20261108010707 | 20261108170000_context_scoped_admin_transfers | `supabase/migrations/20261108010707_context_scoped_admin_transfers.sql` | `3c7600542951cf7e44233a653d71b9b000f862cb` |
-| 20261108010816 | 20261108180000_context_scoped_admin_fixtures | `supabase/migrations/20261108010816_context_scoped_admin_fixtures.sql` | `85ff6d7b116f241bc2c66de3689f1d3adc9b9952` |
+| 20261108010816 | 20261108180000_context_scoped_admin_fixtures | `supabase/migrations/20261108010816_context_scoped_admin_fixtures.sql` | `60297dc9d0ebdbe0ebb85265dd8e778542d0ade7` |
 | 20261108011216 | 20261108190000_location_admin_assignments | `supabase/migrations/20261108011216_20261108190000_location_admin_assignments.sql` | `b5f972cfffffbece69bdc7fdafafa7f5b37c61c8` |
 | 20261108011320 | 20261108200000_enforce_location_admin_scope | `supabase/migrations/20261108011320_enforce_location_admin_scope.sql` | `e77f9aa0c6f513763c8fe9dd8e7ffdc7cb4ccb3a` |
 | 20261108011333 | 20261108210000_scope_admin_setup_and_preferences | `supabase/migrations/20261108011333_scope_admin_setup_and_preferences.sql` | `aaef50e5d2dbf83c13cdb5a98ac5d9391e5f3087` |
