@@ -341,7 +341,7 @@ begin
     ) eligible on true
   ),
   season_modes as (
-    select c.league_id,c.season_id,
+    select c.league_id,
       bool_or(c.target_fixture_id is not null) as emergency_open,
       coalesce(bool_or(r.status='pending' and r.is_emergency and exists(
         select 1 from public.fixtures pending_fixture
@@ -360,14 +360,14 @@ begin
     from candidates_with_fixture c
     left join public.player_transfer_requests r
       on r.user_id=v_user and r.league_id=c.league_id and r.status='pending'
-    group by c.league_id,c.season_id
+    group by c.league_id
   )
   select c.source_membership_id,c.source_team_id,c.source_team_name,
     c.league_id,c.league_name,c.season_id,c.season_name,
     c.destination_team_id,c.destination_team_name,
     (c.target_fixture_id is not null),c.target_fixture_id,c.target_fixture_scheduled_at
   from candidates_with_fixture c
-  join season_modes m on m.league_id=c.league_id and m.season_id=c.season_id
+  join season_modes m on m.league_id=c.league_id
   where
     (m.emergency_open or m.has_emergency_request)
     and c.target_fixture_id is not null
@@ -467,6 +467,29 @@ begin
     pg_catalog.hashtextextended(v_user::text || ':' || v_league.id::text,0)
   );
 
+  -- Emergency requests expire when their fixture window closes or the
+  -- destination submits its sheet. Clear those stale requests before allowing a
+  -- new ordinary request in the same league.
+  update public.player_transfer_requests r
+  set status='cancelled',resolved_at=now(),resolved_by=v_user,
+      resolution_reason='Emergency transfer window closed before approval',
+      updated_at=now()
+  where r.user_id=v_user and r.league_id=v_league.id
+    and r.status='pending' and r.is_emergency
+    and not exists(
+      select 1 from public.fixtures pending_fixture
+      where pending_fixture.id=r.target_fixture_id
+        and pending_fixture.status='scheduled'
+        and pending_fixture.scheduled_at>now()
+        and pending_fixture.scheduled_at<=now()+interval '24 hours'
+        and not exists(
+          select 1 from public.fixture_team_sheets pending_sheet
+          where pending_sheet.fixture_id=pending_fixture.id
+            and pending_sheet.season_team_id=r.destination_season_team_id
+            and pending_sheet.is_locked=true
+        )
+    );
+
   if exists(
     select 1 from public.team_memberships tm
     join public.season_teams st on st.id=tm.season_team_id
@@ -515,7 +538,9 @@ begin
     from public.fixtures f
     join public.season_teams participant
       on participant.id in (f.home_team_id,f.away_team_id)
-    where f.season_id=v_season.id
+    join public.seasons participant_season on participant_season.id=f.season_id
+    where participant_season.league_id=v_league.id
+      and participant_season.status in ('registration_open','active')
       and participant.registration_status='approved'
       and f.status='scheduled'
       and f.scheduled_at>now()
