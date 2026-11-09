@@ -31,6 +31,8 @@ assert.ok(!guardian.includes("Their date of birth is"), "Guardian email must not
 const retention = readFileSync("supabase/functions/player-account-retention/index.ts", "utf8");
 assert.ok(retention.includes('req.headers.get("x-account-retention-secret")'), "Retention worker must validate its cron secret");
 assert.ok(retention.includes("get_player_account_reactivation_target") && retention.includes("complete_player_account_reactivation"), "Reactivation must use the token-bound database lifecycle");
+const reactivationHandler = retention.slice(retention.indexOf('if (req.method === "POST" && mode === "reactivate")'), retention.indexOf('if (req.method !== "POST")'));
+assert.ok(!reactivationHandler.includes('updateUserById(userId, { ban_duration: "876000h" })'), "A failed concurrent reactivation attempt must not re-ban an account another request may have successfully reactivated");
 
 const gallery = readFileSync("supabase/functions/public-gallery/index.ts", "utf8");
 assert.ok(gallery.includes('.eq("is_active", true)') && gallery.includes('.eq("is_published", true)'), "Public gallery must expose only active locations and published items");
