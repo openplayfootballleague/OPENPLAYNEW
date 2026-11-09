@@ -103,15 +103,15 @@ function AdminDashboardPage(){
     <a href="#admin-player-approvals">05 Player Approvals</a>
     <Link to="/admin/guardian-consents">06 Guardian Consents ↗</Link>
     <a href="#admin-team-registers">07 Teams &amp; Squads</a>
-    <a href="#admin-players">07 Players</a>
-    <a href="#admin-fixtures">08 Fixtures</a>
-    <a href="#admin-team-sheets">09 Team Sheets</a>
-    <a href="#admin-results">10 Results &amp; Match Events</a>
-    <Link to="/finance">11 Finance</Link>
-   <a href="#admin-reports">12 Analytics &amp; Reports</a>
-    {isGlobalAdmin?<a href="#admin-communications">13 Communications</a>:<span className="admin-nav-disabled" aria-disabled="true" title="Communications controls are restricted to platform administrators">13 Communications</span>}
-    <a href="#admin-gallery">14 Gallery</a>
-    <a href="#admin-settings">15 Settings &amp; Feature Management</a>
+    <a href="#admin-players">08 Players</a>
+    <a href="#admin-fixtures">09 Fixtures</a>
+    <a href="#admin-team-sheets">10 Team Sheets</a>
+    <a href="#admin-results">11 Results &amp; Match Events</a>
+    <Link to="/finance">12 Finance</Link>
+    <a href="#admin-reports">13 Analytics &amp; Reports</a>
+    {isGlobalAdmin?<a href="#admin-communications">14 Communications</a>:<span className="admin-nav-disabled" aria-disabled="true" title="Communications controls are restricted to platform administrators">14 Communications</span>}
+    <a href="#admin-gallery">15 Gallery</a>
+    <a href="#admin-settings">16 Settings &amp; Feature Management</a>
    </nav>
    <div className="admin-workspace-utility-nav" aria-label="Additional administrative tools">
     <a href="#admin-transfers">Transfer queue</a>
