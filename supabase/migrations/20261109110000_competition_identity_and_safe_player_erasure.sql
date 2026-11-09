@@ -591,10 +591,15 @@ begin
 
   update public.notification_events
   set payload = public.anonymise_player_audit_json(
-    public.anonymise_player_audit_json(payload, p_user_id), v_player_id
-  )
+        public.anonymise_player_audit_json(payload, p_user_id), v_player_id
+      ),
+      dedupe_key = replace(replace(dedupe_key,p_user_id::text,'anonymised'),v_player_id::text,'anonymised'),
+      last_error = null,
+      hold_reason = null
   where payload::text like '%' || p_user_id::text || '%'
-     or payload::text like '%' || v_player_id::text || '%';
+     or payload::text like '%' || v_player_id::text || '%'
+     or coalesce(dedupe_key,'') like '%' || p_user_id::text || '%'
+     or coalesce(dedupe_key,'') like '%' || v_player_id::text || '%';
 
   update public.player_registration_reviews
   set matched_player_ids = array_remove(matched_player_ids, v_player_id)
@@ -611,6 +616,8 @@ begin
           or entity_id in (p_user_id::text, v_player_id::text)
           or coalesce(before_data::text, '') like '%' || p_user_id::text || '%'
           or coalesce(after_data::text, '') like '%' || p_user_id::text || '%'
+          or coalesce(before_data::text, '') like '%' || v_player_id::text || '%'
+          or coalesce(after_data::text, '') like '%' || v_player_id::text || '%'
         then null else reason end,
       before_data = public.anonymise_player_audit_json(
         public.anonymise_player_audit_json(before_data, p_user_id), v_player_id
