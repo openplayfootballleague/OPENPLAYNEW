@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { classifyCheckoutWithoutSession, classifyExistingCheckoutSession, nextCheckoutAttempt } from "../../../src/lib/payments/stripe-settlement.ts";
 
 const cors = {
-  "Access-Control-Allow-Origin": Deno.env.get("APP_ORIGIN") ?? "https://openplayfootball.lovable.app",
+  "Access-Control-Allow-Origin": Deno.env.get("APP_ORIGIN") ?? "",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Vary": "Origin",
