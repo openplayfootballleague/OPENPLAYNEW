@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 
 const navigation = readFileSync("src/components/player-bottom-navigation.tsx", "utf8");
 const expected = [
-  'to: "/player" as const, label: "Home"',
+  'to: "/" as const, label: "Home"',
   'to: "/match-centre" as const, label: "Match Centre"',
   'to: "/join" as const, label: "Join Open Play"',
   'to: "/more" as const, label: "More"',
