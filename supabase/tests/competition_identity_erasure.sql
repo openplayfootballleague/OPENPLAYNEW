@@ -82,22 +82,38 @@ begin
   returning id into v_away_season_team;
 
   insert into public.fixtures(season_id,home_team_id,away_team_id,gameweek,status)
-  values(v_season,v_home_season_team,v_away_season_team,1,'completed')
+  values(v_season,v_home_season_team,v_away_season_team,1,'scheduled')
   returning id into v_fixture;
 
-  insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
-  values(v_fixture,1,0,now(),v_player);
+  -- Submit both historical sheets through real authenticated captain identities.
+  -- The fixture must remain scheduled while the next-fixture guard is exercised.
+  insert into public.team_memberships(season_team_id,user_id,status,is_captain)
+  values(v_home_season_team,v_player,'active',true)
+  returning id into v_membership;
 
+  insert into public.team_memberships(season_team_id,user_id,status,is_captain)
+  values(v_away_season_team,v_location_admin,'active',true);
+
+  perform set_config('request.jwt.claim.sub',v_player::text,true);
+  perform set_config('request.jwt.claim.role','authenticated',true);
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
   values(v_fixture,v_home_season_team,v_player,true,now())
   returning id into v_home_sheet;
 
+  perform set_config('request.jwt.claim.sub',v_location_admin::text,true);
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
-  values(v_fixture,v_away_season_team,v_admin,true,now())
+  values(v_fixture,v_away_season_team,v_location_admin,true,now())
   returning id into v_away_sheet;
 
+  perform set_config('request.jwt.claim.sub',v_player::text,true);
   insert into public.fixture_team_sheet_players(team_sheet_id,user_id,role,is_goalkeeper,squad_number_snapshot)
   values(v_home_sheet,v_player,'starter',false,8);
+
+  -- Complete the fixture only after both captains have submitted their sheets.
+  update public.fixtures set status='completed' where id=v_fixture;
+
+  insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
+  values(v_fixture,1,0,now(),v_player);
 
   insert into public.fixture_goal_records(fixture_id,season_team_id,scorer_user_id,created_by)
   values(v_fixture,v_home_season_team,v_player,v_player);
@@ -106,9 +122,11 @@ begin
     fixture_id,season_team_id,scorer_user_id,created_by,voided_at,voided_by,void_reason
   ) values(v_fixture,v_home_season_team,v_player,v_admin,now(),v_player,'Test voided record');
 
-  insert into public.team_memberships(season_team_id,user_id,status,is_captain,left_at)
-  values(v_home_season_team,v_player,'left',false,now())
-  returning id into v_membership;
+  -- The account is later erased, so preserve its membership as historical only.
+  update public.team_memberships
+  set status='left',is_captain=false,left_at=now()
+  where user_id in (v_player,v_location_admin)
+    and season_team_id in (v_home_season_team,v_away_season_team);
 
   insert into public.player_transfer_requests(
     user_id,source_membership_id,source_season_team_id,destination_season_team_id,
