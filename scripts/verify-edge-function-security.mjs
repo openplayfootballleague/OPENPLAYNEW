@@ -38,6 +38,11 @@ assert.ok(retentionMigration.includes("if v_previous_status = 'closed' then"), "
 const reactivationHandler = retention.slice(retention.indexOf('if (req.method === "POST" && mode === "reactivate")'), retention.indexOf('if (req.method !== "POST")'));
 assert.ok(!reactivationHandler.includes('updateUserById(userId, { ban_duration: "876000h" })'), "A failed concurrent reactivation attempt must not re-ban an account another request may have successfully reactivated");
 
+const assignmentAudit = readFileSync("supabase/migrations/20261109160000_audit_location_admin_assignments.sql", "utf8");
+assert.ok(assignmentAudit.includes("location_admin.assignment_granted") && assignmentAudit.includes("location_admin.assignment_revoked"), "Location administrator grants and revocations must be audited");
+assert.ok(assignmentAudit.includes("if p_assigned and not exists") && assignmentAudit.includes("delete from public.location_admin_assignments"), "Stale location assignments must remain revocable after the league_admin role is removed");
+assert.ok(assignmentAudit.includes("role in ('admin', 'super_admin')"), "Location assignment mutations must remain global-admin-only");
+
 const gallery = readFileSync("supabase/functions/public-gallery/index.ts", "utf8");
 assert.ok(gallery.includes('.eq("is_active", true)') && gallery.includes('.eq("is_published", true)'), "Public gallery must expose only active locations and published items");
 
