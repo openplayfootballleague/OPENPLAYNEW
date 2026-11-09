@@ -1029,9 +1029,6 @@ export type Database = {
           account_closed_at: string | null
           account_retention_status: string
           archive_expires_at: string | null
-          account_closed_at: string | null
-          account_retention_status: string
-          archive_expires_at: string | null
           avatar_path: string | null
           created_at: string
           date_of_birth: string | null
@@ -1055,9 +1052,6 @@ export type Database = {
           account_closed_at?: string | null
           account_retention_status?: string
           archive_expires_at?: string | null
-          account_closed_at?: string | null
-          account_retention_status?: string
-          archive_expires_at?: string | null
           avatar_path?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -1078,6 +1072,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_closed_at?: string | null
+          account_retention_status?: string
+          archive_expires_at?: string | null
           avatar_path?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -1087,8 +1084,14 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          last_sign_in_at?: string
           phone?: string | null
           preferred_position?: string | null
+          reactivation_requested_at?: string | null
+          reactivation_token_expires_at?: string | null
+          reactivation_token_hash?: string | null
+          retention_hold?: boolean
+          retention_hold_reason?: string | null
           updated_at?: string
         }
         Relationships: []
