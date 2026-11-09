@@ -18,11 +18,11 @@ Account access and player registration are separate states. Creating or holding 
 | 18+ | Eligible for normal player journey | Eligible | No parental consent required |
 
 ### Basic view (under 16)
-- Under-16 users may access the app in a restricted basic-view experience.
-- Basic view must not expose player-only functionality or private player/team information.
-- Under-16 users cannot register as players, join a team as a player, become a captain, or use player-only actions.
-- These restrictions must be enforced by server-side authorization and data access policies, not merely by hiding interface controls.
-- The precise list of public/basic-view screens and whether basic view requires an account must be defined consistently with the onboarding design before release.
+- Basic view is **account-based**, not anonymous-only. An under-16 may create an Open Play viewer account without creating a player identity.
+- The permitted experience is public Home, Match Centre and Teams/Leagues information: fixtures, results and league tables. The Join Open Play route may explain eligibility, but must not allow a team join request, team application or player registration.
+- The More page may expose public destinations and account controls only. It must not expose Player Hub, Captain Hub, Admin Dashboard or Finance Workspace links to a basic-view account; direct access to protected routes must also be denied.
+- Under-16 users cannot register as players, join a team as a player, become a captain, or use player-only actions. Player registration starts at age 16.
+- Basic view must not expose private player/team information. These restrictions must be enforced by server-side authorization and data access policies, not merely by hiding interface controls.
 
 ### Player registration (16+)
 - Date of birth is mandatory in player registration and eligibility is calculated using the date of birth, not a self-selected age.
@@ -79,16 +79,17 @@ The following is a working proposal for review, not a promise of fixed or indefi
 
 | Record category | Proposed approach |
 |---|---|
-| Account/contact details | Keep while account is active; review after 2 years of inactivity |
-| Player registration details | Keep while participating; review after 2 years from the end of participation |
-| Match appearances, results and league statistics | Preserve legitimate historical competition records; anonymise or remove identifiers when no longer needed |
+| Account/contact details | Current implementation: after 12 months without successful sign-in, close only if there is no active/pending team membership, unresolved payment, pending transfer, administrator assignment or legal/safeguarding hold; retain in a restricted archive for 12 months, then erase account-linked data subject to lawful exceptions |
+| Player registration details | Follow the same inactivity and 12-month restricted-archive lifecycle; verified reactivation restores the same player account without restoring membership or captaincy |
+| Match appearances, results and league statistics | Preserve the required competition history under a random account-independent identity; treat it as pseudonymised personal data unless a documented identifiability assessment establishes that it is genuinely anonymous |
 | Ban and disciplinary records | Retain only while needed for league integrity, safety, dispute handling or legal claims; review periodically |
 | Parent/guardian consent evidence | Keep while required to demonstrate valid consent and manage participation; review when the player turns 18 and under the final schedule |
-| Financial/accounting records | Retain for the applicable statutory/accounting period |
+| Financial/accounting records | Apply a separate statutory/accounting schedule; detach direct account/customer links where legally permitted |
 | Security and technical logs | Use a shorter documented period based on security and operational need |
 
 - No category is automatically retained for ten years simply because that is a convenient round number.
 - Define a retention owner, review cadence, deletion/anonymisation process and legal-hold exception.
+- The proposed 90/30/7-day advance-warning emails are not yet implemented. The retention workflow is manual-only; do not enable unattended closure until the notices, delivery round-trip and release approval are complete.
 - Historical sports records and identifiable personal information must be treated separately.
 - The schedule and lawful bases must be reviewed by a UK data-protection professional before publication.
 
@@ -109,3 +110,8 @@ These policies are not complete merely because they are documented. Before relea
 - complete browser, mobile and iPad acceptance testing.
 
 Do not apply hosted database changes, merge the pull request or deploy the app solely on the basis of this policy-document update.
+
+### Official UK ICO guidance used for this review
+- [Right to be informed](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/individual-rights/individual-rights/right-to-be-informed/): privacy information must identify the organisation and explain purposes, lawful bases, recipients, retention and individual rights.
+- [Pseudonymisation](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/data-sharing/anonymisation/pseudonymisation/): pseudonymised data remains personal data under UK GDPR.
+- [Storage limitation](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/data-protection-principles/a-guide-to-the-data-protection-principles/storage-limitation/): retention periods must be justified, documented and reviewed; the law does not prescribe one universal period.
