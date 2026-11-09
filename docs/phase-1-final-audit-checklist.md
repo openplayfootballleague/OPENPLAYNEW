@@ -77,6 +77,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [x] Notification payloads and audit metadata are reviewed for direct identifiers and scrubbed where associated with the account.
 - [x] Historic appearances, goals, results and statistics remain intact under the retained 'Former player' competition identity.
 - [ ] Privacy/legal review determines whether the stable competition identity plus retained match history is genuinely anonymous under UK GDPR or remains pseudonymous personal data. Until that review confirms otherwise, treat the retained identity/history as restricted personal data with a documented lawful basis and retention period.
+- [ ] Confirm PostHog remains a Phase 1 requirement and, if so, implement an explicit opt-in consent gate before any analytics event is sent. The current branch has no PostHog dependency, initialisation or consent UI; analytics must remain disabled until provider/region and processor details are documented.
 - [x] A returning person receives a new, unlinked competition identity after permanent erasure.
 - [x] Standard team-sheet amendment cannot overwrite a former player's protected historic appearance.
 - [ ] Payment/accounting records follow a separately documented retention schedule, with direct account/customer links detached where permitted.
