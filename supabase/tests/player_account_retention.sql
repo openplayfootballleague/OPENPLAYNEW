@@ -37,6 +37,8 @@ begin
   set last_sign_in_at=now()-interval '13 months'
   where id in (v_inactive,v_member,v_admin);
 
+  update public.profiles set last_sign_in_at=now()-interval '9 months' where id=v_warning;
+
   insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status)
   values
     (v_inactive,'Inactive Retention Player','07700900401','ci-retention-inactive@openplay.invalid',date '1990-01-01','registered'),
@@ -117,13 +119,15 @@ begin
     raise exception 'Account closure bypassed the warning delivery requirement';
   end if;
 
-  insert into public.player_account_inactivity_warnings(
-    user_id,inactivity_started_at,warning_days,status,claimed_at,sent_at
-  )
-  select v_inactive,last_sign_in_at,stage,'sent',now()-interval '8 days',now()-interval '8 days'
-  from public.profiles
-  cross join (values (90),(30),(7)) as stages(stage)
-  where id=v_inactive;
+  update public.player_account_inactivity_warnings
+  set status='sent',
+      claimed_at=now()-interval '8 days',
+      sent_at=now()-interval '8 days'
+  where user_id=v_inactive;
+  select count(*) into v_count
+  from public.player_account_inactivity_warnings
+  where user_id=v_inactive and status='sent';
+  if v_count <> 3 then raise exception 'The late-run catch-up did not claim all three warning stages for the overdue account'; end if;
 
   select public.admin_close_inactive_player_account(v_inactive) into v_closed;
   if not v_closed then raise exception 'Eligible inactive player account was not closed after all warnings and grace period'; end if;
