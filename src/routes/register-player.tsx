@@ -69,7 +69,8 @@ function RegisterPlayerPage() {
   const consentApprovedForDate=isMinorPlayer&&consentMatchesDate&&guardianConsent?.status==="approved";
   const waitingGuardianReview=isMinorPlayer&&consentMatchesDate&&guardianConsent?.status==="pending_admin_review";
   const needsGuardianConsent=isMinorPlayer&&!consentApprovedForDate&&!waitingGuardianReview;
-  const existingMinorConsentFlow=Boolean(existingPlayer&&ageOn(existingPlayer.date_of_birth)!==null&&ageOn(existingPlayer.date_of_birth)!>=16&&ageOn(existingPlayer.date_of_birth)!<18&&guardianConsent?.status!=="approved");
+  const existingPlayerAge=existingPlayer?ageOn(existingPlayer.date_of_birth):null;
+  const existingMinorConsentFlow=Boolean(existingPlayer&&existingPlayerAge!==null&&existingPlayerAge>=16&&existingPlayerAge<18&&guardianConsent?.status!=="approved");
 
   async function submit(event:React.FormEvent<HTMLFormElement>){
     event.preventDefault();setError("");setMessage("");setBusy(true);
