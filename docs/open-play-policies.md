@@ -116,3 +116,13 @@ Do not apply hosted database changes, merge the pull request or deploy the app s
 - [Right to be informed](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/individual-rights/individual-rights/right-to-be-informed/): privacy information must identify the organisation and explain purposes, lawful bases, recipients, retention and individual rights.
 - [Pseudonymisation](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/data-sharing/anonymisation/pseudonymisation/): pseudonymised data remains personal data under UK GDPR.
 - [Storage limitation](https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/data-protection-principles/a-guide-to-the-data-protection-principles/storage-limitation/): retention periods must be justified, documented and reviewed; the law does not prescribe one universal period.
+
+
+## Player transfers and matchday team sheets
+
+- A player must leave their current club themselves before requesting a transfer. Ordinary voluntary departures do not require old-captain or administrator approval; a current captain must appoint a replacement first.
+- A pending transfer leaves the player unattached and unavailable to either club. Outside the emergency window, only one destination request may be pending in the same league.
+- In the final 24 hours before a scheduled kickoff, an unattached player may send simultaneous requests to all eligible clubs in that league that have not submitted their team sheet for a fixture in that window.
+- A team-sheet draft may be edited and saved before kickoff. Only explicit captain confirmation submits and locks the sheet; a saved draft does not remove the club from emergency-transfer eligibility.
+- The first destination captain to approve secures the player. The database automatically cancels competing pending requests and rejects later approvals, including simultaneous attempts.
+- One active club per player per league is enforced across seasons. Memberships in different leagues remain independent. Historic appearances, statistics and club attribution are never moved or reset by a transfer.
