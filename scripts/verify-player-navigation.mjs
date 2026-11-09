@@ -26,3 +26,9 @@ const publicHome = readFileSync("src/routes/index.tsx", "utf8");
 assert.ok(publicHome.includes("let requestSequence = 0;") && publicHome.includes("sequence !== requestSequence"), "Public Home auth lookups must ignore stale responses after account changes");
 assert.ok(publicHome.includes(".catch(() => {") && publicHome.includes("setCheckingAccess(false)"), "Public Home must recover from a failed session lookup instead of remaining on an endless loading screen");
 assert.ok(publicHome.includes('player?.is_banned) {\n          await navigate({ to: "/register-player", replace: true });'), "Banned accounts must not be routed into Player Hub from public Home");
+
+const matchCentre = readFileSync("src/routes/match-centre.tsx", "utf8");
+const standings = readFileSync("src/lib/competition/standings.ts", "utf8");
+assert.ok(matchCentre.includes("Teams level on points share the same position"), "The public league table must disclose Open Play's no-tiebreaker rule");
+assert.ok(standings.includes("b.points-a.points || a.name.localeCompare(b.name)"), "League ranking must use points only, with name used solely for stable display order");
+assert.ok(standings.includes("if (standing.points !== previousPoints) position=index+1;"), "Teams level on points must share the same league position");
