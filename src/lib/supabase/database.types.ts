@@ -1695,6 +1695,7 @@ export type Database = {
           squad_number: number | null
           status: Database["public"]["Enums"]["membership_status"]
           transfer_request_id: string | null
+          voluntarily_left_at: string | null
           updated_at: string
           user_id: string
         }
@@ -2060,6 +2061,7 @@ export type Database = {
           squad_number: number | null
           status: Database["public"]["Enums"]["membership_status"]
           transfer_request_id: string | null
+          voluntarily_left_at: string | null
           updated_at: string
           user_id: string
         }
@@ -2976,6 +2978,7 @@ export type Database = {
           squad_number: number | null
           status: Database["public"]["Enums"]["membership_status"]
           transfer_request_id: string | null
+          voluntarily_left_at: string | null
           updated_at: string
           user_id: string
         }
@@ -3137,6 +3140,7 @@ export type Database = {
           squad_number: number | null
           status: Database["public"]["Enums"]["membership_status"]
           transfer_request_id: string | null
+          voluntarily_left_at: string | null
           updated_at: string
           user_id: string
         }
@@ -3183,6 +3187,7 @@ export type Database = {
           squad_number: number | null
           status: Database["public"]["Enums"]["membership_status"]
           transfer_request_id: string | null
+          voluntarily_left_at: string | null
           updated_at: string
           user_id: string
         }
@@ -3265,6 +3270,7 @@ export type Database = {
           squad_number: number | null
           status: Database["public"]["Enums"]["membership_status"]
           transfer_request_id: string | null
+          voluntarily_left_at: string | null
           updated_at: string
           user_id: string
         }
