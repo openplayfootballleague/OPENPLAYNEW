@@ -44,6 +44,12 @@ assert.ok(playerApprovalsSection.includes('to="/admin/guardian-consents"'), "Gua
 const settingsSection = adminSource.match(/<section id="admin-settings"[\s\S]*?<\/section>/)?.[0] ?? "";
 assert.ok(settingsSection.includes('to="/admin/retention"'), "Player retention must be accessible within Settings & Feature Management");
 
+const sessionGuard = readFileSync("src/lib/auth/use-required-session.ts", "utf8");
+assert.ok(sessionGuard.includes(".catch(() => {") && sessionGuard.includes("setAuthenticated(false)"), "Required-session guard must recover from a rejected session lookup");
+assert.ok(adminSource.includes("useRequiredSession") && adminSource.includes('if(authStatus!=="authenticated")return;'), "Admin workspace data requests must wait for a verified session");
+assert.ok(adminSource.includes('if(authStatus!=="authenticated")return;void load();') && adminSource.includes('navigate({to:"/sign-in",replace:true})'), "Unauthenticated admin visits must redirect to sign in and avoid protected data loads");
+
+
 const finance = readFileSync("src/routes/finance.tsx", "utf8");
 const requiredSession = readFileSync("src/lib/auth/use-required-session.ts", "utf8");
 assert.ok(finance.includes("useRequiredSession()") && finance.includes('authStatus==="authenticated"'), "Finance workspace must wait for a verified signed-in session before loading protected finance RPCs");
