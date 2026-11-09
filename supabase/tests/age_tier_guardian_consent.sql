@@ -23,6 +23,21 @@ declare
   v_verify_hash_2 text;
   v_withdraw_hash_2 text;
 begin
+  -- Age decisions use the UK civil date across UTC midnight and BST changes.
+  if public.open_play_uk_date('2026-03-28 23:30:00+00'::timestamptz) <> date '2026-03-28'
+     or public.open_play_uk_date('2026-03-29 00:30:00+00'::timestamptz) <> date '2026-03-29'
+     or public.open_play_uk_date('2026-03-29 01:30:00+00'::timestamptz) <> date '2026-03-29' then
+    raise exception 'UK civil-date calculation is incorrect around the spring clock change';
+  end if;
+  if extract(year from age(date '2025-02-28',date '2008-02-29')) <> 16
+     or extract(year from age(date '2025-03-01',date '2008-02-29')) <> 17 then
+    raise exception 'Leap-day age calculation is inconsistent';
+  end if;
+  if extract(year from age(date '2026-11-08',date '2008-11-09')) <> 17
+     or extract(year from age(date '2026-11-09',date '2008-11-09')) <> 18 then
+    raise exception 'Eighteenth-birthday age transition is incorrect';
+  end if;
+
   insert into auth.users
     (id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
   values
@@ -60,7 +75,7 @@ begin
   v_rejected:=false;
   begin
     perform public.register_player('Under Sixteen','07700900991','ci-underage-player@openplay.invalid',
-      (current_date-interval '15 years')::date);
+      (public.open_play_uk_date(statement_timestamp())-interval '15 years')::date);
   exception when others then v_rejected:=true;
   end;
   execute 'reset role';
@@ -72,7 +87,7 @@ begin
   v_rejected:=false;
   begin
     perform public.register_player('Guardian Test Player','07700900992','ci-guardian-player@openplay.invalid',
-      (current_date-interval '16 years')::date);
+      (public.open_play_uk_date(statement_timestamp())-interval '16 years')::date);
   exception when others then v_rejected:=true;
   end;
   if not v_rejected then raise exception 'A 16-year-old registered without guardian consent'; end if;
@@ -81,7 +96,7 @@ begin
   execute 'set local role service_role';
   perform set_config('request.jwt.claim.role','service_role',true);
   perform * from public.request_player_guardian_consent(
-    v_minor,(current_date-interval '16 years')::date,'Guardian Test','guardian@openplay.invalid',
+    v_minor,(public.open_play_uk_date(statement_timestamp())-interval '16 years')::date,'Guardian Test','guardian@openplay.invalid',
     v_verify_hash,
     v_withdraw_hash
   );
@@ -93,7 +108,7 @@ begin
   v_rejected:=false;
   begin
     perform * from public.request_player_guardian_consent(
-      v_minor,(current_date-interval '16 years')::date,'Guardian Test','guardian@openplay.invalid',
+      v_minor,(public.open_play_uk_date(statement_timestamp())-interval '16 years')::date,'Guardian Test','guardian@openplay.invalid',
       v_verify_hash_2,
       v_withdraw_hash_2
     );
@@ -123,7 +138,7 @@ begin
   perform set_config('request.jwt.claim.sub',v_minor::text,true);
   select * into v_player from public.register_player(
     'Guardian Test Player','07700900992','ci-guardian-player@openplay.invalid',
-    (current_date-interval '16 years')::date
+    (public.open_play_uk_date(statement_timestamp())-interval '16 years')::date
   );
   execute 'reset role';
   if v_player.registration_status<>'registered' then
@@ -212,7 +227,7 @@ begin
   execute 'set local role service_role';
   perform set_config('request.jwt.claim.role','service_role',true);
   perform * from public.request_player_guardian_consent(
-    v_minor,(current_date-interval '16 years')::date,'Guardian Test','guardian@openplay.invalid',
+    v_minor,(public.open_play_uk_date(statement_timestamp())-interval '16 years')::date,'Guardian Test','guardian@openplay.invalid',
     v_verify_hash_2,
     v_withdraw_hash_2
   );
