@@ -111,16 +111,18 @@ A player may be registered with Open Play without belonging to a team.
 
 A player may represent **only one club in the same league at a time**. This restriction is league-specific: it does not, by itself, prevent a player joining a club in a different league.
 
-- A player with an active membership at a club in a league cannot join, register with, or represent another club in that same league.
-- To move clubs, the player must first leave their current club themselves. Leaving ends the active membership but preserves the historical membership record and all appearances, statistics, disciplinary history and other competition records; the old club's captain or an administrator does not approve an ordinary voluntary departure.
-- Only after the old membership has ended may the player submit a transfer request to a different club in that same league.
-- The transfer request is a request to join the destination club; it does not create active membership or playing eligibility while pending. The player remains unattached in that league while it is pending.
-- The destination club's captain is responsible for approving or rejecting the request. An administrator is not the ordinary decision-maker for a transfer; administrators retain oversight and exceptional intervention powers.
-- On approval, create/activate membership at the destination club. On rejection, the player remains unattached in that league and may submit another request.
-- A player cannot have concurrent pending join/transfer requests to multiple clubs in the same league. A pending request must be withdrawn or resolved before another is submitted.
-- The database must enforce the one-active-club-per-player-per-league rule transactionally, including concurrent requests and direct API/RPC calls. Client-side checks alone are insufficient.
-- Membership checks must resolve the league through the relevant season/team records, so the restriction applies across different seasons of the same league, not merely within one season.
+- A player may represent only one club in a league at a time, across all seasons of that league. Membership in a different league is independent.
+- To move clubs, the player must leave their current club themselves. The old captain or an administrator does not approve an ordinary voluntary departure. A captain must appoint a replacement before leaving.
+- Leaving ends the active membership but preserves the historical membership record and all appearances, statistics, disciplinary history and other competition records. A player listed on a submitted upcoming team sheet must have that sheet amended by an administrator before leaving.
+- Only after the old membership has ended may the player submit a transfer request to a different club in that league. A pending request leaves the player unattached and ineligible to represent either club.
+- The destination club's active captain approves or rejects the request. Administrators are not ordinary decision-makers; they retain oversight and an audited exceptional-intervention route.
+- Outside the emergency window, a player may have only one pending transfer request in a league. The player must cancel or resolve it before requesting another destination.
+- In the final 24 hours before a destination club's scheduled kickoff, an unattached player may request multiple clubs in that league, but only clubs with an upcoming fixture in that window whose team sheet has not been submitted are eligible. A saved draft does not count as submitted; the sheet becomes ineligible only when the captain confirms submission and it is locked.
+- The first destination captain to approve an emergency request secures the player. The approval transaction cancels every other pending transfer request for that player in the league. Competing approvals are serialised in the database; a later captain cannot also activate the player.
+- On rejection, the player remains unattached and other emergency requests remain pending. The database validates the emergency fixture window and team-sheet status again when the captain decides.
+- The database must enforce league-wide active membership and pending-transfer rules transactionally, including concurrent requests, direct API/RPC calls and memberships across different seasons. Client-side checks alone are insufficient.
 - A transfer must never move or rewrite historical team-sheet, appearance, goal, result, disciplinary or finance records. Historical records remain associated with the club and competition identity under which they were created.
+- Captains may edit and save team-sheet drafts before kickoff. They must explicitly confirm before submission; submission locks the sheet. A draft remains editable and does not exclude that club from emergency transfer eligibility.
 
 ## 8. Registering a new team
 
@@ -169,9 +171,13 @@ A player may represent **only one club in the same league at a time**. This rest
 19. A player can leave Club A without old-captain or administrator approval, and must do so before submitting a transfer request to Club B in that league.
 20. A pending transfer request does not grant playing eligibility or active membership.
 21. The destination club's captain, not an administrator, approves or rejects the transfer request. Approval activates the new membership; rejection leaves the player unattached.
-22. A player cannot submit concurrent pending transfer requests to multiple clubs in the same league.
-23. The same player may hold memberships in different leagues, subject to each league's own rules.
-24. The database rejects concurrent attempts to create active memberships at two clubs in the same league, including across seasons.
+22. Outside the final 24-hour emergency window, a player cannot have more than one pending transfer request in a league.
+23. During the final 24 hours before match kickoff, an unattached player can request every eligible club whose upcoming matchday sheet is not submitted.
+24. A saved team-sheet draft does not exclude a club; explicit captain confirmation submits and locks the sheet.
+25. The first captain to approve an emergency transfer secures the player and all competing pending requests are automatically cancelled.
+26. A later or concurrent captain approval cannot also activate the same player.
+27. The same player may hold memberships in different leagues, subject to each league's own rules.
+28. The database rejects concurrent attempts to create active memberships at two clubs in the same league, including across seasons.
 
 ## 11. Security and privacy requirements
 
