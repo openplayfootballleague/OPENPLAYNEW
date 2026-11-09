@@ -38,6 +38,34 @@ create index player_guardian_consents_review_idx
 alter table public.player_guardian_consents enable row level security;
 revoke all on public.player_guardian_consents from public, anon, authenticated;
 
+-- Resolve the installed pgcrypto schema explicitly. Supabase installations may
+-- place extensions outside public, while these security-definer functions use
+-- an empty search_path.
+create or replace function public.hash_guardian_consent_token(p_token text)
+returns text
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $
+declare
+  v_schema text;
+  v_hash text;
+begin
+  select n.nspname into v_schema
+  from pg_catalog.pg_extension e
+  join pg_catalog.pg_namespace n on n.oid=e.extnamespace
+  where e.extname='pgcrypto';
+  if v_schema is null then raise exception 'Secure token hashing is unavailable'; end if;
+  execute pg_catalog.format(
+    'select pg_catalog.encode(%I.digest($1, %L), %L)',
+    v_schema,'sha256','hex'
+  ) into v_hash using p_token;
+  return v_hash;
+end;
+$;
+revoke all on function public.hash_guardian_consent_token(text) from public,anon,authenticated;
+
 create or replace function public.request_player_guardian_consent(
   p_player_date_of_birth date,
   p_guardian_full_name text,
@@ -116,7 +144,7 @@ begin
   if p_token is null or length(p_token)<32 then raise exception 'Consent link is invalid or expired'; end if;
   select * into v_consent
   from public.player_guardian_consents
-  where verification_token_hash=encode(digest(p_token,'sha256'),'hex')
+  where verification_token_hash=public.hash_guardian_consent_token(p_token)
     and status='pending_verification'
     and verification_expires_at>now()
   for update;
@@ -147,7 +175,7 @@ begin
   if p_token is null or length(p_token)<32 then raise exception 'Withdrawal link is invalid'; end if;
   select * into v_consent
   from public.player_guardian_consents
-  where withdrawal_token_hash=encode(digest(p_token,'sha256'),'hex')
+  where withdrawal_token_hash=public.hash_guardian_consent_token(p_token)
     and status in ('pending_verification','pending_admin_review','approved')
     and player_date_of_birth <= current_date - interval '16 years'
     and player_date_of_birth > current_date - interval '18 years'
