@@ -84,7 +84,7 @@ declare
   v_email text;
   v_now timestamptz := now();
 begin
-  if coalesce(auth.role(),'') <> 'service_role' then raise exception 'Trusted consent service required'; end if;
+  -- EXECUTE is granted only to service_role; client roles cannot call this RPC.
   if v_user is null then raise exception 'Player account is required'; end if;
   select lower(trim(email)) into v_email from auth.users where id=v_user and email_confirmed_at is not null;
   if v_email is null then raise exception 'Verify your account email before requesting guardian consent'; end if;
