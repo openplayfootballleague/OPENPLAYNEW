@@ -115,6 +115,13 @@ Deno.serve(async (req: Request) => {
     if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return json({ message: "If an eligible closed account exists for that email address, a reactivation link will be sent." });
     }
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+    const resendFrom = Deno.env.get("RESEND_FROM_EMAIL");
+    if (!resendKey || !resendFrom) {
+      console.error("Player account reactivation email is not configured");
+      return json({ message: "If an eligible closed account exists for that email address, a reactivation link will be sent." });
+    }
+
     const token = randomToken();
     const tokenHash = await hashToken(token);
     const { data, error } = await service.rpc("request_player_account_reactivation", {
@@ -123,19 +130,13 @@ Deno.serve(async (req: Request) => {
     });
 
     if (!error && Array.isArray(data) && data[0]?.email) {
-      const resendKey = Deno.env.get("RESEND_API_KEY");
-      const resendFrom = Deno.env.get("RESEND_FROM_EMAIL");
-      if (resendKey && resendFrom) {
-        const link = `https://${new URL(supabaseUrl).host}/functions/v1/player-account-retention?mode=reactivate#token=${token}`;
-        try {
-          await sendReactivationEmail(resendKey, resendFrom, data[0].email, link);
-        } catch (cause) {
-          // Keep the public response generic. A fresh request can replace the
-          // unusable token after the database-enforced cooldown.
-          console.error("Player account reactivation email failed", cause);
-        }
-      } else {
-        console.error("Player account reactivation email is not configured");
+      const link = `https://${new URL(supabaseUrl).host}/functions/v1/player-account-retention?mode=reactivate#token=${token}`;
+      try {
+        await sendReactivationEmail(resendKey, resendFrom, data[0].email, link);
+      } catch (cause) {
+        // Keep the public response generic. A fresh request can replace the
+        // unusable token after the database-enforced cooldown.
+        console.error("Player account reactivation email failed", cause);
       }
     }
     return json({ message: "If an eligible closed account exists for that email address, a reactivation link will be sent." });
