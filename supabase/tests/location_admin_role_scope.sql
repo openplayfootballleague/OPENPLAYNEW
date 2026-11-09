@@ -78,17 +78,14 @@ begin
 
   -- Seed the cross-location sheet as its real active captain. A platform
   -- administrator must not create a captain's matchday sheet.
-  execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000003',true);
   perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003"}',true);
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
   values('00000000-0000-4000-8000-000000000071','00000000-0000-4000-8000-000000000052',
     '00000000-0000-4000-8000-000000000003',true,now())
   returning id into v_cross_location_sheet;
-  execute 'reset role';
 
   -- A global administrator without captaincy cannot create a team sheet directly.
-  execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000005',true);
   perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000005"}',true);
   v_denied := false;
@@ -103,7 +100,6 @@ begin
       raise;
     end if;
   end;
-  execute 'reset role';
   if not v_denied then raise exception 'Global admin unexpectedly created a captain team sheet'; end if;
 
   -- Ordinary player: own profile/player record and own team's fixture only.
