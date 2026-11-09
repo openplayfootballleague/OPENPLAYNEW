@@ -2,7 +2,7 @@
 
 **Status:** Approved product decisions and proposed operational/privacy controls  
 **Applies to:** Open Play New, all locations and seasons  
-**Policy owner / proposed data controller:** Steven Edgar  
+**Policy owner / proposed data controller:** Open Play (unregistered trading name operated by an individual; the individual's full legal name remains to be confirmed before publication)  
 **Last updated:** 8 November 2026
 
 This document records the product and operational decisions confirmed for Phase 1. It is an implementation specification, not a substitute for a legally reviewed privacy notice, safeguarding policy or terms of participation. Items marked proposed must be reviewed before public launch.
@@ -64,8 +64,9 @@ Account access and player registration are separate states. Creating or holding 
 - Preserve historical competition records subject to the approved retention schedule and applicable data-protection rights.
 
 ## 5. Data controller and privacy
-- The designated data-controller identity for the Open Play policy is **Steven Edgar**.
-- Before publication, the privacy notice must include the controller's appropriate contact details and explain how people can exercise their rights. Do not publish an incomplete notice that identifies the controller but provides no usable contact route.
+- **Open Play** is the responsible organisation/trading name for the service. It is currently unregistered; the data controller is the individual operating Open Play, whose full legal name must be confirmed and included before the public notice is published.
+- The confirmed privacy contact email is **openplayfootballleague@gmail.com**. No postal or business address is currently held; do not invent one. Confirm whether an address or alternative service address is legally required before publication.
+- The privacy notice must explain how people can exercise their rights and must not be published until the individual data controller's legal identity and appropriate contact details have been verified.
 - The notice must describe actual data categories, purposes, lawful bases, recipients/processors, international transfers (if any), retention, rights, complaints route and any relevant automated decisions.
 - Select and document a lawful basis separately for each processing purpose. Do not use consent as a blanket basis for all account and league processing.
 - Public profile-picture visibility, parental-consent records, identity-review evidence and disciplinary/ban information require clear purpose and access explanations.
