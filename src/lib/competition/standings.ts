@@ -28,3 +28,9 @@ export function buildStandings(teams: StandingInputTeam[], fixtures: StandingInp
     return {...standing,position};
   });
 }
+
+/** Return the tied leaders only when a final is required to decide first place. */
+export function getJointFirstTeams<T extends { position: number }>(teams: T[]): T[] {
+  const leaders = teams.filter((team) => team.position === 1);
+  return leaders.length > 1 ? leaders : [];
+}
