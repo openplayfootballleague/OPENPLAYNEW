@@ -118,6 +118,6 @@ This manifest maps every applied ledger version/name to its canonical source pat
 - All 99 migration file prefixes are unique and every source file corresponds to an applied ledger version.
 - No duplicate synthetic-prefix copies of applied sources remain in this branch.
 - The canonical files are source artifacts. The consolidated Phase 1 release passed clean local replay and the complete SQL role/identity/authorization regression suite before being applied to the dedicated project.
-- Three additional forward-only migrations are present on the registration-safeguards branch and are not represented as applied ledger rows: phone canonicalisation, ban/captain succession, and age-tier/guardian-consent safeguards.
+- Four additional forward-only migrations are present on the registration-safeguards branch and are not represented as applied ledger rows: phone canonicalisation, ban/captain succession, age-tier/guardian-consent safeguards, and player account retention/reactivation.
 - Do not reapply any of the already-recorded versions. Future schema changes must use new forward-only migration versions.
 
