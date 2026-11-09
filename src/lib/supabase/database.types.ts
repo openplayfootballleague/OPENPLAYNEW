@@ -2375,9 +2375,10 @@ export type Database = {
           resolution_reason: string | null
           resolved_at: string | null
           resolved_by: string | null
-          source_membership_id: string
+          source_membership_id: string | null
           source_season_team_id: string
           status: string
+          target_fixture_id: string | null
           updated_at: string
           user_id: string
         }
@@ -3103,9 +3104,10 @@ export type Database = {
           resolution_reason: string | null
           resolved_at: string | null
           resolved_by: string | null
-          source_membership_id: string
+          source_membership_id: string | null
           source_season_team_id: string
           status: string
+          target_fixture_id: string | null
           updated_at: string
           user_id: string
         }
