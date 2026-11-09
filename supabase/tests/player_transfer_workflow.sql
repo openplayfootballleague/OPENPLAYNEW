@@ -46,6 +46,7 @@ declare
   v_sheet_d uuid;
   v_player_membership uuid;
   v_player_two_membership uuid;
+  v_membership uuid;
   v_request_b uuid;
   v_request_c uuid;
   v_request_two uuid;
@@ -92,7 +93,7 @@ begin
   returning id into v_season;
 
   insert into public.seasons(league_id,name,status,is_public)
-  values(v_league,'Transfer Workflow Season Two','active',true)
+  values(v_league,'Transfer Workflow Season Two','registration_open',true)
   returning id into v_season_two;
 
   insert into public.teams(created_by) values(v_source_captain) returning id into v_source_team;
@@ -239,6 +240,39 @@ begin
     if v_error not like 'This transfer has already been resolved%' then raise; end if;
   end;
 
+  -- A club becomes ineligible as soon as it submits its matchday sheet.
+  perform set_config('request.jwt.claim.sub',v_captain_b::text,true);
+  update public.fixture_team_sheets
+  set is_locked=true,submitted_at=now()
+  where fixture_id=v_fixture_b and season_team_id=v_b_st;
+
+  perform set_config('request.jwt.claim.sub',v_player_two::text,true);
+  select count(*) into v_destination_count
+  from public.get_my_transfer_destinations()
+  where emergency_window=true;
+  if v_destination_count<>1 or exists(
+    select 1 from public.get_my_transfer_destinations()
+    where destination_team_id in (v_b_st,v_d_st)
+  ) then
+    raise exception 'Submitted clubs remained eligible for emergency transfer requests';
+  end if;
+
+  select (public.request_player_transfer(v_c_st,'Emergency request to club C')).id
+  into v_request_two;
+
+  -- If the destination submits after receiving the request, it is cancelled.
+  perform set_config('request.jwt.claim.sub',v_captain_c::text,true);
+  insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,submitted_at,is_locked)
+  values(v_fixture_c,v_c_st,v_captain_c,now(),true);
+
+  if not exists(
+    select 1 from public.player_transfer_requests
+    where id=v_request_two and status='cancelled'
+      and resolution_reason='Destination club submitted its matchday team sheet; emergency request expired'
+  ) then
+    raise exception 'Submitting the destination sheet did not expire its pending emergency request';
+  end if;
+
   -- Outside the emergency window, only one pending destination is permitted.
   update public.fixtures set scheduled_at=now()+interval '48 hours'
   where id in (v_fixture_b,v_fixture_c,v_fixture_d);
@@ -262,11 +296,33 @@ begin
     if v_error not like 'You already have a pending transfer request%' then raise; end if;
   end;
 
+  -- A transfer pending in this league also blocks ordinary team-join requests.
+  begin
+    perform public.request_team_membership(v_e_st);
+    raise exception 'A team-join request was incorrectly allowed alongside a pending transfer';
+  exception when others then
+    get stacked diagnostics v_error=message_text;
+    if v_error not like 'Cancel or resolve your pending transfer request%' then raise; end if;
+  end;
+
   perform public.cancel_player_transfer_request(v_request_two);
 
+  -- Ordinary join requests are also single-destination within a league.
+  perform public.request_team_membership(v_e_st);
+  begin
+    perform public.request_team_membership(v_f_st);
+    raise exception 'A second pending team-join request was incorrectly allowed';
+  exception when others then
+    get stacked diagnostics v_error=message_text;
+    if v_error not like 'You already have a pending team request%' then raise; end if;
+  end;
+
+  select id into v_membership from public.team_memberships
+  where season_team_id=v_e_st and user_id=v_player_two and status='pending';
+  perform set_config('request.jwt.claim.sub',v_captain_e::text,true);
+  perform public.resolve_team_membership_request(v_membership,'approved');
+
   -- One active membership is enforced across seasons of the same league.
-  insert into public.team_memberships(season_team_id,user_id,status,is_captain)
-  values(v_e_st,v_player_two,'active',false);
 
   begin
     insert into public.team_memberships(season_team_id,user_id,status,is_captain)
@@ -293,12 +349,12 @@ begin
 
   -- Draft save is permitted before kickoff but rejected once kickoff has passed.
   insert into public.fixtures(season_id,home_team_id,away_team_id,gameweek,status,scheduled_at)
-  values(v_season,v_b_st,v_opponent_b_st,2,'scheduled',now()-interval '1 hour')
+  values(v_season_two,v_e_st,v_f_st,1,'scheduled',now()-interval '1 hour')
   returning id into v_fixture_past;
 
-  perform set_config('request.jwt.claim.sub',v_captain_b::text,true);
+  perform set_config('request.jwt.claim.sub',v_captain_e::text,true);
   begin
-    perform public.save_team_sheet_draft(v_fixture_past,v_b_st,'{}'::uuid[],'{}'::uuid[],null);
+    perform public.save_team_sheet_draft(v_fixture_past,v_e_st,'{}'::uuid[],'{}'::uuid[],null);
     raise exception 'A team-sheet draft was incorrectly allowed after kickoff';
   exception when others then
     get stacked diagnostics v_error=message_text;
