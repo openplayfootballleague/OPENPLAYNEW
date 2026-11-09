@@ -7,6 +7,7 @@ const migrationDirectory = "supabase/migrations";
 const expectedForwardOnly = [
   "supabase/migrations/20261108150000_canonicalize_player_phone.sql",
   "supabase/migrations/20261108160000_enforce_player_ban_and_captain_succession.sql",
+  "supabase/migrations/20261109080000_player_age_tiers_and_guardian_consent.sql",
 ];
 
 function fail(message) {
