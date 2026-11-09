@@ -101,7 +101,8 @@ function AdminDashboardPage(){
     <a href="#admin-season-setup">03 Seasons</a>
     <a href="#admin-team-approvals">04 Team Approvals</a>
     <a href="#admin-player-approvals">05 Player Approvals</a>
-    <a href="#admin-team-registers">06 Teams &amp; Squads</a>
+    <Link to="/admin/guardian-consents">06 Guardian Consents ↗</Link>
+    <a href="#admin-team-registers">07 Teams &amp; Squads</a>
     <a href="#admin-players">07 Players</a>
     <a href="#admin-fixtures">08 Fixtures</a>
     <a href="#admin-team-sheets">09 Team Sheets</a>
