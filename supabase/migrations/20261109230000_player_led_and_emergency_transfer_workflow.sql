@@ -1224,7 +1224,16 @@ begin
     raise exception 'You are already attached to a club in this league';
   end if;
 
-  if exists(
+  if not exists(
+    select 1
+    from public.team_memberships active_membership
+    join public.season_teams active_team on active_team.id=active_membership.season_team_id
+    join public.seasons active_season on active_season.id=active_team.season_id
+    where active_membership.user_id=v_user
+      and active_membership.status='active'
+      and active_season.league_id=v_season.league_id
+      and active_team.team_id=v_team.team_id
+  ) and exists(
     select 1
     from (
       select source_team.team_id
