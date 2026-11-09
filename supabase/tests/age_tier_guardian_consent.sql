@@ -62,6 +62,7 @@ begin
   end;
   if not v_rejected then raise exception 'A 16-year-old registered without guardian consent'; end if;
 
+  execute 'reset role';
   execute 'set local role service_role';
   perform set_config('request.jwt.claim.role','service_role',true);
   perform * from public.request_player_guardian_consent(
@@ -170,6 +171,7 @@ begin
   -- registration state, but does not silently reactivate historical memberships.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_minor::text,true);
+  execute 'reset role';
   execute 'set local role service_role';
   perform set_config('request.jwt.claim.role','service_role',true);
   perform * from public.request_player_guardian_consent(
