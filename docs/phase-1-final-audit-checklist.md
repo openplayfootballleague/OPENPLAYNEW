@@ -8,7 +8,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 ## 1. Automated verification
 
-- [x] Latest audit checklist commit passed both jobs in [#1379](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42635182947). The Edge Function security-boundary assertions, Deno checks, application build, domain tests and Cloudflare dry-run passed in [#1389](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42639212223); its clean database replay has completed all test steps and is finishing runner cleanup.
+- [x] Latest four-tab navigation and public-home integration passed application build, Deno checks, domain tests, Edge Function and navigation assertions, Cloudflare dry-run, clean migration replay and all SQL/Auth lifecycle suites in [#1402](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42640821492).
 - [x] Clean local Supabase migration replay succeeds from an empty database.
 - [x] Migration source manifest matches the actual migration files and Git blobs.
 - [x] Deno type-check succeeds for all Edge Functions.
@@ -23,6 +23,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [x] Global-admin retention-hold permissions, closure exclusion and audit lifecycle suite passes.
 - [x] Permanent competition-identity and safe-erasure suite passes.
 - [x] Auth signup, email confirmation and password-recovery lifecycle passes.
+- [x] The fixed bottom navigation contains exactly Home, Match Centre, Join Open Play and More; the public Home route redirects registered players to Player Hub, and the More page exposes the teams, gallery and account workspaces.
 
 ## 2. Registration and account security
 
