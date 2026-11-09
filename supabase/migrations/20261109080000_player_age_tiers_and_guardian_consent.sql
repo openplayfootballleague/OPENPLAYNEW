@@ -2,6 +2,17 @@
 -- Under-16s may browse public Open Play information but cannot create player registrations.
 -- A 16-17-year-old requires verified guardian consent and a separate administrator approval.
 
+-- Age eligibility follows the UK civil date, not the database session timezone.
+create or replace function public.open_play_uk_date(p_instant timestamptz)
+returns date
+language sql
+stable
+set search_path = ''
+as $
+  select pg_catalog.timezone('Europe/London', p_instant)::date;
+$;
+revoke all on function public.open_play_uk_date(timestamptz) from public, anon, authenticated;
+
 create table public.player_guardian_consents (
   id uuid primary key default gen_random_uuid(),
   player_user_id uuid not null unique references auth.users(id) on delete cascade,
@@ -90,8 +101,8 @@ begin
   select lower(trim(email)) into v_email from auth.users where id=v_user and email_confirmed_at is not null;
   if v_email is null then raise exception 'Verify your account email before requesting guardian consent'; end if;
   if p_player_date_of_birth is null
-     or p_player_date_of_birth > current_date - interval '16 years'
-     or p_player_date_of_birth <= current_date - interval '18 years' then
+     or p_player_date_of_birth > public.open_play_uk_date(statement_timestamp()) - interval '16 years'
+     or p_player_date_of_birth <= public.open_play_uk_date(statement_timestamp()) - interval '18 years' then
     raise exception 'Guardian consent is only required for players aged 16 or 17';
   end if;
   if nullif(btrim(p_guardian_full_name),'') is null or char_length(btrim(p_guardian_full_name))>120 then
@@ -191,8 +202,8 @@ begin
   from public.player_guardian_consents
   where withdrawal_token_hash=public.hash_guardian_consent_token(p_token)
     and status in ('pending_verification','pending_admin_review','approved')
-    and player_date_of_birth <= current_date - interval '16 years'
-    and player_date_of_birth > current_date - interval '18 years'
+    and player_date_of_birth <= public.open_play_uk_date(statement_timestamp()) - interval '16 years'
+    and player_date_of_birth > public.open_play_uk_date(statement_timestamp()) - interval '18 years'
   for update;
   if not found then raise exception 'Withdrawal link is invalid or consent is already withdrawn'; end if;
 
@@ -323,7 +334,7 @@ begin
   -- Any new player identity or attempt to retain/restore player access must
   -- satisfy the age and guardian-consent policy, including admin review RPCs.
   if tg_op='INSERT' or new.registration_status<>'rejected' then
-    v_age:=extract(year from age(current_date,new.date_of_birth))::integer;
+    v_age:=extract(year from age(public.open_play_uk_date(statement_timestamp()),new.date_of_birth))::integer;
     if v_age<16 then raise exception 'Players must be at least 16 years old to register'; end if;
     if v_age<18 and not exists(
       select 1 from public.player_guardian_consents c
@@ -353,7 +364,7 @@ revoke all on function public.enforce_player_age_and_guardian_consent() from pub
 update public.players p
 set guardian_consent_previous_status=p.registration_status,
     registration_status='rejected'::public.player_registration_status,updated_at=now()
-where p.date_of_birth>current_date-interval '18 years'
+where p.date_of_birth>public.open_play_uk_date(statement_timestamp())-interval '18 years'
   and not exists(select 1 from public.player_guardian_consents c
     where c.player_user_id=p.user_id and c.player_date_of_birth=p.date_of_birth
       and c.status='approved' and c.verified_at is not null and c.reviewed_at is not null);
@@ -366,7 +377,7 @@ set status=case when tm.status='active' then 'left'::public.membership_status
 where tm.status in ('active','pending')
   and exists(select 1 from public.players p where p.user_id=tm.user_id
     and p.registration_status='rejected'
-    and p.date_of_birth>current_date-interval '18 years');
+    and p.date_of_birth>public.open_play_uk_date(statement_timestamp())-interval '18 years');
 
 revoke all on function public.request_player_guardian_consent(uuid,date,text,text,text,text) from public,anon,authenticated;
 grant execute on function public.request_player_guardian_consent(uuid,date,text,text,text,text) to service_role;
