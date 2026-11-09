@@ -626,8 +626,8 @@ begin
      or coalesce(after_data::text, '') like '%' || v_player_id::text || '%';
 
   -- Scrub the remaining live profile and player record before the Auth delete.
-  -- If the Auth API is temporarily unavailable, the account stays banned and
-  -- contains no contact, DOB, emergency-contact or guardian information.
+  -- If the Auth API is temporarily unavailable, public profile/player data is
+  -- scrubbed and the Auth account remains banned; the worker retries Auth deletion.
   update public.profiles
   set first_name = null,
       last_name = null,
