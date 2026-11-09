@@ -8,7 +8,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 ## 1. Automated verification
 
-- [x] Latest audit checklist commit has a fully green GitHub Actions run (run [#1379](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42635182947)); both build and clean Supabase replay jobs passed.
+- [x] Latest audit checklist commit passed both jobs in [#1379](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42635182947). The Edge Function security-boundary assertions, Deno checks, application build, domain tests and Cloudflare dry-run passed in [#1389](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42639212223); its clean database replay has completed all test steps and is finishing runner cleanup.
 - [x] Clean local Supabase migration replay succeeds from an empty database.
 - [x] Migration source manifest matches the actual migration files and Git blobs.
 - [x] Deno type-check succeeds for all Edge Functions.
@@ -26,51 +26,51 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 ## 2. Registration and account security
 
-- [ ] Phone numbers are canonicalised and invalid/colliding legacy values fail safely.
-- [ ] Duplicate identity matching counts name, phone and email independently and applies the agreed 2-of-3 threshold.
-- [ ] Applicant-facing routes do not expose another player's private details or registration/ban status.
-- [ ] Pending/rejected players cannot join or register with a team.
-- [ ] Player profile self-service permissions are limited to the approved fields.
-- [ ] Ban/unban is transactional, audited and does not silently restore membership.
-- [ ] Captain succession is deterministic and handles the no-eligible-successor case safely.
-- [ ] Under-16 users cannot create a player identity or access player-only functions.
-- [ ] Ages 16–17 require guardian verification and a separate global-admin decision.
-- [ ] Guardian verification and withdrawal tokens are hashed, one-use, time-limited and rate-limited.
-- [ ] Guardian withdrawal suspends access and removes active/pending memberships and captaincy without destroying history.
+- [x] Phone numbers are canonicalised and invalid/colliding legacy values fail safely.
+- [x] Duplicate identity matching counts name, phone and email independently and applies the agreed 2-of-3 threshold.
+- [x] Applicant-facing routes do not expose another player's private details or registration/ban status (SQL regression coverage).
+- [x] Pending/rejected players cannot join or register with a team.
+- [x] Player profile self-service permissions are limited to the approved fields.
+- [x] Ban/unban is transactional, audited and does not silently restore membership.
+- [x] Captain succession is deterministic and handles the no-eligible-successor case safely.
+- [x] Under-16 users cannot create a player identity or access player-only functions.
+- [x] Ages 16–17 require guardian verification and a separate global-admin decision.
+- [x] Guardian verification and withdrawal tokens are hashed, one-use, time-limited and rate-limited.
+- [x] Guardian withdrawal suspends access and removes active/pending memberships and captaincy without destroying history.
 
 ## 3. Account retention and reactivation
 
-- [ ] Eligibility requires 12 months without successful sign-in and no active/pending membership.
-- [ ] Never-signed-in accounts use account creation time as the inactivity baseline.
-- [ ] Global and location administrators, legal/safeguarding holds and unresolved financial obligations are excluded.
-- [ ] The global-admin retention workspace can search player accounts and set/clear holds with a required reason; every change is recorded in the audit log. Holds cannot be applied after the final `erasure_due` stage.
+- [x] Eligibility requires 12 months without successful sign-in and no active/pending membership.
+- [x] Never-signed-in accounts use account creation time as the inactivity baseline.
+- [x] Global and location administrators, legal/safeguarding holds and unresolved financial obligations are excluded.
+- [x] The global-admin retention workspace can search player accounts and set/clear holds with a required reason; every change is recorded in the audit log. Holds cannot be applied after the final `erasure_due` stage.
 - [x] Auth sign-in timestamp updates cannot reopen `closed` or `erasure_due` accounts; only the verified, single-use reactivation flow can restore `active` status (forward-only migration and regression test).
 - [x] The application blocks private-page rendering while retention status is checked and fails closed when the status query errors; users can retry without discarding the session.
-- [ ] Eligibility is rechecked under lock immediately before closure and erasure.
-- [ ] Closure bans Auth sign-in and the app rejects closed/erasure-due accounts when observed.
-- [ ] Restricted archive lasts 12 months.
-- [ ] Reactivation is non-enumerating, verified by a single-use 24-hour email link and protected by a database cooldown.
-- [ ] Reactivation restores the same registered player account but no membership, pending request, captaincy or squad permissions.
-- [ ] Expired archives are processed idempotently; failed erasure remains banned and is retried.
-- [ ] Worker logs do not disclose account UUIDs, email addresses or other direct identifiers.
+- [x] Eligibility is rechecked under lock immediately before closure and erasure. Membership activation takes the same profile/player locks.
+- [x] Closure bans Auth sign-in and the app rejects closed/erasure-due accounts when observed.
+- [x] Restricted archive lasts 12 months.
+- [x] Reactivation is non-enumerating, verified by a single-use 24-hour email link and protected by a database cooldown.
+- [x] Reactivation restores the same registered player account but no membership, pending request, captaincy or squad permissions.
+- [x] Expired archives are processed idempotently; failed erasure remains banned and is retried.
+- [x] Worker logs do not disclose account UUIDs, email addresses or other direct identifiers.
 - [ ] Advance-warning email cadence is agreed and implemented before unattended closures are enabled. **Current documented gap:** 90/30/7-day advance notices are not yet implemented.
 - [ ] Resend secrets, sender identity and live email round-trip are verified in a controlled staging environment before activation.
 
 ## 4. Permanent competition identity and erasure
 
-- [ ] Every existing registered player receives a random account-independent competition identity.
-- [ ] Every historic team-sheet appearance and goal record is mapped to the correct identity before the migration can complete.
-- [ ] Missing/unmappable historical records fail the migration rather than silently losing history.
-- [ ] New team-sheet and goal records are assigned a valid identity by database triggers.
-- [ ] Account-linked foreign keys are detached safely before Auth deletion.
+- [x] Every existing registered player receives a random account-independent competition identity.
+- [x] Every historic team-sheet appearance and goal record is mapped to the correct identity before the migration can complete.
+- [x] Missing/unmappable historical records fail the migration rather than silently losing history.
+- [x] New team-sheet and goal records are assigned a valid identity by database triggers.
+- [x] Account-linked foreign keys are detached safely before Auth deletion.
 - [ ] Player profile/contact/avatar data is scrubbed and avatar storage deletion is confirmed before Auth deletion.
-- [ ] Guardian consent data is deleted where no longer required.
-- [ ] Registration review match lists, reviewer references and reviewer free-text notes are scrubbed.
-- [ ] Notification payloads and audit metadata are reviewed for direct identifiers and scrubbed where associated with the account.
-- [ ] Historic appearances, goals, results and statistics remain intact under the retained 'Former player' competition identity.
+- [x] Guardian consent data is deleted where no longer required.
+- [x] Registration review match lists, reviewer references and reviewer free-text notes are scrubbed.
+- [x] Notification payloads and audit metadata are reviewed for direct identifiers and scrubbed where associated with the account.
+- [x] Historic appearances, goals, results and statistics remain intact under the retained 'Former player' competition identity.
 - [ ] Privacy/legal review determines whether the stable competition identity plus retained match history is genuinely anonymous under UK GDPR or remains pseudonymous personal data. Until that review confirms otherwise, treat the retained identity/history as restricted personal data with a documented lawful basis and retention period.
-- [ ] A returning person receives a new, unlinked competition identity after permanent erasure.
-- [ ] Standard team-sheet amendment cannot overwrite a former player's protected historic appearance.
+- [x] A returning person receives a new, unlinked competition identity after permanent erasure.
+- [x] Standard team-sheet amendment cannot overwrite a former player's protected historic appearance.
 - [ ] Payment/accounting records follow a separately documented retention schedule, with direct account/customer links detached where permitted.
 
 ## 5. Manual product and security review
@@ -80,11 +80,11 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [ ] Review ban/unban and captain succession screens against the database behaviour.
 - [ ] Review account closure/reactivation pages and session handling.
 - [ ] Review admin result entry, scorer options, season statistics, team sheets and transfer/payment readers after anonymisation.
-- [ ] Review every service-role Edge Function for secret handling, authentication, rate limits, idempotency and safe logging.
+- [x] Review every service-role Edge Function for secret handling, authentication, rate limits, idempotency and safe logging (all six function sources reviewed; staging delivery remains open).
 - [x] Review all 77 authenticated-callable SECURITY DEFINER functions for explicit search_path, least privilege, grants and role/location/data-scope checks (read-only hosted snapshot, 9 November 2026).
-- [ ] Review all new/changed foreign keys and deletion behaviours against the full schema.
-- [ ] Review the existing hosted Security Advisor baseline separately from the not-yet-deployed Phase 1 migrations.
-- [ ] Confirm no unexpected changes to the hosted Supabase project, production deployment or live user data.
+- [x] Review all new/changed foreign keys and deletion behaviours against the full schema; clean replay and erasure regression suite passed.
+- [x] Review the existing hosted Security Advisor baseline separately from the not-yet-deployed Phase 1 migrations.
+- [x] Confirm no unexpected changes to the hosted Supabase project, production deployment or live user data.
 
 ## Hosted Security Advisor follow-up (read-only snapshot, 9 November 2026)
 
@@ -96,6 +96,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - The three advisor INFO tables (admin_context_preferences, gallery_items and location_admin_assignments) have RLS enabled and no policies. Direct SELECT/INSERT/UPDATE/DELETE privileges are all false for both anon and authenticated, consistent with the RPC-only access design.
 - A line-by-line review of all 77 authenticated-callable RPC definitions was completed against this hosted snapshot. The reviewed functions use direct `auth.uid()` checks or a reviewed caller-scoped helper; global player-detail, registration-review, notification-control, audit-history and location-assignment operations require global-admin roles; finance operations require the global finance/admin role; location operations enforce assigned-location context; player and captain operations are scoped to the signed-in user or an active team membership. No anonymous execution path or confirmed cross-user/cross-location authorization bypass was identified in the reviewed definitions. No dynamic SQL execution was found in the authenticated-callable SECURITY DEFINER set.
 - One non-authorization auditability gap was noted: `admin_set_location_assignment` is restricted to global administrators but does not currently write an `audit_log` entry when an assignment is granted or revoked. Record this for hardening before broad delegation of location administration.
+- All six Edge Function sources were reviewed. `guardian-consent` and `player-account-retention` have public entrypoints but validate the signed-in user, one-use token or cron secret themselves; `stripe-webhook` validates Stripe's raw-body signature and rejects live-mode events; `public-gallery` exposes only published items in active locations; `create-player-checkout` validates the signed-in user; and `deliver-notifications` accepts the service-role worker path or a global administrator for manual dispatch. Function gateway settings are explicit and protected by CI assertions. Guardian emails omit date of birth, notification provider error records omit raw response bodies, and checkout no longer contains a Lovable-origin fallback.
 - The hosted snapshot predates the seven un-applied Phase 1 migrations; it does not certify their future hosted grants or function definitions. Those are covered by clean local replay and SQL regression tests, with deployment still blocked pending release approval.
 
 ## 6. Release prerequisites (not part of local CI)
