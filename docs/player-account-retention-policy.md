@@ -61,22 +61,25 @@ A successful reactivation:
 
 If the player has not reactivated by the end of the archive:
 
-- Identifiable personal data becomes due for erasure or genuine anonymisation.
-- Historic competition records must be preserved in a form that cannot reasonably identify the individual.
-- Data that must be retained for a legal obligation, accounting/tax requirements, safeguarding, disputes or legal claims follows its own documented retention period and access restriction.
+- The worker removes the player's profile avatar object, scrubs direct personal details from live profile/player rows and removes account-linked operational references.
+- It then deletes the Supabase Auth user. If Auth deletion fails, the account remains banned and the daily worker retries; erasure is not complete until Auth deletion succeeds.
+- Historic fixtures, results, team-sheet appearances and goals remain linked to a random `competition_player_id`, not the account/profile UUID.
+- The retained competition identity is relabelled **Former player** and the original account-to-competition mapping is removed with the Auth/profile/player rows.
+- Season statistics continue to count historical appearances/goals according to the player's genuine/registered/unbanned eligibility snapshot at erasure time.
+- Payment and accounting records follow their separate retention schedule. Direct player/Auth and Stripe customer links are detached, but payment-intent/checkout references may remain where required for statutory accounting, refunds or disputes.
 - An erasure request made before the scheduled date is assessed separately and is not automatically delayed until month 24.
 
-### Technical release gate
+### Historical identity separation
 
-The current data model contains historical records that reference profile IDs, including goal records and submitted team-sheet appearances. Deleting an Auth user/profile directly can either be blocked by restrictive foreign keys or cascade-delete records that Open Play needs to preserve.
+The schema now includes `competition_player_identities`. Each registered player receives a random, account-independent identity. Team-sheet appearances and goal records reference that identity. Their account/profile UUID fields are nullable and are cleared on erasure.
 
-Therefore the final erasure/anonymisation worker must not be enabled until the historical identity model has been refactored and tested. The safe implementation must separate a person's live account/profile from the non-identifying historical competition identity. A random UUID or pseudonym alone is not sufficient to call the resulting data anonymous.
+The standard admin team-sheet amendment flow refuses to rewrite sheets containing former/unattached players, while result correction and season statistics continue to use the permanent competition identity. This prevents an admin roster edit from silently deleting anonymised historical appearances.
 
 ## Operational safeguards
 
 - Exclude active/pending team memberships from automatic closure.
-- Exclude privileged accounts from the player-retention worker.
-- Recheck eligibility immediately before closure to avoid races with a new membership or sign-in.
+- Exclude global and location administrators from the player-retention worker.
+- Recheck eligibility immediately before closure/erasure. A membership guard serialises new active/pending memberships against account closure and rejects membership for closed or erasure-due accounts.
 - Use service-role-only database operations and server-side Auth Admin API calls; never expose service-role credentials to the client.
 - Use idempotent processing and audit every closure/reactivation/erasure decision.
 - Keep safeguarding/legal holds and financial record retention separate from ordinary player inactivity.
@@ -93,13 +96,13 @@ Therefore the final erasure/anonymisation worker must not be enabled until the h
 7. An expired, used or invalid reactivation token cannot restore access.
 8. A successful reactivation restores the same registered player identity, but no team membership or captaincy.
 9. Reactivation resets the inactivity clock.
-10. An account past the 24-month archive boundary is queued for controlled erasure/anonymisation, not hard-deleted until the historical identity refactor is deployed.
+10. An account past the 24-month archive boundary is anonymised against its permanent competition identity and the Auth/profile/player account is deleted; failed Auth deletions remain banned and retry.
 11. Active/pending membership, privileged status or a documented legal/safeguarding hold prevents automatic erasure.
 12. Historic fixtures, results, appearances, goals and league tables remain intact after the eventual anonymisation process.
 
 ## Deployment and activation requirements
 
-The implementation consists of the database migration, the `player-account-retention` Edge Function, the sign-in reactivation request, the app-level closed-account guard and the scheduled GitHub Actions workflow.
+The implementation consists of the retention and competition-identity migrations, the `player-account-retention` Edge Function, the sign-in reactivation request, the app-level account guard and the scheduled GitHub Actions workflow.
 
 Before activating the scheduled worker after release:
 
@@ -107,8 +110,8 @@ Before activating the scheduled worker after release:
 2. Deploy `supabase/functions/player-account-retention`.
 3. Configure Supabase Edge Function secrets: `ACCOUNT_RETENTION_CRON_SECRET`, `RESEND_API_KEY` and `RESEND_FROM_EMAIL`.
 4. Configure GitHub repository secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY` and the same `ACCOUNT_RETENTION_CRON_SECRET`.
-5. Run the workflow manually against controlled test accounts and verify Auth ban, reactivation email, single-use confirmation, no restored memberships and archive expiry handling.
+5. Run the workflow manually against controlled test accounts and verify Auth ban, reactivation email, single-use confirmation, no restored memberships, avatar removal, Auth deletion and preserved anonymised match history.
 6. Confirm the advance-warning email cadence and operational support process before enabling unattended closures.
 
-The scheduled worker closes accounts and moves expired archives to `erasure_due`. It deliberately does not hard-delete Auth users or historical player records. The separate historical identity/anonymisation migration is a release prerequisite for final erasure; until that work is complete, erasure-due cases require controlled review rather than destructive deletion.
+The scheduled worker closes accounts, moves expired archives to `erasure_due`, anonymises the permanent competition identity and deletes the Auth user. It never hard-deletes fixtures, results, appearances or goals. Advance-warning emails before closure are not yet implemented; agree and implement that cadence before enabling unattended account closures. Payment/accounting records remain subject to their separate documented retention schedule.
 
