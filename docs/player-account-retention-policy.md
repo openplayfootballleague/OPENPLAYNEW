@@ -30,8 +30,8 @@ Administrator, finance and other privileged accounts are not processed by the pl
 When the qualifying inactivity conditions are met:
 
 - Mark the account closed.
-- Disable sign-in using the Supabase Auth administrative ban mechanism.
-- Revoke existing refreshable sessions.
+- Apply a long Supabase Auth ban, which blocks new sign-ins and token refresh.
+- Already-issued access tokens may remain valid until their normal expiry. The app checks the account lifecycle state and signs the user out when that state is observed.
 - Notify the player at the verified email address before closure where the notification schedule is configured.
 - Preserve the player identity and historic competition data during the archive period.
 - Do not change historic results, appearances, goals, fixtures or league tables.
