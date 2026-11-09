@@ -121,7 +121,7 @@ Do not apply hosted database changes, merge the pull request or deploy the app s
 ## Player transfers and matchday team sheets
 
 - A player must leave their current club themselves before requesting a transfer. Ordinary voluntary departures do not require old-captain or administrator approval; a current captain must appoint a replacement first.
-- A pending transfer leaves the player unattached and unavailable to either club. Outside the emergency window, only one destination request may be pending in the same league.
+- A player who has voluntarily left a club must use the transfer workflow to join a different club in that league; ordinary first-time team requests remain available to new entrants and same-club returns. A pending transfer leaves the player unattached and unavailable to either club. Outside the emergency window, only one destination request may be pending in the same league.
 - In the final 24 hours before a scheduled kickoff, an unattached player may send simultaneous requests to all eligible clubs in that league that have not submitted their team sheet for a fixture in that window.
 - A team-sheet draft may be edited and saved before kickoff. Only explicit captain confirmation submits and locks the sheet; a saved draft does not remove the club from emergency-transfer eligibility.
 - If a destination captain submits their team sheet after receiving an emergency request, that request is automatically cancelled. The first destination captain to approve a still-valid request secures the player; the database cancels competing requests and rejects later approvals, including simultaneous attempts.
