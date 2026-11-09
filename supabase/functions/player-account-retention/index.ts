@@ -84,7 +84,7 @@ async function sendInactivityWarningEmail(
       subject: `Open Play – your player account will close in ${warningDays} days`,
       text: `You have not signed in to your Open Play registered-player account for some time.
 
-Unless you sign in before ${closureDate}, your account is scheduled to close on ${closureDate because of 12 months of inactivity.
+Unless you sign in before ${closureDate}, your account is scheduled to close on ${closureDate} because of 12 months of inactivity.
 
 Sign in to Open Play before that date to keep your account active and reset the inactivity period.
 
