@@ -23,7 +23,8 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [x] Global-admin retention-hold permissions, closure exclusion and audit lifecycle suite passes.
 - [x] Permanent competition-identity and safe-erasure suite passes.
 - [x] Auth signup, email confirmation and password-recovery lifecycle passes.
-- [x] Location administrator grants and revocations are audit-logged; duplicate grants do not duplicate events, stale grants remain revocable after role removal, and only global admins can mutate assignments (forward-only migration and SQL regression coverage).\n- [x] The fixed bottom navigation contains exactly Home, Match Centre, Join Open Play and More; the public Home route redirects registered players to Player Hub, and the More page exposes the teams, gallery and account workspaces.
+- [x] Location administrator grants and revocations are audit-logged; duplicate grants do not duplicate events, stale grants remain revocable after role removal, and only global admins can mutate assignments (forward-only migration and SQL regression coverage).
+- [x] The fixed bottom navigation contains exactly Home, Match Centre, Join Open Play and More; the public Home route redirects registered players to Player Hub, and the More page exposes the teams, gallery and account workspaces.
 
 ## 2. Registration and account security
 
