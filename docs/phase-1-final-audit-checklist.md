@@ -71,7 +71,8 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [x] Missing/unmappable historical records fail the migration rather than silently losing history.
 - [x] New team-sheet and goal records are assigned a valid identity by database triggers.
 - [x] Account-linked foreign keys are detached safely before Auth deletion.
-- [x] The erasure worker removes the public avatar object before profile/contact scrubbing and Auth deletion; storage-removal failure stops the erasure attempt and leaves the account queued for retry. [ ] Live storage deletion and retry behaviour still require disposable-account staging verification.
+- [x] The erasure worker removes the public avatar object before profile/contact scrubbing and Auth deletion; storage-removal failure stops the erasure attempt and leaves the account queued for retry.
+- [ ] Live avatar-object deletion and retry behaviour still require disposable-account staging verification.
 - [x] Guardian consent data is deleted where no longer required.
 - [x] Registration review match lists, reviewer references and reviewer free-text notes are scrubbed.
 - [x] Notification payloads and audit metadata are reviewed for direct identifiers and scrubbed where associated with the account.
@@ -87,7 +88,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [x] Finance workspace waits for a verified signed-in session before loading protected finance RPCs; password recovery offers a non-enumerating resend path for expired links and signs out after password change. Static CI assertions passed in [#1424](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42646379541).
 
 - [x] Fixture scheduling rejects active venues belonging to a different location than the selected season. Forward-only SQL migration and function-definition regression test passed in [#1424](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42646379541).
-- [x] Clean migration replay reproduces the deployed location checks for admin result entry, scorer options and season statistics; static security assertions accept both approved location guard helpers. The hosted-order replay verifies 99 canonical applied sources plus 14 pending forward-only migrations (113 total) and passed in [#1424](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42646379541).
+- [x] Clean migration replay reproduces the deployed location checks for admin result entry, scorer options and season statistics; static security assertions accept both approved location guard helpers. The hosted-order replay verifies 99 canonical applied sources plus 14 pending forward-only migrations (113 total) and passed in [#1537](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42687671582).
 
 ## 5. Manual product and security review
 
