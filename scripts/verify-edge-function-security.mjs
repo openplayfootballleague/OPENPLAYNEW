@@ -41,6 +41,8 @@ assert.ok(webhook.includes('req.headers.get("stripe-signature")') && webhook.inc
 const notifications = readFileSync("supabase/functions/deliver-notifications/index.ts", "utf8");
 assert.ok(notifications.includes('rpc("has_global_admin_role")'), "Manual notification dispatch must require a global administrator");
 assert.ok(!notifications.includes('rpc("get_admin_dashboard")'), "Do not rely on the revoked legacy admin dashboard RPC");
+const deliveryErrors = readFileSync("supabase/functions/deliver-notifications/shared/delivery-errors.ts", "utf8");
+assert.ok(!deliveryErrors.includes("JSON.stringify(body)"), "Notification provider errors must not persist raw recipient details");
 
 const checkout = readFileSync("supabase/functions/create-player-checkout/index.ts", "utf8");
 assert.ok(checkout.includes("userClient.auth.getUser(token)"), "Checkout must validate the signed-in user");
