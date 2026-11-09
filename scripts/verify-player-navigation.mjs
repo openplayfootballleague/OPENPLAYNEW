@@ -13,9 +13,15 @@ assert.equal((navigation.match(/to: "[^"]*" as const, label:/g) ?? []).length, 4
 assert.ok(navigation.includes("useRouterState") && navigation.includes("pathname === \"/player\""), "Home tab must be active on both public Home and the registered Player Hub, not every route");
 
 const more = readFileSync("src/routes/more.tsx", "utf8");
-for (const destination of ['to="/teams"', 'to="/gallery"', 'to="/player"', 'to="/captain"', 'to="/admin"', 'to="/finance"']) {
-  assert.ok(more.includes(destination), `More page is missing destination ${destination}`);
+for (const destination of ['to="/teams"', 'to="/gallery"', 'to="/match-centre"']) {
+  assert.ok(more.includes(destination), `More page is missing public destination ${destination}`);
 }
+assert.ok(more.includes('access.player && <Link') && more.includes('to="/player"'), "Player Hub must only appear for an approved registered player");
+assert.ok(more.includes('access.captain && <Link') && more.includes('to="/captain"'), "Captain Hub must only appear for an active captain");
+assert.ok(more.includes('access.admin && <Link') && more.includes('to="/admin"'), "Admin Dashboard must only appear after the admin access check");
+assert.ok(more.includes('access.finance && <Link') && more.includes('to="/finance"'), "Finance Workspace must only appear after the finance access check");
+assert.ok(more.includes('get_admin_context_preference') && more.includes('get_finance_options'), "More page must resolve protected workspace access from server-authorized RPCs");
+assert.ok(more.includes('Your account has basic-view access'), "Viewer accounts must receive the restricted basic-view explanation");
 assert.ok(readFileSync("src/routes/index.tsx", "utf8").includes("<PlayerBottomNavigation />"), "Public home must render the bottom navigation");
 console.log("Open Play four-tab navigation assertions passed.");
 
