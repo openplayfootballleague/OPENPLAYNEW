@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const anonKey = process.env.SUPABASE_ANON_KEY;
@@ -81,7 +81,8 @@ const { data: roleRows, error: roleReadError } = await supabase
 if (roleReadError) throw roleReadError;
 if ((roleRows ?? []).length !== 0) throw new Error("Account creation unexpectedly assigned a privileged role");
 
-const registrationPhone = `+4477009${randomUUID().replaceAll("-", "").slice(0, 5)}`;
+// Keep the generated test phone numeric; UUID hex characters can include a-f.
+const registrationPhone = `+4477009${randomInt(0, 100_000).toString().padStart(5, "0")}`;
 const { data: registrationData, error: registrationError } = await supabase.rpc("register_player", {
   p_full_name: `Open Play CI ${randomUUID().slice(0, 8)}`,
   p_phone: registrationPhone,
