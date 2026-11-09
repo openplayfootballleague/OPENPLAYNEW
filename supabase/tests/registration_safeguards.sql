@@ -65,6 +65,8 @@ declare
   v_sheet uuid;
   v_rejected boolean;
   v_count integer;
+  v_phone_target text;
+  v_phone_highest text;
 begin
   insert into auth.users
     (id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
@@ -88,6 +90,33 @@ begin
     (v_tie_aaron,'Aaron Tie Break','07700900304','ci-ban-aaron@openplay.invalid',date '1990-01-04','registered'),
     (v_single,'Only Successor','07700900305','ci-ban-single@openplay.invalid',date '1990-01-05','registered'),
     (v_pending_captain,'Unaffected Captain','07700900306','ci-ban-pending-captain@openplay.invalid',date '1990-01-06','registered');
+
+  -- Exercise the migration's historical-collision guard against two distinct
+  -- legacy strings that resolve to the same E.164 identity.
+  select phone into v_phone_target from public.players where user_id=v_target;
+  select phone into v_phone_highest from public.players where user_id=v_highest;
+  alter table public.players disable trigger players_canonicalize_phone;
+  update public.players set phone='07700 900 399' where user_id=v_target;
+  update public.players set phone='+44 7700 900 399' where user_id=v_highest;
+  v_rejected := false;
+  begin
+    if exists (
+      select public.normalize_player_phone(phone)
+      from public.players
+      group by public.normalize_player_phone(phone)
+      having count(*) > 1
+    ) then
+      raise exception 'Phone normalisation found duplicate canonical numbers; resolve identity collisions before applying this migration';
+    end if;
+  exception when others then
+    v_rejected := true;
+  end;
+  update public.players set phone=v_phone_target where user_id=v_target;
+  update public.players set phone=v_phone_highest where user_id=v_highest;
+  alter table public.players enable trigger players_canonicalize_phone;
+  if not v_rejected then
+    raise exception 'Historical phone collision guard did not reject equivalent legacy phone formats';
+  end if;
 
   insert into public.locations(name,slug,town,region,is_active)
   values('CI Registration Safeguards','ci-registration-safeguards','Bideford','North Devon',false)
@@ -184,6 +213,49 @@ begin
   if not v_rejected then raise exception 'Ban RPC accepted an invalid audit reason'; end if;
   execute 'reset role';
 
+  -- Force a failure after captain succession has begun. The RPC must roll
+  -- back its membership changes, audit rows and queued notifications atomically.
+  execute $ddl$
+    create function pg_temp.fail_captain_handover_notification()
+    returns trigger language plpgsql as $fn$
+    begin
+      if new.event_type='team.captain.handover_completed'
+         and new.user_id='90000000-0000-4000-8000-000000000302'::uuid then
+        raise exception 'CI forced notification failure';
+      end if;
+      return new;
+    end;
+    $fn$;
+    create trigger ci_fail_captain_handover_notification
+    before insert on public.notification_events
+    for each row execute function pg_temp.fail_captain_handover_notification();
+  $ddl$;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  v_rejected := false;
+  begin
+    perform public.admin_set_player_ban(v_target,true,'CI forced rollback test');
+  exception when others then
+    v_rejected := true;
+  end;
+  execute 'reset role';
+  drop trigger ci_fail_captain_handover_notification on public.notification_events;
+  if not v_rejected then
+    raise exception 'Injected notification failure did not abort the ban transaction';
+  end if;
+  if (select is_banned from public.players where user_id=v_target) then
+    raise exception 'Failed ban transaction left the player banned';
+  end if;
+  if (select is_captain from public.team_memberships where season_team_id=v_team_a and user_id=v_target) is not true then
+    raise exception 'Failed ban transaction did not restore the former captain membership';
+  end if;
+  if (select is_captain from public.team_memberships where season_team_id=v_team_a and user_id=v_highest) is not false then
+    raise exception 'Failed ban transaction left a partial captain succession';
+  end if;
+  if exists(select 1 from public.notification_events where event_type='team.captain.handover_completed' and user_id=v_highest) then
+    raise exception 'Failed ban transaction left a partial captain handover notification';
+  end if;
+
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
   perform public.admin_set_player_ban(v_target,true,'CI registration safeguard test');
@@ -225,6 +297,15 @@ begin
   perform set_config('request.jwt.claim.sub',v_target::text,true);
   if public.is_active_team_captain(v_team_a) then
     raise exception 'Banned former captain still passes the active-captain authorization helper';
+  end if;
+  v_rejected := false;
+  begin
+    perform * from public.get_captain_fixtures();
+  exception when others then
+    v_rejected := true;
+  end;
+  if not v_rejected then
+    raise exception 'Banned former captain could still call the captain-only fixture RPC';
   end if;
   execute 'reset role';
 
