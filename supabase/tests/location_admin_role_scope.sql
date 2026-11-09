@@ -75,6 +75,10 @@ begin
    ('00000000-0000-4000-8000-000000000070','00000000-0000-4000-8000-000000000030',1,1,'00000000-0000-4000-8000-000000000050','00000000-0000-4000-8000-000000000051'),
    ('00000000-0000-4000-8000-000000000071','00000000-0000-4000-8000-000000000031',1,1,'00000000-0000-4000-8000-000000000052','00000000-0000-4000-8000-000000000053');
 
+  insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
+  values('00000000-0000-4000-8000-000000000071','00000000-0000-4000-8000-000000000052',
+    '00000000-0000-4000-8000-000000000005',true,now());
+
   -- Ordinary player: own profile/player record and own team's fixture only.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',true);
@@ -275,9 +279,6 @@ begin
   end;
   if not v_denied then raise exception 'Location admin entered a result outside their assignment'; end if;
 
-  insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
-  values('00000000-0000-4000-8000-000000000071','00000000-0000-4000-8000-000000000052',
-    '00000000-0000-4000-8000-000000000005',true,now());
   v_denied := false;
   begin
     perform public.admin_amend_team_sheet(
