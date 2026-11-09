@@ -8,7 +8,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 ## 1. Automated verification
 
-- [x] Latest four-tab navigation and public-home integration passed application build, Deno checks, domain tests, Edge Function and navigation assertions, Cloudflare dry-run, clean migration replay and all SQL/Auth lifecycle suites in [#1402](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42640821492).
+- [x] Latest Phase 1 branch state, including retryable erasure, financial/transfer exclusions and reactivation concurrency guard, passed application build, Deno checks, domain tests, Edge Function/navigation assertions, Cloudflare dry-run, clean migration replay and all SQL/Auth lifecycle suites in [#1409](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42642606975).
 - [x] Clean local Supabase migration replay succeeds from an empty database.
 - [x] Migration source manifest matches the actual migration files and Git blobs.
 - [x] Deno type-check succeeds for all Edge Functions.
@@ -41,7 +41,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 ## 3. Account retention and reactivation
 
-- [x] Eligibility requires 12 months without successful sign-in and no active/pending membership.
+- [x] Eligibility requires 12 months without successful sign-in, no active/pending membership, no unresolved payment or pending transfer, and no global/location administrator assignment.
 - [x] Never-signed-in accounts use account creation time as the inactivity baseline.
 - [x] Global and location administrators, legal/safeguarding holds and unresolved financial obligations are excluded.
 - [x] The global-admin retention workspace can search player accounts and set/clear holds with a required reason; every change is recorded in the audit log. Holds cannot be applied after the final `erasure_due` stage.
@@ -52,7 +52,8 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [x] Restricted archive lasts 12 months.
 - [x] Reactivation is non-enumerating, verified by a single-use 24-hour email link and protected by a database cooldown.
 - [x] Reactivation restores the same registered player account but no membership, pending request, captaincy or squad permissions.
-- [x] Expired archives are processed idempotently; failed erasure remains banned and is retried.
+- [x] Concurrent use of a single-use reactivation link cannot cause a losing retry to re-ban an account already reactivated by the winning request; the account-status gate still blocks private access if completion did not commit.
+- [x] Expired archives are processed idempotently; `erasure_due` accounts remain in the queue after transient storage/Auth failures, and repeated marking is safe without duplicate initial audit events.
 - [x] Worker logs do not disclose account UUIDs, email addresses or other direct identifiers.
 - [ ] Advance-warning email cadence is agreed and implemented before unattended closures are enabled. **Current documented gap:** 90/30/7-day advance notices are not yet implemented.
 - [ ] Resend secrets, sender identity and live email round-trip are verified in a controlled staging environment before activation.
@@ -98,7 +99,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - A line-by-line review of all 77 authenticated-callable RPC definitions was completed against this hosted snapshot. The reviewed functions use direct `auth.uid()` checks or a reviewed caller-scoped helper; global player-detail, registration-review, notification-control, audit-history and location-assignment operations require global-admin roles; finance operations require the global finance/admin role; location operations enforce assigned-location context; player and captain operations are scoped to the signed-in user or an active team membership. No anonymous execution path or confirmed cross-user/cross-location authorization bypass was identified in the reviewed definitions. No dynamic SQL execution was found in the authenticated-callable SECURITY DEFINER set.
 - One non-authorization auditability gap was noted: `admin_set_location_assignment` is restricted to global administrators but does not currently write an `audit_log` entry when an assignment is granted or revoked. Record this for hardening before broad delegation of location administration.
 - All six Edge Function sources were reviewed. `guardian-consent` and `player-account-retention` have public entrypoints but validate the signed-in user, one-use token or cron secret themselves; `stripe-webhook` validates Stripe's raw-body signature and rejects live-mode events; `public-gallery` exposes only published items in active locations; `create-player-checkout` validates the signed-in user; and `deliver-notifications` accepts the service-role worker path or a global administrator for manual dispatch. Function gateway settings are explicit and protected by CI assertions. Guardian emails omit date of birth, notification provider error records omit raw response bodies, and checkout no longer contains a Lovable-origin fallback.
-- The hosted snapshot predates the seven un-applied Phase 1 migrations; it does not certify their future hosted grants or function definitions. Those are covered by clean local replay and SQL regression tests, with deployment still blocked pending release approval.
+- The hosted snapshot predates the eight un-applied Phase 1 migrations; it does not certify their future hosted grants or function definitions. Those are covered by clean local replay and SQL regression tests, with deployment still blocked pending release approval.
 
 ## 6. Release prerequisites (not part of local CI)
 
