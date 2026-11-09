@@ -116,7 +116,7 @@ begin
         'home_wins',ss.home_wins,'away_wins',ss.away_wins,'draws',ss.draws,
         'team_clean_sheets',ss.team_clean_sheets
       ) from season_summary ss),
-      'teams',coalesce((select jsonb_agg(to_jsonb(rt) order by rt.position,rt.name from ranked_teams rt),'[]'::jsonb),
+      'teams',coalesce((select jsonb_agg(to_jsonb(rt) order by rt.position,rt.name) from ranked_teams rt),'[]'::jsonb),
       'players',coalesce((
         select jsonb_agg(jsonb_build_object(
           'user_id',pa.user_id,'full_name',pa.full_name,'apps',pa.apps,
