@@ -382,43 +382,49 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
-declare v_closed_at timestamptz := now();
+declare
+  v_closed_at timestamptz := now();
+  v_last_sign_in_at timestamptz;
 begin
-  update public.profiles p
-  set account_retention_status = 'closed',
-      account_closed_at = v_closed_at,
-      archive_expires_at = v_closed_at + interval '12 months',
-      reactivation_token_hash = null,
-      reactivation_token_expires_at = null,
-      reactivation_requested_at = null,
-      updated_at = v_closed_at
-  where p.id = p_user_id
-    and p.account_retention_status = 'active'
-    and p.last_sign_in_at <= v_closed_at - interval '12 months'
+  -- Lock both the account and registered-player row before checking memberships.
+  -- Membership creation takes the same locks in its guard trigger, so neither
+  -- operation can pass the other's eligibility check concurrently.
+  select p.last_sign_in_at into v_last_sign_in_at
+  from public.profiles p
+  join public.players pl on pl.user_id=p.id
+  where p.id=p_user_id
+    and p.account_retention_status='active'
+    and pl.registration_status='registered'
+    and pl.is_banned=false
     and not p.retention_hold
-    and exists (
-      select 1 from public.players pl
-      where pl.user_id = p.id
-        and pl.registration_status = 'registered'
-        and pl.is_banned = false
-    )
-    and not exists (
-      select 1 from public.team_memberships tm
-      where tm.user_id = p.id and tm.status in ('active','pending')
-    )
-    and not exists (select 1 from public.user_roles ur where ur.user_id = p.id)
-    and not exists (select 1 from public.location_admin_assignments la where la.user_id = p.id);
+  for update of p,pl;
+
+  if not found then return false; end if;
+  if v_last_sign_in_at > v_closed_at - interval '12 months' then return false; end if;
+  if exists(select 1 from public.team_memberships tm where tm.user_id=p_user_id and tm.status in ('active','pending')) then return false; end if;
+  if exists(select 1 from public.user_roles ur where ur.user_id=p_user_id) then return false; end if;
+  if exists(select 1 from public.location_admin_assignments la where la.user_id=p_user_id) then return false; end if;
+
+  update public.profiles
+  set account_retention_status='closed',
+      account_closed_at=v_closed_at,
+      archive_expires_at=v_closed_at+interval '12 months',
+      reactivation_token_hash=null,
+      reactivation_token_expires_at=null,
+      reactivation_requested_at=null,
+      updated_at=v_closed_at
+  where id=p_user_id and account_retention_status='active';
 
   if not found then return false; end if;
 
-  insert into public.audit_log(actor_user_id, action, entity_type, entity_id, reason, after_data)
-  values (
+  insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,after_data)
+  values(
     null,
     'player.account.closed_for_inactivity',
     'player_account',
     p_user_id::text,
     'No successful sign-in for 12 months and no active or pending team membership',
-    jsonb_build_object('closed_at', v_closed_at, 'archive_expires_at', v_closed_at + interval '12 months')
+    jsonb_build_object('closed_at',v_closed_at,'archive_expires_at',v_closed_at+interval '12 months')
   );
   return true;
 end;
