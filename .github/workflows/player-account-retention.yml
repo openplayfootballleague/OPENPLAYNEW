@@ -1,6 +1,6 @@
 name: Player account retention
 
-# Manual-only until advance-warning emails and controlled staging acceptance are complete.
+# Manual-only until controlled staging email/worker acceptance and explicit release approval are complete.
 on:
   workflow_dispatch:
 
