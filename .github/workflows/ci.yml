@@ -28,7 +28,7 @@ jobs:
         with:
           deno-version: v2.x
       - name: Type-check Supabase Edge Functions
-        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts
       - name: Run domain tests
         run: npm test
       - name: Type-check and build
@@ -85,6 +85,11 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/registration_safeguards.sql
+
+      - name: Verify age tiers and guardian consent lifecycle
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/age_tier_guardian_consent.sql
 
       - name: Verify Auth signup, email confirmation and password recovery
         shell: bash
