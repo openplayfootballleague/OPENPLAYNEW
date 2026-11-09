@@ -326,7 +326,8 @@ $$;
 revoke all on function public.get_my_transfer_destinations() from public,anon;
 grant execute on function public.get_my_transfer_destinations() to authenticated;
 
-create or replace function public.get_my_transfer_requests()
+drop function if exists public.get_my_transfer_requests();
+create function public.get_my_transfer_requests()
 returns table(
   id uuid,source_team_name text,destination_team_name text,
   season_name text,reason text,status text,requested_at timestamptz,
