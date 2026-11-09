@@ -8,7 +8,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 ## 1. Automated verification
 
-- [x] Latest implementation commit has a fully green GitHub Actions run (run [#1371](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42623913528)).
+- [x] Latest implementation commit has a fully green GitHub Actions run (run [#1378](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42634737332)).
 - [x] Clean local Supabase migration replay succeeds from an empty database.
 - [x] Migration source manifest matches the actual migration files and Git blobs.
 - [x] Deno type-check succeeds for all Edge Functions.
@@ -44,6 +44,8 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [ ] Never-signed-in accounts use account creation time as the inactivity baseline.
 - [ ] Global and location administrators, legal/safeguarding holds and unresolved financial obligations are excluded.
 - [ ] The global-admin retention workspace can search player accounts and set/clear holds with a required reason; every change is recorded in the audit log. Holds cannot be applied after the final `erasure_due` stage.
+- [x] Auth sign-in timestamp updates cannot reopen `closed` or `erasure_due` accounts; only the verified, single-use reactivation flow can restore `active` status (forward-only migration and regression test).
+- [x] The application blocks private-page rendering while retention status is checked and fails closed when the status query errors; users can retry without discarding the session.
 - [ ] Eligibility is rechecked under lock immediately before closure and erasure.
 - [ ] Closure bans Auth sign-in and the app rejects closed/erasure-due accounts when observed.
 - [ ] Restricted archive lasts 12 months.
