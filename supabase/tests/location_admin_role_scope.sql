@@ -80,6 +80,7 @@ begin
   -- administrator must not create a captain's matchday sheet.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000003',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003"}',true);
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
   values('00000000-0000-4000-8000-000000000071','00000000-0000-4000-8000-000000000052',
     '00000000-0000-4000-8000-000000000003',true,now())
@@ -89,6 +90,7 @@ begin
   -- A global administrator without captaincy cannot create a team sheet directly.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000005',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000005"}',true);
   v_denied := false;
   begin
     insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
@@ -107,6 +109,7 @@ begin
   -- Ordinary player: own profile/player record and own team's fixture only.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001"}',true);
   if current_user <> 'authenticated' then raise exception 'Could not assume authenticated role'; end if;
   if public.has_global_admin_role() or public.has_platform_role() then raise exception 'Ordinary player unexpectedly has an admin role'; end if;
   select count(*) into v_count from public.profiles where id='00000000-0000-4000-8000-000000000001';
@@ -133,6 +136,7 @@ begin
   -- Captain: their own team's roster and fixtures only.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000002',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002"}',true);
   if not public.is_active_team_captain('00000000-0000-4000-8000-000000000050') then raise exception 'Captain membership was not recognised'; end if;
   if public.has_global_admin_role() or public.has_platform_role() then raise exception 'Captain unexpectedly has an admin role'; end if;
   select count(*) into v_count from public.team_memberships where season_team_id='00000000-0000-4000-8000-000000000050' and status='active';
@@ -173,6 +177,7 @@ begin
   if v_count <> 1 then raise exception 'Cross-team request changed despite authorization denial'; end if;
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000002',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002"}',true);
 
   select count(*) into v_count from public.team_memberships where season_team_id='00000000-0000-4000-8000-000000000052';
   if v_count <> 0 then raise exception 'Captain can see another location roster'; end if;
@@ -192,6 +197,7 @@ begin
   -- Location admin: direct table RLS is not a shortcut around scoped RPCs.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000004',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000004"}',true);
   if current_user <> 'authenticated' then raise exception 'Could not assume authenticated role for location admin'; end if;
   if not public.has_platform_role() then raise exception 'Location admin role was not recognised'; end if;
   if public.has_global_admin_role() then raise exception 'Location admin was incorrectly classified as global'; end if;
@@ -327,6 +333,7 @@ begin
   -- Finance admin: may manage fees without a platform-admin or location assignment.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000007',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000007"}',true);
   if not public.has_finance_access() then raise exception 'Finance admin does not have finance access'; end if;
   if public.has_platform_role() or public.has_global_admin_role() then raise exception 'Finance admin was incorrectly granted platform-admin access'; end if;
   perform public.admin_set_player_fixture_fee('00000000-0000-4000-8000-000000000031',500,1,'CI finance role scope test');
@@ -342,6 +349,7 @@ begin
   -- Global admin: global visibility and assignment administration remain available.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000005',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000005"}',true);
   if not public.has_global_admin_role() then raise exception 'Global admin role was not recognised'; end if;
   select count(*) into v_count from public.profiles where id in (
     '00000000-0000-4000-8000-000000000001',
@@ -389,6 +397,7 @@ begin
   where user_id='00000000-0000-4000-8000-000000000004' and role='league_admin';
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000005',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000005"}',true);
   perform public.admin_set_location_assignment('00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000011',false);
   execute 'reset role';
   select count(*) into v_count from public.location_admin_assignments
