@@ -82,6 +82,12 @@ begin
   end;
   if not v_rejected then raise exception 'A retention hold was accepted after final erasure had begun'; end if;
 
+  -- Audit rows are intentionally RPC-only for authenticated clients, including
+  -- global admins. Verify the persisted audit trail through the isolated
+  -- service-role test context rather than weakening production table grants.
+  execute 'reset role';
+  execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
   select count(*) into v_count from public.audit_log
   where actor_user_id=v_admin and entity_id=v_player::text
     and action in ('player.retention_hold.set','player.retention_hold.cleared');
