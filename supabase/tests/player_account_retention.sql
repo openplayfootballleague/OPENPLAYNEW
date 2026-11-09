@@ -72,6 +72,15 @@ begin
     raise exception 'Account closure did not start the 12-month restricted archive';
   end if;
 
+  -- A later Auth sign-in timestamp update must not reopen a closed account.
+  -- Only the verified, single-use reactivation flow may change it back to active.
+  update auth.users set last_sign_in_at=now() where id=v_inactive;
+  select account_retention_status into v_status
+  from public.profiles where id=v_inactive;
+  if v_status <> 'closed' then
+    raise exception 'An Auth sign-in timestamp update bypassed the closed-account reactivation flow';
+  end if;
+
   -- A second request within the cooldown returns no row.
   perform * from public.request_player_account_reactivation('ci-retention-inactive@openplay.invalid',v_token_hash);
   select count(*) into v_count
