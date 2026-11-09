@@ -162,6 +162,19 @@ begin
   insert into public.team_memberships(season_team_id,user_id,status,is_captain)
   values(v_season_team,v_minor,'active',true);
 
+  -- An under-16 basic-view account must not inherit another player's private
+  -- membership data or direct access to guardian-consent records.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_underage::text,true);
+  select count(*) into v_count from public.team_memberships;
+  if v_count <> 0 then
+    raise exception 'An under-16 basic-view account can read another player''s team membership';
+  end if;
+  if has_table_privilege('authenticated','public.player_guardian_consents','SELECT') then
+    raise exception 'Authenticated users have direct access to private guardian-consent records';
+  end if;
+  execute 'reset role';
+
   -- Withdrawal is deliberately a POST action in the Edge Function; the SQL
   -- RPC consumes the one-time secret and revokes current player/team access.
   execute 'set local role service_role';
