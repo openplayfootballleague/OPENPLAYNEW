@@ -183,7 +183,7 @@ Deno.serve(async (req: Request) => {
     return json({
       closed,
       skipped,
-      marked_erasureDue,
+      markedErasureDue,
       note: "Erasure-due accounts are queued for the separately audited historical anonymisation process; this worker does not hard-delete Auth users or competition history.",
     });
   }
