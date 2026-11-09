@@ -6,6 +6,7 @@ declare
   v_inactive constant uuid := '92000000-0000-4000-8000-000000000001';
   v_member constant uuid := '92000000-0000-4000-8000-000000000002';
   v_admin constant uuid := '92000000-0000-4000-8000-000000000003';
+  v_financial constant uuid := '92000000-0000-4000-8000-000000000004';
   v_location uuid;
   v_league uuid;
   v_season uuid;
@@ -26,7 +27,8 @@ begin
   values
     (v_inactive,'authenticated','authenticated','ci-retention-inactive@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '13 months'),
     (v_member,'authenticated','authenticated','ci-retention-member@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '13 months'),
-    (v_admin,'authenticated','authenticated','ci-retention-admin@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '13 months');
+    (v_admin,'authenticated','authenticated','ci-retention-admin@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '13 months'),
+    (v_financial,'authenticated','authenticated','ci-retention-financial@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '13 months');
 
   update public.profiles
   set last_sign_in_at=now()-interval '13 months'
@@ -35,7 +37,8 @@ begin
   insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status)
   values
     (v_inactive,'Inactive Retention Player','07700900401','ci-retention-inactive@openplay.invalid',date '1990-01-01','registered'),
-    (v_member,'Active Membership Player','07700900402','ci-retention-member@openplay.invalid',date '1990-01-02','registered');
+    (v_member,'Active Membership Player','07700900402','ci-retention-member@openplay.invalid',date '1990-01-02','registered'),
+    (v_financial,'Unsettled Payment Player','07700900403','ci-retention-financial@openplay.invalid',date '1990-01-03','registered');
 
   insert into public.user_roles(user_id,role,granted_by) values(v_admin,'admin',v_admin);
 
@@ -47,6 +50,9 @@ begin
   values(v_team,v_season,'Retention Test Team','retention-test-team','approved') returning id into v_season_team;
   insert into public.team_memberships(season_team_id,user_id,status,is_captain)
   values(v_season_team,v_member,'active',true);
+
+  insert into public.payment_records(season_team_id,amount_pence,fee_snapshot,player_user_id,status)
+  values(v_season_team,500,'{}'::jsonb,v_financial,'processing');
 
   if has_function_privilege('anon','public.admin_list_inactive_player_accounts()','EXECUTE')
      or has_function_privilege('authenticated','public.admin_list_inactive_player_accounts()','EXECUTE')
@@ -61,8 +67,10 @@ begin
   perform set_config('request.jwt.claim.role','service_role',true);
   select count(*) into v_count from public.admin_list_inactive_player_accounts();
   if v_count <> 1 then
-    raise exception 'Expected only the inactive unattached player to be eligible; found % candidates',v_count;
+    raise exception 'Expected only the inactive unattached player to be eligible; accounts with active memberships or unresolved payments must be excluded; found % candidates',v_count;
   end if;
+  select public.admin_close_inactive_player_account(v_financial) into v_closed;
+  if v_closed then raise exception 'An account with an unresolved payment was closed for inactivity'; end if;
 
   select public.admin_close_inactive_player_account(v_inactive) into v_closed;
   if not v_closed then raise exception 'Eligible inactive player account was not closed'; end if;
@@ -119,6 +127,10 @@ begin
   if not exists(select 1 from public.profiles where id=v_inactive and account_retention_status='erasure_due') then
     raise exception 'Expired archive did not enter erasure_due state';
   end if;
+  select count(*) into v_count from public.admin_list_expired_player_account_archives() where user_id=v_inactive;
+  if v_count <> 1 then raise exception 'An erasure_due account was not returned to the retry queue'; end if;
+  select public.admin_mark_player_account_erasure_due(v_inactive) into v_marked;
+  if not v_marked then raise exception 'Reprocessing an erasure_due account was not idempotently accepted'; end if;
 
   execute 'reset role';
 
