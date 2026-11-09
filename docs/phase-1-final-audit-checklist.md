@@ -79,6 +79,12 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [x] Standard team-sheet amendment cannot overwrite a former player's protected historic appearance.
 - [ ] Payment/accounting records follow a separately documented retention schedule, with direct account/customer links detached where permitted.
 
+- [ ] Public Match Centre and admin season statistics use points-only rankings; teams level on points share positions and goal difference is display-only. Dedicated unit/SQL regression tests are included in CI.
+
+- [ ] Finance workspace waits for a verified signed-in session before loading protected finance RPCs; password recovery offers a non-enumerating resend path for expired links and signs out after password change. Static CI assertions added.
+
+- [ ] Fixture scheduling rejects active venues belonging to a different location than the selected season. Forward-only SQL migration and function-definition regression test added.
+
 ## 5. Manual product and security review
 
 - [ ] Review registration form, error states and pending-review messaging on mobile and desktop.
