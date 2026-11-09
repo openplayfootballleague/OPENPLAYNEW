@@ -8,9 +8,9 @@ returns date
 language sql
 stable
 set search_path = ''
-as $
+as $$
   select pg_catalog.timezone('Europe/London', p_instant)::date;
-$;
+$$;
 revoke all on function public.open_play_uk_date(timestamptz) from public, anon, authenticated;
 
 create table public.player_guardian_consents (
