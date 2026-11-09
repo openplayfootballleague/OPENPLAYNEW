@@ -9,6 +9,7 @@ declare
   v_child_guard text;
   v_draft_writer text;
   v_submit_writer text;
+  v_normalized text;
 begin
   if to_regprocedure('public.captain_next_required_fixture(uuid)') is null then
     raise exception 'Missing next-required fixture resolver';
@@ -86,18 +87,20 @@ begin
 
   select pg_get_functiondef('public.get_captain_team_sheet(uuid)'::regprocedure)
     into v_sheet_reader;
-  if position('captain_next_required_fixture' in lower(v_sheet_reader)) = 0
-     or position('f.status = ''scheduled''' in lower(v_sheet_reader)) = 0 then
+  v_normalized := regexp_replace(lower(v_sheet_reader), E'\\s+', '', 'g');
+  if position('captain_next_required_fixture' in v_normalized) = 0
+     or position('f.status=''scheduled''' in v_normalized) = 0 then
     raise exception 'Captain sheet reader does not enforce the next required scheduled fixture';
   end if;
 
   select pg_get_functiondef(
     'public.admin_amend_team_sheet(uuid,uuid[],uuid[],uuid,text)'::regprocedure
   ) into v_admin_amendment;
-  if position('v_fixture.status <> ''completed''' in lower(v_admin_amendment)) = 0
-     or position('length(btrim(p_reason)) < 5' in lower(v_admin_amendment)) = 0
-     or position('fixture.team_sheet.admin_amended' in lower(v_admin_amendment)) = 0
-     or position('assert_admin_location_context' in lower(v_admin_amendment)) = 0 then
+  v_normalized := regexp_replace(lower(v_admin_amendment), E'\\s+', '', 'g');
+  if position('v_fixture.status<>''completed''' in v_normalized) = 0
+     or position('length(btrim(p_reason))<5' in v_normalized) = 0
+     or position('fixture.team_sheet.admin_amended' in v_normalized) = 0
+     or position('assert_admin_location_context' in v_normalized) = 0 then
     raise exception 'Admin amendment is missing completed-fixture, reason, audit, or assigned-location safeguards';
   end if;
 
