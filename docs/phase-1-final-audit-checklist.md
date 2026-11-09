@@ -1,6 +1,6 @@
 # Phase 1 final audit checklist
 
-Status: **Automated verification passed — manual audit and release prerequisites remain open**
+Status: **Automated verification mostly passed — one CI regression test was corrected and needs a fresh run; manual audit and release prerequisites remain open**
 
 Scope: Open Play New Phase 1 registration safeguards, identity/consent controls, player access restrictions, account retention and permanent competition-history preservation.
 
@@ -9,7 +9,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 ## 1. Automated verification
 
 - [x] Earlier Phase 1 implementation state passed application build, Deno checks, domain tests, Edge Function/navigation assertions, Cloudflare dry-run, clean migration replay and SQL/Auth lifecycle suites in [#1424](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42646379541).
-- [ ] Latest audit corrections (UK civil-date age enforcement, under-16 private-data checks, two-year guardian withdrawal expiry and authenticated captain fixture sequencing) are awaiting a fresh full CI result. Run [#1484](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42671278961) passed build and both migration replay/order checks, and passed earlier SQL suites including phone/ban/captain safeguards, but stopped in the age-tier suite on a missing test counter. The counter and role-scoped date setup were corrected in commits `fc501d04` and `73f7f9c5`; rerun is required before sign-off.
+- [ ] Latest audit corrections (UK civil-date age enforcement, under-16 private-data checks, two-year guardian withdrawal expiry and authenticated captain fixture sequencing) need a clean full CI run. Run [#1488](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42671920202) passed clean migration replay, hosted migration-order verification, the age-tier/guardian-consent suite, retention/reactivation and retention-hold suites, but failed in `competition_identity_erasure.sql`: its fixture-sheet setup did not authenticate the active captains required by the production next-fixture trigger. The test now creates active captain memberships, submits both sheets as their authenticated captains while the fixture is scheduled, then completes the fixture; correction commit `ae11f63` is on the PR branch. No CI run has yet been recorded for that correction commit; do not sign off until it passes.
 - [x] Clean local Supabase migration replay succeeds from an empty database.
 - [x] Migration source manifest matches the actual migration files and Git blobs.
 - [x] Deno type-check succeeds for all Edge Functions.
@@ -19,7 +19,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [x] Database security assertions pass.
 - [x] Existing RLS, grants, role-scope, finance, membership and identity-review regression suites pass.
 - [x] Phone canonicalisation and player-ban/captain-succession suites pass.
-- [ ] Latest age-tier, guardian-consent, withdrawal, cooldown and admin-review suite includes UK date/DST/leap-day boundaries, under-16 private membership access, and expired/consumed withdrawal-token checks; latest full run is pending.
+- [x] Age-tier, guardian-consent, withdrawal, cooldown and admin-review SQL suite passed in [#1488](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42671920202), including UK civil-date/DST/leap-day boundaries, under-16 private membership access, and expired/consumed withdrawal-token checks.
 - [x] Retention/reactivation lifecycle suite passes.
 - [x] Global-admin retention-hold permissions, closure exclusion and audit lifecycle suite passes.
 - [x] Permanent competition-identity and safe-erasure suite passes.
@@ -41,7 +41,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [x] Captain succession is deterministic and handles the no-eligible-successor case safely.
 - [x] Under-16 users cannot create a player identity or access player-only functions.
 - [x] Ages 16–17 require guardian verification and a separate global-admin decision.
-- [ ] Guardian verification and withdrawal tokens are hashed, one-use, time-limited and rate-limited. Verification expires after 7 days; withdrawal expires after 2 years and is rejected at age 18. Latest expiry regression checks await full CI.
+- [x] Guardian verification and withdrawal tokens are hashed, one-use and time-limited. Verification expires after 7 days; withdrawal expires after 2 years and is rejected at age 18. Expiry and consumption regression checks passed in [#1488](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42671920202).
 - [x] Guardian withdrawal suspends access and removes active/pending memberships and captaincy without destroying history.
 
 ## 3. Account retention and reactivation
