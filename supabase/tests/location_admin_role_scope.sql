@@ -230,6 +230,64 @@ begin
     if sqlerrm = 'Finance access required' then v_denied := true; else raise; end if;
   end;
   if not v_denied then raise exception 'Location admin changed finance settings without finance permission'; end if;
+
+  -- Every newly replaced contextual/history RPC must enforce the selected location.
+  v_denied := false;
+  begin
+    perform * from public.get_admin_team_sheets_contextual('00000000-0000-4000-8000-000000000011',null,null);
+  exception when others then
+    if sqlerrm = 'You are not assigned to this location' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin read team sheets outside their assignment'; end if;
+
+  v_denied := false;
+  begin
+    perform * from public.admin_get_transfer_requests_contextual('all','00000000-0000-4000-8000-000000000011',null,null);
+  exception when others then
+    if sqlerrm = 'You are not assigned to this location' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin read transfer requests outside their assignment'; end if;
+
+  v_denied := false;
+  begin
+    perform public.get_admin_season_statistics('00000000-0000-4000-8000-000000000031');
+  exception when others then
+    if sqlerrm = 'You are not assigned to this location' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin read season statistics outside their assignment'; end if;
+
+  v_denied := false;
+  begin
+    perform public.get_admin_fixture_scorer_options('00000000-0000-4000-8000-000000000071');
+  exception when others then
+    if sqlerrm = 'You are not assigned to this location' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin read scorer options outside their assignment'; end if;
+
+  v_denied := false;
+  begin
+    perform public.admin_record_fixture_result_with_appearances(
+      '00000000-0000-4000-8000-000000000071',0,0,'{}'::uuid[],'{}'::uuid[],'{}'::uuid[],'{}'::uuid[],
+      'Cross-location authorization test'
+    );
+  exception when others then
+    if sqlerrm = 'You are not assigned to this location' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin entered a result outside their assignment'; end if;
+
+  insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
+  values('00000000-0000-4000-8000-000000000071','00000000-0000-4000-8000-000000000052',
+    '00000000-0000-4000-8000-000000000005',true,now());
+  v_denied := false;
+  begin
+    perform public.admin_amend_team_sheet(
+      (select id from public.fixture_team_sheets where fixture_id='00000000-0000-4000-8000-000000000071'),
+      '{}'::uuid[],'{}'::uuid[],null,'Cross-location authorization test'
+    );
+  exception when others then
+    if sqlerrm = 'You are not assigned to this location' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin amended a team sheet outside their assignment'; end if;
   execute 'reset role';
 
   -- Finance admin: may manage fees without a platform-admin or location assignment.
