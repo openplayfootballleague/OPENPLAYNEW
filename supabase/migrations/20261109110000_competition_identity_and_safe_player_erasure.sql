@@ -281,6 +281,44 @@ before insert or update of scorer_user_id, competition_player_id
 on public.fixture_goal_records
 for each row execute function public.set_fixture_goal_competition_identity();
 
+-- Serialize membership creation against account closure/erasure. The trigger locks
+-- the same profile/player rows used by the retention worker and rejects any new
+-- active/pending membership once an account enters the closed/archive lifecycle.
+create or replace function public.enforce_player_account_active_for_membership()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_registration_status public.player_registration_status;
+  v_is_banned boolean;
+  v_account_status text;
+begin
+  if new.status in ('active','pending') then
+    select pl.registration_status,pl.is_banned,pr.account_retention_status
+    into v_registration_status,v_is_banned,v_account_status
+    from public.players pl
+    join public.profiles pr on pr.id=pl.user_id
+    where pl.user_id=new.user_id
+    for update of pl,pr;
+
+    if not found
+       or v_registration_status<>'registered'
+       or v_is_banned is true
+       or v_account_status<>'active' then
+      raise exception 'An active registered player account is required for team membership';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+revoke all on function public.enforce_player_account_active_for_membership() from public,anon,authenticated;
+drop trigger if exists team_memberships_require_active_player_account on public.team_memberships;
+create trigger team_memberships_require_active_player_account
+before insert or update of user_id,status on public.team_memberships
+for each row execute function public.enforce_player_account_active_for_membership();
+
 create or replace function public.anonymise_player_audit_json(p_value jsonb, p_user_id uuid)
 returns jsonb
 language plpgsql
