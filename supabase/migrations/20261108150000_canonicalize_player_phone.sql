@@ -48,6 +48,7 @@ revoke all on function public.normalize_player_phone(text) from public, anon, au
 create or replace function public.canonicalize_player_phone()
 returns trigger
 language plpgsql
+security definer
 set search_path = ''
 as $$
 begin
@@ -55,6 +56,7 @@ begin
   return new;
 end;
 $$;
+revoke all on function public.canonicalize_player_phone() from public, anon, authenticated;
 
 drop trigger if exists players_canonicalize_phone on public.players;
 create trigger players_canonicalize_phone
