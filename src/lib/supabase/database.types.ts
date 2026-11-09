@@ -2635,6 +2635,10 @@ export type Database = {
         Args: { p_season_id: string }
         Returns: Json
       }
+      get_admin_season_player_club_statistics: {
+        Args: { p_season_id: string }
+        Returns: Json
+      }
       get_admin_stripe_payments: {
         Args: { p_season_id?: string }
         Returns: {
