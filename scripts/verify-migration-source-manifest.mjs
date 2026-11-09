@@ -5,6 +5,7 @@ import { basename, join } from "node:path";
 const manifestPath = "docs/supabase-migration-source-manifest-2026-11-08.md";
 const migrationDirectory = "supabase/migrations";
 const expectedForwardOnly = [
+  "supabase/migrations/20261108021000_captain_next_required_fixture_and_admin_amendment.sql",
   "supabase/migrations/20261108150000_canonicalize_player_phone.sql",
   "supabase/migrations/20261108160000_enforce_player_ban_and_captain_succession.sql",
   "supabase/migrations/20261109080000_player_age_tiers_and_guardian_consent.sql",
