@@ -26,3 +26,8 @@ enabled = false
 [functions.guardian-consent]
 # The function validates authenticated requests itself; guardian links are public, single-use tokens.
 verify_jwt = false
+
+[functions.player-account-retention]
+# Public reactivation requests and single-use links are validated by the function.
+# The daily inactivity worker requires ACCOUNT_RETENTION_CRON_SECRET.
+verify_jwt = false
