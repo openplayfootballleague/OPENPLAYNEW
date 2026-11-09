@@ -109,6 +109,7 @@ declare
   v_user_id uuid := auth.uid();
   v_application public.referee_applications%rowtype;
   v_locations text[];
+  v_was_rejected boolean := false;
 begin
   if v_user_id is null then
     raise exception 'Authentication is required';
@@ -156,6 +157,7 @@ begin
     if v_application.status = 'pending' then
       raise exception 'You already have a referee application awaiting review';
     end if;
+    v_was_rejected := v_application.status = 'rejected';
 
     update public.referee_applications
     set full_name = btrim(p_full_name),
@@ -192,7 +194,7 @@ begin
     'referee.application.submitted',
     'referee_application',
     v_application.id::text,
-    case when v_application.reviewed_at is null then null else 'Resubmitted after rejection' end,
+    case when v_was_rejected then 'Resubmitted after rejection' else null end,
     jsonb_build_object('status', 'pending')
   );
 
@@ -226,7 +228,7 @@ begin
   if auth.uid() is null or not public.has_global_admin_role() then
     raise exception 'Global administrator access is required';
   end if;
-  if p_status not in ('pending','approved','rejected','all') then
+  if coalesce(p_status, 'pending') not in ('pending','approved','rejected','all') then
     raise exception 'Invalid referee application status';
   end if;
 
@@ -237,7 +239,7 @@ begin
          ra.submitted_at, ra.reviewed_at, ra.review_reason
   from public.referee_applications ra
   join auth.users u on u.id = ra.user_id
-  where p_status = 'all' or ra.status = p_status
+  where coalesce(p_status, 'pending') = 'all' or ra.status = coalesce(p_status, 'pending')
   order by case when ra.status = 'pending' then 0 else 1 end, ra.submitted_at desc
   limit 200;
 end;
