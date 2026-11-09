@@ -88,7 +88,7 @@ When two or more metrics match:
 
 An authorised admin must be able to review the flagged registration and approve or reject it. Record the decision, reviewer, timestamp and any reason in the audit trail. On approval, activate the player's registration and permit the normal team-joining/team-registration workflows. On rejection, keep the account and registration states distinct and show an appropriate outcome without exposing confidential ban or other-player information.
 
-## 5. Automatically approved registration
+## 6. Automatically approved registration
 
 When fewer than two metrics match:
 - Create or link the player's permanent player identity.
@@ -98,7 +98,7 @@ When fewer than two metrics match:
 
 A player may be registered with Open Play without belonging to a team.
 
-## 6. Joining an existing team
+## 7. Joining an existing team
 
 - A registered player can submit a request to join an existing team.
 - The team captain (or another explicitly authorised role) must approve or reject the request.
@@ -107,14 +107,14 @@ A player may be registered with Open Play without belonging to a team.
 - Captain decisions must be recorded in the audit trail.
 - Do not grant captain permissions merely because a user created an account or submitted a team registration.
 
-## 7. Registering a new team
+## 8. Registering a new team
 
 - Account creation is required before starting the team-registration journey.
 - A player held for admin review cannot register with or join a team until cleared.
 - Team registration and appointment of its captain must use an authorised, auditable workflow.
 - The exact approval rules for new team applications should be specified separately; do not infer that ordinary player registration approval applies to team applications.
 
-## 8. Identity and season rules
+## 9. Identity and season rules
 
 - A person has one permanent player identity across seasons.
 - A new season must not create a duplicate player identity for a returning person.
@@ -123,7 +123,7 @@ A player may be registered with Open Play without belonging to a team.
 - Leaving or transferring teams must preserve historical memberships and records.
 - Squad numbers are optional.
 
-## 9. Minimum acceptance scenarios
+## 10. Minimum acceptance scenarios
 
 1. New account, no matching fields: player registration is automatically approved.
 2. New account, name only matches: automatically approved.
@@ -143,7 +143,7 @@ A player may be registered with Open Play without belonging to a team.
 16. Date of birth is required and validated, but does not affect the three-metric matching count.
 17. Duplicate or simultaneous registration submissions cannot create duplicate player identities.
 
-## 10. Security and privacy requirements
+## 11. Security and privacy requirements
 
 - Matching and approval decisions must be enforced server-side.
 - Users may read and update only their own permitted account fields.
