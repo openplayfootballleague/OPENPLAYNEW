@@ -14,15 +14,13 @@ function json(body: unknown, status = 200) {
   });
 }
 
-function page(title: string, message: string, token: string, action: "verify" | "withdraw") {
-  const safeToken = token.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+function page(title: string, message: string, action: "verify" | "withdraw") {
   const label = action === "verify" ? "Confirm guardian consent" : "Withdraw guardian consent";
   return new Response(
-    `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} – Open Play</title><body style="font-family:system-ui;max-width:560px;margin:12vh auto;padding:24px;color:#171c18"><p style="color:#f36b32;font-weight:700;letter-spacing:.12em">OPEN PLAY</p><h1>${title}</h1><p>${message}</p><form method="post"><input type="hidden" name="token" value="${safeToken}"><button style="background:#f36b32;color:#171c18;border:0;padding:14px 20px;font-weight:700;cursor:pointer" type="submit">${label}</button></form></body></html>`,
-    { status: 200, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } },
+    `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} – Open Play</title><body style="font-family:system-ui;max-width:560px;margin:12vh auto;padding:24px;color:#171c18"><p style="color:#f36b32;font-weight:700;letter-spacing:.12em">OPEN PLAY</p><h1>${title}</h1><p>${message}</p><form method="post"><input type="hidden" name="token" value=""><button style="background:#f36b32;color:#171c18;border:0;padding:14px 20px;font-weight:700;cursor:pointer" type="submit">${label}</button></form><script>(()=>{const token=new URLSearchParams(location.hash.slice(1)).get("token")??"";const field=document.querySelector('input[name="token"]');if(field&&/^[0-9a-f]{64}$/.test(token))field.value=token;history.replaceState(null,"",location.pathname);})();</script></body></html>`,
+    { status: 200, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff" } },
   );
 }
-
 function resultPage(title: string, message: string, status = 200) {
   return new Response(
     `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} – Open Play</title><body style="font-family:system-ui;max-width:560px;margin:12vh auto;padding:24px;color:#171c18"><p style="color:#f36b32;font-weight:700;letter-spacing:.12em">OPEN PLAY</p><h1>${title}</h1><p>${message}</p></body></html>`,
@@ -117,8 +115,8 @@ Deno.serve(async (req: Request) => {
     const base = `${supabaseUrl}/functions/v1/guardian-consent`;
     try {
       await sendConsentEmail(resendKey, resendFrom, guardianEmail, guardianName, dob,
-        `${base}/verify?token=${encodeURIComponent(verifyToken)}`,
-        `${base}/withdraw?token=${encodeURIComponent(withdrawalToken)}`);
+        `${base}/verify#token=${encodeURIComponent(verifyToken)}`,
+        `${base}/withdraw#token=${encodeURIComponent(withdrawalToken)}`);
     } catch (cause) {
       return json({ error: cause instanceof Error ? cause.message : "Unable to send guardian consent email" }, 502);
     }
@@ -126,11 +124,11 @@ Deno.serve(async (req: Request) => {
   }
 
   if ((action === "verify" || action === "withdraw") && req.method === "GET") {
-    const token = url.searchParams.get("token") ?? "";
-    if (!/^[0-9a-f]{64}$/.test(token)) return resultPage("Invalid link", "This link is invalid or incomplete.", 400);
+    // Bearer tokens live in the URL fragment, which browsers do not send to
+    // the server in the GET request or include in normal access-log URLs.
     return action === "verify"
-      ? page("Confirm consent", "Please confirm that you are the parent or legal guardian and consent to this 16- or 17-year-old registering as an Open Play player. Open Play administrators will also review the request.", token, "verify")
-      : page("Withdraw consent", "If you withdraw consent, the player's Open Play registration and active team memberships will be suspended.", token, "withdraw");
+      ? page("Confirm consent", "Please confirm that you are the parent or legal guardian and consent to this 16- or 17-year-old registering as an Open Play player. Open Play administrators will also review the request.", "verify")
+      : page("Withdraw consent", "If you withdraw consent, the player's Open Play registration and active team memberships will be suspended.", "withdraw");
   }
 
   if ((action === "verify" || action === "withdraw") && req.method === "POST") {
