@@ -56,7 +56,26 @@ A match is a review signal, not proof that two records belong to the same person
 - Apply the same threshold consistently on the trusted server side; do not rely on client-side checks.
 - Protect against concurrent submissions creating duplicate player records. Enforce suitable database constraints and use a transaction or server-side operation for registration and matching.
 
-## 4. Pending admin review
+## 4. Age tiers and guardian consent
+
+Age eligibility is separate from the three-metric identity-review process above. Date of birth must be evaluated on the trusted server using the current date; a client-side age check is only explanatory UI.
+
+- Under 16: may use the public/basic app experience to view published fixtures, results, tables and other public information. They cannot register as a player, join or register a team, hold captaincy, or use player-only functions.
+- Ages 16–17: may register as a player only after verified parent or legal-guardian consent and a separate global administrator approval.
+- Age 18 and over: may register independently without guardian consent.
+
+For ages 16–17:
+1. Collect the parent/legal guardian's full name and email address. The guardian email must be different from the player's account email.
+2. Send a one-use, time-limited verification link to the guardian. Opening the link must not itself confirm consent; the guardian must explicitly submit the confirmation action.
+3. Record the request, guardian verification timestamp, administrator decision, reviewer, review timestamp and reason in the consent record and audit trail.
+4. A verified guardian response enters a separate administrator review queue. Verification alone does not permit player registration.
+5. Only after the administrator approves may the player submit their permanent player registration. The age/consent gate must be enforced by the database, not only by the UI.
+6. The guardian receives a separate withdrawal link. A withdrawal while the player is still 16 or 17 suspends player registration, ends active/pending team memberships, removes captaincy, preserves historical records and alerts global administrators where a captain replacement is required.
+7. A rejected or withdrawn request may be resubmitted with a fresh verification link and a new administrator decision. An expired or used verification link must not be reusable.
+
+Guardian consent approval must not alter or bypass the independent identity-matching threshold of two or more matches out of the three fields: full name, phone and email. A consented player may still be held for identity review.
+
+## 5. Pending admin review
 
 When two or more metrics match:
 - Create the account normally.
