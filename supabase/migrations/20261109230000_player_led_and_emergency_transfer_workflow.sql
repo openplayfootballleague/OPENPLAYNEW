@@ -93,13 +93,14 @@ set search_path = ''
 as $$
 declare
   v_league_id uuid;
+  v_club_id uuid;
 begin
   if new.status <> 'active' then
     return new;
   end if;
 
-  select s.league_id
-    into v_league_id
+  select s.league_id,st.team_id
+    into v_league_id,v_club_id
   from public.season_teams st
   join public.seasons s on s.id=st.season_id
   where st.id=new.season_team_id;
@@ -120,6 +121,7 @@ begin
     where tm.user_id=new.user_id
       and tm.status='active'
       and other_season.league_id=v_league_id
+      and other_team.team_id is distinct from v_club_id
       and tm.id is distinct from new.id
   ) then
     raise exception 'A player can represent only one club in the same league at a time';
@@ -1123,6 +1125,7 @@ begin
       join public.seasons other_season on other_season.id=other_team.season_id
       where tm.user_id=v_membership.user_id and tm.status='active'
         and other_season.league_id=v_season.league_id
+        and other_team.team_id<>v_team.team_id
         and tm.id<>v_membership.id
     ) then
       raise exception 'This player is already active at another club in this league';
@@ -1188,6 +1191,7 @@ begin
     join public.season_teams st on st.id=tm.season_team_id
     join public.seasons s on s.id=st.season_id
     where tm.user_id=v_user and tm.status='active' and s.league_id=v_season.league_id
+      and active_st.team_id<>v_team.team_id
   ) then
     raise exception 'You are already attached to a club in this league';
   end if;
