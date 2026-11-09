@@ -1,9 +1,12 @@
 name: Player account retention
 
+# Manual-only until advance-warning emails and controlled staging acceptance are complete.
 on:
-  schedule:
-    - cron: "17 3 * * *"
   workflow_dispatch:
+
+concurrency:
+  group: player-account-retention
+  cancel-in-progress: false
 
 permissions:
   contents: read
