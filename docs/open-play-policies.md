@@ -71,7 +71,7 @@ Account access and player registration are separate states. Creating or holding 
 - Select and document a lawful basis separately for each processing purpose. Do not use consent as a blanket basis for all account and league processing.
 - Public profile-picture visibility, parental-consent records, identity-review evidence and disciplinary/ban information require clear purpose and access explanations.
 - Minimise collection, restrict administrative access, log privileged actions and apply appropriate security controls.
-- Current branch inspection found no PostHog SDK dependency, initialisation or analytics-consent UI. Do not claim PostHog is active or send analytics events; if analytics remains a Phase 1 requirement, implement explicit opt-in gating and document the provider, hosting region, processor terms and any international transfers before enabling it.
+- Open Play has an existing PostHog EU Cloud project, but the current application branch has no PostHog SDK dependency/initialisation or analytics-consent UI. The app integration is therefore still outstanding: before sending new events, implement explicit consent, identify users with Supabase Auth UUIDs and reset identity on logout, use privacy-safe event properties, and route trusted server-side events through the approved capture path. Keep session replay/autocapture disabled until the required controls are in place. Preserve the existing 749 historical analytics events and let them expire under PostHog's configured retention policy; do not manually delete them.
 - The final privacy notice and children's-data approach require review against current UK data-protection requirements before launch.
 
 ## 6. Retention schedule — proposed, not final
