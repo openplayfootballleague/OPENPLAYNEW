@@ -53,6 +53,8 @@ function renderMessage(event: EventRow): RenderedMessage {
       return { subject: "Open Play – player eligibility suspended", text: `Your Open Play player account has been suspended from future team sheets. Reason: ${p.reason ?? "Contact Open Play for details."} Contact Open Play if you believe this is incorrect.` };
     case "player.unbanned":
       return { subject: "Open Play – player eligibility restored", text: "Your Open Play player account is no longer suspended and can be considered for future team sheets." };
+    case "player.guardian_consent.captain_review_required":
+      return { subject: "Open Play – captain reassignment required", text: `A parent or legal guardian has withdrawn consent for a 16- or 17-year-old player. Their active team memberships and captaincy have been suspended. Review the affected team(s) and assign replacement captains. Player reference: ${p.player_user_id ?? "not available"}.` };
     case "player.transfer_approved":
       return { subject: "Open Play – transfer approved", text: `Your move from ${p.source_team_name ?? "your previous team"} to ${p.team_name ?? "your new team"} has been approved.` };
     case "player.transfer_rejected":
