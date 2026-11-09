@@ -1478,6 +1478,56 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_get_guardian_consent_queue: {
+        Args: never
+        Returns: {
+          created_at: string
+          guardian_email: string
+          guardian_full_name: string
+          id: string
+          player_date_of_birth: string
+          player_email: string
+          player_user_id: string
+          status: string
+          verified_at: string | null
+        }[]
+      }
+      admin_review_guardian_consent: {
+        Args: { p_consent_id: string; p_decision: string; p_reason: string }
+        Returns: string
+      }
+      get_my_guardian_consent_status: {
+        Args: never
+        Returns: {
+          guardian_email: string
+          guardian_full_name: string
+          player_date_of_birth: string
+          review_reason: string | null
+          reviewed_at: string | null
+          status: string
+          verified_at: string | null
+          withdrawn_at: string | null
+        }[]
+      }
+      request_player_guardian_consent: {
+        Args: {
+          p_guardian_email: string
+          p_guardian_full_name: string
+          p_player_date_of_birth: string
+          p_verification_token_hash: string
+          p_withdrawal_token_hash: string
+        }
+        Returns: { requested_at: string; status: string }[]
+      }
+      verify_player_guardian_consent: {
+        Args: { p_token: string }
+        Returns: string
+      }
+      withdraw_player_guardian_consent: {
+        Args: { p_token: string }
+        Returns: string
+      }
+
       admin_add_player_to_team: {
         Args: {
           p_make_captain?: boolean
