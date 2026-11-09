@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const origin = req.headers.get("origin");
-  const allowedOrigin = Deno.env.get("APP_ORIGIN") ?? "https://openplayfootball.lovable.app";
+  const allowedOrigin = Deno.env.get("APP_ORIGIN") ?? "";
   if (origin && origin !== allowedOrigin) return json({ error: "Origin not allowed" }, 403);
 
   const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
