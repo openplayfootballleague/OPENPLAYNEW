@@ -11,6 +11,7 @@ type MoreAccess = {
   admin: boolean;
   finance: boolean;
   referee: boolean;
+  globalAdmin: boolean;
 };
 
 const initialAccess: MoreAccess = {
@@ -21,6 +22,7 @@ const initialAccess: MoreAccess = {
   admin: false,
   finance: false,
   referee: false,
+  globalAdmin: false,
 };
 
 export const Route = createFileRoute("/more")({ component: MorePage });
@@ -48,6 +50,7 @@ function MorePage() {
         adminResult,
         financeResult,
         refereeResult,
+        globalAdminResult,
       ] = await Promise.all([
         supabase
           .from("players")
@@ -62,6 +65,7 @@ function MorePage() {
         supabase.rpc("get_admin_context_preference"),
         supabase.rpc("get_finance_options"),
         supabase.rpc("has_referee_role"),
+        supabase.rpc("has_global_admin_role"),
       ]);
 
       if (!active) return;
@@ -73,6 +77,7 @@ function MorePage() {
         admin: !adminResult.error && adminResult.data !== null,
         finance: !financeResult.error,
         referee: !refereeResult.error && refereeResult.data === true,
+        globalAdmin: !globalAdminResult.error && globalAdminResult.data === true,
       });
     }
 
@@ -122,6 +127,7 @@ function MorePage() {
             {access.admin && <Link className="admin-inline-action" to="/admin">ADMIN DASHBOARD <span aria-hidden="true">↗</span></Link>}
             {access.finance && <Link className="admin-inline-action" to="/finance">FINANCE WORKSPACE <span aria-hidden="true">↗</span></Link>}
             {access.referee && <Link className="admin-inline-action" to="/referee">REFEREE HUB <span aria-hidden="true">↗</span></Link>}
+            {access.globalAdmin && <Link className="admin-inline-action" to="/admin/referees">REFEREE APPLICATIONS <span aria-hidden="true">↗</span></Link>}
           </section>
         ) : access.signedIn ? (
           <p className="form-note">Your account has basic-view access. You can follow public fixtures, results and league tables. Player registration starts at age 16; team actions require an approved player registration.</p>
