@@ -307,6 +307,13 @@ a { color: inherit; text-decoration: none; }
 .hub-transfer-panel form > label { display: grid; gap: 6px; color: #55564f; font-size: 10px; font-weight: 750; }
 .hub-transfer-panel select,.hub-transfer-panel textarea { box-sizing: border-box; width: 100%; min-height: 40px; padding: 10px; border: 1px solid #cfcec5; background: #fffefa; color: #171c18; font: inherit; font-size: 11px; }
 .hub-transfer-panel form .button { justify-self: start; margin-top: 3px; }
+.transfer-destination-options { display:grid; gap:8px; margin:12px 0; }
+.transfer-destination-options label { display:flex; align-items:flex-start; gap:10px; padding:11px 12px; border:1px solid #cfcec5; background:#f5f4ee; cursor:pointer; }
+.transfer-destination-options label > span { display:grid; gap:4px; color:#171c18; font-size:11px; font-weight:800; }
+.transfer-destination-options label small { color:#77786f; font-size:9px; font-weight:500; }
+.transfer-destination-options input { margin-top:2px; accent-color:#e96831; }
+.player-facing .captain-request textarea { width:100%; min-height:54px; padding:9px; border:1px solid #cfcec5; background:#fff; color:#171c18; font:inherit; font-size:11px; resize:vertical; }
+.player-facing .captain-request label { display:grid; gap:5px; color:#686960; font-size:9px; font-weight:800; text-transform:uppercase; }
 .player-transfer-history { display: grid; gap: 8px; margin-top: 14px; }
 .player-transfer-history > strong { color: #171c18; font-size: 9px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
 .player-transfer-history article { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid #d8d7ce; }
