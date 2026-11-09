@@ -38,7 +38,7 @@ async function hashToken(token: string) {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function sendConsentEmail(apiKey: string, from: string, to: string, guardianName: string, playerDob: string, verifyUrl: string, withdrawUrl: string) {
+async function sendConsentEmail(apiKey: string, from: string, to: string, guardianName: string, verifyUrl: string, withdrawUrl: string) {
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -48,7 +48,7 @@ async function sendConsentEmail(apiKey: string, from: string, to: string, guardi
       subject: "Open Play – parent or legal-guardian consent required",
       text: `Hello ${guardianName},
 
-A player has asked Open Play to verify your consent for them to register as a player. Their date of birth is ${playerDob}.
+A player has asked Open Play to verify your consent for them to register as an Open Play player.
 
 Please review the request and confirm that you are their parent or legal guardian:
 ${verifyUrl}
@@ -114,11 +114,11 @@ Deno.serve(async (req: Request) => {
 
     const base = `${supabaseUrl}/functions/v1/guardian-consent`;
     try {
-      await sendConsentEmail(resendKey, resendFrom, guardianEmail, guardianName, dob,
+      await sendConsentEmail(resendKey, resendFrom, guardianEmail, guardianName,
         `${base}/verify#token=${encodeURIComponent(verifyToken)}`,
         `${base}/withdraw#token=${encodeURIComponent(withdrawalToken)}`);
     } catch (cause) {
-      return json({ error: cause instanceof Error ? cause.message : "Unable to send guardian consent email" }, 502);
+      return json({ error: "Unable to send guardian consent email. Please try again later or contact Open Play support." }, 502);
     }
     return json({ status: "pending_verification", message: "A consent email has been sent to the parent or legal guardian." });
   }
