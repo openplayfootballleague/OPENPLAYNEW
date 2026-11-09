@@ -96,7 +96,6 @@ export type Database = {
         }
         Relationships: []
       }
-      finance_entries: {
         Row: {
           amount_pence: number
           created_at: string
@@ -115,7 +114,7 @@ export type Database = {
         Insert: {
           amount_pence: number
           created_at?: string
-          created_by: string
+          created_by?: string | null
           description: string
           due_at?: string | null
           entry_type: string
@@ -225,7 +224,6 @@ export type Database = {
           },
         ]
       }
-      fixture_goal_records: {
         Row: {
           competition_player_id: string
           created_at: string
@@ -239,7 +237,7 @@ export type Database = {
           voided_by: string | null
         }
         Insert: {
-          competition_player_id: string
+          competition_player_id?: string
           created_at?: string
           created_by?: string | null
           fixture_id: string
@@ -251,6 +249,7 @@ export type Database = {
           voided_by?: string | null
         }
         Update: {
+          competition_player_id?: string
           created_at?: string
           created_by?: string | null
           fixture_id?: string
@@ -327,7 +326,6 @@ export type Database = {
           },
         ]
       }
-      fixture_team_sheet_players: {
         Row: {
           competition_player_id: string
           created_at: string
@@ -340,6 +338,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          competition_player_id?: string
           created_at?: string
           did_appear?: boolean
           id?: string
@@ -350,6 +349,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          competition_player_id?: string
           created_at?: string
           did_appear?: boolean
           id?: string
@@ -383,7 +383,6 @@ export type Database = {
           },
         ]
       }
-      fixture_team_sheets: {
         Row: {
           draft_saved_at: string | null
           fixture_id: string
@@ -400,7 +399,7 @@ export type Database = {
           is_locked?: boolean
           season_team_id: string
           submitted_at?: string | null
-          submitted_by: string
+          submitted_by?: string | null
         }
         Update: {
           draft_saved_at?: string | null
@@ -502,7 +501,6 @@ export type Database = {
           },
         ]
       }
-      gallery_items: {
         Row: {
           caption: string
           created_at: string
@@ -521,7 +519,7 @@ export type Database = {
           location_id: string
           object_path: string
           published_at?: string | null
-          uploaded_by: string
+          uploaded_by?: string | null
         }
         Update: {
           caption?: string
@@ -587,7 +585,6 @@ export type Database = {
           },
         ]
       }
-      location_admin_assignments: {
         Row: {
           assigned_by?: string | null
           created_at: string
@@ -596,7 +593,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          assigned_by: string
+          assigned_by?: string | null
           created_at?: string
           id?: string
           location_id: string
@@ -937,7 +934,6 @@ export type Database = {
           },
         ]
       }
-      player_transfer_requests: {
         Row: {
           created_at: string
           destination_season_team_id: string
@@ -962,11 +958,11 @@ export type Database = {
           resolution_reason?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
-          source_membership_id: string
+          source_membership_id?: string | null
           source_season_team_id: string
           status?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1054,6 +1050,7 @@ export type Database = {
           banned_at?: string | null
           banned_reason?: string | null
           created_at?: string
+          competition_player_id?: string
           date_of_birth?: string
           email?: string
           full_name?: string
