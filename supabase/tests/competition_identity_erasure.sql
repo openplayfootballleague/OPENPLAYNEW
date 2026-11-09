@@ -62,6 +62,12 @@ begin
     (v_player,'Competition History Player','+447700900001','ci-competition-player@openplay.invalid',date '1990-01-01','registered',true),
     (v_location_admin,'Location Admin Player','+447700900002','ci-competition-location-admin@openplay.invalid',date '1990-02-01','registered',true);
 
+  -- The global administrator also has a player identity so the second club's
+  -- captain membership is valid under the normal membership guard.
+  insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status,is_genuine)
+  values(v_admin,'Competition Admin Player','+447700900003',
+    'ci-competition-admin@openplay.invalid',date '1990-03-01','registered',false);
+
   select id,competition_player_id into v_player_row,v_competition_player
   from public.players where user_id=v_player;
 
