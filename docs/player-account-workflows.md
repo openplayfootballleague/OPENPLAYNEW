@@ -107,6 +107,21 @@ A player may be registered with Open Play without belonging to a team.
 - Captain decisions must be recorded in the audit trail.
 - Do not grant captain permissions merely because a user created an account or submitted a team registration.
 
+## 8. League-exclusive club membership and transfers
+
+A player may represent **only one club in the same league at a time**. This restriction is league-specific: it does not, by itself, prevent a player joining a club in a different league.
+
+- A player with an active membership at a club in a league cannot join, register with, or represent another club in that same league.
+- To move clubs, the player must first leave their current club. Leaving ends the active membership but preserves the historical membership record and all appearances, statistics, disciplinary history and other competition records.
+- Only after leaving may the player submit a transfer request to a different club in that same league.
+- The transfer request is a request to join the destination club; it does not create active membership or playing eligibility while pending.
+- The destination club's captain (or another explicitly authorised role) must approve or reject the transfer request.
+- On approval, create/activate membership at the destination club. On rejection, the player remains unattached in that league and may submit another request.
+- A player cannot have concurrent pending join/transfer requests to multiple clubs in the same league. A pending request must be withdrawn or resolved before another is submitted.
+- The database must enforce the one-active-club-per-player-per-league rule transactionally, including concurrent requests and direct API/RPC calls. Client-side checks alone are insufficient.
+- Membership checks must resolve the league through the relevant season/team records, so the restriction applies across different seasons of the same league, not merely within one season.
+- A transfer must never move or rewrite historical team-sheet, appearance, goal, result, disciplinary or finance records. Historical records remain associated with the club and competition identity under which they were created.
+
 ## 8. Registering a new team
 
 - Account creation is required before starting the team-registration journey.
@@ -138,7 +153,7 @@ A player may be registered with Open Play without belonging to a team.
 11. Admin approves a pending review: player becomes registered and can proceed to team workflows.
 12. Admin rejects a pending review: player cannot proceed to team workflows.
 13. Registered player with no team can use their player account without being assigned to a team.
-14. A captain rejects a team-joining request: no active membership is created.
+14. A captain rejects a team-joining request: no active membership is created.\n18. A player with an active membership at Club A cannot join or represent Club B in the same league.\n19. A player must leave Club A before submitting a transfer request to Club B in that league.\n20. A pending transfer request does not grant playing eligibility or active membership.\n21. Approval by Club B's captain activates the new membership; rejection leaves the player unattached.\n22. A player cannot submit concurrent pending transfer requests to multiple clubs in the same league.\n23. The same player may hold memberships in different leagues, subject to each league's own rules.\n24. The database rejects concurrent attempts to create active memberships at two clubs in the same league, including across seasons.
 15. Returning player in a later season retains the same permanent player identity.
 16. Date of birth is required and validated, but does not affect the three-metric matching count.
 17. Duplicate or simultaneous registration submissions cannot create duplicate player identities.
