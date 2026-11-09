@@ -33,7 +33,7 @@ begin
   end if;
 
   return query
-  select pl.user_id, pl.full_name, u.email, pr.account_retention_status,
+  select pl.user_id, pl.full_name::text, u.email::text, pr.account_retention_status,
          pr.last_sign_in_at, pr.account_closed_at, pr.archive_expires_at,
          pr.retention_hold, pr.retention_hold_reason
   from public.profiles pr
