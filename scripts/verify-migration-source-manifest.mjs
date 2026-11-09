@@ -20,6 +20,7 @@ const expectedForwardOnly = [
   "supabase/migrations/20261109200000_scope_admin_result_statistics_to_location.sql",
   "supabase/migrations/20261109210000_player_account_inactivity_warnings.sql",
   "supabase/migrations/20261109220000_player_season_club_statistics.sql",
+  "supabase/migrations/20261109230000_player_led_and_emergency_transfer_workflow.sql",
 ];
 
 function fail(message) {
