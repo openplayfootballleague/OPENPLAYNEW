@@ -81,7 +81,7 @@ select
     'public.admin_transition_season(uuid,season_status)'::regprocedure,
     'public.resolve_team_membership_request(uuid,text)'::regprocedure,
     'public.resolve_team_registration(uuid,text,text)'::regprocedure
-  ) and (not (pg_get_functiondef(p.oid) ilike '%can_administer_location%') or has_function_privilege('anon',p.oid,'EXECUTE'))) as location_admin_mutations_check_assigned_location,
+  ) and (not (pg_get_functiondef(p.oid) ilike '%can_administer_location%' or pg_get_functiondef(p.oid) ilike '%assert_admin_location_context%') or has_function_privilege('anon',p.oid,'EXECUTE'))) as location_admin_mutations_check_assigned_location,
   has_column_privilege('authenticated','public.profiles','avatar_path','UPDATE')
     and not has_column_privilege('authenticated','public.profiles','first_name','UPDATE')
     and not has_column_privilege('authenticated','public.profiles','last_name','UPDATE')
