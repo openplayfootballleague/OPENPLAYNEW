@@ -57,7 +57,11 @@ begin
   if has_table_privilege('authenticated','public.team_memberships','INSERT')
      or has_table_privilege('authenticated','public.team_memberships','UPDATE')
      or has_table_privilege('authenticated','public.player_transfer_requests','INSERT')
-     or has_table_privilege('authenticated','public.player_transfer_requests','UPDATE') then
+     or has_table_privilege('authenticated','public.player_transfer_requests','UPDATE')
+     or has_table_privilege('authenticated','public.fixture_team_sheets','INSERT')
+     or has_table_privilege('authenticated','public.fixture_team_sheets','UPDATE')
+     or has_table_privilege('authenticated','public.fixture_team_sheet_players','INSERT')
+     or has_table_privilege('authenticated','public.fixture_team_sheet_players','UPDATE') then
     raise exception 'Authenticated clients retain direct membership/transfer table write privileges';
   end if;
 
