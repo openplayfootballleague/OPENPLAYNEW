@@ -614,8 +614,11 @@ begin
      or coalesce(dedupe_key,'') like '%' || v_player_id::text || '%';
 
   update public.player_registration_reviews
-  set matched_player_ids = array_remove(matched_player_ids, v_player_id)
-  where v_player_id = any(matched_player_ids);
+  set matched_player_ids = array_remove(matched_player_ids, v_player_id),
+      review_reason = case when reviewed_by = p_user_id then null else review_reason end,
+      reviewed_by = case when reviewed_by = p_user_id then null else reviewed_by end
+  where v_player_id = any(matched_player_ids)
+     or reviewed_by = p_user_id;
 
   delete from public.player_guardian_consents
   where player_user_id = p_user_id;
