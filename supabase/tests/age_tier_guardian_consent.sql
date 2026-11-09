@@ -175,6 +175,24 @@ begin
   end if;
   execute 'reset role';
 
+  -- Withdrawal links are one-use and time-limited. An expired token cannot
+  -- revoke consent; the parent must request a fresh verified link.
+  update public.player_guardian_consents
+  set withdrawal_token_expires_at=now()-interval '1 second'
+  where player_user_id=v_minor;
+  execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
+  v_rejected:=false;
+  begin
+    perform public.withdraw_player_guardian_consent(v_withdraw_token);
+  exception when others then v_rejected:=true;
+  end;
+  execute 'reset role';
+  if not v_rejected then raise exception 'Expired guardian withdrawal token was accepted'; end if;
+  update public.player_guardian_consents
+  set withdrawal_token_expires_at=now()+interval '1 year'
+  where player_user_id=v_minor;
+
   -- Withdrawal is deliberately a POST action in the Edge Function; the SQL
   -- RPC consumes the one-time secret and revokes current player/team access.
   execute 'set local role service_role';
@@ -184,6 +202,13 @@ begin
   end if;
   execute 'reset role';
 
+  if exists(
+    select 1 from public.player_guardian_consents
+    where player_user_id=v_minor
+      and (withdrawal_token_hash is not null or withdrawal_token_expires_at is not null)
+  ) then
+    raise exception 'Guardian withdrawal did not consume and clear its one-use token';
+  end if;
   if (select registration_status from public.players where user_id=v_minor)<>'rejected' then
     raise exception 'Guardian withdrawal did not suspend player registration';
   end if;
