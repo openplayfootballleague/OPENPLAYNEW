@@ -146,8 +146,8 @@ Deno.serve(async (req: Request) => {
       global: { headers: { Authorization: `Bearer ${token}` } },
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const { error: adminError } = await userClient.rpc("get_admin_dashboard");
-    if (adminError) return jsonResponse({ error: "Administrator permission required" }, 403);
+    const { data: isGlobalAdmin, error: adminError } = await userClient.rpc("has_global_admin_role");
+    if (adminError || isGlobalAdmin !== true) return jsonResponse({ error: "Global administrator permission required" }, 403);
   }
 
   const resendKey = Deno.env.get("RESEND_API_KEY");
