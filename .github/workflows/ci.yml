@@ -25,6 +25,8 @@ jobs:
         run: npm run verify:migration-sources
       - name: Verify Edge Function security configuration
         run: node scripts/verify-edge-function-security.mjs
+      - name: Verify player navigation specification
+        run: node scripts/verify-player-navigation.mjs
       - name: Set up Deno
         uses: denoland/setup-deno@v2
         with:
