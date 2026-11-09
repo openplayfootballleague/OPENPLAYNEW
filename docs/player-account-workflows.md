@@ -153,10 +153,17 @@ A player may represent **only one club in the same league at a time**. This rest
 11. Admin approves a pending review: player becomes registered and can proceed to team workflows.
 12. Admin rejects a pending review: player cannot proceed to team workflows.
 13. Registered player with no team can use their player account without being assigned to a team.
-14. A captain rejects a team-joining request: no active membership is created.\n18. A player with an active membership at Club A cannot join or represent Club B in the same league.\n19. A player must leave Club A before submitting a transfer request to Club B in that league.\n20. A pending transfer request does not grant playing eligibility or active membership.\n21. Approval by Club B's captain activates the new membership; rejection leaves the player unattached.\n22. A player cannot submit concurrent pending transfer requests to multiple clubs in the same league.\n23. The same player may hold memberships in different leagues, subject to each league's own rules.\n24. The database rejects concurrent attempts to create active memberships at two clubs in the same league, including across seasons.
+14. A captain rejects a team-joining request: no active membership is created.
 15. Returning player in a later season retains the same permanent player identity.
 16. Date of birth is required and validated, but does not affect the three-metric matching count.
 17. Duplicate or simultaneous registration submissions cannot create duplicate player identities.
+18. A player with an active membership at Club A cannot join or represent Club B in the same league.
+19. A player must leave Club A before submitting a transfer request to Club B in that league.
+20. A pending transfer request does not grant playing eligibility or active membership.
+21. Approval by Club B's captain activates the new membership; rejection leaves the player unattached.
+22. A player cannot submit concurrent pending transfer requests to multiple clubs in the same league.
+23. The same player may hold memberships in different leagues, subject to each league's own rules.
+24. The database rejects concurrent attempts to create active memberships at two clubs in the same league, including across seasons.
 
 ## 11. Security and privacy requirements
 
