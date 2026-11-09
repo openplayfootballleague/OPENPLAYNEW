@@ -74,8 +74,8 @@ function RootComponent() {
           .select("account_retention_status")
           .eq("id", userId)
           .maybeSingle();
-        if (!active || error || !profile) return;
-        if (profile.account_retention_status !== "active") {
+        if (!active || error) return;
+        if (!profile || profile.account_retention_status !== "active") {
           await supabase.auth.signOut();
           if (active && window.location.pathname !== "/sign-in") {
             window.location.assign("/sign-in");
