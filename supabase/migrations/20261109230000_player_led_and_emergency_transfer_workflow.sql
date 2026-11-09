@@ -2,6 +2,9 @@
 -- In the final 24 hours before a fixture, unattached players may request every
 -- eligible club that has not yet submitted that fixture's locked team sheet.
 
+alter table public.team_memberships
+  add column if not exists voluntarily_left_at timestamptz;
+
 alter table public.player_transfer_requests
   alter column source_membership_id drop not null,
   add column if not exists league_id uuid references public.leagues(id) on delete restrict,
@@ -17,6 +20,47 @@ where st.id=r.destination_season_team_id
 
 alter table public.player_transfer_requests
   alter column league_id set not null;
+
+-- Requests created under the former "request while still attached" model are
+-- not valid under the player-led workflow. Preserve them as cancelled history.
+with cancelled_legacy as (
+  update public.player_transfer_requests
+  set status='cancelled',
+      resolved_at=coalesce(resolved_at,now()),
+      resolution_reason='Cancelled during transfer policy change; leave your club before requesting a new transfer',
+      updated_at=now()
+  where status='pending'
+  returning id,user_id,source_season_team_id,destination_season_team_id
+)
+insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,after_data)
+select null,'player.transfer.cancelled_policy_migration','player_transfer_request',id::text,
+  'Legacy pending request cancelled during transfer policy change',
+  jsonb_build_object('user_id',user_id,'source_team_id',source_season_team_id,'destination_team_id',destination_season_team_id)
+from cancelled_legacy;
+
+-- Rejoining or otherwise activating a membership clears the voluntary-leave
+-- marker. Only the self-service leave RPC below sets it.
+create or replace function public.clear_voluntary_leave_marker_on_rejoin()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  if new.status='active' then
+    new.voluntarily_left_at:=null;
+  end if;
+  return new;
+end;
+$;
+
+drop trigger if exists team_memberships_clear_voluntary_leave_marker on public.team_memberships;
+create trigger team_memberships_clear_voluntary_leave_marker
+before insert or update of status on public.team_memberships
+for each row
+execute function public.clear_voluntary_leave_marker_on_rejoin();
+
+revoke all on function public.clear_voluntary_leave_marker_on_rejoin() from public,anon,authenticated;
 
 drop index if exists public.player_transfer_one_pending_per_source_idx;
 create unique index if not exists player_transfer_one_pending_destination_idx
@@ -183,7 +227,7 @@ begin
   select name into v_team_name from public.season_teams where id=v_membership.season_team_id;
 
   update public.team_memberships
-  set status='left',left_at=now(),squad_number=null,updated_at=now()
+  set status='left',left_at=now(),voluntarily_left_at=now(),squad_number=null,updated_at=now()
   where id=v_membership.id
   returning * into v_membership;
 
@@ -249,7 +293,7 @@ begin
     join public.season_teams st on st.id=tm.season_team_id
     join public.seasons s on s.id=st.season_id
     join public.leagues l on l.id=s.league_id
-    where tm.user_id=v_user and tm.status='left'
+    where tm.user_id=v_user and tm.status='left' and tm.voluntarily_left_at is not null
     order by s.league_id,tm.left_at desc nulls last,tm.updated_at desc
   ),
   candidate_teams as (
@@ -446,7 +490,7 @@ begin
   from public.team_memberships tm
   join public.season_teams source_team on source_team.id=tm.season_team_id
   join public.seasons source_season on source_season.id=source_team.season_id
-  where tm.user_id=v_user and tm.status='left' and source_season.league_id=v_league.id
+  where tm.user_id=v_user and tm.status='left' and tm.voluntarily_left_at is not null and source_season.league_id=v_league.id
   order by tm.left_at desc nulls last,tm.updated_at desc
   limit 1
   for share of tm;
@@ -703,7 +747,7 @@ begin
     )
     on conflict(season_team_id,user_id) do update
       set status='active',is_captain=false,squad_number=null,joined_at=now(),
-          left_at=null,transfer_request_id=v_request.id,updated_at=now()
+          left_at=null,voluntarily_left_at=null,transfer_request_id=v_request.id,updated_at=now()
       where public.team_memberships.status in ('left','rejected')
     returning * into v_membership;
 
@@ -1084,7 +1128,7 @@ begin
   insert into public.team_memberships(season_team_id,user_id,status)
   values(p_season_team_id,v_user,'pending')
   on conflict(season_team_id,user_id) do update
-    set status='pending',left_at=null,joined_at=null,is_captain=false,updated_at=now()
+    set status='pending',left_at=null,voluntarily_left_at=null,joined_at=null,is_captain=false,updated_at=now()
     where public.team_memberships.status in ('left','rejected')
   returning * into v_membership;
 
