@@ -39,6 +39,21 @@ begin
   v_verify_hash_2:=public.hash_guardian_consent_token(v_verify_token_2);
   v_withdraw_hash_2:=public.hash_guardian_consent_token(v_withdraw_token_2);
 
+  -- Token-bearing consent RPCs must be callable only by the trusted Edge Function.
+  if has_function_privilege('anon','public.request_player_guardian_consent(uuid,date,text,text,text,text)','EXECUTE')
+     or has_function_privilege('authenticated','public.request_player_guardian_consent(uuid,date,text,text,text,text)','EXECUTE')
+     or has_function_privilege('anon','public.verify_player_guardian_consent(text)','EXECUTE')
+     or has_function_privilege('authenticated','public.verify_player_guardian_consent(text)','EXECUTE')
+     or has_function_privilege('anon','public.withdraw_player_guardian_consent(text)','EXECUTE')
+     or has_function_privilege('authenticated','public.withdraw_player_guardian_consent(text)','EXECUTE') then
+    raise exception 'A client role can directly execute a privileged guardian-consent RPC';
+  end if;
+  if not has_function_privilege('service_role','public.request_player_guardian_consent(uuid,date,text,text,text,text)','EXECUTE')
+     or not has_function_privilege('service_role','public.verify_player_guardian_consent(text)','EXECUTE')
+     or not has_function_privilege('service_role','public.withdraw_player_guardian_consent(text)','EXECUTE') then
+    raise exception 'Trusted service role is missing guardian-consent RPC execution';
+  end if;
+
   -- Under-16s may browse public information but cannot create player identities.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_underage::text,true);
