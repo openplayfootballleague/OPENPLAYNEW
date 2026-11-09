@@ -23,6 +23,11 @@ assert.ok(more.includes('access.finance && <Link') && more.includes('to="/financ
 assert.ok(more.includes('get_admin_context_preference') && more.includes('get_finance_options'), "More page must resolve protected workspace access from server-authorized RPCs");
 assert.ok(more.includes('Your account has basic-view access'), "Viewer accounts must receive the restricted basic-view explanation");
 assert.ok(readFileSync("src/routes/index.tsx", "utf8").includes("<PlayerBottomNavigation />"), "Public home must render the bottom navigation");
+const joinPage = readFileSync("src/routes/join.tsx", "utf8");
+assert.ok(joinPage.includes('if(!player||player.registration_status!=="registered"||player.is_banned)'), "Unregistered viewer accounts must not submit team join or registration requests");
+const registrationPage = readFileSync("src/routes/register-player.tsx", "utf8");
+assert.ok(registrationPage.includes("Under-16s can browse public Open Play information but cannot register as players or join teams."), "Under-16 registration must explain the basic-view restriction");
+assert.ok(registrationPage.includes("disabled={busy||isUnderSixteen||waitingGuardianReview}"), "Under-16 player registration submission must be disabled in the interface");
 console.log("Open Play four-tab navigation assertions passed.");
 
 const playerHub = readFileSync("src/routes/player.tsx", "utf8");
