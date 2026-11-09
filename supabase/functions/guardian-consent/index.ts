@@ -80,7 +80,7 @@ Deno.serve(async (req: Request) => {
   if (!supabaseUrl || !serviceKey) return json({ error: "Consent service configuration is incomplete" }, 503);
   const service = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
-  if (action === "request" && req.method === "POST") {
+  if ((action === "request" || action === "guardian-consent") && req.method === "POST") {
     const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
     if (!token || !anonKey) return json({ error: "Sign in before requesting guardian consent" }, 401);
     const userClient = createClient(supabaseUrl, anonKey, {
