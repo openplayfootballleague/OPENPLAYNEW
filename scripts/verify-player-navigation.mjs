@@ -10,6 +10,7 @@ const expected = [
 ];
 for (const item of expected) assert.ok(navigation.includes(item), `Missing required bottom navigation item: ${item}`);
 assert.equal((navigation.match(/to: "[^"]*" as const, label:/g) ?? []).length, 4, "Bottom navigation must contain exactly four tabs");
+assert.ok(navigation.includes("useRouterState") && navigation.includes("pathname === \"/player\""), "Home tab must be active on both public Home and the registered Player Hub, not every route");
 
 const more = readFileSync("src/routes/more.tsx", "utf8");
 for (const destination of ['to="/teams"', 'to="/gallery"', 'to="/player"', 'to="/captain"', 'to="/admin"', 'to="/finance"']) {
