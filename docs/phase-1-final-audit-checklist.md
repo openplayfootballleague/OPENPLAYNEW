@@ -8,7 +8,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 ## 1. Automated verification
 
-- [x] Latest implementation commit has a fully green GitHub Actions run (run [#1370](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42623167322)).
+- [x] Latest implementation commit has a fully green GitHub Actions run (run [#1371](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42623913528)).
 - [x] Clean local Supabase migration replay succeeds from an empty database.
 - [x] Migration source manifest matches the actual migration files and Git blobs.
 - [x] Deno type-check succeeds for all Edge Functions.
@@ -83,6 +83,17 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [ ] Review all new/changed foreign keys and deletion behaviours against the full schema.
 - [ ] Review the existing hosted Security Advisor baseline separately from the not-yet-deployed Phase 1 migrations.
 - [ ] Confirm no unexpected changes to the hosted Supabase project, production deployment or live user data.
+
+## Hosted Security Advisor follow-up (read-only snapshot, 9 November 2026)
+
+- The hosted project contains 96 SECURITY DEFINER functions in the public schema. All 96 set an explicit empty search_path; none is missing a fixed search_path.
+- 77 are executable by authenticated users and 0 are executable by anon. The 77 authenticated RPCs are the source of the 77 advisor WARN findings.
+- Of the 96 functions, 19 are not executable by either anon or authenticated and are internal-only (service/trigger paths).
+- 76 of the 77 authenticated-callable functions reference auth.uid() in their definition. The remaining function, get_admin_stripe_payments, delegates its authorization check to has_finance_access(), whose definition scopes access to the caller's finance/admin role using auth.uid().
+- The reviewed role helpers (has_finance_access, has_platform_role, has_global_admin_role, can_administer_location, is_active_team_captain and is_active_team_member) all use auth.uid() and have an explicit empty search_path.
+- The three advisor INFO tables (admin_context_preferences, gallery_items and location_admin_assignments) have RLS enabled and no policies. Direct SELECT/INSERT/UPDATE/DELETE privileges are all false for both anon and authenticated, consistent with the RPC-only access design.
+- This is a scoped read-only baseline review, not a complete line-by-line certification of every RPC. The per-function role/location/data-scope review remains open; do not remove grants or weaken access based only on the advisor warning.
+- The hosted snapshot predates the six un-applied Phase 1 migrations; it does not certify their future hosted grants or function definitions. Those are covered by clean local replay and SQL regression tests, with deployment still blocked pending release approval.
 
 ## 6. Release prerequisites (not part of local CI)
 
