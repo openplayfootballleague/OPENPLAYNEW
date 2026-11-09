@@ -20,6 +20,8 @@ export function useRequiredSession(): RequiredSessionStatus {
 
     void supabase.auth.getSession().then(({ data, error }) => {
       if (active && !authEventSeen) setAuthenticated(!error && Boolean(data.session));
+    }).catch(() => {
+      if (active && !authEventSeen) setAuthenticated(false);
     });
 
     return () => {
