@@ -8,7 +8,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 ## 1. Automated verification
 
-- [x] Latest implementation commit has a fully green GitHub Actions run (run [#1378](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42634737332)).
+- [x] Latest audit checklist commit has a fully green GitHub Actions run (run [#1379](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42635182947)); both build and clean Supabase replay jobs passed.
 - [x] Clean local Supabase migration replay succeeds from an empty database.
 - [x] Migration source manifest matches the actual migration files and Git blobs.
 - [x] Deno type-check succeeds for all Edge Functions.
@@ -81,7 +81,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [ ] Review account closure/reactivation pages and session handling.
 - [ ] Review admin result entry, scorer options, season statistics, team sheets and transfer/payment readers after anonymisation.
 - [ ] Review every service-role Edge Function for secret handling, authentication, rate limits, idempotency and safe logging.
-- [ ] Review all security-definer functions for explicit search_path, least privilege, correct grants and role/location checks.
+- [x] Review all 77 authenticated-callable SECURITY DEFINER functions for explicit search_path, least privilege, grants and role/location/data-scope checks (read-only hosted snapshot, 9 November 2026).
 - [ ] Review all new/changed foreign keys and deletion behaviours against the full schema.
 - [ ] Review the existing hosted Security Advisor baseline separately from the not-yet-deployed Phase 1 migrations.
 - [ ] Confirm no unexpected changes to the hosted Supabase project, production deployment or live user data.
@@ -94,8 +94,9 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - 76 of the 77 authenticated-callable functions reference auth.uid() in their definition. The remaining function, get_admin_stripe_payments, delegates its authorization check to has_finance_access(), whose definition scopes access to the caller's finance/admin role using auth.uid().
 - The reviewed role helpers (has_finance_access, has_platform_role, has_global_admin_role, can_administer_location, is_active_team_captain and is_active_team_member) all use auth.uid() and have an explicit empty search_path.
 - The three advisor INFO tables (admin_context_preferences, gallery_items and location_admin_assignments) have RLS enabled and no policies. Direct SELECT/INSERT/UPDATE/DELETE privileges are all false for both anon and authenticated, consistent with the RPC-only access design.
-- This is a scoped read-only baseline review, not a complete line-by-line certification of every RPC. The per-function role/location/data-scope review remains open; do not remove grants or weaken access based only on the advisor warning.
-- The hosted snapshot predates the six un-applied Phase 1 migrations; it does not certify their future hosted grants or function definitions. Those are covered by clean local replay and SQL regression tests, with deployment still blocked pending release approval.
+- A line-by-line review of all 77 authenticated-callable RPC definitions was completed against this hosted snapshot. The reviewed functions use direct `auth.uid()` checks or a reviewed caller-scoped helper; global player-detail, registration-review, notification-control, audit-history and location-assignment operations require global-admin roles; finance operations require the global finance/admin role; location operations enforce assigned-location context; player and captain operations are scoped to the signed-in user or an active team membership. No anonymous execution path or confirmed cross-user/cross-location authorization bypass was identified in the reviewed definitions. No dynamic SQL execution was found in the authenticated-callable SECURITY DEFINER set.
+- One non-authorization auditability gap was noted: `admin_set_location_assignment` is restricted to global administrators but does not currently write an `audit_log` entry when an assignment is granted or revoked. Record this for hardening before broad delegation of location administration.
+- The hosted snapshot predates the seven un-applied Phase 1 migrations; it does not certify their future hosted grants or function definitions. Those are covered by clean local replay and SQL regression tests, with deployment still blocked pending release approval.
 
 ## 6. Release prerequisites (not part of local CI)
 
