@@ -30,7 +30,7 @@ Account access and player registration are separate states. Creating or holding 
 - Players aged 16 or 17 must complete the parental/legal-guardian consent process before registration approval or participation.
 - Consent is not optional and cannot be bypassed by an administrator through ordinary approval flows.
 - Capture the parent/legal guardian's name and email address, send a verification/consent link to that address, and require successful verification before player approval.
-- Record consent status, timestamp, verification evidence/reference and withdrawal status in an access-controlled audit trail. Collect no more information than is necessary.
+- Record consent status, timestamp, verification evidence/reference and withdrawal status in an access-controlled audit trail. Verification links expire after 7 days; the single-use withdrawal link expires after 2 years and is rejected once the player turns 18. Collect no more information than is necessary.
 - Pending or withdrawn consent means the player cannot participate in registered-player activities until resolved.
 - At age 18, parental consent is no longer required for future participation; retain only the minimum consent evidence required by the approved retention schedule.
 - The privacy and safeguarding information must explain the processing of children's data and the limits of basic-view access.
