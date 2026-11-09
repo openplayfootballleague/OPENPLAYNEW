@@ -150,6 +150,24 @@ execute function public.enforce_one_active_club_per_player_per_league();
 
 revoke all on function public.enforce_one_active_club_per_player_per_league() from public,anon,authenticated;
 
+-- Do not silently grandfather an already-invalid multi-club league membership.
+-- Same-club memberships in overlapping seasons are allowed; different clubs are not.
+do $
+begin
+  if exists (
+    select tm.user_id,s.league_id
+    from public.team_memberships tm
+    join public.season_teams st on st.id=tm.season_team_id
+    join public.seasons s on s.id=st.season_id
+    where tm.status='active'
+    group by tm.user_id,s.league_id
+    having count(distinct st.team_id)>1
+  ) then
+    raise exception 'Resolve existing players attached to multiple clubs in one league before applying player transfer safeguards';
+  end if;
+end;
+$;
+
 -- A captain may save/edit drafts up to kickoff. A submitted sheet is locked.
 create or replace function public.enforce_team_sheet_before_kickoff()
 returns trigger
