@@ -18,3 +18,6 @@ for (const destination of ['to="/teams"', 'to="/gallery"', 'to="/player"', 'to="
 }
 assert.ok(readFileSync("src/routes/index.tsx", "utf8").includes("<PlayerBottomNavigation />"), "Public home must render the bottom navigation");
 console.log("Open Play four-tab navigation assertions passed.");
+
+const playerHub = readFileSync("src/routes/player.tsx", "utf8");
+assert.ok(playerHub.includes('if(player?.is_banned){void navigate({to:"/register-player",replace:true});return;}'), "Banned players must be redirected away from Player Hub to the restricted registration-status screen");
