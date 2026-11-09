@@ -42,6 +42,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [ ] Eligibility requires 12 months without successful sign-in and no active/pending membership.
 - [ ] Never-signed-in accounts use account creation time as the inactivity baseline.
 - [ ] Global and location administrators, legal/safeguarding holds and unresolved financial obligations are excluded.
+- [ ] An authorised, audited admin workflow exists to set, review and clear retention holds with a recorded reason. **Current gap:** the schema has a hold flag, but no verified admin UI/RPC workflow has been signed off.
 - [ ] Eligibility is rechecked under lock immediately before closure and erasure.
 - [ ] Closure bans Auth sign-in and the app rejects closed/erasure-due accounts when observed.
 - [ ] Restricted archive lasts 12 months.
@@ -63,7 +64,8 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [ ] Guardian consent data is deleted where no longer required.
 - [ ] Registration review match lists, reviewer references and reviewer free-text notes are scrubbed.
 - [ ] Notification payloads and audit metadata are reviewed for direct identifiers and scrubbed where associated with the account.
-- [ ] Historic appearances, goals, results and statistics remain intact under the anonymised 'Former player' identity.
+- [ ] Historic appearances, goals, results and statistics remain intact under the retained 'Former player' competition identity.
+- [ ] Privacy/legal review determines whether the stable competition identity plus retained match history is genuinely anonymous under UK GDPR or remains pseudonymous personal data. Until that review confirms otherwise, treat the retained identity/history as restricted personal data with a documented lawful basis and retention period.
 - [ ] A returning person receives a new, unlinked competition identity after permanent erasure.
 - [ ] Standard team-sheet amendment cannot overwrite a former player's protected historic appearance.
 - [ ] Payment/accounting records follow a separately documented retention schedule, with direct account/customer links detached where permitted.
@@ -88,7 +90,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [ ] Apply migrations and deploy Edge Functions only after explicit release approval.
 - [ ] Verify guardian and reactivation email delivery in staging.
 - [ ] Verify the daily retention workflow manually against disposable test accounts before scheduling it.
-- [ ] Confirm legal/privacy review of the retention periods, legal holds, under-18 data and payment/accounting retention.
+- [ ] Confirm legal/privacy review of the retention periods, legal-hold process, under-18 data, payment/accounting retention and the anonymisation-versus-pseudonymisation status of retained competition history.
 - [ ] Obtain explicit approval before merge, production migration, Edge Function deployment or enabling unattended account closure/erasure.
 
 ## Audit outcome
