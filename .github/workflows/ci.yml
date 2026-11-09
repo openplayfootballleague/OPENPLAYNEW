@@ -23,6 +23,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Verify canonical migration source manifest
         run: npm run verify:migration-sources
+      - name: Verify Edge Function security configuration
+        run: node scripts/verify-edge-function-security.mjs
       - name: Set up Deno
         uses: denoland/setup-deno@v2
         with:
