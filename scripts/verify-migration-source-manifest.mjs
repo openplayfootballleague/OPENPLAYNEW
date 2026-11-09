@@ -13,6 +13,7 @@ const expectedForwardOnly = [
   "supabase/migrations/20261109130000_admin_player_retention_holds.sql",
   "supabase/migrations/20261109140000_prevent_signin_bypass_of_retention.sql",
   "supabase/migrations/20261109150000_retry_failed_player_account_erasure.sql",
+  "supabase/migrations/20261109160000_audit_location_admin_assignments.sql",
 ];
 
 function fail(message) {
