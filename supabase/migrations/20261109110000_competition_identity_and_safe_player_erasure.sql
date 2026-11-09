@@ -372,6 +372,8 @@ as $$
     )
     and not exists (select 1 from public.user_roles ur where ur.user_id = p.id)
     and not exists (select 1 from public.location_admin_assignments la where la.user_id = p.id)
+    and not exists (select 1 from public.payment_records pay where pay.player_user_id=p.id and pay.status in ('pending','processing','partially_refunded'))
+    and not exists (select 1 from public.player_transfer_requests tr where tr.user_id=p.id and tr.status='pending')
   order by p.last_sign_in_at
   limit 200
 $$;
@@ -404,6 +406,8 @@ begin
   if exists(select 1 from public.team_memberships tm where tm.user_id=p_user_id and tm.status in ('active','pending')) then return false; end if;
   if exists(select 1 from public.user_roles ur where ur.user_id=p_user_id) then return false; end if;
   if exists(select 1 from public.location_admin_assignments la where la.user_id=p_user_id) then return false; end if;
+  if exists(select 1 from public.payment_records pay where pay.player_user_id=p_user_id and pay.status in ('pending','processing','partially_refunded')) then return false; end if;
+  if exists(select 1 from public.player_transfer_requests tr where tr.user_id=p_user_id and tr.status='pending') then return false; end if;
 
   update public.profiles
   set account_retention_status='closed',
@@ -449,6 +453,8 @@ as $$
     )
     and not exists (select 1 from public.user_roles ur where ur.user_id = p.id)
     and not exists (select 1 from public.location_admin_assignments la where la.user_id = p.id)
+    and not exists (select 1 from public.payment_records pay where pay.player_user_id=p.id and pay.status in ('pending','processing','partially_refunded'))
+    and not exists (select 1 from public.player_transfer_requests tr where tr.user_id=p.id and tr.status='pending')
   order by p.archive_expires_at
   limit 200
 $$;
@@ -475,7 +481,9 @@ begin
       where tm.user_id = p.id and tm.status in ('active','pending')
     )
     and not exists (select 1 from public.user_roles ur where ur.user_id = p.id)
-    and not exists (select 1 from public.location_admin_assignments la where la.user_id = p.id);
+    and not exists (select 1 from public.location_admin_assignments la where la.user_id = p.id)
+    and not exists (select 1 from public.payment_records pay where pay.player_user_id=p.id and pay.status in ('pending','processing','partially_refunded'))
+    and not exists (select 1 from public.player_transfer_requests tr where tr.user_id=p.id and tr.status='pending');
 
   if found then
     insert into public.audit_log(actor_user_id, action, entity_type, entity_id, reason, after_data)
@@ -499,6 +507,8 @@ begin
       and not exists (select 1 from public.team_memberships tm where tm.user_id = p.id and tm.status in ('active','pending'))
       and not exists (select 1 from public.user_roles ur where ur.user_id = p.id)
       and not exists (select 1 from public.location_admin_assignments la where la.user_id = p.id)
+    and not exists (select 1 from public.payment_records pay where pay.player_user_id=p.id and pay.status in ('pending','processing','partially_refunded'))
+    and not exists (select 1 from public.player_transfer_requests tr where tr.user_id=p.id and tr.status='pending')
   );
 end;
 $$;
@@ -526,6 +536,8 @@ begin
     and not exists (select 1 from public.team_memberships tm where tm.user_id = p.id and tm.status in ('active','pending'))
     and not exists (select 1 from public.user_roles ur where ur.user_id = p.id)
     and not exists (select 1 from public.location_admin_assignments la where la.user_id = p.id)
+    and not exists (select 1 from public.payment_records pay where pay.player_user_id=p.id and pay.status in ('pending','processing','partially_refunded'))
+    and not exists (select 1 from public.player_transfer_requests tr where tr.user_id=p.id and tr.status='pending')
   for update of p, pl;
 
   if v_player_id is null or v_competition_player_id is null then return false; end if;
