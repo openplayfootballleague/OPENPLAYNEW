@@ -90,7 +90,7 @@ begin
     )
     select e.user_id, e.inactivity_started_at, e.warning_days, 'pending', now()
     from eligible e
-    on conflict (user_id, inactivity_started_at, warning_days)
+    on conflict on constraint player_account_inactivity_warnings_pkey
     do update set claimed_at = now()
       where existing.status = 'pending'
         and existing.claimed_at <= now() - interval '30 minutes'
