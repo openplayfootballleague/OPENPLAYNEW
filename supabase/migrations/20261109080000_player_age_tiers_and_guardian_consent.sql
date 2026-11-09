@@ -109,8 +109,9 @@ begin
   end if;
 
   if exists(
-    select 1 from public.player_guardian_consents
-    where player_user_id=v_user and requested_at>v_now-interval '60 seconds'
+    select 1 from public.player_guardian_consents as existing_consent
+    where existing_consent.player_user_id=v_user
+      and existing_consent.requested_at>v_now-interval '60 seconds'
   ) then
     raise exception 'Please wait before requesting another guardian consent email';
   end if;
