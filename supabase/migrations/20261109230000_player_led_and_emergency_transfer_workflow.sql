@@ -45,14 +45,14 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 begin
   if new.status='active' then
     new.voluntarily_left_at:=null;
   end if;
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists team_memberships_clear_voluntary_leave_marker on public.team_memberships;
 create trigger team_memberships_clear_voluntary_leave_marker
@@ -154,7 +154,7 @@ revoke all on function public.enforce_one_active_club_per_player_per_league() fr
 
 -- Do not silently grandfather an already-invalid multi-club league membership.
 -- Same-club memberships in overlapping seasons are allowed; different clubs are not.
-do $
+do $$
 begin
   if exists (
     select tm.user_id,s.league_id
@@ -168,7 +168,7 @@ begin
     raise exception 'Resolve existing players attached to multiple clubs in one league before applying player transfer safeguards';
   end if;
 end;
-$;
+$$;
 
 -- A captain may save/edit drafts up to kickoff. A submitted sheet is locked.
 create or replace function public.enforce_team_sheet_before_kickoff()
@@ -218,7 +218,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 begin
   if new.is_locked is distinct from true then
     return new;
@@ -246,7 +246,7 @@ begin
 
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists fixture_team_sheets_expire_emergency_transfers on public.fixture_team_sheets;
 create trigger fixture_team_sheets_expire_emergency_transfers
