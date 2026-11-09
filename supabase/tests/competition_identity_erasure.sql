@@ -3,10 +3,10 @@
 
 do $competition_identity_erasure$
 declare
-  v_player constant uuid := '93000000-0000-4000-8000-000000000001';
-  v_admin constant uuid := '93000000-0000-4000-8000-000000000002';
-  v_location_admin constant uuid := '93000000-0000-4000-8000-000000000003';
-  v_returning_user constant uuid := '93000000-0000-4000-8000-000000000004';
+  v_player uuid := gen_random_uuid();
+  v_admin uuid := gen_random_uuid();
+  v_location_admin uuid := gen_random_uuid();
+  v_returning_user uuid := gen_random_uuid();
   v_location uuid;
   v_league uuid;
   v_season uuid;
