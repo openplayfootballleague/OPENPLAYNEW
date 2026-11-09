@@ -468,6 +468,7 @@ as $$
 declare
   v_player_id uuid;
   v_competition_player_id uuid;
+  v_counts_for_statistics boolean;
   v_now timestamptz := now();
 begin
   select pl.id, pl.competition_player_id
@@ -484,6 +485,10 @@ begin
   for update of p, pl;
 
   if v_player_id is null or v_competition_player_id is null then return false; end if;
+
+  select counts_for_statistics into v_counts_for_statistics
+  from public.competition_player_identities
+  where id = v_competition_player_id;
 
   update public.competition_player_identities
   set display_name = 'Former player',
@@ -602,10 +607,18 @@ begin
       email = 'deleted+' || p_user_id::text || '@deleted.openplay.invalid',
       date_of_birth = date '1900-01-01',
       registration_status = 'rejected',
+      is_banned = true,
+      banned_at = coalesce(banned_at, v_now),
+      banned_reason = 'Anonymised after retention expiry',
       guardian_consent_previous_status = null,
-      banned_reason = null,
       updated_at = v_now
   where id = v_player_id;
+
+  -- The operational player row is no longer eligible, but historical statistics
+  -- retain the eligibility snapshot that applied before the account was erased.
+  update public.competition_player_identities
+  set counts_for_statistics = coalesce(v_counts_for_statistics, false)
+  where id = v_competition_player_id;
 
   insert into public.audit_log(actor_user_id, action, entity_type, entity_id, reason, after_data)
   values (
