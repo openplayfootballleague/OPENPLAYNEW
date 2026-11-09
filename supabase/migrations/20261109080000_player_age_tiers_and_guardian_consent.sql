@@ -188,15 +188,15 @@ $$;
 
 create or replace function public.get_my_guardian_consent_status()
 returns table(
-  status text,guardian_full_name text,guardian_email text,verified_at timestamptz,
-  reviewed_at timestamptz,review_reason text,withdrawn_at timestamptz
+  status text,player_date_of_birth date,guardian_full_name text,guardian_email text,
+  verified_at timestamptz,reviewed_at timestamptz,review_reason text,withdrawn_at timestamptz
 )
 language sql
 stable
 security definer
 set search_path = ''
 as $$
-  select c.status,c.guardian_full_name,c.guardian_email,c.verified_at,c.reviewed_at,c.review_reason,c.withdrawn_at
+  select c.status,c.player_date_of_birth,c.guardian_full_name,c.guardian_email,c.verified_at,c.reviewed_at,c.review_reason,c.withdrawn_at
   from public.player_guardian_consents c
   where c.player_user_id=auth.uid()
 $$;
