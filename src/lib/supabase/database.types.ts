@@ -1563,6 +1563,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_player_retention_accounts: {
+        Args: { p_search?: string | null }
+        Returns: {
+          account_closed_at: string | null
+          account_retention_status: string
+          archive_expires_at: string | null
+          email: string | null
+          full_name: string
+          last_sign_in_at: string
+          retention_hold: boolean
+          retention_hold_reason: string | null
+          user_id: string
+        }[]
+      }
+      admin_set_player_retention_hold: {
+        Args: { p_hold: boolean; p_reason: string; p_user_id: string }
+        Returns: boolean
+      }
       admin_close_inactive_player_account: {
         Args: { p_user_id: string }
         Returns: boolean
