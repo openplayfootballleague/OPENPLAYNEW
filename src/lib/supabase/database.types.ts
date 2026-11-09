@@ -3037,6 +3037,59 @@ export type Database = {
         Args: never
         Returns: number
       }
+      admin_get_referee_applications: {
+        Args: { p_status?: string }
+        Returns: {
+          additional_notes: string
+          availability: string
+          email: string
+          experience: string
+          full_name: string
+          id: string
+          phone: string
+          preferred_locations: string[]
+          qualifications: string
+          review_reason: string | null
+          reviewed_at: string | null
+          status: string
+          submitted_at: string
+          user_id: string
+        }[]
+      }
+      admin_resolve_referee_application: {
+        Args: { p_decision: string; p_reason?: string | null; p_user_id: string }
+        Returns: string
+      }
+      get_my_referee_application: {
+        Args: never
+        Returns: {
+          additional_notes: string
+          availability: string
+          experience: string
+          full_name: string
+          id: string
+          phone: string
+          preferred_locations: string[]
+          qualifications: string
+          review_reason: string | null
+          reviewed_at: string | null
+          status: string
+          submitted_at: string
+        }[]
+      }
+      has_referee_role: { Args: never; Returns: boolean }
+      submit_referee_application: {
+        Args: {
+          p_additional_notes?: string
+          p_availability?: string
+          p_experience: string
+          p_full_name: string
+          p_phone: string
+          p_preferred_locations?: string[]
+          p_qualifications?: string
+        }
+        Returns: string
+      }
       register_player: {
         Args: {
           p_date_of_birth: string
