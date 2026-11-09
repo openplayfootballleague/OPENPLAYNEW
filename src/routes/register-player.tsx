@@ -16,7 +16,7 @@ type GuardianConsent = {
   withdrawn_at: string | null;
 };
 function ageOn(dateOfBirth: string): number | null {
-  const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(dateOfBirth);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateOfBirth);
   if (!match) return null;
   const birthYear = Number(match[1]), birthMonth = Number(match[2]), birthDay = Number(match[3]);
   const today = new Date();
