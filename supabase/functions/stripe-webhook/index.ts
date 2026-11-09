@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import type { Database } from "../../../src/lib/supabase/database.types.ts";
-import { isFinalizedPaymentStatus, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "../../../src/lib/payments/stripe-settlement.ts";
+import { isFinalizedPaymentStatus, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, validateRefundSettlement, type PaymentSettlementRecord } from "../../../src/lib/payments/stripe-settlement.ts";
 
 function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
   let lastStripeEventBeforeEvent: string | null = null;
   if (paymentEvents.has(eventType) && resolvedPaymentId) {
     const { data: currentPayment, error: currentPaymentError } = await admin.from("payment_records")
-      .select("id,amount_pence,currency,status,stripe_checkout_session_id,stripe_payment_intent_id,checkout_attempt,last_stripe_event_at")
+      .select("id,amount_pence,currency,status,stripe_checkout_session_id,stripe_payment_intent_id,checkout_attempt,last_stripe_event_at,amount_refunded_pence")
       .eq("id", resolvedPaymentId)
       .maybeSingle();
     if (currentPaymentError || !currentPayment) {
@@ -137,9 +137,13 @@ Deno.serve(async (req) => {
     const settlementRecord = currentPayment as PaymentSettlementRecord;
     const settlementValidation = eventType.startsWith("checkout.session.")
       ? validateCheckoutSettlement(settlementRecord, object ?? {})
-      : eventType === "charge.succeeded" || eventType === "charge.refunded"
+      : eventType === "charge.succeeded"
         ? validateChargeSettlement(settlementRecord, object ?? {}, chargePaymentIntentMetadata)
-        : { ok: true as const };
+        : eventType === "charge.refunded"
+          ? validateChargeSettlement(settlementRecord, object ?? {}, chargePaymentIntentMetadata).ok
+            ? validateRefundSettlement(settlementRecord, object ?? {})
+            : validateChargeSettlement(settlementRecord, object ?? {}, chargePaymentIntentMetadata)
+          : { ok: true as const };
     if (!settlementValidation.ok) {
       if (settlementValidation.stale) {
         await admin.from("stripe_webhook_events").update({
