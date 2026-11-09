@@ -5,6 +5,15 @@ declare
   v_positions integer[];
 begin
   select pg_get_functiondef('public.get_admin_season_statistics(uuid)'::regprocedure) into v_definition;
+  if position('group by cpi.id,cpi.display_name' in v_definition) = 0 then
+    raise exception 'Season appearances must aggregate by permanent competition identity across clubs';
+  end if;
+  if position('group by g.competition_player_id' in v_definition) = 0 then
+    raise exception 'Season goals must aggregate by permanent competition identity across clubs';
+  end if;
+  if position('order by coalesce(pg.goals,0) desc' in v_definition) = 0 then
+    raise exception 'Player leaderboard must rank by the combined season goal total';
+  end if;
   if position('rank() over(order by points desc)' in v_definition) = 0 then
     raise exception 'Admin season statistics must rank teams by points only using rank()';
   end if;
