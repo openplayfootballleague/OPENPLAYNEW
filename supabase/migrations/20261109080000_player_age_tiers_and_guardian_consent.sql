@@ -144,6 +144,8 @@ begin
   from public.player_guardian_consents
   where withdrawal_token_hash=encode(digest(p_token,'sha256'),'hex')
     and status in ('pending_verification','pending_admin_review','approved')
+    and player_date_of_birth <= current_date - interval '16 years'
+    and player_date_of_birth > current_date - interval '18 years'
   for update;
   if not found then raise exception 'Withdrawal link is invalid or consent is already withdrawn'; end if;
 
