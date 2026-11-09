@@ -121,6 +121,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 ## 6. Release prerequisites (not part of local CI)
 
 - [x] Confirmed the hosted migration ledger contains 99 applied entries and 13 pending forward-only migrations. The clean hosted-order replay verified the 99-source baseline plus 13 pending files (112 total) using `--include-all`; three pending files are older than the latest applied version. Verified in [#1484](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42671278961). Do not reapply the 99 recorded migrations.
+- [ ] Current branch now contains 14 pending forward-only migrations (99 hosted baseline + 14 pending = 113 total), including `20261109210000_player_account_inactivity_warnings.sql`. The updated manifest/order verification and clean replay are awaiting the latest CI run; the hosted ledger remains unchanged.
 - [ ] Configure required Supabase and GitHub secrets in the intended environment.
 - [ ] Apply migrations and deploy Edge Functions only after explicit release approval.
 - [ ] Verify guardian and reactivation email delivery in staging.
