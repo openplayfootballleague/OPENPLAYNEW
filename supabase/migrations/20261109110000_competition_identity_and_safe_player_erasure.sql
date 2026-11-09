@@ -760,8 +760,8 @@ begin
 
  select * into v_fixture from public.fixtures where id = p_fixture_id for update;
  if not found then raise exception 'Fixture not found'; end if;
- if v_fixture.status in ('cancelled','postponed') then raise exception 'A cancelled or postponed fixture cannot receive a result'; end if;
  perform public.assert_admin_location_context((select l.location_id from public.seasons s join public.leagues l on l.id=s.league_id where s.id=v_fixture.season_id));
+ if v_fixture.status in ('cancelled','postponed') then raise exception 'A cancelled or postponed fixture cannot receive a result'; end if;
 
  select * into v_home_sheet from public.fixture_team_sheets
  where fixture_id = p_fixture_id and season_team_id = v_fixture.home_team_id and is_locked = true;
@@ -1202,10 +1202,10 @@ begin
  if p_reason is null or length(btrim(p_reason))<5 then raise exception 'Enter a reason of at least 5 characters for this amendment'; end if;
  select * into v_sheet from public.fixture_team_sheets where id=p_team_sheet_id for update;
  if not found then raise exception 'Team sheet not found'; end if;
- if not v_sheet.is_locked then raise exception 'Only submitted, locked team sheets can be amended here'; end if;
  select * into v_fixture from public.fixtures where id=v_sheet.fixture_id;
  if not found then raise exception 'Fixture not found'; end if;
  perform public.assert_admin_location_context((select l.location_id from public.seasons s join public.leagues l on l.id=s.league_id where s.id=v_fixture.season_id));
+ if not v_sheet.is_locked then raise exception 'Only submitted, locked team sheets can be amended here'; end if;
  if v_sheet.season_team_id not in (v_fixture.home_team_id,v_fixture.away_team_id) then raise exception 'Team sheet does not belong to this fixture'; end if;
  select l.format into v_format from public.seasons s join public.leagues l on l.id=s.league_id where s.id=v_fixture.season_id;
  v_expected_starters:=case when v_format='six_a_side' then 6 else 7 end;
