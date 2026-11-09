@@ -96,6 +96,11 @@ jobs:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/player_account_retention.sql
 
+      - name: Verify global-admin player retention holds
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/player_retention_holds.sql
+
       - name: Verify permanent competition identities and safe player erasure
         env:
           PGPASSWORD: postgres
