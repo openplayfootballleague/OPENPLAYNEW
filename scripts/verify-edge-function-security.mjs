@@ -26,6 +26,7 @@ for (const [name, expected] of [
 const guardian = readFileSync("supabase/functions/guardian-consent/index.ts", "utf8");
 assert.ok(guardian.includes("userClient.auth.getUser()"), "Guardian requests must validate the signed-in player");
 assert.ok(guardian.includes("verify_player_guardian_consent") && guardian.includes("withdraw_player_guardian_consent"), "Guardian actions must use the single-use token RPCs");
+assert.ok(!guardian.includes("Their date of birth is"), "Guardian email must not disclose the player date of birth to an unverified address");
 
 const retention = readFileSync("supabase/functions/player-account-retention/index.ts", "utf8");
 assert.ok(retention.includes('req.headers.get("x-account-retention-secret")'), "Retention worker must validate its cron secret");
