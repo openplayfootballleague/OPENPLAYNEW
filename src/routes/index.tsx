@@ -24,7 +24,7 @@ function HomePage() {
       }
 
       try {
-        const [{ data: player, error: playerError }, { data: captainMemberships, error: captainError }] =
+        const [{ data: player, error: playerError }, { data: captainMemberships, error: captainError }, { data: refereeRole, error: refereeError }] =
           await Promise.all([
             supabase
               .from("players")
@@ -38,6 +38,7 @@ function HomePage() {
               .eq("status", "active")
               .eq("is_captain", true)
               .limit(1),
+            supabase.rpc("has_referee_role"),
           ]);
 
         if (!alive || sequence !== requestSequence) return;
@@ -49,6 +50,11 @@ function HomePage() {
 
         // Fail closed to the public home if role data cannot be read. This avoids
         // accidentally hiding the public site because of a transient query error.
+        if (!refereeError && refereeRole === true) {
+          await navigate({ to: "/referee", replace: true });
+          return;
+        }
+
         if (!playerError && !captainError &&
             (player?.registration_status === "registered" || (captainMemberships?.length ?? 0) > 0)) {
           await navigate({ to: "/player", replace: true });
