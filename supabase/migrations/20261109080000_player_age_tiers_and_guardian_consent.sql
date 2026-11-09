@@ -354,10 +354,10 @@ where tm.status in ('active','pending')
 
 revoke all on function public.request_player_guardian_consent(uuid,date,text,text,text,text) from public,anon,authenticated;
 grant execute on function public.request_player_guardian_consent(uuid,date,text,text,text,text) to service_role;
-revoke all on function public.verify_player_guardian_consent(text) from public,authenticated;
-grant execute on function public.verify_player_guardian_consent(text) to anon;
-revoke all on function public.withdraw_player_guardian_consent(text) from public,authenticated;
-grant execute on function public.withdraw_player_guardian_consent(text) to anon;
+revoke all on function public.verify_player_guardian_consent(text) from public,anon,authenticated;
+grant execute on function public.verify_player_guardian_consent(text) to service_role;
+revoke all on function public.withdraw_player_guardian_consent(text) from public,anon,authenticated;
+grant execute on function public.withdraw_player_guardian_consent(text) to service_role;
 revoke all on function public.get_my_guardian_consent_status() from public,anon;
 grant execute on function public.get_my_guardian_consent_status() to authenticated;
 revoke all on function public.admin_get_guardian_consent_queue() from public,anon;
