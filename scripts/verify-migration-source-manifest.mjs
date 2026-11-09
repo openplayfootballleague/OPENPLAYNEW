@@ -11,6 +11,7 @@ const expectedForwardOnly = [
   "supabase/migrations/20261109100000_player_account_retention_and_reactivation.sql",
   "supabase/migrations/20261109110000_competition_identity_and_safe_player_erasure.sql",
   "supabase/migrations/20261109130000_admin_player_retention_holds.sql",
+  "supabase/migrations/20261109140000_prevent_signin_bypass_of_retention.sql",
 ];
 
 function fail(message) {
