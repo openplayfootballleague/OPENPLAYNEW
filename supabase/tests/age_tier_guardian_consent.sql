@@ -73,7 +73,8 @@ begin
   execute 'reset role';
 
   -- The guardian must explicitly confirm the single-use verification link.
-  execute 'set local role anon';
+  execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
   if public.verify_player_guardian_consent(v_verify_token)<>'pending_admin_review' then
     raise exception 'Guardian verification did not move the request to administrator review';
   end if;
@@ -117,7 +118,8 @@ begin
 
   -- Withdrawal is deliberately a POST action in the Edge Function; the SQL
   -- RPC consumes the one-time secret and revokes current player/team access.
-  execute 'set local role anon';
+  execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
   if public.withdraw_player_guardian_consent(v_withdraw_token)<>'withdrawn' then
     raise exception 'Guardian withdrawal was not recorded';
   end if;
@@ -158,7 +160,8 @@ begin
   end if;
 
   -- Withdrawal and verification links are one-use; a second withdrawal fails.
-  execute 'set local role anon';
+  execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
   v_rejected:=false;
   begin
     perform public.withdraw_player_guardian_consent(v_withdraw_token);
@@ -180,7 +183,8 @@ begin
     v_withdraw_hash_2
   );
   execute 'reset role';
-  execute 'set local role anon';
+  execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
   perform public.verify_player_guardian_consent(v_verify_token_2);
   execute 'reset role';
   select id into v_consent_id from public.player_guardian_consents where player_user_id=v_minor;
