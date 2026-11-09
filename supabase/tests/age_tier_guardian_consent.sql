@@ -16,6 +16,8 @@ declare
   v_rejected boolean;
   v_verify_token constant text := repeat('a',64);
   v_withdraw_token constant text := repeat('b',64);
+  v_verify_token_2 constant text := repeat('c',64);
+  v_withdraw_token_2 constant text := repeat('d',64);
 begin
   insert into auth.users
     (id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
@@ -125,5 +127,30 @@ begin
   end;
   execute 'reset role';
   if not v_rejected then raise exception 'Guardian withdrawal token was reusable'; end if;
+
+  -- A fresh consent cycle after withdrawal restores the pre-suspension player
+  -- registration state, but does not silently reactivate historical memberships.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_minor::text,true);
+  perform * from public.request_player_guardian_consent(
+    (current_date-interval '16 years')::date,'Guardian Test','guardian@openplay.invalid',
+    encode(digest(v_verify_token_2,'sha256'),'hex'),
+    encode(digest(v_withdraw_token_2,'sha256'),'hex')
+  );
+  execute 'reset role';
+  execute 'set local role anon';
+  perform public.verify_player_guardian_consent(v_verify_token_2);
+  execute 'reset role';
+  select id into v_consent_id from public.player_guardian_consents where player_user_id=v_minor;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  perform public.admin_review_guardian_consent(v_consent_id,'approved','Reverified guardian consent');
+  execute 'reset role';
+  if (select registration_status from public.players where user_id=v_minor)<>'registered' then
+    raise exception 'Approved renewed guardian consent did not restore the prior player registration status';
+  end if;
+  if exists(select 1 from public.team_memberships where user_id=v_minor and status='active') then
+    raise exception 'Renewed consent unexpectedly reactivated old team memberships';
+  end if;
 end;
 $age_tier_guardian_consent$;
