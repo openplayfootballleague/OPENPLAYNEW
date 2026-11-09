@@ -300,7 +300,19 @@ begin
   season_modes as (
     select c.league_id,c.season_id,
       bool_or(c.target_fixture_id is not null) as emergency_open,
-      coalesce(bool_or(r.status='pending' and r.is_emergency),false) as has_emergency_request,
+      coalesce(bool_or(r.status='pending' and r.is_emergency and exists(
+        select 1 from public.fixtures pending_fixture
+        where pending_fixture.id=r.target_fixture_id
+          and pending_fixture.status='scheduled'
+          and pending_fixture.scheduled_at>now()
+          and pending_fixture.scheduled_at<=now()+interval '24 hours'
+          and not exists(
+            select 1 from public.fixture_team_sheets pending_sheet
+            where pending_sheet.fixture_id=pending_fixture.id
+              and pending_sheet.season_team_id=r.destination_season_team_id
+              and pending_sheet.is_locked=true
+          )
+      )),false) as has_emergency_request,
       coalesce(bool_or(r.status='pending' and not r.is_emergency),false) as has_normal_request
     from candidates_with_fixture c
     left join public.player_transfer_requests r
@@ -1006,3 +1018,86 @@ $$;
 
 revoke all on function public.resolve_team_membership_request(uuid,text) from public,anon;
 grant execute on function public.resolve_team_membership_request(uuid,text) to authenticated;
+
+
+-- Keep the ordinary join-request path from creating a parallel request while
+-- a transfer is pending, and serialise pending requests across the whole league.
+create or replace function public.request_team_membership(p_season_team_id uuid)
+returns public.team_memberships
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user uuid:=auth.uid();
+  v_player public.players;
+  v_team public.season_teams;
+  v_season public.seasons;
+  v_membership public.team_memberships;
+begin
+  if v_user is null then raise exception 'Authentication required'; end if;
+
+  select * into v_player from public.players where user_id=v_user for share;
+  if not found or v_player.registration_status<>'registered' or v_player.is_banned then
+    raise exception 'An approved, eligible player registration is required before joining a team';
+  end if;
+
+  select * into v_team from public.season_teams where id=p_season_team_id for share;
+  if not found or v_team.registration_status<>'approved' then
+    raise exception 'This team is not currently accepting player requests';
+  end if;
+
+  select * into v_season from public.seasons where id=v_team.season_id for share;
+  if not found or v_season.status<>'registration_open' then
+    raise exception 'This team is not currently accepting player requests';
+  end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(v_user::text || ':' || v_season.league_id::text,0)
+  );
+
+  if exists(
+    select 1 from public.team_memberships tm
+    join public.season_teams st on st.id=tm.season_team_id
+    join public.seasons s on s.id=st.season_id
+    where tm.user_id=v_user and tm.status='active' and s.league_id=v_season.league_id
+  ) then
+    raise exception 'You are already attached to a club in this league';
+  end if;
+
+  if exists(
+    select 1 from public.team_memberships tm
+    join public.season_teams st on st.id=tm.season_team_id
+    join public.seasons s on s.id=st.season_id
+    where tm.user_id=v_user and tm.status='pending' and s.league_id=v_season.league_id
+  ) then
+    raise exception 'You already have a pending team request in this league';
+  end if;
+
+  if exists(
+    select 1 from public.player_transfer_requests r
+    where r.user_id=v_user and r.league_id=v_season.league_id and r.status='pending'
+  ) then
+    raise exception 'Cancel or resolve your pending transfer request before requesting to join a team';
+  end if;
+
+  insert into public.team_memberships(season_team_id,user_id,status)
+  values(p_season_team_id,v_user,'pending')
+  on conflict(season_team_id,user_id) do update
+    set status='pending',left_at=null,joined_at=null,is_captain=false,updated_at=now()
+    where public.team_memberships.status in ('left','rejected')
+  returning * into v_membership;
+
+  if v_membership.id is null then
+    raise exception 'A membership or request already exists for this team';
+  end if;
+
+  insert into public.audit_log(actor_user_id,action,entity_type,entity_id)
+  values(v_user,'team.membership.requested','team_membership',v_membership.id::text);
+
+  return v_membership;
+end;
+$$;
+
+revoke all on function public.request_team_membership(uuid) from public,anon;
+grant execute on function public.request_team_membership(uuid) to authenticated;
