@@ -92,6 +92,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 ## 5. Manual product and security review
 
+- [ ] Execute the [Phase 1 manual acceptance runbook](phase-1-manual-acceptance-runbook.md) in an approved isolated staging environment using disposable synthetic accounts; record scenario results, device/browser matrix, redacted evidence and reviewer sign-off.
 - [ ] Review registration form, error states and pending-review messaging on mobile and desktop.
 - [x] Static player-facing stylesheet coverage now applies Inter/Oswald, black/charcoal/orange surfaces, dark cards/forms, responsive spacing and the fixed four-tab bottom navigation. Route inspection confirms the player-facing class is applied to Player Hub, Match Centre, Teams, Join, Captain Hub, registration, sign-in, sign-up and password reset screens.
 - [ ] Complete real-device visual acceptance on mobile, tablet and desktop. Static CSS inspection is not a substitute for viewing and interacting with the screens at those breakpoints.
