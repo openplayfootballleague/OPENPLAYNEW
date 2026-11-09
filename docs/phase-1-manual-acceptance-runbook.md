@@ -42,8 +42,8 @@ Create only synthetic accounts, using clearly fake names and reserved test email
 | C-02 | Captain of a second synthetic team | Transfer decision and squad impact |
 | M-01 | Active player in a synthetic team conversation | Messaging sender/recipient permissions |
 | M-02 | Non-member / unrelated player | Messaging isolation and denial |
-| PAY-03 | Synthetic team with a due/overdue fee | Payment deadlines and status transitions |
-| PAY-04 | Finance reviewer with test-mode Stripe access | Payment reconciliation, refunds and disputes |
+| BILL-01 | Synthetic team with a due/overdue fee | Payment deadlines and status transitions |
+| FIN-01 | Finance reviewer with test-mode Stripe access | Payment reconciliation, refunds and disputes |
 
 Do not reuse one identity for multiple roles unless the test explicitly checks role changes.
 
