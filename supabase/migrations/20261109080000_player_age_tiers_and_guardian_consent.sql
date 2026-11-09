@@ -86,8 +86,12 @@ declare
 begin
   -- EXECUTE is granted only to service_role; client roles cannot call this RPC.
   if v_user is null then raise exception 'Player account is required'; end if;
-  select lower(trim(email)) into v_email from auth.users where id=v_user and email_confirmed_at is not null;
-  if v_email is null then raise exception 'Verify your account email before requesting guardian consent'; end if;
+  select lower(trim(email)) into v_email
+  from auth.users
+  where id=v_user and email_confirmed_at is not null;
+  if v_email is null then
+    raise exception 'Verify your account email before requesting guardian consent';
+  end if;
   if p_player_date_of_birth is null
      or p_player_date_of_birth > current_date - interval '16 years'
      or p_player_date_of_birth <= current_date - interval '18 years' then
@@ -96,11 +100,25 @@ begin
   if nullif(btrim(p_guardian_full_name),'') is null or char_length(btrim(p_guardian_full_name))>120 then
     raise exception 'Enter the parent or legal guardian full name';
   end if;
-  if p_guardian_email is null or lower(trim(p_guardian_email)) !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'
+  if p_guardian_email is null
+     or lower(trim(p_guardian_email)) !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'
      or lower(trim(p_guardian_email))=v_email then
     raise exception 'Enter a valid parent or legal guardian email address different from your own';
   end if;
-  if p_verification_token_hash !~ '^[0-9a-f]{64}
+  if p_verification_token_hash !~ '^[0-9a-f]{64}$'
+     or p_withdrawal_token_hash !~ '^[0-9a-f]{64}$' then
+    raise exception 'Consent verification could not be created securely';
+  end if;
+  if exists(
+    select 1
+    from public.player_guardian_consents
+    where player_user_id=v_user
+      and requested_at>v_now-interval '60 seconds'
+  ) then
+    raise exception 'Please wait before requesting another guardian consent email';
+  end if;
+
+  insert into public.player_guardian_consents(
     player_user_id,player_date_of_birth,guardian_full_name,guardian_email,status,
     verification_token_hash,verification_expires_at,withdrawal_token_hash,
     verified_at,reviewed_by,reviewed_at,review_reason,withdrawn_at,updated_at
@@ -122,7 +140,10 @@ begin
   where public.player_guardian_consents.status in ('pending_verification','rejected','withdrawn');
 
   if not found then
-    if exists(select 1 from public.player_guardian_consents where player_user_id=v_user and status='pending_admin_review') then
+    if exists(
+      select 1 from public.player_guardian_consents
+      where player_user_id=v_user and status='pending_admin_review'
+    ) then
       raise exception 'Guardian consent is awaiting administrator review';
     end if;
     raise exception 'Guardian consent is already approved';
