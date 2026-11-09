@@ -81,8 +81,8 @@ begin
         where tr.user_id = p.id and tr.status = 'pending'
       )
     order by p.last_sign_in_at, stages.warning_days desc
-    for update of p skip locked
     limit 600
+    for update of p skip locked
   ),
   claimed as (
     insert into public.player_account_inactivity_warnings as existing (
