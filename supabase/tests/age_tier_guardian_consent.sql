@@ -52,8 +52,8 @@ begin
 
   perform * from public.request_player_guardian_consent(
     (current_date-interval '16 years')::date,'Guardian Test','guardian@openplay.invalid',
-    encode(digest(v_verify_token,'sha256'),'hex'),
-    encode(digest(v_withdraw_token,'sha256'),'hex')
+    public.hash_guardian_consent_token(v_verify_token),
+    public.hash_guardian_consent_token(v_withdraw_token)
   );
   execute 'reset role';
 
@@ -134,8 +134,8 @@ begin
   perform set_config('request.jwt.claim.sub',v_minor::text,true);
   perform * from public.request_player_guardian_consent(
     (current_date-interval '16 years')::date,'Guardian Test','guardian@openplay.invalid',
-    encode(digest(v_verify_token_2,'sha256'),'hex'),
-    encode(digest(v_withdraw_token_2,'sha256'),'hex')
+    public.hash_guardian_consent_token(v_verify_token_2),
+    public.hash_guardian_consent_token(v_withdraw_token_2)
   );
   execute 'reset role';
   execute 'set local role anon';
