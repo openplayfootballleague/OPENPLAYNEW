@@ -20,10 +20,7 @@ create table public.player_guardian_consents (
   withdrawn_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint guardian_consent_age check (
-    player_date_of_birth <= current_date - interval '16 years'
-    and player_date_of_birth > current_date - interval '18 years'
-  ),
+  constraint guardian_consent_dob_reasonable check (player_date_of_birth >= date '1900-01-01'),
   constraint guardian_consent_verification_state check (
     (status = 'pending_verification' and verification_token_hash is not null and verification_expires_at is not null and verified_at is null)
     or (status <> 'pending_verification' and verification_token_hash is null and verification_expires_at is null)
