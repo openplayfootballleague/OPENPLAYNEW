@@ -28,8 +28,8 @@ const allMigrations = readdirSync(migrationDirectory)
   .sort();
 const appliedSet = new Set(appliedPaths.map((path) => path.split("/").at(-1)));
 const pending = allMigrations.filter((name) => !appliedSet.has(name));
-if (allMigrations.length !== 110 || pending.length !== 11) {
-  throw new Error(`Expected 110 local migrations (99 applied + 11 pending); found ${allMigrations.length} total and ${pending.length} pending`);
+if (allMigrations.length !== 111 || pending.length !== 12) {
+  throw new Error(`Expected 111 local migrations (99 applied + 12 pending); found ${allMigrations.length} total and ${pending.length} pending`);
 }
 
 const latestAppliedVersion = appliedPaths
