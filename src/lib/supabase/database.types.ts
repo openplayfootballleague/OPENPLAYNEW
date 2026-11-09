@@ -100,7 +100,7 @@ export type Database = {
         Row: {
           amount_pence: number
           created_at: string
-          created_by: string
+          created_by?: string | null
           description: string
           due_at: string | null
           entry_type: string
@@ -130,7 +130,7 @@ export type Database = {
         Update: {
           amount_pence?: number
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           description?: string
           due_at?: string | null
           entry_type?: string
@@ -158,6 +158,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      competition_player_identities: {
+        Row: {
+          anonymised_at: string | null
+          counts_for_statistics: boolean
+          created_at: string
+          display_name: string
+          id: string
+        }
+        Insert: {
+          anonymised_at?: string | null
+          counts_for_statistics?: boolean
+          created_at?: string
+          display_name: string
+          id?: string
+        }
+        Update: {
+          anonymised_at?: string | null
+          counts_for_statistics?: boolean
+          created_at?: string
+          display_name?: string
+          id?: string
+        }
+        Relationships: []
       }
       fixture_availability: {
         Row: {
@@ -203,22 +227,24 @@ export type Database = {
       }
       fixture_goal_records: {
         Row: {
+          competition_player_id: string
           created_at: string
-          created_by: string
+          created_by: string | null
           fixture_id: string
           id: string
-          scorer_user_id: string
+          scorer_user_id: string | null
           season_team_id: string
           void_reason: string | null
           voided_at: string | null
           voided_by: string | null
         }
         Insert: {
+          competition_player_id: string
           created_at?: string
-          created_by: string
+          created_by?: string | null
           fixture_id: string
           id?: string
-          scorer_user_id: string
+          scorer_user_id?: string | null
           season_team_id: string
           void_reason?: string | null
           voided_at?: string | null
@@ -226,16 +252,23 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           fixture_id?: string
           id?: string
-          scorer_user_id?: string
+          scorer_user_id?: string | null
           season_team_id?: string
           void_reason?: string | null
           voided_at?: string | null
           voided_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fixture_goal_records_competition_player_id_fkey"
+            columns: ["competition_player_id"]
+            isOneToOne: false
+            referencedRelation: "competition_player_identities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fixture_goal_records_fixture_id_fkey"
             columns: ["fixture_id"]
@@ -244,7 +277,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fixture_goal_records_scorer_user_id_fkey"
+            foreignKeyName: "fixture_goal_records_scorer_user_id_set_null_fkey"
             columns: ["scorer_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -296,6 +329,7 @@ export type Database = {
       }
       fixture_team_sheet_players: {
         Row: {
+          competition_player_id: string
           created_at: string
           did_appear: boolean
           id: string
@@ -303,7 +337,7 @@ export type Database = {
           role: Database["public"]["Enums"]["lineup_role"]
           squad_number_snapshot: number | null
           team_sheet_id: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -313,7 +347,7 @@ export type Database = {
           role: Database["public"]["Enums"]["lineup_role"]
           squad_number_snapshot?: number | null
           team_sheet_id: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -323,9 +357,16 @@ export type Database = {
           role?: Database["public"]["Enums"]["lineup_role"]
           squad_number_snapshot?: number | null
           team_sheet_id?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fixture_team_sheet_players_competition_player_id_fkey"
+            columns: ["competition_player_id"]
+            isOneToOne: false
+            referencedRelation: "competition_player_identities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fixture_team_sheet_players_team_sheet_id_fkey"
             columns: ["team_sheet_id"]
@@ -334,7 +375,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fixture_team_sheet_players_user_id_fkey"
+            foreignKeyName: "fixture_team_sheet_players_user_id_set_null_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -350,7 +391,7 @@ export type Database = {
           is_locked: boolean
           season_team_id: string
           submitted_at: string | null
-          submitted_by: string
+          submitted_by?: string | null | null
         }
         Insert: {
           draft_saved_at?: string | null
@@ -368,7 +409,7 @@ export type Database = {
           is_locked?: boolean
           season_team_id?: string
           submitted_at?: string | null
-          submitted_by?: string
+          submitted_by?: string | null
         }
         Relationships: [
           {
@@ -470,7 +511,7 @@ export type Database = {
           location_id: string
           object_path: string
           published_at: string | null
-          uploaded_by: string
+          uploaded_by?: string | null
         }
         Insert: {
           caption?: string
@@ -490,7 +531,7 @@ export type Database = {
           location_id?: string
           object_path?: string
           published_at?: string | null
-          uploaded_by?: string
+          uploaded_by?: string | null
         }
         Relationships: [
           {
@@ -548,7 +589,7 @@ export type Database = {
       }
       location_admin_assignments: {
         Row: {
-          assigned_by: string
+          assigned_by?: string | null
           created_at: string
           id: string
           location_id: string
@@ -562,7 +603,7 @@ export type Database = {
           user_id: string
         }
         Update: {
-          assigned_by?: string
+          assigned_by?: string | null
           created_at?: string
           id?: string
           location_id?: string
@@ -906,11 +947,11 @@ export type Database = {
           resolution_reason: string | null
           resolved_at: string | null
           resolved_by: string | null
-          source_membership_id: string
+          source_membership_id?: string | null
           source_season_team_id: string
           status: string
           updated_at: string
-          user_id: string
+          user_id?: string | null
         }
         Insert: {
           created_at?: string
@@ -936,11 +977,11 @@ export type Database = {
           resolution_reason?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
-          source_membership_id?: string
+          source_membership_id?: string | null
           source_season_team_id?: string
           status?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -951,7 +992,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "player_transfer_requests_source_membership_id_fkey"
+            foreignKeyName: "player_transfer_requests_source_membership_set_null_fkey"
             columns: ["source_membership_id"]
             isOneToOne: false
             referencedRelation: "team_memberships"
@@ -965,7 +1006,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "player_transfer_requests_user_id_fkey"
+            foreignKeyName: "player_transfer_requests_user_id_set_null_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -979,6 +1020,7 @@ export type Database = {
           banned_at: string | null
           banned_reason: string | null
           created_at: string
+          competition_player_id: string
           date_of_birth: string
           email: string
           full_name: string
@@ -995,6 +1037,7 @@ export type Database = {
           banned_at?: string | null
           banned_reason?: string | null
           created_at?: string
+          competition_player_id?: string
           date_of_birth: string
           email: string
           full_name: string
@@ -1022,7 +1065,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "players_competition_player_id_fkey"
+            columns: ["competition_player_id"]
+            isOneToOne: true
+            referencedRelation: "competition_player_identities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -1509,6 +1560,10 @@ export type Database = {
     }
     Functions: {
       admin_close_inactive_player_account: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      admin_prepare_player_account_erasure: {
         Args: { p_user_id: string }
         Returns: boolean
       }
