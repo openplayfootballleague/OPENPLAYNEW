@@ -210,7 +210,7 @@ Use Stripe test mode and synthetic customers only. Before testing, record the co
 | PAY-01 | Inspect synthetic payment records and accounting references before/after account erasure. | Direct player/Auth links are detached where designed; legally required accounting/refund/dispute records remain according to the approved schedule. |
 | PAY-02 | Attempt finance reads as a player, captain and location admin without finance entitlement. | Finance data remains inaccessible. |
 
-## 8. Responsive and accessibility review
+## 5. Responsive and accessibility review
 
 For each of mobile, tablet and desktop, record device/browser/version and test:
 - Home, Match Centre, Join Open Play, More and all role-specific hubs.
@@ -220,7 +220,7 @@ For each of mobile, tablet and desktop, record device/browser/version and test:
 - Contrast and legibility on dark surfaces; Oswald headings and Inter body text render correctly.
 - Session expiry, refresh, back navigation and direct-link entry to protected routes.
 
-## 9. Stop conditions
+## 6. Stop conditions
 
 Stop the run immediately and mark the scenario **Fail** if any of these occur:
 - A viewer, under-16 user, banned player or unauthorised role can access private player/admin/finance data.
@@ -238,7 +238,7 @@ Stop the run immediately and mark the scenario **Fail** if any of these occur:
 
 Preserve redacted logs and record the scenario ID, timestamp and environment. Do not continue to the next destructive test until the issue is triaged.
 
-## 10. Evidence and sign-off record
+## 7. Evidence and sign-off record
 
 | Field | Entry |
 |---|---|
