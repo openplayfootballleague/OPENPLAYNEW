@@ -23,7 +23,7 @@ begin
     if v_location is not null and v_location<>v_league_location then raise exception 'League does not belong to selected location'; end if;
     v_location:=v_league_location;
   end if;
-  if v_location is not null and not exists(select 1 from public.locations where id=v_location) then raise exception 'Selected location was not found'; end if;
+  if v_location is not null and not exists(select 1 from public.locations where public.locations.id=v_location) then raise exception 'Selected location was not found'; end if;
   return query
   select f.id,f.season_id,se.name,f.gameweek,f.fixture_number,f.home_team_id,f.away_team_id,ht.name,at.name,
     f.venue_id,venue.name,f.scheduled_at,f.status::text,r.home_score,r.away_score,f.notes
