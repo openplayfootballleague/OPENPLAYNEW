@@ -23,7 +23,8 @@ create table public.player_guardian_consents (
     check (status in ('pending_verification','pending_admin_review','approved','rejected','withdrawn')),
   verification_token_hash text,
   verification_expires_at timestamptz,
-  withdrawal_token_hash text not null,
+  withdrawal_token_hash text,
+  withdrawal_token_expires_at timestamptz,
   verified_at timestamptz,
   reviewed_by uuid references auth.users(id) on delete set null,
   reviewed_at timestamptz,
@@ -36,6 +37,10 @@ create table public.player_guardian_consents (
   constraint guardian_consent_verification_state check (
     (status = 'pending_verification' and verification_token_hash is not null and verification_expires_at is not null and verified_at is null)
     or (status <> 'pending_verification' and verification_token_hash is null and verification_expires_at is null)
+  ),
+  constraint guardian_consent_withdrawal_token_pair check (
+    (withdrawal_token_hash is null and withdrawal_token_expires_at is null)
+    or (withdrawal_token_hash is not null and withdrawal_token_expires_at is not null)
   )
 );
 
@@ -129,11 +134,11 @@ begin
 
   insert into public.player_guardian_consents(
     player_user_id,player_date_of_birth,guardian_full_name,guardian_email,status,
-    verification_token_hash,verification_expires_at,withdrawal_token_hash,
+    verification_token_hash,verification_expires_at,withdrawal_token_hash,withdrawal_token_expires_at,
     verified_at,reviewed_by,reviewed_at,review_reason,withdrawn_at,updated_at
   ) values (
     v_user,p_player_date_of_birth,btrim(p_guardian_full_name),lower(trim(p_guardian_email)),
-    'pending_verification',p_verification_token_hash,v_now+interval '7 days',p_withdrawal_token_hash,
+    'pending_verification',p_verification_token_hash,v_now+interval '7 days',p_withdrawal_token_hash,v_now+interval '2 years',
     null,null,null,null,null,v_now
   )
   on conflict(player_user_id) do update set
@@ -144,6 +149,7 @@ begin
     verification_token_hash=excluded.verification_token_hash,
     verification_expires_at=excluded.verification_expires_at,
     withdrawal_token_hash=excluded.withdrawal_token_hash,
+    withdrawal_token_expires_at=excluded.withdrawal_token_expires_at,
     verified_at=null,reviewed_by=null,reviewed_at=null,review_reason=null,
     withdrawn_at=null,requested_at=v_now,updated_at=v_now
   where public.player_guardian_consents.status in ('pending_verification','rejected','withdrawn');
@@ -202,6 +208,7 @@ begin
   from public.player_guardian_consents
   where withdrawal_token_hash=public.hash_guardian_consent_token(p_token)
     and status in ('pending_verification','pending_admin_review','approved')
+    and withdrawal_token_expires_at>now()
     and player_date_of_birth <= public.open_play_uk_date(statement_timestamp()) - interval '16 years'
     and player_date_of_birth > public.open_play_uk_date(statement_timestamp()) - interval '18 years'
   for update;
@@ -209,6 +216,7 @@ begin
 
   update public.player_guardian_consents
   set status='withdrawn',verification_token_hash=null,verification_expires_at=null,
+      withdrawal_token_hash=null,withdrawal_token_expires_at=null,
       withdrawn_at=now(),updated_at=now()
   where id=v_consent.id;
 
@@ -303,7 +311,10 @@ begin
   if not found then raise exception 'No verified guardian consent is awaiting review'; end if;
 
   update public.player_guardian_consents
-  set status=p_decision,reviewed_by=v_actor,reviewed_at=now(),review_reason=btrim(p_reason),updated_at=now()
+  set status=p_decision,reviewed_by=v_actor,reviewed_at=now(),review_reason=btrim(p_reason),
+      withdrawal_token_hash=case when p_decision='rejected' then null else withdrawal_token_hash end,
+      withdrawal_token_expires_at=case when p_decision='rejected' then null else withdrawal_token_expires_at end,
+      updated_at=now()
   where id=p_consent_id;
 
   if p_decision='approved' then
