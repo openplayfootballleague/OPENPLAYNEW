@@ -17,7 +17,7 @@ This pack records the implementation evidence, connected hosted-project baseline
 | Application build, type-check and domain tests | Passed | CI #1537 |
 | Edge Function static security checks and Deno type-check | Passed | CI #1537 |
 | Clean database migration replay | Passed | CI #1537 |
-| Hosted-order migration replay | Passed | CI #1537; 99 baseline + 14 pending |
+| Hosted-order migration replay | Passed | CI #1537; 99 baseline + 15 pending |
 | SQL role, RLS, lifecycle and identity regression suites | Passed | CI #1537 |
 | 90/30/7-day inactivity warning logic | Implemented and regression-tested | CI #1537; provider delivery not yet exercised in staging |
 | Connected Supabase hosted baseline | Read-only inspected | 99 migrations; four deployed Edge Functions |
@@ -82,7 +82,8 @@ The retention suite includes warning-stage catch-up, idempotent successful sends
 **Migration ledger**
 - 99 migrations are recorded as applied.
 - Latest recorded version: `20261108194831`.
-- The branch has 14 additional forward-only migrations, giving 113 sources in the clean hosted-order replay (99 recorded baseline + 14 pending).
+- The branch has 15 additional forward-only migrations, giving 114 sources in the clean hosted-order replay (99 recorded baseline + 15 pending).
+- The latest forward-only addition preserves combined player season rankings across mid-season club transfers and exposes a separate club-attributed statistical history (`20261109220000_player_season_club_statistics.sql`).
 - Three pending migrations have timestamps older than the latest hosted ledger version. The CI release-path check uses `--include-all`.
 - No pending Phase 1 migration was applied to the connected project during this audit.
 
