@@ -184,6 +184,51 @@ execute function public.enforce_team_sheet_before_kickoff();
 
 revoke all on function public.enforce_team_sheet_before_kickoff() from public,anon,authenticated;
 
+-- If a destination captain submits their sheet after receiving an emergency
+-- request, that club is no longer eligible. Expire its outstanding requests.
+create or replace function public.expire_emergency_transfers_on_sheet_submission()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  if new.is_locked is distinct from true then
+    return new;
+  end if;
+
+  with expired as (
+    update public.player_transfer_requests r
+    set status='cancelled',
+        resolved_at=now(),
+        resolved_by=auth.uid(),
+        resolution_reason='Destination club submitted its matchday team sheet; emergency request expired',
+        updated_at=now()
+    where r.status='pending'
+      and r.is_emergency=true
+      and r.target_fixture_id=new.fixture_id
+      and r.destination_season_team_id=new.season_team_id
+    returning r.id,r.user_id
+  )
+  insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,after_data)
+  select auth.uid(),'player.transfer.expired_after_sheet_submission',
+    'player_transfer_request',expired.id::text,
+    'Destination club submitted its matchday team sheet',
+    jsonb_build_object('user_id',expired.user_id,'fixture_id',new.fixture_id,'season_team_id',new.season_team_id)
+  from expired;
+
+  return new;
+end;
+$;
+
+drop trigger if exists fixture_team_sheets_expire_emergency_transfers on public.fixture_team_sheets;
+create trigger fixture_team_sheets_expire_emergency_transfers
+after insert or update of is_locked on public.fixture_team_sheets
+for each row
+execute function public.expire_emergency_transfers_on_sheet_submission();
+
+revoke all on function public.expire_emergency_transfers_on_sheet_submission() from public,anon,authenticated;
+
 -- A player leaves their own club; no old captain/admin decision is involved.
 create or replace function public.leave_team_membership(p_membership_id uuid)
 returns public.team_memberships
