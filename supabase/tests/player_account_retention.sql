@@ -7,6 +7,7 @@ declare
   v_member constant uuid := '92000000-0000-4000-8000-000000000002';
   v_admin constant uuid := '92000000-0000-4000-8000-000000000003';
   v_financial constant uuid := '92000000-0000-4000-8000-000000000004';
+  v_warning constant uuid := '92000000-0000-4000-8000-000000000005';
   v_location uuid;
   v_league uuid;
   v_season uuid;
@@ -21,6 +22,7 @@ declare
   v_status text;
   v_archive_expires_at timestamptz;
   v_closed_at timestamptz;
+  v_warning_anchor timestamptz;
 begin
   insert into auth.users
     (id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at,last_sign_in_at)
@@ -28,7 +30,8 @@ begin
     (v_inactive,'authenticated','authenticated','ci-retention-inactive@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '13 months'),
     (v_member,'authenticated','authenticated','ci-retention-member@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '13 months'),
     (v_admin,'authenticated','authenticated','ci-retention-admin@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '13 months'),
-    (v_financial,'authenticated','authenticated','ci-retention-financial@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '13 months');
+    (v_financial,'authenticated','authenticated','ci-retention-financial@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '13 months'),
+    (v_warning,'authenticated','authenticated','ci-retention-warning@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '9 months');
 
   update public.profiles
   set last_sign_in_at=now()-interval '13 months'
@@ -38,7 +41,8 @@ begin
   values
     (v_inactive,'Inactive Retention Player','07700900401','ci-retention-inactive@openplay.invalid',date '1990-01-01','registered'),
     (v_member,'Active Membership Player','07700900402','ci-retention-member@openplay.invalid',date '1990-01-02','registered'),
-    (v_financial,'Unsettled Payment Player','07700900403','ci-retention-financial@openplay.invalid',date '1990-01-03','registered');
+    (v_financial,'Unsettled Payment Player','07700900403','ci-retention-financial@openplay.invalid',date '1990-01-03','registered'),
+    (v_warning,'Warning Schedule Player','07700900404','ci-retention-warning@openplay.invalid',date '1990-01-04','registered');
 
   insert into public.user_roles(user_id,role,granted_by) values(v_admin,'admin',v_admin);
 
@@ -57,7 +61,11 @@ begin
   if has_function_privilege('anon','public.admin_list_inactive_player_accounts()','EXECUTE')
      or has_function_privilege('authenticated','public.admin_list_inactive_player_accounts()','EXECUTE')
      or has_function_privilege('anon','public.complete_player_account_reactivation(uuid,text)','EXECUTE')
-     or has_function_privilege('authenticated','public.complete_player_account_reactivation(uuid,text)','EXECUTE') then
+     or has_function_privilege('authenticated','public.complete_player_account_reactivation(uuid,text)','EXECUTE')
+     or has_function_privilege('anon','public.admin_claim_player_account_inactivity_warnings()','EXECUTE')
+     or has_function_privilege('authenticated','public.admin_claim_player_account_inactivity_warnings()','EXECUTE')
+     or has_function_privilege('anon','public.admin_finish_player_account_inactivity_warning(uuid,timestamptz,integer,boolean)','EXECUTE')
+     or has_function_privilege('authenticated','public.admin_finish_player_account_inactivity_warning(uuid,timestamptz,integer,boolean)','EXECUTE') then
     raise exception 'A client role can execute a privileged account-retention function';
   end if;
 
@@ -72,8 +80,53 @@ begin
   select public.admin_close_inactive_player_account(v_financial) into v_closed;
   if v_closed then raise exception 'An account with an unresolved payment was closed for inactivity'; end if;
 
+  -- Warning stages are due at 90, 30 and 7 days before the 12-month
+  -- closure date. A late run catches up every missed stage, but each stage is
+  -- claimed only once for a given inactivity anchor.
+  select last_sign_in_at into v_warning_anchor from public.profiles where id=v_warning;
+  select count(*) into v_count from public.admin_claim_player_account_inactivity_warnings()
+  where user_id=v_warning and warning_days=90;
+  if v_count <> 1 then raise exception 'The 90-day inactivity warning was not claimable'; end if;
+  select public.admin_finish_player_account_inactivity_warning(v_warning,v_warning_anchor,90,true)
+    into v_reactivated;
+  if not v_reactivated then raise exception 'The 90-day warning delivery was not recorded'; end if;
+  select count(*) into v_count from public.admin_claim_player_account_inactivity_warnings()
+  where user_id=v_warning and warning_days=90;
+  if v_count <> 0 then raise exception 'A successfully delivered warning was claimed twice'; end if;
+
+  update public.profiles set last_sign_in_at=now()-interval '11 months' where id=v_warning;
+  select count(*) into v_count from public.admin_claim_player_account_inactivity_warnings()
+  where user_id=v_warning;
+  if v_count <> 2 then raise exception 'A delayed worker run did not catch up the 90- and 30-day warning stages'; end if;
+
+  update public.profiles set last_sign_in_at=now()-interval '11 months 25 days' where id=v_warning;
+  select count(*) into v_count from public.admin_claim_player_account_inactivity_warnings()
+  where user_id=v_warning;
+  if v_count <> 3 then raise exception 'A delayed worker run did not catch up all three warning stages'; end if;
+
+  -- The database must fail closed if an account is closed before all warnings
+  -- have been delivered and the final seven-day grace period has elapsed.
+  begin
+    select public.admin_close_inactive_player_account(v_inactive) into v_closed;
+  exception when others then
+    if sqlerrm not like 'Player account closure requires delivered 90, 30 and 7-day warnings%' then
+      raise;
+    end if;
+  end;
+  if coalesce(v_closed,false) then
+    raise exception 'Account closure bypassed the warning delivery requirement';
+  end if;
+
+  insert into public.player_account_inactivity_warnings(
+    user_id,inactivity_started_at,warning_days,status,claimed_at,sent_at
+  )
+  select v_inactive,last_sign_in_at,stage,'sent',now()-interval '8 days',now()-interval '8 days'
+  from public.profiles
+  cross join (values (90),(30),(7)) as stages(stage)
+  where id=v_inactive;
+
   select public.admin_close_inactive_player_account(v_inactive) into v_closed;
-  if not v_closed then raise exception 'Eligible inactive player account was not closed'; end if;
+  if not v_closed then raise exception 'Eligible inactive player account was not closed after all warnings and grace period'; end if;
   select account_retention_status,archive_expires_at into v_status,v_archive_expires_at
   from public.profiles where id=v_inactive;
   if v_status <> 'closed' or v_archive_expires_at < now()+interval '11 months 29 days' then
