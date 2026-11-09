@@ -1,5 +1,5 @@
 export function ageOnUkDate(dateOfBirth: string, instant: Date = new Date()): number | null {
-  const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(dateOfBirth);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateOfBirth);
   if (!match || Number.isNaN(instant.getTime())) return null;
 
   const birthYear = Number(match[1]);
