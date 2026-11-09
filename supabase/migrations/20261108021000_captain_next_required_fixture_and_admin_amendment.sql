@@ -96,6 +96,12 @@ declare
   v_team_id uuid;
   v_fixture_status public.fixture_status;
 begin
+  -- Trusted service-role erasure jobs may detach the submitter account link
+  -- from historical sheets. Ordinary clients still need captain permission.
+  if coalesce(pg_catalog.current_setting('request.jwt.claim.role', true), '') = 'service_role' then
+    return new;
+  end if;
+
   if auth.uid() is null then
     raise exception 'Authentication required';
   end if;
