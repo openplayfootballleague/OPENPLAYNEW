@@ -18,6 +18,7 @@ create table public.player_guardian_consents (
   reviewed_at timestamptz,
   review_reason text,
   withdrawn_at timestamptz,
+  requested_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint guardian_consent_dob_reasonable check (player_date_of_birth >= date '1900-01-01'),
