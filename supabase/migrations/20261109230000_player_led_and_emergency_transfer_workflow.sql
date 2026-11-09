@@ -1224,6 +1224,13 @@ begin
     raise exception 'You are already attached to a club in this league';
   end if;
 
+  if exists(
+    select 1 from public.player_transfer_requests r
+    where r.user_id=v_user and r.league_id=v_season.league_id and r.status='pending'
+  ) then
+    raise exception 'Cancel or resolve your pending transfer request before requesting to join a team';
+  end if;
+
   if not exists(
     select 1
     from public.team_memberships active_membership
@@ -1259,13 +1266,6 @@ begin
     where tm.user_id=v_user and tm.status='pending' and s.league_id=v_season.league_id
   ) then
     raise exception 'You already have a pending team request in this league';
-  end if;
-
-  if exists(
-    select 1 from public.player_transfer_requests r
-    where r.user_id=v_user and r.league_id=v_season.league_id and r.status='pending'
-  ) then
-    raise exception 'Cancel or resolve your pending transfer request before requesting to join a team';
   end if;
 
   insert into public.team_memberships(season_team_id,user_id,status)
