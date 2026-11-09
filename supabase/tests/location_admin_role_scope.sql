@@ -334,6 +334,31 @@ begin
   if v_count <> 2 then raise exception 'Global admin cannot manage and list location assignments'; end if;
   v_setup := public.get_admin_competition_setup();
   if jsonb_array_length(v_setup->'locations') <> 2 then raise exception 'Global admin setup did not return all locations'; end if;
+
+  -- Repeating an existing grant is a no-op and must not create duplicate audit entries.
+  perform public.admin_set_location_assignment('00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000011',true);
   execute 'reset role';
+  select count(*) into v_count from public.audit_log
+  where actor_user_id='00000000-0000-4000-8000-000000000005'
+    and action='location_admin.assignment_granted'
+    and entity_type='location_admin_assignment';
+  if v_count <> 1 then raise exception 'Location assignment grant must create exactly one audit event'; end if;
+
+  -- A stale assignment must remain revocable after the league_admin role is removed.
+  delete from public.user_roles
+  where user_id='00000000-0000-4000-8000-000000000004' and role='league_admin';
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000005',true);
+  perform public.admin_set_location_assignment('00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000011',false);
+  execute 'reset role';
+  select count(*) into v_count from public.location_admin_assignments
+  where user_id='00000000-0000-4000-8000-000000000004'
+    and location_id='00000000-0000-4000-8000-000000000011';
+  if v_count <> 0 then raise exception 'Stale location assignment could not be revoked'; end if;
+  select count(*) into v_count from public.audit_log
+  where actor_user_id='00000000-0000-4000-8000-000000000005'
+    and action='location_admin.assignment_revoked'
+    and entity_type='location_admin_assignment';
+  if v_count <> 1 then raise exception 'Location assignment revocation must create exactly one audit event'; end if;
 end;
 $role_matrix$;
