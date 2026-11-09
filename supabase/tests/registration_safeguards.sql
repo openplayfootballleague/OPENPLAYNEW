@@ -186,6 +186,10 @@ begin
     (v_team_e,v_pending_captain,'active',true),
     (v_team_e,v_target,'pending',false);
 
+  -- The sheet guard requires the submitting captain's authenticated identity.
+  perform set_config('request.jwt.claim.sub',v_target::text,true);
+  perform set_config('request.jwt.claim.role','authenticated',true);
+
   -- Four appearances for the leading candidate, three for each tied candidate.
   for i in 1..4 loop
     insert into public.fixtures(season_id,gameweek,fixture_number,home_team_id,away_team_id)
