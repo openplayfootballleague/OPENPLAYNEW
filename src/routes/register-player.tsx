@@ -44,7 +44,7 @@ function RegisterPlayerPage() {
       setSession(current);
       if(current){
         const [{data:playerData,error:playerError},{data:consentRows,error:consentError}]=await Promise.all([
-          supabase.from("players").select("registration_status,is_banned").eq("user_id",current.user.id).maybeSingle(),
+          supabase.from("players").select("full_name,phone,date_of_birth,registration_status,is_banned").eq("user_id",current.user.id).maybeSingle(),
           supabase.rpc("get_my_guardian_consent_status")
         ]);
         if(!active)return;
@@ -99,7 +99,7 @@ function RegisterPlayerPage() {
       const {data:playerData,error:rpcError}=await getSupabaseClient().rpc("register_player",{p_full_name:name.trim(),p_phone:phone.trim(),p_email:session.user.email,p_date_of_birth:dob});
       if(rpcError) throw rpcError;
       if(!playerData)throw new Error("Your registration could not be confirmed. Please try again.");
-      setExistingPlayer({registration_status:playerData.registration_status,is_banned:playerData.is_banned});
+      setExistingPlayer({full_name:playerData.full_name,phone:playerData.phone,date_of_birth:playerData.date_of_birth,registration_status:playerData.registration_status,is_banned:playerData.is_banned});
       setMessage("Your player registration has been submitted. If it needs a manual identity check, it will remain pending review. Your account and player registration are separate from joining a team.");
       setSubmitted(true);
     }catch(cause){setError(cause instanceof Error?cause.message:"Unable to submit player registration.");}
