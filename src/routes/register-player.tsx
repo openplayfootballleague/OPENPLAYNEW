@@ -3,6 +3,7 @@ import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { ageOnUkDate } from "../lib/player-age";
 
 type ExistingPlayer = { full_name: string; phone: string; date_of_birth: string; registration_status: "registered" | "pending_review" | "rejected"; is_banned: boolean };
 type GuardianConsent = {
@@ -15,15 +16,6 @@ type GuardianConsent = {
   review_reason: string | null;
   withdrawn_at: string | null;
 };
-function ageOn(dateOfBirth: string): number | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateOfBirth);
-  if (!match) return null;
-  const birthYear = Number(match[1]), birthMonth = Number(match[2]), birthDay = Number(match[3]);
-  const today = new Date();
-  let age = today.getFullYear() - birthYear;
-  if (today.getMonth() + 1 < birthMonth || (today.getMonth() + 1 === birthMonth && today.getDate() < birthDay)) age -= 1;
-  return age;
-}
 
 export const Route = createFileRoute("/register-player")({ component: RegisterPlayerPage });
 
@@ -62,21 +54,21 @@ function RegisterPlayerPage() {
     const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,next)=>setSession(next));
     return ()=>{active=false;subscription.unsubscribe();};
   },[]);
-  const selectedAge=ageOn(dob);
+  const selectedAge=ageOnUkDate(dob);
   const isUnderSixteen=selectedAge!==null&&selectedAge<16;
   const isMinorPlayer=selectedAge!==null&&selectedAge>=16&&selectedAge<18;
   const consentMatchesDate=guardianConsent?.player_date_of_birth===dob;
   const consentApprovedForDate=isMinorPlayer&&consentMatchesDate&&guardianConsent?.status==="approved";
   const waitingGuardianReview=isMinorPlayer&&consentMatchesDate&&guardianConsent?.status==="pending_admin_review";
   const needsGuardianConsent=isMinorPlayer&&!consentApprovedForDate&&!waitingGuardianReview;
-  const existingPlayerAge=existingPlayer?ageOn(existingPlayer.date_of_birth):null;
+  const existingPlayerAge=existingPlayer?ageOnUkDate(existingPlayer.date_of_birth):null;
   const existingMinorConsentFlow=Boolean(existingPlayer&&existingPlayerAge!==null&&existingPlayerAge>=16&&existingPlayerAge<18&&guardianConsent?.status!=="approved");
 
   async function submit(event:React.FormEvent<HTMLFormElement>){
     event.preventDefault();setError("");setMessage("");setBusy(true);
     try{
       if(!session?.user.email||!session.user.email_confirmed_at) throw new Error("Please verify your email address before registering as a player.");
-      const age=ageOn(dob);
+      const age=ageOnUkDate(dob);
       if(age===null) throw new Error("Enter a valid date of birth.");
       if(age<16) throw new Error("Players must be at least 16 years old to register. Under-16s can still browse public fixtures, results and tables.");
       if(age<18 && !(guardianConsent?.status==="approved" && guardianConsent.player_date_of_birth===dob)) {
