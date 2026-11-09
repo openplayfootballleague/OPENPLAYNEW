@@ -37,7 +37,7 @@ begin
   set last_sign_in_at=now()-interval '13 months'
   where id in (v_inactive,v_member,v_admin);
 
-  update public.profiles set last_sign_in_at=now()-interval '9 months' where id=v_warning;
+  update public.profiles set last_sign_in_at=now()-interval '9 months 3 days' where id=v_warning;
 
   insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status)
   values
