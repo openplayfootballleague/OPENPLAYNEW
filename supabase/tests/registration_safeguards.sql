@@ -41,6 +41,26 @@ begin
   if not v_rejected then
     raise exception 'Phone normaliser accepted a number without a UK or international prefix';
   end if;
+
+  v_rejected := false;
+  begin
+    perform public.normalize_player_phone('++44 7700 900 301');
+  exception when others then
+    v_rejected := true;
+  end;
+  if not v_rejected then
+    raise exception 'Phone normaliser accepted repeated international plus signs';
+  end if;
+
+  v_rejected := false;
+  begin
+    perform public.normalize_player_phone('+44+7700 900 301');
+  exception when others then
+    v_rejected := true;
+  end;
+  if not v_rejected then
+    raise exception 'Phone normaliser accepted an embedded plus sign';
+  end if;
 end;
 $phone_normalisation$;
 
