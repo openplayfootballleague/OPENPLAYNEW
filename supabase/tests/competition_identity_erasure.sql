@@ -249,6 +249,14 @@ begin
     raise exception 'Historical sheet/result audit actor references were not detached';
   end if;
 
+  if not exists(select 1 from public.teams where id=v_home_team and created_by is null)
+     or not exists(select 1 from public.season_teams where id=v_home_season_team and approved_by is null)
+     or not exists(select 1 from public.user_roles where user_id=v_admin and granted_by is null)
+     or not exists(select 1 from public.player_registration_reviews
+       where player_id=v_other_player_row and reviewed_by is null) then
+    raise exception 'Historical creator, approver or reviewer references were not detached';
+  end if;
+
   if not exists(select 1 from public.payment_records
       where id=v_payment and player_user_id is null and stripe_customer_id is null) then
     raise exception 'Payment record was not retained with its account/customer link removed';
