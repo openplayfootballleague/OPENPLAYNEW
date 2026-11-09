@@ -100,7 +100,8 @@ Deno.serve(async (req: Request) => {
     }
     const verifyToken = randomToken();
     const withdrawalToken = randomToken();
-    const { error: requestError } = await userClient.rpc("request_player_guardian_consent", {
+    const { error: requestError } = await service.rpc("request_player_guardian_consent", {
+      p_player_user_id: userData.user.id,
       p_player_date_of_birth: dob,
       p_guardian_full_name: guardianName,
       p_guardian_email: guardianEmail,
