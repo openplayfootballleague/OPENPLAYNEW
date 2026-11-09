@@ -53,6 +53,13 @@ declare
   v_destination_count integer;
   v_error text;
 begin
+  if has_table_privilege('authenticated','public.team_memberships','INSERT')
+     or has_table_privilege('authenticated','public.team_memberships','UPDATE')
+     or has_table_privilege('authenticated','public.player_transfer_requests','INSERT')
+     or has_table_privilege('authenticated','public.player_transfer_requests','UPDATE') then
+    raise exception 'Authenticated clients retain direct membership/transfer table write privileges';
+  end if;
+
   insert into auth.users
     (id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
   values
@@ -211,6 +218,22 @@ begin
   if (select count(*) from public.player_transfer_requests
       where user_id=v_player and league_id=v_league and status='pending' and is_emergency)<>2 then
     raise exception 'The player could not submit simultaneous emergency requests to eligible clubs';
+  end if;
+
+  -- Only the destination captain may make the ordinary decision.
+  perform set_config('request.jwt.claim.sub',v_source_captain::text,true);
+  begin
+    perform public.resolve_player_transfer_request(v_request_b,'approved','Wrong captain attempt');
+    raise exception 'A non-destination captain was incorrectly allowed to approve a transfer';
+  exception when others then
+    get stacked diagnostics v_error=message_text;
+    if v_error not like 'Only the destination club captain%' then raise; end if;
+  end;
+
+  -- The destination captain sees the request in their own approval queue.
+  perform set_config('request.jwt.claim.sub',v_captain_b::text,true);
+  if not exists(select 1 from public.get_captain_transfer_requests() where id=v_request_b) then
+    raise exception 'Destination captain cannot see their pending transfer request';
   end if;
 
   -- First captain approval secures the player and cancels all competing requests.
