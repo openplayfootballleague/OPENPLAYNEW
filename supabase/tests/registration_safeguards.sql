@@ -207,6 +207,12 @@ begin
       insert into public.fixture_team_sheet_players(team_sheet_id,user_id,role,did_appear)
       values(v_sheet,v_tie_zara,'starter',true),(v_sheet,v_tie_aaron,'starter',true);
     end if;
+
+    -- Both teams must submit the current fixture before it can be completed
+    -- and the captain's next-required fixture can advance.
+    insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by)
+    values(v_fixture,v_team_b,v_target);
+    update public.fixtures set status='completed' where id=v_fixture;
   end loop;
 
   -- Equal appearance counts are resolved by deterministic full-name order.
@@ -223,6 +229,10 @@ begin
     values
       (v_sheet,v_tie_zara,'starter',true),
       (v_sheet,v_tie_aaron,'starter',true);
+
+    insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by)
+    values(v_fixture,v_team_a,v_target);
+    update public.fixtures set status='completed' where id=v_fixture;
   end loop;
 
   -- Invalid reasons must fail before any ban state is changed.
