@@ -102,6 +102,16 @@ begin
   );
   execute 'reset role';
 
+  if not exists(
+    select 1 from public.player_guardian_consents
+    where player_user_id=v_minor
+      and withdrawal_token_hash is not null
+      and withdrawal_token_expires_at>now()
+      and withdrawal_token_expires_at<=now()+interval '2 years'
+  ) then
+    raise exception 'Guardian withdrawal token was not created with its two-year expiry';
+  end if;
+
   -- Repeated requests are throttled; they must not be used to spam a guardian.
   execute 'set local role service_role';
   perform set_config('request.jwt.claim.role','service_role',true);
