@@ -112,10 +112,10 @@ A player may be registered with Open Play without belonging to a team.
 A player may represent **only one club in the same league at a time**. This restriction is league-specific: it does not, by itself, prevent a player joining a club in a different league.
 
 - A player with an active membership at a club in a league cannot join, register with, or represent another club in that same league.
-- To move clubs, the player must first leave their current club. Leaving ends the active membership but preserves the historical membership record and all appearances, statistics, disciplinary history and other competition records.
-- Only after leaving may the player submit a transfer request to a different club in that same league.
-- The transfer request is a request to join the destination club; it does not create active membership or playing eligibility while pending.
-- The destination club's captain (or another explicitly authorised role) must approve or reject the transfer request.
+- To move clubs, the player must first leave their current club themselves. Leaving ends the active membership but preserves the historical membership record and all appearances, statistics, disciplinary history and other competition records; the old club's captain or an administrator does not approve an ordinary voluntary departure.
+- Only after the old membership has ended may the player submit a transfer request to a different club in that same league.
+- The transfer request is a request to join the destination club; it does not create active membership or playing eligibility while pending. The player remains unattached in that league while it is pending.
+- The destination club's captain is responsible for approving or rejecting the request. An administrator is not the ordinary decision-maker for a transfer; administrators retain oversight and exceptional intervention powers.
 - On approval, create/activate membership at the destination club. On rejection, the player remains unattached in that league and may submit another request.
 - A player cannot have concurrent pending join/transfer requests to multiple clubs in the same league. A pending request must be withdrawn or resolved before another is submitted.
 - The database must enforce the one-active-club-per-player-per-league rule transactionally, including concurrent requests and direct API/RPC calls. Client-side checks alone are insufficient.
@@ -158,9 +158,9 @@ A player may represent **only one club in the same league at a time**. This rest
 16. Date of birth is required and validated, but does not affect the three-metric matching count.
 17. Duplicate or simultaneous registration submissions cannot create duplicate player identities.
 18. A player with an active membership at Club A cannot join or represent Club B in the same league.
-19. A player must leave Club A before submitting a transfer request to Club B in that league.
+19. A player can leave Club A without old-captain or administrator approval, and must do so before submitting a transfer request to Club B in that league.
 20. A pending transfer request does not grant playing eligibility or active membership.
-21. Approval by Club B's captain activates the new membership; rejection leaves the player unattached.
+21. The destination club's captain, not an administrator, approves or rejects the transfer request. Approval activates the new membership; rejection leaves the player unattached.
 22. A player cannot submit concurrent pending transfer requests to multiple clubs in the same league.
 23. The same player may hold memberships in different leagues, subject to each league's own rules.
 24. The database rejects concurrent attempts to create active memberships at two clubs in the same league, including across seasons.
