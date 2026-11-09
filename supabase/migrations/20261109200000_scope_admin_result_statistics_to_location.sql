@@ -132,8 +132,7 @@ begin
     )
   );
 end;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.get_admin_fixture_scorer_options(p_fixture_id uuid)
  RETURNS jsonb
@@ -154,8 +153,7 @@ return jsonb_build_object(
 'away_team_id',v_fixture.away_team_id,'away_team_name',(select name from public.season_teams where id=v_fixture.away_team_id),
 'home_sheet_submitted',v_home_sheet.id is not null,'away_sheet_submitted',v_away_sheet.id is not null,
 'home_players',coalesce((select jsonb_agg(jsonb_build_object('user_id',tsp.user_id,'full_name',p.full_name,'role',tsp.role,'is_goalkeeper',tsp.is_goalkeeper,'did_appear',tsp.did_appear) order by case when tsp.role='starter' then 0 else 1 end,p.full_name) from public.fixture_team_sheet_players tsp join public.players p on p.user_id=tsp.user_id where tsp.team_sheet_id=v_home_sheet.id),'[]'::jsonb),
-'away_players',coalesce((select jsonb_agg(jsonb_build_object('user_id',tsp.user_id,'full_name',p.full_name,'role',tsp.role,'is_goalkeeper',tsp.is_goalkeeper,'did_appear',tsp.did_appear) order by case when tsp.role='starter' then 0 else 1 end,p.full_name) from public.fixture_team_sheet_players tsp join public.players p on p.user_id=tsp.user_id where tsp.team_sheet_id=v_away_sheet.id),'[]'::jsonb)); end; $function$
-
+'away_players',coalesce((select jsonb_agg(jsonb_build_object('user_id',tsp.user_id,'full_name',p.full_name,'role',tsp.role,'is_goalkeeper',tsp.is_goalkeeper,'did_appear',tsp.did_appear) order by case when tsp.role='starter' then 0 else 1 end,p.full_name) from public.fixture_team_sheet_players tsp join public.players p on p.user_id=tsp.user_id where tsp.team_sheet_id=v_away_sheet.id),'[]'::jsonb)); end; $function$;
 
 CREATE OR REPLACE FUNCTION public.admin_record_fixture_result_with_appearances(p_fixture_id uuid, p_home_score integer, p_away_score integer, p_home_substitute_appearances uuid[] DEFAULT '{}'::uuid[], p_away_substitute_appearances uuid[] DEFAULT '{}'::uuid[], p_home_scorers uuid[] DEFAULT '{}'::uuid[], p_away_scorers uuid[] DEFAULT '{}'::uuid[], p_reason text DEFAULT NULL::text)
  RETURNS fixture_results
@@ -216,5 +214,4 @@ begin
    'status','completed'));
  return v_result;
 end;
-$function$
-
+$function$;
