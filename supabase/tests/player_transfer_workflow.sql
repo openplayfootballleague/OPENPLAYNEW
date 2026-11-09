@@ -205,6 +205,24 @@ begin
   perform set_config('request.jwt.claim.sub',v_player_two::text,true);
   perform public.leave_team_membership(v_player_two_membership);
 
+  -- Returning players cannot bypass transfers through ordinary join RPCs or
+  -- direct active-membership writes.
+  begin
+    perform public.request_team_membership(v_e_st);
+    raise exception 'A returning player was incorrectly allowed to use ordinary team joining';
+  exception when others then
+    get stacked diagnostics v_error=message_text;
+    if v_error not like 'Use the player transfer workflow%' then raise; end if;
+  end;
+  begin
+    insert into public.team_memberships(season_team_id,user_id,status,is_captain)
+    values(v_e_st,v_player_two,'active',false);
+    raise exception 'A returning player was incorrectly attached without an approved transfer';
+  exception when others then
+    get stacked diagnostics v_error=message_text;
+    if v_error not like 'A player who voluntarily left a different club%' then raise; end if;
+  end;
+
   perform set_config('request.jwt.claim.sub',v_player::text,true);
   select count(*) into v_destination_count
   from public.get_my_transfer_destinations()
