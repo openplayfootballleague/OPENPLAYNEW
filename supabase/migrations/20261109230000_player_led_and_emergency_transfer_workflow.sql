@@ -96,6 +96,8 @@ as $$
 declare
   v_league_id uuid;
   v_club_id uuid;
+  v_latest_source_membership_id uuid;
+  v_latest_source_team_id uuid;
   v_transfer_request public.player_transfer_requests;
 begin
   if tg_op='UPDATE' and new.season_team_id is distinct from old.season_team_id then
@@ -120,6 +122,18 @@ begin
     pg_catalog.hashtextextended(new.user_id::text || ':' || v_league_id::text, 0)
   );
 
+  select source_membership.id,source_team.team_id
+    into v_latest_source_membership_id,v_latest_source_team_id
+  from public.team_memberships source_membership
+  join public.season_teams source_team on source_team.id=source_membership.season_team_id
+  join public.seasons source_season on source_season.id=source_team.season_id
+  where source_membership.user_id=new.user_id
+    and source_membership.status='left'
+    and source_membership.voluntarily_left_at is not null
+    and source_season.league_id=v_league_id
+  order by source_membership.voluntarily_left_at desc
+  limit 1;
+
   if new.transfer_request_id is not null then
     select * into v_transfer_request
     from public.player_transfer_requests r
@@ -127,26 +141,13 @@ begin
       and r.user_id=new.user_id
       and r.league_id=v_league_id
       and r.destination_season_team_id=new.season_team_id
+      and r.source_membership_id=v_latest_source_membership_id
       and r.status='approved';
     if not found then
-      raise exception 'A transfer-linked membership requires its matching approved transfer request';
+      raise exception 'A transfer-linked membership requires the latest matching approved transfer request';
     end if;
-  elsif exists(
-    select 1
-    from (
-      select source_team.team_id
-      from public.team_memberships source_membership
-      join public.season_teams source_team on source_team.id=source_membership.season_team_id
-      join public.seasons source_season on source_season.id=source_team.season_id
-      where source_membership.user_id=new.user_id
-        and source_membership.status='left'
-        and source_membership.voluntarily_left_at is not null
-        and source_season.league_id=v_league_id
-      order by source_membership.voluntarily_left_at desc
-      limit 1
-    ) latest_voluntary_departure
-    where latest_voluntary_departure.team_id<>v_club_id
-  ) then
+  elsif v_latest_source_team_id is not null
+    and v_latest_source_team_id is distinct from v_club_id then
     raise exception 'A player who voluntarily left a different club must join through an approved transfer request';
   end if;
 
@@ -1306,7 +1307,7 @@ begin
   insert into public.team_memberships(season_team_id,user_id,status)
   values(p_season_team_id,v_user,'pending')
   on conflict(season_team_id,user_id) do update
-    set status='pending',left_at=null,voluntarily_left_at=null,joined_at=null,is_captain=false,updated_at=now()
+    set status='pending',left_at=null,voluntarily_left_at=null,transfer_request_id=null,joined_at=null,is_captain=false,updated_at=now()
     where public.team_memberships.status in ('left','rejected')
   returning * into v_membership;
 
