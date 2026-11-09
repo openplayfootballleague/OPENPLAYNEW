@@ -81,7 +81,7 @@ begin
         where tr.user_id = p.id and tr.status = 'pending'
       )
     order by p.last_sign_in_at, stages.warning_days desc
-    limit 600
+    limit 100
     for update of p skip locked
   ),
   claimed as (
@@ -120,7 +120,7 @@ begin
   if auth.role() is distinct from 'service_role' then
     raise exception 'Service role required';
   end if;
-  if p_warning_days not in (90, 30, 7) or p_delivered is null then
+  if p_warning_days is null or p_warning_days not in (90, 30, 7) or p_delivered is null then
     raise exception 'Invalid warning completion request';
   end if;
 
@@ -186,6 +186,6 @@ before update of account_retention_status on public.profiles
 for each row execute function public.require_player_account_inactivity_warnings_before_closure();
 
 comment on function public.admin_claim_player_account_inactivity_warnings() is
-  'Claims unsent 90/30/7-day inactivity warnings for eligible registered players. Pending claims expire after 30 minutes for safe retry; successful stages are unique per inactivity anchor.';
+  'Claims unsent 90/30/7-day inactivity warnings for eligible registered players. Claims are batched to 100 warning stages, expire after 30 minutes for safe retry, and successful stages are unique per inactivity anchor.';
 comment on function public.require_player_account_inactivity_warnings_before_closure() is
   'Fail-closed guard: account closure requires all three delivered warning stages and at least seven days since the 7-day warning.';
