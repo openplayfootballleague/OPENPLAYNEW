@@ -87,7 +87,8 @@ select
     'public.get_admin_fixture_scorer_options(uuid)'::regprocedure,
     'public.admin_amend_team_sheet(uuid,uuid[],uuid[],uuid,text)'::regprocedure
   ) and (
-    not (pg_get_functiondef(p.oid) ilike '%assert_admin_location_context%')
+    not (pg_get_functiondef(p.oid) ilike '%assert_admin_location_context%'
+      or pg_get_functiondef(p.oid) ilike '%can_administer_location%')
     or has_function_privilege('anon',p.oid,'EXECUTE')
   )) as admin_statistics_scorer_and_sheet_amendments_are_location_scoped,
   has_column_privilege('authenticated','public.profiles','avatar_path','UPDATE')
