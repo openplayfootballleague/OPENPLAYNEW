@@ -32,7 +32,7 @@ When the qualifying inactivity conditions are met:
 - Mark the account closed.
 - Apply a long Supabase Auth ban, which blocks new sign-ins and token refresh.
 - Already-issued access tokens may remain valid until their normal expiry. The app checks the account lifecycle state and signs the user out when that state is observed.
-- Notify the player at the verified email address before closure where the notification schedule is configured.
+- Send inactivity warning emails to the verified email address at the 90-, 30- and 7-day points before the 12-month closure date. Closure is blocked unless all three stages are recorded as delivered and at least seven days have elapsed since the 7-day notice.
 - Preserve the player identity and historic competition data during the archive period.
 - Do not change historic results, appearances, goals, fixtures or league tables.
 
@@ -84,7 +84,9 @@ The standard admin team-sheet amendment flow refuses to rewrite sheets containin
 - Use idempotent processing and audit every closure/reactivation/erasure decision.
 - Keep safeguarding/legal holds and financial record retention separate from ordinary player inactivity.
 - Global administrators can apply or clear a documented retention hold while an account is active or in its restricted archive. Each change requires a reason and is audited. A hold cannot safely be introduced after the account reaches `erasure_due`.
-- Send advance warning notices before closure when the notification schedule is configured; the final cadence must be operationally approved before activation.
+- Send one 90-day, one 30-day and one 7-day warning for each inactivity period. The warning ledger is unique to the player and last-sign-in timestamp; successful delivery is recorded once, while failed claims can be retried after 30 minutes.
+- If the worker was unavailable and warning stages are overdue, it catches up the missing stages. The account remains active until all three notices have been delivered and a full seven-day grace period has elapsed after the 7-day notice.
+- A Resend delivery/configuration failure fails the worker run closed: no account closure or erasure is attempted in that run. The database independently blocks closure unless the three notices and final grace period are recorded.
 
 ## Acceptance scenarios
 
@@ -112,7 +114,7 @@ Before activating the scheduled worker after release:
 3. Configure Supabase Edge Function secrets: `ACCOUNT_RETENTION_CRON_SECRET`, `RESEND_API_KEY` and `RESEND_FROM_EMAIL`.
 4. Configure GitHub repository secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY` and the same `ACCOUNT_RETENTION_CRON_SECRET`.
 5. Run the workflow manually against controlled test accounts and verify Auth ban, reactivation email, single-use confirmation, no restored memberships, avatar removal, Auth deletion and preserved anonymised match history.
-6. Confirm the advance-warning email cadence and operational support process before enabling unattended closures.
+6. Confirm Resend sender identity, 90/30/7-day email content, idempotent delivery and the operational support process in controlled staging before enabling unattended closures.
 
-The scheduled worker closes accounts, moves expired archives to `erasure_due`, anonymises the permanent competition identity and deletes the Auth user. It never hard-deletes fixtures, results, appearances or goals. Advance-warning emails before closure are not yet implemented; agree and implement that cadence before enabling unattended account closures. Payment/accounting records remain subject to their separate documented retention schedule.
+The worker sends the 90/30/7-day inactivity warning emails, closes accounts only after all three notices are recorded and the final seven-day grace period has elapsed, moves expired archives to `erasure_due`, anonymises the permanent competition identity and deletes the Auth user. Warning stages are idempotent per inactivity period, and failed delivery blocks closure/erasure for that run. It never hard-deletes fixtures, results, appearances or goals. Payment/accounting records remain subject to their separate documented retention schedule.
 
