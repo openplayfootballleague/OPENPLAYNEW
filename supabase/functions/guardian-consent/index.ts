@@ -98,6 +98,10 @@ Deno.serve(async (req: Request) => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dob) || guardianName.length < 2 || guardianName.length > 120 || guardianEmail.length > 254) {
       return json({ error: "Enter a valid date of birth, guardian name and guardian email address" }, 400);
     }
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+    const resendFrom = Deno.env.get("RESEND_FROM_EMAIL");
+    if (!resendKey || !resendFrom) return json({ error: "Guardian consent email is not configured. Contact Open Play support." }, 503);
+
     const verifyToken = randomToken();
     const withdrawalToken = randomToken();
     const { error: requestError } = await service.rpc("request_player_guardian_consent", {
@@ -110,9 +114,6 @@ Deno.serve(async (req: Request) => {
     });
     if (requestError) return json({ error: requestError.message }, 400);
 
-    const resendKey = Deno.env.get("RESEND_API_KEY");
-    const resendFrom = Deno.env.get("RESEND_FROM_EMAIL");
-    if (!resendKey || !resendFrom) return json({ error: "Guardian consent email is not configured. Contact Open Play support." }, 503);
     const base = `${supabaseUrl}/functions/v1/guardian-consent`;
     try {
       await sendConsentEmail(resendKey, resendFrom, guardianEmail, guardianName, dob,
