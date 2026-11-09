@@ -98,7 +98,11 @@ Deno.serve(async (req: Request) => {
       p_token_hash: tokenHash,
     });
     if (completeError || completed !== true) {
-      await service.auth.admin.updateUserById(userId, { ban_duration: "876000h" });
+      // Do not re-ban here: another concurrent request may already have
+      // consumed the single-use token and successfully reactivated the account.
+      // If completion did not commit, the root account-status gate still denies
+      // private access while the profile remains closed. A compensating Auth ban
+      // here could undo a successful concurrent reactivation.
       return html("Link expired", "This reactivation link is invalid, expired or has already been used.");
     }
 
