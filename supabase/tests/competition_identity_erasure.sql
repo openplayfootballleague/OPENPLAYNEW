@@ -243,6 +243,11 @@ begin
         and voided_at is null) then
     raise exception 'Historic goalscorer record was deleted or lost its competition identity';
   end if;
+  if not exists(select 1 from public.fixture_goal_records
+      where fixture_id=v_fixture and competition_player_id=v_competition_player
+        and voided_at is not null and voided_by is null) then
+    raise exception 'Voided goal history did not retain its void state after the actor was anonymised';
+  end if;
 
   if not exists(select 1 from public.fixture_team_sheets where id=v_home_sheet and submitted_by is null)
      or not exists(select 1 from public.fixture_results where fixture_id=v_fixture and confirmed_by is null) then
