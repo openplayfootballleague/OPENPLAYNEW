@@ -15,7 +15,7 @@ const manifestPath = join(root, "docs/supabase-migration-source-manifest-2026-11
 const migrationDirectory = join(root, "supabase/migrations");
 const manifest = readFileSync(manifestPath, "utf8");
 const appliedPaths = [...manifest.matchAll(
-  /^\\|\\s*(\\d{14})\\s*\\|[^|]*\\|\\s*`(supabase\\/migrations\\/[^\\`]+\\.sql)`\\s*\\|/gm,
+  /^\|\s*(\d{14})\s*\|[^|]*\|\s*`(supabase\/migrations\/[^`]+\.sql)`\s*\|/gm,
 )].map((match) => match[2]);
 
 if (appliedPaths.length !== 99 || new Set(appliedPaths).size !== 99) {
@@ -24,7 +24,7 @@ if (appliedPaths.length !== 99 || new Set(appliedPaths).size !== 99) {
 for (const path of appliedPaths) readFileSync(join(root, path));
 
 const allMigrations = readdirSync(migrationDirectory)
-  .filter((name) => /^\\d{14}_.+\\.sql$/.test(name))
+  .filter((name) => /^\d{14}_.+\.sql$/.test(name))
   .sort();
 const appliedSet = new Set(appliedPaths.map((path) => path.split("/").at(-1)));
 const pending = allMigrations.filter((name) => !appliedSet.has(name));
