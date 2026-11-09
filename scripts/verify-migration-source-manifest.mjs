@@ -9,6 +9,7 @@ const expectedForwardOnly = [
   "supabase/migrations/20261108160000_enforce_player_ban_and_captain_succession.sql",
   "supabase/migrations/20261109080000_player_age_tiers_and_guardian_consent.sql",
   "supabase/migrations/20261109100000_player_account_retention_and_reactivation.sql",
+  "supabase/migrations/20261109110000_competition_identity_and_safe_player_erasure.sql",
 ];
 
 function fail(message) {
