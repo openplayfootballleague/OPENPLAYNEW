@@ -121,7 +121,12 @@ begin
     withdrawn_at=null,requested_at=v_now,updated_at=v_now
   where public.player_guardian_consents.status in ('pending_verification','rejected','withdrawn');
 
-  if not found then raise exception 'Guardian consent is already approved'; end if;
+  if not found then
+    if exists(select 1 from public.player_guardian_consents where player_user_id=v_user and status='pending_admin_review') then
+      raise exception 'Guardian consent is awaiting administrator review';
+    end if;
+    raise exception 'Guardian consent is already approved';
+  end if;
 
   insert into public.audit_log(actor_user_id,action,entity_type,entity_id,after_data)
   values(v_user,'player.guardian_consent.requested','player_guardian_consent',v_user::text,
