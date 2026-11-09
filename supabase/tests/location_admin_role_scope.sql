@@ -5,6 +5,7 @@ declare
   v_count integer;
   v_setup jsonb;
   v_denied boolean;
+  v_cross_location_sheet uuid;
 begin
   insert into auth.users (id,aud,role,email,encrypted_password,raw_user_meta_data,created_at,updated_at)
   values
@@ -77,7 +78,8 @@ begin
 
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
   values('00000000-0000-4000-8000-000000000071','00000000-0000-4000-8000-000000000052',
-    '00000000-0000-4000-8000-000000000005',true,now());
+    '00000000-0000-4000-8000-000000000005',true,now())
+  returning id into v_cross_location_sheet;
 
   -- Ordinary player: own profile/player record and own team's fixture only.
   execute 'set local role authenticated';
@@ -290,7 +292,7 @@ begin
   v_denied := false;
   begin
     perform public.admin_amend_team_sheet(
-      (select id from public.fixture_team_sheets where fixture_id='00000000-0000-4000-8000-000000000071'),
+      v_cross_location_sheet,
       '{}'::uuid[],'{}'::uuid[],null,'Cross-location authorization test'
     );
   exception when others then
