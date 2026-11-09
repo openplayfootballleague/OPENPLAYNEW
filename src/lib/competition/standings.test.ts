@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildStandings } from "./standings";
+import { buildStandings, getJointFirstTeams } from "./standings";
 
 describe("Open Play league standings", () => {
   it("shares positions for teams level on points regardless of goal difference", () => {
@@ -20,5 +20,23 @@ describe("Open Play league standings", () => {
   it("does not count fixtures without a result", () => {
     const rows=buildStandings([{id:"a",name:"A"},{id:"b",name:"B"}],[{id:"f1",home_team_id:"a",away_team_id:"b"}],[]);
     expect(rows.map(({played,points})=>[played,points])).toEqual([[0,0],[0,0]]);
+  });
+});
+
+describe("Open Play tied first-place final", () => {
+  it("identifies all teams sharing first place so a final can be scheduled", () => {
+    const leaders = getJointFirstTeams([
+      { team_id: "alpha", name: "Alpha", position: 1 },
+      { team_id: "bravo", name: "Bravo", position: 1 },
+      { team_id: "charlie", name: "Charlie", position: 3 },
+    ]);
+    expect(leaders.map((team) => team.name)).toEqual(["Alpha", "Bravo"]);
+  });
+
+  it("does not request a final when first place is not tied", () => {
+    expect(getJointFirstTeams([
+      { name: "Alpha", position: 1 },
+      { name: "Bravo", position: 2 },
+    ])).toEqual([]);
   });
 });
