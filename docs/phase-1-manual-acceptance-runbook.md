@@ -84,7 +84,9 @@ Record **Pass**, **Fail** or **Blocked** for each scenario. Attach redacted scre
 | TRF-03 | In the final 24 hours before kickoff, request all eligible clubs whose sheets are not submitted; include one club with a locked submitted sheet. | Multiple emergency requests are created for eligible clubs; submitted-sheet club is excluded; a draft-only club remains eligible. |
 | TRF-04 | Have two destination captains approve the same player's emergency requests in close succession. | First approval wins, activates exactly one destination membership and cancels all competing pending requests; the later approval is rejected. |
 | TRF-05 | Have one captain reject an emergency request while another remains pending. | Player remains unattached; the other request remains pending and can still be approved. |
-| TRF-06 | Attempt to create active memberships for the same player at two clubs in different seasons of the same league, then at a club in a different league. | Second same-league membership is rejected server-side; a membership in another league remains allowed. |
+| TRF-06 | Attempt to create active memberships for the same player at two clubs in different seasons of the same league, then at a club in a different league. | Second different-club membership in the same league is rejected server-side; a membership in the same club across seasons and a membership in another league remain allowed. |
+| TRF-07 | A player has an emergency request pending, then the destination captain submits the team's matchday sheet. | The pending emergency request is automatically cancelled; the club is no longer available as a destination. |
+| TRF-08 | A player who voluntarily left a club tries to use the ordinary first-time team-join request to join a different club. | The request is denied and the player is directed through the transfer workflow; first-time entrants and same-club returns can still use ordinary joining. |
 
 ### Administration and location boundaries
 
