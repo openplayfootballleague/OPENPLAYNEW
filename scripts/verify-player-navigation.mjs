@@ -43,3 +43,12 @@ const playerApprovalsSection = adminSource.match(/<section id="admin-player-appr
 assert.ok(playerApprovalsSection.includes('to="/admin/guardian-consents"'), "Guardian consent review must be accessible within Player Approvals");
 const settingsSection = adminSource.match(/<section id="admin-settings"[\s\S]*?<\/section>/)?.[0] ?? "";
 assert.ok(settingsSection.includes('to="/admin/retention"'), "Player retention must be accessible within Settings & Feature Management");
+
+const finance = readFileSync("src/routes/finance.tsx", "utf8");
+const requiredSession = readFileSync("src/lib/auth/use-required-session.ts", "utf8");
+assert.ok(finance.includes("useRequiredSession()") && finance.includes('authStatus==="authenticated"'), "Finance workspace must wait for a verified signed-in session before loading protected finance RPCs");
+assert.ok(requiredSession.includes("authEventSeen") && requiredSession.includes("subscription.unsubscribe()"), "Required-session guard must handle auth changes and clean up its subscription");
+
+const passwordRecovery = readFileSync("src/routes/reset-password.tsx", "utf8");
+assert.ok(passwordRecovery.includes("resetPasswordForEmail") && passwordRecovery.includes("If an account exists for that address"), "Expired password-reset links must offer a non-enumerating fresh reset request");
+assert.ok(passwordRecovery.includes("auth.signOut()") && passwordRecovery.includes("setUpdated(true)"), "Password reset completion must sign out and require a fresh sign-in");
