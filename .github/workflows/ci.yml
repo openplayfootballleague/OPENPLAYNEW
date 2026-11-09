@@ -95,6 +95,11 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/player_transfer_workflow.sql
+
+      - name: Verify referee application and role security
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_application_security.sql
       - name: Verify fixture venue location boundaries
         env:
           PGPASSWORD: postgres
