@@ -158,6 +158,15 @@ declare
   v_status public.fixture_status;
   v_locked boolean;
 begin
+  -- Trusted service-role erasure jobs must be able to detach account-linked
+  -- child rows while preserving the immutable competition identity. This
+  -- bypass is limited to the service-role JWT; ordinary clients still require
+  -- an authenticated captain or an authorised administrator.
+  if coalesce(pg_catalog.current_setting('request.jwt.claim.role', true), '') = 'service_role' then
+    if tg_op = 'DELETE' then return old; end if;
+    return new;
+  end if;
+
   if auth.uid() is null then raise exception 'Authentication required'; end if;
   v_sheet_id := case when tg_op = 'DELETE' then old.team_sheet_id else new.team_sheet_id end;
 
