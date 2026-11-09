@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 
 const items = [
-  { to: "/player" as const, label: "Home", icon: "home" },
+  { to: "/" as const, label: "Home", icon: "home" },
   { to: "/match-centre" as const, label: "Match Centre", icon: "trophy" },
   { to: "/join" as const, label: "Join Open Play", icon: "user-plus" },
   { to: "/more" as const, label: "More", icon: "more" },
