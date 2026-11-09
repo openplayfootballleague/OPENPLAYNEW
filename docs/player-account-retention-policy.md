@@ -32,7 +32,7 @@ When the qualifying inactivity conditions are met:
 - Mark the account closed.
 - Apply a long Supabase Auth ban, which blocks new sign-ins and token refresh.
 - Already-issued access tokens may remain valid until their normal expiry. The app checks the account lifecycle state and signs the user out when that state is observed.
-- Send inactivity warning emails to the verified email address at the 90-, 30- and 7-day points before the 12-month closure date. Closure is blocked unless all three stages are recorded as delivered and at least seven days have elapsed since the 7-day notice.
+- Send inactivity warning emails to the verified email address at the 90-, 30- and 7-day points before the 12-month closure date. Closure is blocked unless all three stages are accepted by the email provider and at least seven days have elapsed since the 7-day notice.
 - Preserve the player identity and historic competition data during the archive period.
 - Do not change historic results, appearances, goals, fixtures or league tables.
 
@@ -85,7 +85,7 @@ The standard admin team-sheet amendment flow refuses to rewrite sheets containin
 - Keep safeguarding/legal holds and financial record retention separate from ordinary player inactivity.
 - Global administrators can apply or clear a documented retention hold while an account is active or in its restricted archive. Each change requires a reason and is audited. A hold cannot safely be introduced after the account reaches `erasure_due`.
 - Send one 90-day, one 30-day and one 7-day warning for each inactivity period. The warning ledger is unique to the player and last-sign-in timestamp; successful delivery is recorded once, while failed claims can be retried after 30 minutes.
-- If the worker was unavailable and warning stages are overdue, it catches up the missing stages. The account remains active until all three notices have been delivered and a full seven-day grace period has elapsed after the 7-day notice.
+- If the worker was unavailable and warning stages are overdue, it catches up the missing stages. The account remains active until all three notices have been accepted by the email provider and a full seven-day grace period has elapsed after the 7-day notice.
 - A Resend delivery/configuration failure fails the worker run closed: no account closure or erasure is attempted in that run. The database independently blocks closure unless the three notices and final grace period are recorded.
 
 ## Acceptance scenarios
