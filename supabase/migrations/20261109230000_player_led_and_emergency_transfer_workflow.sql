@@ -300,8 +300,8 @@ begin
   season_modes as (
     select c.league_id,c.season_id,
       bool_or(c.target_fixture_id is not null) as emergency_open,
-      bool_or(r.status='pending' and r.is_emergency) as has_emergency_request,
-      bool_or(r.status='pending' and not r.is_emergency) as has_normal_request
+      coalesce(bool_or(r.status='pending' and r.is_emergency),false) as has_emergency_request,
+      coalesce(bool_or(r.status='pending' and not r.is_emergency),false) as has_normal_request
     from candidates_with_fixture c
     left join public.player_transfer_requests r
       on r.user_id=v_user and r.league_id=c.league_id and r.status='pending'
@@ -457,14 +457,16 @@ begin
   select exists(
     select 1
     from public.fixtures f
+    join public.season_teams participant
+      on participant.id in (f.home_team_id,f.away_team_id)
     where f.season_id=v_season.id
-      and v_destination.id in (f.home_team_id,f.away_team_id)
+      and participant.registration_status='approved'
       and f.status='scheduled'
       and f.scheduled_at>now()
       and f.scheduled_at<=now()+interval '24 hours'
       and not exists(
         select 1 from public.fixture_team_sheets ts
-        where ts.fixture_id=f.id and ts.season_team_id=v_destination.id and ts.is_locked=true
+        where ts.fixture_id=f.id and ts.season_team_id=participant.id and ts.is_locked=true
       )
   ) into v_emergency_open;
 
@@ -538,9 +540,11 @@ as $$
 declare v_user uuid:=auth.uid(); v_request public.player_transfer_requests;
 begin
   if v_user is null then raise exception 'Authentication required'; end if;
+  select * into v_request from public.player_transfer_requests
+  where id=p_request_id and user_id=v_user;
+  if not found then raise exception 'Transfer request not found'; end if;
   perform pg_catalog.pg_advisory_xact_lock(
-    pg_catalog.hashtextextended(v_user::text || ':' ||
-      (select league_id::text from public.player_transfer_requests where id=p_request_id and user_id=v_user),0)
+    pg_catalog.hashtextextended(v_user::text || ':' || v_request.league_id::text,0)
   );
   select * into v_request from public.player_transfer_requests
   where id=p_request_id and user_id=v_user for update;
@@ -591,16 +595,15 @@ begin
 
   select * into v_request
   from public.player_transfer_requests
-  where id=p_request_id
-  for update;
+  where id=p_request_id;
   if not found then raise exception 'Transfer request not found'; end if;
 
   perform pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtextextended(v_request.user_id::text || ':' || v_request.league_id::text,0)
   );
 
-  -- Re-read after acquiring the player/league lock so simultaneous captain
-  -- approvals cannot both observe a pending request.
+  -- Acquire the request row only after the player/league lock. This avoids a
+  -- deadlock when competing approvals must cancel each other's request rows.
   select * into v_request
   from public.player_transfer_requests
   where id=p_request_id
