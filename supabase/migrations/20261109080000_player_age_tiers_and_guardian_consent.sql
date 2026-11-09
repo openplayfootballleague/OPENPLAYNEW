@@ -27,6 +27,11 @@ create table public.player_guardian_consents (
   )
 );
 
+-- Preserve the pre-safeguard registration state for existing 16-17-year-olds
+-- so administrator approval can restore an eligible existing identity.
+alter table public.players
+  add column guardian_consent_previous_status public.player_registration_status;
+
 create index player_guardian_consents_review_idx
   on public.player_guardian_consents(status, created_at);
 
@@ -166,7 +171,8 @@ begin
         updated_at=now()
     where user_id=v_consent.player_user_id and status in ('active','pending');
     update public.players
-    set registration_status='rejected'::public.player_registration_status,updated_at=now()
+    set guardian_consent_previous_status=coalesce(guardian_consent_previous_status,registration_status),
+        registration_status='rejected'::public.player_registration_status,updated_at=now()
     where user_id=v_consent.player_user_id;
     if v_captain_teams>0 then
       insert into public.audit_log(actor_user_id,action,entity_type,entity_id,after_data)
@@ -247,6 +253,14 @@ begin
   set status=p_decision,reviewed_by=v_actor,reviewed_at=now(),review_reason=btrim(p_reason),updated_at=now()
   where id=p_consent_id;
 
+  if p_decision='approved' then
+    update public.players
+    set registration_status=guardian_consent_previous_status,
+        guardian_consent_previous_status=null,updated_at=now()
+    where user_id=v_consent.player_user_id
+      and guardian_consent_previous_status is not null;
+  end if;
+
   insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,after_data)
   values(v_actor,'player.guardian_consent.'||p_decision,'player_guardian_consent',v_consent.player_user_id::text,
     btrim(p_reason),jsonb_build_object('guardian_email',v_consent.guardian_email,'verified_at',v_consent.verified_at));
@@ -286,7 +300,8 @@ for each row execute function public.enforce_player_age_and_guardian_consent();
 
 -- Existing under-18 player records cannot retain access without the new consent.
 update public.players p
-set registration_status='rejected'::public.player_registration_status,updated_at=now()
+set guardian_consent_previous_status=p.registration_status,
+    registration_status='rejected'::public.player_registration_status,updated_at=now()
 where p.date_of_birth>current_date-interval '18 years'
   and not exists(select 1 from public.player_guardian_consents c
     where c.player_user_id=p.user_id and c.player_date_of_birth=p.date_of_birth
