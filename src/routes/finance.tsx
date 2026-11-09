@@ -1,5 +1,6 @@
 import { useCallback,useEffect,useMemo,useState } from "react";
-import { Link,createFileRoute } from "@tanstack/react-router";
+import { Link,createFileRoute,useNavigate } from "@tanstack/react-router";
+import { useRequiredSession } from "../lib/auth/use-required-session";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { poundsToPence } from "../lib/finance/ledger";
 
@@ -12,6 +13,8 @@ const dateTime=(value:string|null)=>value?new Date(value).toLocaleString("en-GB"
 
 export const Route=createFileRoute("/finance")({component:FinancePage});
 function FinancePage(){
+ const authStatus=useRequiredSession();const navigate=useNavigate();
+ useEffect(()=>{if(authStatus==="unauthenticated")void navigate({to:"/sign-in",replace:true});},[authStatus,navigate]);
  const [options,setOptions]=useState<FinanceOption[]>([]);
  const [entries,setEntries]=useState<FinanceEntry[]>([]);
  const [summary,setSummary]=useState<FinanceSummary[]>([]);
@@ -47,7 +50,7 @@ function FinancePage(){
   else{setOptions((optionRows??[]) as unknown as FinanceOption[]);setSummary((summaryRows??[]) as unknown as FinanceSummary[]);setEntries((entryRows??[]) as unknown as FinanceEntry[]);setStripePayments((stripeRows??[]) as unknown as StripePayment[]);}
   setLoading(false);
  },[seasonFilter,teamFilter]);
- useEffect(()=>{void load();},[load]);
+ useEffect(()=>{if(authStatus==="authenticated")void load();},[load,authStatus]);
  async function savePlayerFee(event:React.FormEvent<HTMLFormElement>){
   event.preventDefault();const pence=poundsToPence(playerFee);
   if(!feeSeasonId){setError("Choose a season for the player fee.");return;}
@@ -78,6 +81,7 @@ function FinancePage(){
   finally{setSaving(false);}
  }
  const total=(key:"charges_pence"|"payments_pence"|"refunds_pence"|"credits_pence"|"fines_pence"|"outstanding_pence")=>summary.reduce((n,s)=>n+Number(s[key]??0),0);
+ if(authStatus!=="authenticated")return <main className="notice-page finance-page"><section className="notice-panel finance-panel"><p>{authStatus==="loading"?"Checking your account…":"Redirecting to sign in…"}</p></section></main>;
  return <main className="notice-page finance-page"><section className="notice-panel finance-panel">
   <Link className="notice-brand" to="/player"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link>
   <p className="eyebrow eyebrow-dark">FINANCE · LEDGER & CARD PAYMENTS</p>
