@@ -101,6 +101,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [ ] Review guardian verification, admin decision and withdrawal flows end-to-end.
 - [ ] Review ban/unban and captain succession screens against the database behaviour.
 - [ ] Review account closure/reactivation pages and session handling.
+- [ ] Complete the dedicated admin dashboard workflow suite (ADM-07–ADM-35): verify every authorised dashboard section is navigable and operational; permitted edits save correctly and propagate; invalid/protected edits are rejected; location/global/finance permissions are precise; approvals, fixtures, results, team sheets, transfers, gallery, statistics, finance, feature toggles, audit history and bulk/destructive actions behave correctly. Confirm an admin can complete normal work end-to-end without a developer/database workaround.
 - [ ] Review admin result entry, scorer options, season statistics, team sheets and transfer/payment readers after anonymisation.
 - [x] Review every service-role Edge Function for secret handling, authentication, rate limits, idempotency and safe logging (all six function sources reviewed; staging delivery remains open).
 - [x] Review all 77 authenticated-callable SECURITY DEFINER functions for explicit search_path, least privilege, grants and role/location/data-scope checks (read-only hosted snapshot, 9 November 2026).
