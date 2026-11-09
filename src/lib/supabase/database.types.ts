@@ -2086,7 +2086,7 @@ export type Database = {
           status: string
           target_fixture_id: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         SetofOptions: {
           from: "*"
@@ -3101,6 +3101,8 @@ export type Database = {
           created_at: string
           destination_season_team_id: string
           id: string
+          is_emergency: boolean
+          league_id: string
           reason: string
           requested_at: string
           resolution_reason: string | null
