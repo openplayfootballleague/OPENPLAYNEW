@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 
 const items = [
   { to: "/" as const, label: "Home", icon: "home" },
@@ -16,10 +16,11 @@ function NavIcon({ name }: { name: string }) {
 }
 
 export function PlayerBottomNavigation() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   return (
     <nav className="player-bottom-nav" aria-label="Main navigation">
       {items.map((item) => (
-        <Link key={item.to} to={item.to} activeOptions={{ exact: item.to === "/player" }} activeProps={{ className: "active" }} className="player-bottom-nav-link">
+        <Link key={item.to} to={item.to} className={`player-bottom-nav-link${(item.to === "/" ? pathname === "/" || pathname === "/player" : pathname === item.to) ? " active" : ""}`}>
           <NavIcon name={item.icon} />
           <span>{item.label}</span>
         </Link>
