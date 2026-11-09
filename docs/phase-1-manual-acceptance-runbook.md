@@ -76,6 +76,15 @@ Record **Pass**, **Fail** or **Blocked** for each scenario. Attach redacted scre
 | CAP-01 | As C-01, open Matchday with multiple fixtures. | The next required fixture is preselected; an existing draft or submitted/locked sheet is restored correctly. |
 | CAP-02 | Submit a valid sheet and attempt direct table mutation outside approved RPCs. | Submission follows competition format and server-side rules; direct client table writes are denied. |
 | CAP-03 | Complete a fixture and ask an authorised admin to amend the expired matchday sheet. | Only permitted post-match amendment paths work; historical former-player rows cannot be overwritten. |
+| CAP-04 | As C-01, edit and save a team-sheet draft several times before kickoff, then review it and submit only after checking the explicit confirmation box. | Draft changes persist and remain editable before kickoff; review is separate from submission; confirmation locks the final sheet. |
+| CAP-05 | Save a draft for a club whose fixture is within 24 hours, then inspect emergency transfer destinations as an unattached player. | The club remains eligible while its sheet is a draft; it disappears from emergency destinations immediately after the captain confirms submission. |
+| CAP-06 | Attempt to save or submit a team sheet at or after kickoff. | Database rejects the change even if the fixture still has scheduled status. |
+| TRF-01 | As P-04, leave a non-captain active club membership from Player Hub. | The player can leave without old-captain/admin approval; membership history remains; a captain must appoint a replacement before leaving. |
+| TRF-02 | As P-04, attempt to request a destination while still attached, then leave and submit a normal transfer request. | Attached request is denied; after leaving, only clubs in a previously represented league are offered; only one normal request may be pending. |
+| TRF-03 | In the final 24 hours before kickoff, request all eligible clubs whose sheets are not submitted; include one club with a locked submitted sheet. | Multiple emergency requests are created for eligible clubs; submitted-sheet club is excluded; a draft-only club remains eligible. |
+| TRF-04 | Have two destination captains approve the same player's emergency requests in close succession. | First approval wins, activates exactly one destination membership and cancels all competing pending requests; the later approval is rejected. |
+| TRF-05 | Have one captain reject an emergency request while another remains pending. | Player remains unattached; the other request remains pending and can still be approved. |
+| TRF-06 | Attempt to create active memberships for the same player at two clubs in different seasons of the same league, then at a club in a different league. | Second same-league membership is rejected server-side; a membership in another league remains allowed. |
 
 ### Administration and location boundaries
 
