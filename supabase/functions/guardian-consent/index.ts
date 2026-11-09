@@ -81,7 +81,7 @@ Deno.serve(async (req: Request) => {
   const service = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
   if (action === "request" && req.method === "POST") {
-    const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\\s+/i, "");
+    const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
     if (!token || !anonKey) return json({ error: "Sign in before requesting guardian consent" }, 401);
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: `Bearer ${token}` } },
@@ -95,7 +95,7 @@ Deno.serve(async (req: Request) => {
     const dob = String(body.date_of_birth ?? "");
     const guardianName = String(body.guardian_full_name ?? "").trim();
     const guardianEmail = String(body.guardian_email ?? "").trim().toLowerCase();
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(dob) || guardianName.length < 2 || guardianName.length > 120 || guardianEmail.length > 254) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dob) || guardianName.length < 2 || guardianName.length > 120 || guardianEmail.length > 254) {
       return json({ error: "Enter a valid date of birth, guardian name and guardian email address" }, 400);
     }
     const verifyToken = randomToken();
