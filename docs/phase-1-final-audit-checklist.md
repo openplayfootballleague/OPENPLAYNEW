@@ -8,7 +8,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 ## 1. Automated verification
 
-- [x] Latest Phase 1 branch state, including retryable erasure, financial/transfer exclusions and reactivation concurrency guard, passed application build, Deno checks, domain tests, Edge Function/navigation assertions, Cloudflare dry-run, clean migration replay and all SQL/Auth lifecycle suites in [#1422](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42645896667).
+- [x] Latest Phase 1 branch state, including retryable erasure, financial/transfer exclusions, reactivation concurrency guard, points-only standings, tied-first-place final handling, fixture-location enforcement, finance session gating and password-recovery safeguards, passed application build, Deno checks, domain tests, Edge Function/navigation assertions, Cloudflare dry-run, clean migration replay and all SQL/Auth lifecycle suites in [#1424](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42646379541). Both CI jobs completed successfully.
 - [x] Clean local Supabase migration replay succeeds from an empty database.
 - [x] Migration source manifest matches the actual migration files and Git blobs.
 - [x] Deno type-check succeeds for all Edge Functions.
@@ -26,7 +26,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - [x] Location administrator grants and revocations are audit-logged; duplicate grants do not duplicate events, stale grants remain revocable after role removal, and only global admins can mutate assignments (forward-only migration and SQL regression coverage).
 - [x] The fixed bottom navigation contains exactly Home, Match Centre, Join Open Play and More; the public Home route redirects registered players to Player Hub, and the More page exposes the teams, gallery and account workspaces.
 - [x] Banned players are redirected away from Player Hub to the restricted registration-status screen; public Home authentication lookups ignore stale responses after account changes and recover from failed session lookups instead of hanging. Static regression assertions and both CI jobs passed in [#1422](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42645896667).
-- [ ] Public Match Centre and admin season statistics use points-only rankings; teams level on points share positions and goal difference is display-only. Dedicated unit/SQL regression tests are added and await CI.
+- [x] Public Match Centre and admin season statistics use points-only rankings; teams level on points share positions and goal difference is display-only. Dedicated unit/SQL regression tests passed in [#1424](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42646379541).
 - [x] Captains Hub preselects the next required fixture. Database resolver, parent/child sheet triggers, authenticated-only RPC grants and post-match admin amendment controls enforce that only the next scheduled fixture can be edited; admin amendments require a completed fixture, assigned-location authority, a reason and an audit event. Regression coverage is in `captain_next_required_fixture_regression.sql`.
 
 ## 2. Registration and account security
@@ -81,10 +81,10 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 
 - [ ] Public Match Centre and admin season statistics use points-only rankings; teams level on points share positions and goal difference is display-only. Dedicated unit/SQL regression tests are included in CI.
 
-- [ ] Finance workspace waits for a verified signed-in session before loading protected finance RPCs; password recovery offers a non-enumerating resend path for expired links and signs out after password change. Static CI assertions added.
+- [x] Finance workspace waits for a verified signed-in session before loading protected finance RPCs; password recovery offers a non-enumerating resend path for expired links and signs out after password change. Static CI assertions passed in [#1424](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42646379541).
 
-- [ ] Fixture scheduling rejects active venues belonging to a different location than the selected season. Forward-only SQL migration and function-definition regression test added.
-- [ ] Clean migration replay reproduces the deployed location checks for admin result entry, scorer options and season statistics; static security assertions accept both approved location guard helpers.
+- [x] Fixture scheduling rejects active venues belonging to a different location than the selected season. Forward-only SQL migration and function-definition regression test passed in [#1424](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42646379541).
+- [x] Clean migration replay reproduces the deployed location checks for admin result entry, scorer options and season statistics; static security assertions accept both approved location guard helpers. The hosted-order replay verifies 99 canonical applied sources plus 13 pending forward-only migrations (112 total) and passed in [#1424](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42646379541).
 
 ## 5. Manual product and security review
 
@@ -110,7 +110,7 @@ This checklist is the release gate for Phase 1. A section is not complete merely
 - A line-by-line review of all 77 authenticated-callable RPC definitions was completed against this hosted snapshot. The reviewed functions use direct `auth.uid()` checks or a reviewed caller-scoped helper; global player-detail, registration-review, notification-control, audit-history and location-assignment operations require global-admin roles; finance operations require the global finance/admin role; location operations enforce assigned-location context; player and captain operations are scoped to the signed-in user or an active team membership. No anonymous execution path or confirmed cross-user/cross-location authorization bypass was identified in the reviewed definitions. No dynamic SQL execution was found in the authenticated-callable SECURITY DEFINER set.
 - The hosted snapshot predates the new location-assignment audit migration. The branch now records each actual grant/revocation in `audit_log`, avoids duplicate grant events, and permits stale assignment revocation after the league-admin role is removed. This is covered by a local SQL regression test; it has not been applied to the hosted project.
 - All six Edge Function sources were reviewed. `guardian-consent` and `player-account-retention` have public entrypoints but validate the signed-in user, one-use token or cron secret themselves; `stripe-webhook` validates Stripe's raw-body signature and rejects live-mode events; `public-gallery` exposes only published items in active locations; `create-player-checkout` validates the signed-in user; and `deliver-notifications` accepts the service-role worker path or a global administrator for manual dispatch. Function gateway settings are explicit and protected by CI assertions. Guardian emails omit date of birth, notification provider error records omit raw response bodies, and checkout no longer contains a Lovable-origin fallback.
-- The hosted snapshot predates the nine un-applied Phase 1 migrations; it does not certify their future hosted grants or function definitions. Those are covered by clean local replay and SQL regression tests, with deployment still blocked pending release approval.
+- The hosted snapshot predates the 13 un-applied Phase 1 migrations; it does not certify their future hosted grants or function definitions. Those are covered by clean local replay and SQL regression tests, with deployment still blocked pending release approval.
 
 ## 6. Release prerequisites (not part of local CI)
 
