@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
+import { getSupabaseClient } from "../lib/supabase/client";
 import "../styles.css";
 
 export const Route = createRootRoute({
@@ -57,6 +58,45 @@ function RootComponent() {
     void navigator.serviceWorker.register("/sw.js").catch((error: unknown) => {
       console.error("Open Play service worker registration failed.", error);
     });
+  }, []);
+
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    let active = true;
+    let checking = false;
+
+    async function enforceAccountStatus(userId: string | null) {
+      if (!userId || checking) return;
+      checking = true;
+      try {
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("account_retention_status")
+          .eq("id", userId)
+          .maybeSingle();
+        if (!active || error || !profile) return;
+        if (profile.account_retention_status !== "active") {
+          await supabase.auth.signOut();
+          if (active && window.location.pathname !== "/sign-in") {
+            window.location.assign("/sign-in");
+          }
+        }
+      } finally {
+        checking = false;
+      }
+    }
+
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      void enforceAccountStatus(session?.user.id ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user.id) queueMicrotask(() => void enforceAccountStatus(session.user.id));
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
