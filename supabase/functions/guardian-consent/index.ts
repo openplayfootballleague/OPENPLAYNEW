@@ -58,7 +58,7 @@ After confirmation, Open Play administrators will review the consent before play
 If you do not wish to provide consent, take no action. If you later need to withdraw consent, use this private link:
 ${withdrawUrl}
 
-If you did not expect this email, you can ignore it. Do not forward these links.
+The confirmation link expires after 7 days. The withdrawal link is single-use and expires after 2 years, or when the player turns 18 if earlier.\n\nIf you did not expect this email, you can ignore it. Do not forward these links.
 
 Open Play`,
     }),
