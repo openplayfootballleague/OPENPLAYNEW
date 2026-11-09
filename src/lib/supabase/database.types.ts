@@ -975,6 +975,7 @@ export type Database = {
       }
       players: {
         Row: {
+          guardian_consent_previous_status: Database["public"]["Enums"]["player_registration_status"] | null
           banned_at: string | null
           banned_reason: string | null
           created_at: string
@@ -990,6 +991,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          guardian_consent_previous_status?: Database["public"]["Enums"]["player_registration_status"] | null
           banned_at?: string | null
           banned_reason?: string | null
           created_at?: string
@@ -1005,6 +1007,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          guardian_consent_previous_status?: Database["public"]["Enums"]["player_registration_status"] | null
           banned_at?: string | null
           banned_reason?: string | null
           created_at?: string
