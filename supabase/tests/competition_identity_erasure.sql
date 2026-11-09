@@ -160,8 +160,8 @@ begin
   );
 
   insert into public.player_registration_reviews(
-    player_id,name_matched,phone_matched,email_matched,matched_player_ids,reviewed_by,reviewed_at
-  ) values(v_other_player_row,true,true,true,array[v_player_row],v_player,now());
+    player_id,name_matched,phone_matched,email_matched,matched_player_ids,reviewed_by,reviewed_at,review_reason
+  ) values(v_other_player_row,true,true,true,array[v_player_row],v_player,now(),'Reviewed using Competition History Player personal details');
 
   insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
   values(
@@ -299,8 +299,9 @@ begin
     raise exception 'Audit history retained direct personal identifiers';
   end if;
   if not exists(select 1 from public.player_registration_reviews
-      where player_id=v_other_player_row and not (v_player_row=any(matched_player_ids))) then
-    raise exception 'Registration review retained the deleted player ID in its match list';
+      where player_id=v_other_player_row and not (v_player_row=any(matched_player_ids))
+        and reviewed_by is null and review_reason is null) then
+    raise exception 'Registration review retained the deleted player ID, reviewer link or reviewer personal details';
   end if;
 
   -- A returning person who signs up again gets a new, unlinked competition identity.
