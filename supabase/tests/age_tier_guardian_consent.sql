@@ -22,7 +22,7 @@ declare
   v_withdraw_hash text;
   v_verify_hash_2 text;
   v_withdraw_hash_2 text;
-  v_uk_today date := v_uk_today;
+  v_uk_today date := public.open_play_uk_date(statement_timestamp());
 begin
   -- Age decisions use the UK civil date across UTC midnight and BST changes.
   if public.open_play_uk_date('2026-03-28 23:30:00+00'::timestamptz) <> date '2026-03-28'
