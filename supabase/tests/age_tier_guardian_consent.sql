@@ -62,8 +62,10 @@ begin
   end;
   if not v_rejected then raise exception 'A 16-year-old registered without guardian consent'; end if;
 
+  execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
   perform * from public.request_player_guardian_consent(
-    (current_date-interval '16 years')::date,'Guardian Test','guardian@openplay.invalid',
+    v_minor,(current_date-interval '16 years')::date,'Guardian Test','guardian@openplay.invalid',
     v_verify_hash,
     v_withdraw_hash
   );
@@ -168,8 +170,10 @@ begin
   -- registration state, but does not silently reactivate historical memberships.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_minor::text,true);
+  execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
   perform * from public.request_player_guardian_consent(
-    (current_date-interval '16 years')::date,'Guardian Test','guardian@openplay.invalid',
+    v_minor,(current_date-interval '16 years')::date,'Guardian Test','guardian@openplay.invalid',
     v_verify_hash_2,
     v_withdraw_hash_2
   );
