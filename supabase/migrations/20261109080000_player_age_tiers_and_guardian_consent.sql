@@ -47,7 +47,7 @@ language plpgsql
 stable
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_schema text;
   v_hash text;
@@ -63,7 +63,7 @@ begin
   ) into v_hash using p_token;
   return v_hash;
 end;
-$;
+$$;
 revoke all on function public.hash_guardian_consent_token(text) from public,anon,authenticated;
 
 create or replace function public.request_player_guardian_consent(
@@ -324,7 +324,7 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists players_enforce_age_and_guardian_consent on public.players;
 create trigger players_enforce_age_and_guardian_consent
