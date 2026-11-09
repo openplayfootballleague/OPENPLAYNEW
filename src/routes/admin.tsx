@@ -102,7 +102,6 @@ function AdminDashboardPage(){
     <a href="#admin-team-approvals">04 Team Approvals</a>
     <a href="#admin-player-approvals">05 Player Approvals</a>
     <Link to="/admin/guardian-consents">06 Guardian Consents ↗</Link>
-    {isGlobalAdmin?<Link to="/admin/retention">17 Player Retention ↗</Link>:null}
     <a href="#admin-team-registers">07 Teams &amp; Squads</a>
     <a href="#admin-players">08 Players</a>
     <a href="#admin-fixtures">09 Fixtures</a>
@@ -113,6 +112,7 @@ function AdminDashboardPage(){
     {isGlobalAdmin?<a href="#admin-communications">14 Communications</a>:<span className="admin-nav-disabled" aria-disabled="true" title="Communications controls are restricted to platform administrators">14 Communications</span>}
     <a href="#admin-gallery">15 Gallery</a>
     <a href="#admin-settings">16 Settings &amp; Feature Management</a>
+    {isGlobalAdmin?<Link to="/admin/retention">17 Player Retention ↗</Link>:null}
    </nav>
    <div className="admin-workspace-utility-nav" aria-label="Additional administrative tools">
     <a href="#admin-transfers">Transfer queue</a>
