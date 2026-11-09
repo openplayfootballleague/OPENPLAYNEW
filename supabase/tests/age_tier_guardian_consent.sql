@@ -14,6 +14,7 @@ declare
   v_season_team uuid;
   v_player public.players;
   v_rejected boolean;
+  v_count bigint;
   v_verify_token constant text := repeat('a',64);
   v_withdraw_token constant text := repeat('b',64);
   v_verify_token_2 constant text := repeat('c',64);
