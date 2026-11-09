@@ -333,6 +333,10 @@ create trigger players_enforce_age_and_guardian_consent
 before insert or update of date_of_birth,registration_status on public.players
 for each row execute function public.enforce_player_age_and_guardian_consent();
 
+-- Trigger invocation does not require client EXECUTE privileges. Do not expose
+-- this SECURITY DEFINER trigger function as a callable public RPC.
+revoke all on function public.enforce_player_age_and_guardian_consent() from public,anon,authenticated;
+
 -- Existing under-18 player records cannot retain access without the new consent.
 update public.players p
 set guardian_consent_previous_status=p.registration_status,
