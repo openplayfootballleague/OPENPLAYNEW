@@ -14,10 +14,18 @@ declare
   v_away_team uuid;
   v_home_season_team uuid;
   v_away_season_team uuid;
+  v_transfer_home_team uuid;
+  v_transfer_away_team uuid;
+  v_transfer_home_season_team uuid;
+  v_transfer_away_season_team uuid;
   v_fixture uuid;
+  v_transfer_fixture uuid;
   v_home_sheet uuid;
   v_away_sheet uuid;
+  v_transfer_home_sheet uuid;
+  v_transfer_away_sheet uuid;
   v_membership uuid;
+  v_transfer_membership uuid;
   v_player_row uuid;
   v_other_player_row uuid;
   v_competition_player uuid;
@@ -25,6 +33,7 @@ declare
   v_payment uuid;
   v_options jsonb;
   v_stats jsonb;
+  v_club_stats jsonb;
   v_sheet_players jsonb;
   v_prepared boolean;
   v_count integer;
@@ -122,11 +131,63 @@ begin
     fixture_id,season_team_id,scorer_user_id,created_by,voided_at,voided_by,void_reason
   ) values(v_fixture,v_home_season_team,v_player,v_admin,now(),v_player,'Test voided record');
 
-  -- The account is later erased, so preserve its membership as historical only.
+  -- The player leaves Club A, then represents Club B in the same season.
+  -- The permanent competition identity must accumulate the season totals while
+  -- the club-specific rows continue to show the performances for each club.
   update public.team_memberships
   set status='left',is_captain=false,left_at=now()
   where user_id in (v_player,v_location_admin)
     and season_team_id in (v_home_season_team,v_away_season_team);
+
+  insert into public.teams(created_by) values(v_admin) returning id into v_transfer_home_team;
+  insert into public.teams(created_by) values(v_admin) returning id into v_transfer_away_team;
+
+  insert into public.season_teams(team_id,season_id,name,slug,registration_status,approved_by)
+  values(v_transfer_home_team,v_season,'Transfer Test Club B','transfer-test-club-b','approved',v_admin)
+  returning id into v_transfer_home_season_team;
+  insert into public.season_teams(team_id,season_id,name,slug,registration_status,approved_by)
+  values(v_transfer_away_team,v_season,'Transfer Test Opponent','transfer-test-opponent','approved',v_admin)
+  returning id into v_transfer_away_season_team;
+
+  insert into public.team_memberships(season_team_id,user_id,status,is_captain)
+  values(v_transfer_home_season_team,v_admin,'active',true);
+  insert into public.team_memberships(season_team_id,user_id,status,is_captain)
+  values(v_transfer_home_season_team,v_player,'active',false)
+  returning id into v_transfer_membership;
+  insert into public.team_memberships(season_team_id,user_id,status,is_captain)
+  values(v_transfer_away_season_team,v_location_admin,'active',true);
+
+  insert into public.fixtures(season_id,home_team_id,away_team_id,gameweek,status)
+  values(v_season,v_transfer_home_season_team,v_transfer_away_season_team,2,'scheduled')
+  returning id into v_transfer_fixture;
+
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
+  values(v_transfer_fixture,v_transfer_home_season_team,v_admin,true,now())
+  returning id into v_transfer_home_sheet;
+
+  perform set_config('request.jwt.claim.sub',v_location_admin::text,true);
+  insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
+  values(v_transfer_fixture,v_transfer_away_season_team,v_location_admin,true,now())
+  returning id into v_transfer_away_sheet;
+
+  perform set_config('request.jwt.claim.sub',v_player::text,true);
+  insert into public.fixture_team_sheet_players(team_sheet_id,user_id,role,is_goalkeeper,squad_number_snapshot)
+  values(v_transfer_home_sheet,v_player,'starter',false,8);
+
+  update public.fixtures set status='completed' where id=v_transfer_fixture;
+  insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
+  values(v_transfer_fixture,2,0,now(),v_admin);
+  insert into public.fixture_goal_records(fixture_id,season_team_id,scorer_user_id,created_by)
+  values
+    (v_transfer_fixture,v_transfer_home_season_team,v_player,v_admin),
+    (v_transfer_fixture,v_transfer_home_season_team,v_player,v_admin);
+
+  -- The account is later erased, so preserve both club memberships as history.
+  update public.team_memberships
+  set status='left',is_captain=false,left_at=now()
+  where user_id in (v_player,v_location_admin)
+    and season_team_id in (v_transfer_home_season_team,v_transfer_away_season_team);
 
   insert into public.player_transfer_requests(
     user_id,source_membership_id,source_season_team_id,destination_season_team_id,
@@ -360,9 +421,23 @@ begin
     select 1 from jsonb_array_elements(v_stats->'players') p
     where p->>'competition_player_id'=v_competition_player::text
       and p->>'full_name'='Former player'
-      and (p->>'apps')::integer=1
-      and (p->>'goals')::integer=1
-  ) then raise exception 'Season statistics lost the anonymised player appearance or goal'; end if;
+      and (p->>'apps')::integer=2
+      and (p->>'goals')::integer=3
+  ) then raise exception 'Season leaderboard did not accumulate appearances and goals across both clubs'; end if;
+
+  select public.get_admin_season_player_club_statistics(v_season) into v_club_stats;
+  if not exists(
+    select 1 from jsonb_array_elements(v_club_stats) p
+    where p->>'competition_player_id'=v_competition_player::text
+      and p->>'team_id'=v_home_season_team::text
+      and (p->>'apps')::integer=1 and (p->>'goals')::integer=1
+  ) then raise exception 'The first club historical statistics were not kept separate'; end if;
+  if not exists(
+    select 1 from jsonb_array_elements(v_club_stats) p
+    where p->>'competition_player_id'=v_competition_player::text
+      and p->>'team_id'=v_transfer_home_season_team::text
+      and (p->>'apps')::integer=1 and (p->>'goals')::integer=2
+  ) then raise exception 'The destination club historical statistics were not kept separate'; end if;
 
   select players into v_sheet_players
   from public.get_admin_team_sheets_contextual(v_location,v_league,v_season)
