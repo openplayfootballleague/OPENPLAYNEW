@@ -1362,3 +1362,47 @@ a { color: inherit; text-decoration: none; }
  .referee-availability-list article,.referee-payment-row{align-items:flex-start;flex-direction:column}
  .referee-payment-row>div:last-child{text-align:left}
 }
+
+
+/* Admin referee allocation and match-report review workspace */
+.admin-referee-page{min-height:100vh;padding:28px 16px 70px;color:#f6f6f2;background:#111611;font-family:Inter,Arial,sans-serif}
+.admin-referee-header,.admin-referee-panel,.admin-referee-footer{width:min(100%,1120px);margin:0 auto}
+.admin-referee-header{padding:28px 0 34px}
+.admin-referee-back,.admin-referee-footer a{color:#ff9560;font-size:12px;font-weight:850;text-decoration:none}
+.admin-referee-header .eyebrow{display:block;margin-top:34px;color:#ff8a4e;font-size:10px;font-weight:900;letter-spacing:.16em}
+.admin-referee-header h1{margin:10px 0;font-size:clamp(44px,7vw,76px);line-height:.94;letter-spacing:-.06em}
+.admin-referee-header h1 em{color:#ff681f;font-style:normal}
+.admin-referee-header p{max-width:620px;color:rgba(255,255,255,.64);line-height:1.65}
+.admin-referee-panel{margin:18px auto;padding:clamp(18px,3vw,28px);background:#1a211a;border:1px solid rgba(255,255,255,.1);border-radius:13px}
+.admin-referee-panel>label,.admin-referee-form label,.admin-referee-card label,.admin-referee-report-detail label{display:grid;gap:7px;color:#eee;font-size:12px;font-weight:800}
+.admin-referee-panel select,.admin-referee-form input,.admin-referee-form select,.admin-referee-card textarea,.admin-referee-report-detail textarea{width:100%;min-height:42px;padding:10px 12px;color:#fff;background:#101510;border:1px solid rgba(255,255,255,.18);border-radius:7px;font:inherit;font-size:13px}
+.admin-referee-card textarea,.admin-referee-report-detail textarea{min-height:72px;resize:vertical}
+.admin-referee-section-title{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 18px}
+.admin-referee-section-title .eyebrow{color:#ff9560;font-size:10px;font-weight:900;letter-spacing:.12em}
+.admin-referee-section-title h2{margin:4px 0 0;font-size:24px}
+.admin-referee-section-title h2 b{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;margin-left:7px;padding:0 7px;color:#171b17;background:#ff8a4e;border-radius:20px;font-size:12px}
+.admin-referee-card{display:grid;gap:12px;margin:12px 0;padding:16px;background:#111711;border:1px solid rgba(255,255,255,.1);border-radius:9px}
+.admin-referee-card h3{margin:0;font-size:17px}
+.admin-referee-card p{margin:0;color:rgba(255,255,255,.75);font-size:13px;line-height:1.5}
+.admin-referee-muted{color:rgba(255,255,255,.54)!important;font-size:11px!important}
+.admin-referee-actions{display:flex;flex-wrap:wrap;gap:8px}
+.admin-referee-actions button,.admin-referee-form button,.admin-referee-card>button{min-height:40px;padding:10px 14px;color:#141914;background:#ff681f;border:1px solid #ff681f;border-radius:6px;font:inherit;font-size:11px;font-weight:900;cursor:pointer}
+.admin-referee-actions button.is-danger{color:#ffdede;background:transparent;border-color:#a44a4a}
+.admin-referee-actions button:disabled,.admin-referee-form button:disabled{opacity:.5;cursor:wait}
+.admin-referee-form{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;align-items:end}
+.admin-referee-form label:last-of-type{grid-column:1/-1}
+.admin-referee-form button{justify-self:start}
+.admin-referee-table{display:grid;gap:8px}
+.admin-referee-table article{display:grid;grid-template-columns:1.2fr 1fr .8fr 1fr;gap:12px;align-items:center;padding:13px;background:#111711;border:1px solid rgba(255,255,255,.09);border-radius:8px;font-size:12px}
+.admin-referee-table article span{color:rgba(255,255,255,.65)}
+.admin-referee-report-detail{margin-top:20px;padding:18px;background:#111711;border:1px solid rgba(255,104,31,.4);border-radius:10px}
+.admin-referee-report-detail h3{margin:18px 0 8px;font-size:14px}
+.admin-referee-report-detail p{font-size:12px;color:rgba(255,255,255,.75)}
+.admin-referee-close{color:#fff;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:8px 10px}
+.admin-referee-footer{display:flex;justify-content:space-between;gap:16px;padding:18px 0}
+@media(max-width:700px){
+ .admin-referee-form{grid-template-columns:1fr}
+ .admin-referee-form label:last-of-type{grid-column:auto}
+ .admin-referee-table article{grid-template-columns:1fr 1fr}
+ .admin-referee-header{padding-top:12px}
+}
