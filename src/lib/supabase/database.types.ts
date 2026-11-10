@@ -2826,14 +2826,14 @@ export type Database = {
           grace_ends_at: string
           obligation_id: string
           opponent_name: string
-          paid_at: string
-          refund_status: string
-          scheduled_at: string
+          paid_at: string | null
+          refund_status: string | null
+          scheduled_at: string | null
           season_id: string
           season_name: string
           season_team_id: string
           status: string
-          strike_created_at: string
+          strike_created_at: string | null
           team_name: string
         }[]
       }
