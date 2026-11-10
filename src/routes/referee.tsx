@@ -72,6 +72,11 @@ type IncidentEntry = {
 
 const money = (pence: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
 const dateTime = (value: string | null) => value ? new Date(value).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : "To be confirmed";
+const toLocalDateTimeInput = (value: string) => {
+  const date = new Date(value);
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 16);
+};
 
 export const Route = createFileRoute("/referee")({ component: RefereeHubPage });
 
@@ -185,7 +190,7 @@ function RefereeHubPage() {
         setMatchSummary("");
         return;
       }
-      setCompletedAt(data.completed_at ? new Date(data.completed_at).toISOString().slice(0, 16) : "");
+      setCompletedAt(data.completed_at ? toLocalDateTimeInput(data.completed_at) : "");
       setHomeScore(String(data.home_score ?? 0));
       setAwayScore(String(data.away_score ?? 0));
       setMatchSummary(data.match_summary ?? "");
@@ -370,7 +375,7 @@ function RefereeHubPage() {
               {[{ id: selectedFixture.home_team_id, name: selectedFixture.home_team_name, players: selectedFixture.home_sheet }, { id: selectedFixture.away_team_id, name: selectedFixture.away_team_name, players: selectedFixture.away_sheet }].map((team) => <article key={team.id}><h3>{team.name}</h3>{team.players.length === 0 ? <p>Team sheet not submitted</p> : team.players.map((player) => <div className="referee-sheet-player" key={player.competition_player_id}><b>{player.squad_number ?? "—"}</b><span>{player.player_name}</span><small>{player.is_goalkeeper ? "GK" : player.role === "substitute" ? "SUB" : "START"}</small></div>)}</article>)}
             </div>
             <label className="referee-field">Actual match completion time<input type="datetime-local" value={completedAt} onChange={(event) => setCompletedAt(event.target.value)} required /></label>
-            <div className="referee-score-row"><label>{selectedFixture.home_team_name}<input type="number" min="0" max="99" value={homeScore} onChange={(event) => setHomeScore(event.target.value)} /></label><span>–</span><label>{selectedFixture.away_team_name}<input type="number" min="0" max="99" value={awayScore} onChange={(event) => setAwayScore(event.target.value)} /></label></div>
+            <div className="referee-score-row"><label>{selectedFixture.home_team_name}<input type="number" min="0" max="99" required value={homeScore} onChange={(event) => setHomeScore(event.target.value)} /></label><span>–</span><label>{selectedFixture.away_team_name}<input type="number" min="0" max="99" required value={awayScore} onChange={(event) => setAwayScore(event.target.value)} /></label></div>
             <div className="referee-editor-heading"><h2>Goalscorers</h2><button type="button" onClick={addGoal}>+ Add goal</button></div>
             {goals.map((goal, index) => <div className="referee-event-row" key={index}>
               <label>Team credited<select value={goal.credited_team_id} onChange={(event) => updateGoal(index, { credited_team_id: event.target.value })}><option value={selectedFixture.home_team_id}>{selectedFixture.home_team_name}</option><option value={selectedFixture.away_team_id}>{selectedFixture.away_team_name}</option></select></label>
