@@ -2,7 +2,7 @@ name: Build verification
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]
   pull_request:
   workflow_dispatch:
 
@@ -82,6 +82,17 @@ jobs:
           fi
           test -n "$migration_file"
           printf '%s\\n' "$migration_file"
+      - name: Generate referee match report migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_match_reports.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new referee_match_reports < supabase/drafts/referee_match_reports.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_match_reports.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_match_reports.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\\n' "$migration_file"
       - name: Preserve CLI-generated referee migrations for review
         uses: actions/upload-artifact@v4
         with:
@@ -89,10 +100,11 @@ jobs:
           path: |
             supabase/migrations/*_referee_application_workflow.sql
             supabase/migrations/*_referee_fixture_assignments.sql
+            supabase/migrations/*_referee_match_reports.sql
           if-no-files-found: error
           retention-days: 1
-      # The hosted-order verifier performs the one clean reset and then applies
-      # pending migrations; avoid restarting the local Docker stack twice.
+      - name: Replay every migration against a clean local database
+        run: supabase db reset --local --no-seed
       - name: Verify pending migrations after the applied hosted baseline
         run: node scripts/verify-hosted-migration-order.mjs
       - name: Set up Node.js for Auth lifecycle integration
@@ -153,6 +165,10 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_fixture_assignments.sql
+      - name: Verify referee reports, deadline, approval, discipline and finance
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_match_reports.sql
 
       - name: Verify age tiers and guardian consent lifecycle
         env:

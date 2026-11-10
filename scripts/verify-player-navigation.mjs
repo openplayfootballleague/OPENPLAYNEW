@@ -47,6 +47,11 @@ console.log("Open Play player and five-tab referee navigation assertions passed.
 const playerHub = readFileSync("src/routes/player.tsx", "utf8");
 assert.ok(playerHub.includes('if(player?.is_banned){void navigate({to:"/register-player",replace:true});return;}'), "Banned players must be redirected away from Player Hub to the restricted registration-status screen");
 
+const playerHubDiscipline = readFileSync("src/routes/player.tsx", "utf8");
+assert.ok(playerHubDiscipline.includes("disciplinary_strikes,disciplinary_inactive"), "Player Hub must load the server-owned disciplinary strike and inactive fields");
+assert.ok(playerHubDiscipline.includes("player.disciplinary_inactive&&") && playerHubDiscipline.includes("Disciplinary restriction"), "Player Hub must explain when a disciplinary restriction blocks future team-sheet selection");
+assert.ok(playerHubDiscipline.includes("You can still use your Player Hub and view your existing league history"), "Disciplinary restrictions must not incorrectly hide account access or historic league information");
+
 const publicHome = readFileSync("src/routes/index.tsx", "utf8");
 assert.ok(publicHome.includes("let requestSequence = 0;") && publicHome.includes("sequence !== requestSequence"), "Public Home auth lookups must ignore stale responses after account changes");
 assert.ok(publicHome.includes(".catch(() => {") && publicHome.includes("setCheckingAccess(false)"), "Public Home must recover from a failed session lookup instead of remaining on an endless loading screen");

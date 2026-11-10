@@ -183,8 +183,9 @@ function RefereePage() {
               <section className="hub-memberships">
                 <div className="hub-section-heading"><span className="hub-kicker">MEMBERSHIP</span></div>
                 <h2>You're an approved Open Play referee.</h2>
-                <p>Your referee membership is active. Fixture allocation and matchday reporting will appear here as those workflows are enabled.</p>
+                <p>Your referee membership is active. View your appointments, open assigned fixtures and submit official match reports from your matchday workspace.</p>
                 <p className="form-note">Approved {new Date(state.membership.approved_at).toLocaleDateString("en-GB")}</p>
+                <Link className="admin-inline-action" to="/referee/matchday">OPEN MATCHDAY WORKSPACE <span aria-hidden="true">↗</span></Link>
                 <Link className="admin-inline-action" to="/match-centre">MATCH CENTRE <span aria-hidden="true">↗</span></Link>
                 <Link className="admin-inline-action" to="/teams">TEAMS <span aria-hidden="true">↗</span></Link>
               </section>

@@ -84,7 +84,7 @@ export function assessTeamPayment(input: {
     if (paid <= deadline) {
       return { state: "on_time", strike: false, fixtureCancelled: false, teamFeeLiabilityPence: 0, opponentRefundDue: false };
     }
-    if (paid < deadline + GRACE_PERIOD_MS) {
+    if (paid <= deadline + GRACE_PERIOD_MS) {
       return { state: "late_paid", strike: true, fixtureCancelled: false, teamFeeLiabilityPence: 0, opponentRefundDue: false };
     }
     // Payment after the grace period does not reinstate a cancelled fixture.
@@ -101,7 +101,7 @@ export function assessTeamPayment(input: {
     return { state: "on_time", strike: false, fixtureCancelled: false, teamFeeLiabilityPence: 0, opponentRefundDue: false };
   }
 
-  if (assessed < deadline + GRACE_PERIOD_MS) {
+  if (assessed <= deadline + GRACE_PERIOD_MS) {
     return { state: "grace_period", strike: false, fixtureCancelled: false, teamFeeLiabilityPence: 0, opponentRefundDue: false };
   }
 

@@ -1034,6 +1034,8 @@ export type Database = {
           created_at: string
           competition_player_id: string
           date_of_birth: string
+          disciplinary_inactive: boolean
+          disciplinary_strikes: number
           email: string
           full_name: string
           id: string
@@ -1051,6 +1053,8 @@ export type Database = {
           created_at?: string
           competition_player_id?: string
           date_of_birth: string
+          disciplinary_inactive?: boolean
+          disciplinary_strikes?: number
           email: string
           full_name: string
           id?: string
@@ -1068,6 +1072,8 @@ export type Database = {
           created_at?: string
           competition_player_id?: string
           date_of_birth?: string
+          disciplinary_inactive?: boolean
+          disciplinary_strikes?: number
           email?: string
           full_name?: string
           id?: string

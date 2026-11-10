@@ -73,6 +73,16 @@ function renderMessage(event: EventRow): RenderedMessage {
       return { subject: `Open Play – result: ${home} ${score} ${away}`, text: `Full-time result – ${gameweek}: ${home} ${score} ${away}.` };
     case "fixture.result_corrected":
       return { subject: `Open Play – corrected result: ${home} ${score} ${away}`, text: `The result has been corrected – ${gameweek}: ${home} ${score} ${away}.` };
+    case "referee.report.rejected":
+      return {
+        subject: `Open Play – match report needs an update (Gameweek ${p.gameweek ?? "fixture"})`,
+        text: `Your match report for ${home} v ${away} has been returned for correction. Submitted score: ${score}. Administrator feedback: ${p.review_reason ?? "Please contact Open Play for details."} Please update and resubmit your report in the referee workspace.`,
+      };
+    case "referee.report.approved":
+      return {
+        subject: `Open Play – match report approved (Gameweek ${p.gameweek ?? "fixture"})`,
+        text: `Your match report for ${home} v ${away} has been approved. Official score: ${score}. Administrator note: ${p.review_reason ?? "No additional note."} Thank you for officiating.`,
+      };
     default:
       throw new PermanentDeliveryError(`Unsupported notification template: ${event.event_type}`);
   }

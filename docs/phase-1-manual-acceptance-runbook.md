@@ -44,6 +44,8 @@ Create only synthetic accounts, using clearly fake names and reserved test email
 | M-02 | Non-member / unrelated player | Messaging isolation and denial |
 | BILL-01 | Synthetic team with a due/overdue fee | Payment deadlines and status transitions |
 | FIN-01 | Finance reviewer with test-mode Stripe access | Payment reconciliation, refunds and disputes |
+| RFE-01 | Approved referee with active membership | Fixture appointments, match reports and notifications |
+| RFE-02 | Second approved referee with active membership | Assignment conflicts, cross-account isolation and cancellation |
 
 Do not reuse one identity for multiple roles unless the test explicitly checks role changes.
 
@@ -261,6 +263,28 @@ The configured fee amount, currency, liable team, fixture/kick-off time and Euro
 | PAY-24 | Attempt an admin deadline edit, fee waiver, strike adjustment or refund completion without the required role/recorded reason/provider confirmation. | Only authorised actions succeed; changes are auditable; no UI-only permission boundary or false financial completion is accepted. |
 
 **Payment policy gate:** The deadline, 12-hour late-payment window, strike, cancellation, non-paying team's continuing fee liability, opposing team's full refund and three-strike admin-review process are agreed policy and must be implemented and accepted as written. The actual season/team fee amount and currency remain configuration/business data, not assumptions. Stripe test mode and synthetic accounts only; no real charges or refunds during acceptance.
+
+### Referee applications, appointments, reports and discipline
+
+| ID | Steps | Expected result |
+|---|---|---|
+| REF-01 | Submit a referee application as RFE-01 with experience, qualifications, availability and preferred locations. Attempt duplicate pending submission and invalid availability. | Application validation is server-enforced; duplicate pending applications and invalid availability are rejected. |
+| REF-02 | Review the application as an administrator for the permitted location; approve, reject, suspend and reinstate in separate synthetic test cycles. | Decisions require a reason, are location-scoped and audited; referee membership is separate from player registration and suspended referees cannot access Matchday. |
+| REF-03 | Allocate RFE-01 to a future fixture within their declared availability, then attempt a different location, unavailable time, duplicate role and same-kickoff conflict using RFE-02. | Only eligible active referees can be appointed; conflicts and invalid location/time combinations are rejected; each active appointment is unique. |
+| REF-04 | Cancel an appointment with and without a reason; inspect referee notification and assignment history. | Cancellation requires a reason, preserves the original assignment, and queues a notification exactly once. |
+| REF-05 | Sign in as RFE-01 and RFE-02 and inspect each Matchday workspace and direct report URLs. | Each referee sees only their own active appointments and can submit only for an assigned fixture; another referee's fixture/report is inaccessible. |
+| REF-06 | Submit an initial report just before, exactly at and just after 24 hours from the latest fixture in the gameweek. | The 24-hour deadline is calculated from the latest gameweek fixture; initial submission is accepted through the boundary and rejected after it. |
+| REF-07 | Have an administrator reject a submitted report with a reason, wait until after the original deadline, then correct and resubmit it as the appointed referee. | Rejected work remains available after the deadline; version history is preserved; the referee receives an in-app/email notification containing the review reason. |
+| REF-08 | Use an administrator account to submit a report for a completed fixture after the referee deadline. Attempt the same action as a referee or an administrator outside the fixture's location. | Admin takeover is permitted only for an authorised location; unauthorised roles/locations are denied and no referee payout obligation is created for an admin-submitted report. |
+| REF-09 | Approve a referee-submitted report and inspect the official result, scorer/appearance records, disciplinary events, team fines, player strikes and referee payout obligation. | Approval is atomic and audited; result/statistics publish once; fines are charged to the correct team; only a straight red to a registered player adds a strike; the third strike blocks selection on new sheets; one £22 gross payout obligation is recorded, but no payment is claimed until Stripe Connect transfer confirmation. |
+| REF-10 | Attempt duplicate approval, a direct write to report/discipline/payout tables, a disciplinary player team-sheet addition, and administrator reactivation with/without a reason. | Direct writes are denied; duplicate approval cannot duplicate results, fines or payout obligations; disciplinary restriction is enforced by the database; reactivation requires an authorised reason and retains the strike history. |
+| REF-11 | Inspect the referee's Player/Referee notifications, then simulate missing provider credentials, provider rejection and retry in the isolated staging environment. | In-app notifications remain available; email is only marked sent after provider acceptance; failures remain visible/retryable and do not change report approval state. |
+| REF-12 | Attempt to correct or reverse an already-approved report, including reversing fines, and inspect the admin workflow. | Mark **Blocked** until the controlled result/fine correction workflow is implemented; never delete disciplinary history or edit ledger rows directly. |
+| REF-13 | Inspect referee payout obligations and attempt to mark one as paid without a confirmed Stripe Connect transfer/webhook. | Payout remains pending; no admin UI or manual database edit can falsely mark a referee paid. Connect onboarding, transfers, webhook reconciliation and payout controls remain a release gate. |
+| REF-14 | As an authorised location administrator, select a completed fixture with both locked team sheets, enter the score, select substitute appearances and goalscorers, add disciplinary events and submit an administrator report. Repeat against a rejected report. | Only completed fixtures within the administrator's location scope are selectable; player options come from the locked sheets; score/scorer/discipline validation is server-enforced; the report is saved as submitted/amended and remains unpublished until separate approval. |
+| REF-15 | As a location administrator, filter referee payout obligations by status and inspect a pending, transferred and failed synthetic obligation. Attempt to access another location's records or change a status manually. | The queue is location-scoped and read-only; it reconciles gross, deductions, net and top-up values; pending obligations are never shown as paid; status changes require a future verified Stripe Connect transfer/webhook workflow. |
+
+**Referee workflow gate:** Run only with synthetic fixtures, synthetic referees and isolated test accounts. Do not enable live notification dispatch, create live Connect accounts, initiate real transfers or treat a pending_connect obligation as a completed payment.
 
 ### Historic data, payments and statistics
 

@@ -207,9 +207,7 @@ begin
   select id into v_team_e from public.season_teams where slug='ci-pending-membership';
   select id into v_team_f from public.season_teams where slug='ci-no-successor';
 
-  -- Seed the pre-existing multi-club legacy state that the ban/succession
-  -- workflow must repair. The live trigger prevents new duplicates; disabling
-  -- it only for this synthetic historical fixture models rows predating rollout.
+  -- Model the historical duplicate memberships that predate the one-club-per-league trigger.
   alter table public.team_memberships disable trigger team_memberships_one_active_club_per_league;
   insert into public.team_memberships(season_team_id,user_id,status,is_captain)
   values
