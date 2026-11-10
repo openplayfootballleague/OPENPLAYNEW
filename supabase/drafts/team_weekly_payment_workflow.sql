@@ -515,3 +515,106 @@ for each row execute function public.set_updated_at();
 create trigger team_fixture_payment_refunds_set_updated_at
 before update on public.team_fixture_payment_refunds
 for each row execute function public.set_updated_at();
+
+
+-- Checkout attempts and a separate webhook inbox keep team-level events isolated
+-- from the existing player-level payment_records webhook lifecycle.
+alter table public.team_fixture_payment_obligations
+  add column checkout_attempt integer not null default 0 check (checkout_attempt>=0);
+
+create table public.team_stripe_webhook_events (
+  id text primary key,
+  event_type text not null,
+  obligation_id uuid references public.team_fixture_payment_obligations(id) on delete set null,
+  processed_at timestamptz,
+  processing_started_at timestamptz,
+  processing_error text,
+  created_at timestamptz not null default now()
+);
+alter table public.team_stripe_webhook_events enable row level security;
+revoke all on public.team_stripe_webhook_events from public,anon,authenticated;
+create policy team_stripe_webhook_events_deny_client_access
+  on public.team_stripe_webhook_events for all to anon,authenticated
+  using(false) with check(false);
+grant select on public.team_fixture_payment_obligations,public.team_fixture_payment_refunds
+  to service_role;
+
+create or replace function public.claim_team_fixture_payment_checkout_attempt(
+  p_obligation_id uuid,
+  p_expected_session_id text default null
+)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_obligation public.team_fixture_payment_obligations;
+begin
+  select * into v_obligation from public.team_fixture_payment_obligations
+  where id=p_obligation_id for update;
+  if not found then raise exception 'Team fixture payment obligation not found'; end if;
+  if v_obligation.status not in ('due','grace_period') or now()>=v_obligation.grace_ends_at then
+    raise exception 'The payment window has closed';
+  end if;
+  if v_obligation.stripe_checkout_session_id is distinct from p_expected_session_id then
+    raise exception 'Checkout session changed; refresh before retrying';
+  end if;
+  update public.team_fixture_payment_obligations
+  set checkout_attempt=checkout_attempt+1,stripe_checkout_session_id=null
+  where id=v_obligation.id
+  returning checkout_attempt into v_obligation.checkout_attempt;
+  return v_obligation.checkout_attempt;
+end;
+$$;
+revoke all on function public.claim_team_fixture_payment_checkout_attempt(uuid,text) from public,anon,authenticated;
+grant execute on function public.claim_team_fixture_payment_checkout_attempt(uuid,text) to service_role;
+
+create or replace function public.set_team_fixture_payment_checkout_session(
+  p_obligation_id uuid,
+  p_attempt integer,
+  p_session_id text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare v_updated integer;
+begin
+  if p_session_id is null or length(btrim(p_session_id))<5 then
+    raise exception 'A valid Stripe Checkout session is required';
+  end if;
+  update public.team_fixture_payment_obligations
+  set stripe_checkout_session_id=p_session_id
+  where id=p_obligation_id and checkout_attempt=p_attempt
+    and stripe_checkout_session_id is null
+    and status in ('due','grace_period') and now()<grace_ends_at;
+  get diagnostics v_updated=row_count;
+  return v_updated=1;
+end;
+$$;
+revoke all on function public.set_team_fixture_payment_checkout_session(uuid,integer,text) from public,anon,authenticated;
+grant execute on function public.set_team_fixture_payment_checkout_session(uuid,integer,text) to service_role;
+
+create or replace function public.clear_team_fixture_payment_checkout_session(
+  p_obligation_id uuid,
+  p_session_id text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare v_updated integer;
+begin
+  update public.team_fixture_payment_obligations
+  set stripe_checkout_session_id=null
+  where id=p_obligation_id and stripe_checkout_session_id=p_session_id
+    and status in ('due','grace_period','admin_review');
+  get diagnostics v_updated=row_count;
+  return v_updated=1;
+end;
+$$;
+revoke all on function public.clear_team_fixture_payment_checkout_session(uuid,text) from public,anon,authenticated;
+grant execute on function public.clear_team_fixture_payment_checkout_session(uuid,text) to service_role;
