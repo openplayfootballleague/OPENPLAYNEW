@@ -40,38 +40,38 @@ Deno.serve(async(req)=>{
   if(milestoneClaim.error)return new Response("Could not claim referee milestone rewards",{status:500});
   let transferred=0,failed=0;
   for(const item of reportClaim.data??[]){
-    try{
-      const transfer=await createTransfer(stripeKey,item.stripe_account_id,item.amount_pence,"report",item.payout_id,item.referee_user_id);
-      const {error}=await admin.rpc("record_referee_report_transfer_result",{
-        p_payout_id:item.payout_id,p_success:true,p_stripe_transfer_id:transfer.id,p_failure_reason:null,
-      });
-      if(error)throw new Error("Transfer created but payout ledger update failed; safe retry will use the same Stripe idempotency key");
-      transferred++;
-    }catch(cause){
+    let transfer:{id:string}|null=null;
+    try{transfer=await createTransfer(stripeKey,item.stripe_account_id,item.amount_pence,"report",item.payout_id,item.referee_user_id);}
+    catch(cause){
       const reason=cause instanceof Error?cause.message:"Unknown Stripe transfer error";
       const {error}=await admin.rpc("record_referee_report_transfer_result",{
         p_payout_id:item.payout_id,p_success:false,p_stripe_transfer_id:null,p_failure_reason:reason,
       });
       if(error)return new Response("A failed report transfer could not be recorded",{status:500});
-      failed++;
+      failed++;continue;
     }
+    const {error}=await admin.rpc("record_referee_report_transfer_result",{
+      p_payout_id:item.payout_id,p_success:true,p_stripe_transfer_id:transfer.id,p_failure_reason:null,
+    });
+    if(error)return new Response("Transfer created but payout ledger update failed; safe retry will use the same Stripe idempotency key",{status:500});
+    transferred++;
   }
   for(const item of milestoneClaim.data??[]){
-    try{
-      const transfer=await createTransfer(stripeKey,item.stripe_account_id,item.amount_pence,"milestone",item.payout_id,item.referee_user_id);
-      const {error}=await admin.rpc("record_referee_milestone_transfer_result",{
-        p_payout_id:item.payout_id,p_success:true,p_stripe_transfer_id:transfer.id,p_failure_reason:null,
-      });
-      if(error)throw new Error("Transfer created but milestone ledger update failed; safe retry will use the same Stripe idempotency key");
-      transferred++;
-    }catch(cause){
+    let transfer:{id:string}|null=null;
+    try{transfer=await createTransfer(stripeKey,item.stripe_account_id,item.amount_pence,"milestone",item.payout_id,item.referee_user_id);}
+    catch(cause){
       const reason=cause instanceof Error?cause.message:"Unknown Stripe transfer error";
       const {error}=await admin.rpc("record_referee_milestone_transfer_result",{
         p_payout_id:item.payout_id,p_success:false,p_stripe_transfer_id:null,p_failure_reason:reason,
       });
       if(error)return new Response("A failed milestone transfer could not be recorded",{status:500});
-      failed++;
+      failed++;continue;
     }
+    const {error}=await admin.rpc("record_referee_milestone_transfer_result",{
+      p_payout_id:item.payout_id,p_success:true,p_stripe_transfer_id:transfer.id,p_failure_reason:null,
+    });
+    if(error)return new Response("Transfer created but milestone ledger update failed; safe retry will use the same Stripe idempotency key",{status:500});
+    transferred++;
   }
   return Response.json({claimed:(reportClaim.data?.length??0)+(milestoneClaim.data?.length??0),transferred,failed});
 });
