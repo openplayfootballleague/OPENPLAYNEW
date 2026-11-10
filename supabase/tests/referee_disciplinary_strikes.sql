@@ -24,6 +24,16 @@ begin
     or position('fixture_team_sheets' in v_definition)=0 then
     raise exception 'Disciplinary inactivity must block future scheduled team-sheet selection';
   end if;
+  if not has_function_privilege('authenticated','public.admin_list_disciplinary_suspensions(uuid)','execute')
+    or has_function_privilege('anon','public.admin_list_disciplinary_suspensions(uuid)','execute') then
+    raise exception 'Disciplinary suspension queue RPC grants are incorrect';
+  end if;
+  select pg_get_functiondef('public.admin_list_disciplinary_suspensions(uuid)'::regprocedure) into v_definition;
+  if position('has_platform_role' in v_definition)=0
+    or position('can_administer_location' in v_definition)=0
+    or position('inactive_pending_review' in v_definition)=0 then
+    raise exception 'Disciplinary suspension queue must be role- and location-scoped';
+  end if;
   select pg_get_functiondef('public.admin_review_player_disciplinary_return(uuid,text)'::regprocedure) into v_definition;
   if position('has_platform_role' in v_definition)=0
     or position('can_administer_location' in v_definition)=0
