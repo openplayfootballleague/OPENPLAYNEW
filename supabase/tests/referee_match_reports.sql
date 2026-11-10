@@ -443,7 +443,9 @@ begin
   if position('has_platform_role' in v_definition)=0
      or position('can_administer_location' in v_definition)=0
      or position('referee_disciplinary_events' in v_definition)=0
-     or position('disciplinary_inactive' in v_definition)=0 then
+     or position('disciplinary_inactive' in v_definition)=0
+     or position('p.user_id is not null' in v_definition)=0
+     or position('p.is_banned is not true' in v_definition)=0 then
     raise exception 'Disciplinary return queue must be platform-role and location scoped over approved events';
   end if;
 
@@ -456,6 +458,8 @@ begin
   if position('referee_disciplinary_events' in v_definition)=0
      or position('can_administer_location' in v_definition)=0
      or position('disciplinary_inactive' in v_definition)=0
+     or position('v_player.user_id is null' in v_definition)=0
+     or position('v_player.is_banned is true' in v_definition)=0
      or position('enqueue_notification_event' in v_definition)=0
      or position('length(btrim(coalesce(p_reason' in v_definition)=0 then
     raise exception 'Disciplinary reactivation must use historical location scope, preserve strike history, audit and notify';
