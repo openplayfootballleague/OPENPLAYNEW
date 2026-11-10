@@ -62,7 +62,7 @@ function MorePage() {
           .eq("status", "active"),
         supabase.rpc("get_admin_context_preference"),
         supabase.rpc("get_finance_options"),
-        supabase.rpc("referee_get_my_status"),
+        (supabase as any).rpc("referee_get_my_status"),
       ]);
 
       if (!active) return;
