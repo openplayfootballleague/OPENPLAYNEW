@@ -94,7 +94,7 @@ create or replace function public.admin_review_player_disciplinary_return(
 returns public.competition_player_discipline
 language plpgsql security definer set search_path = ''
 as $$
-declare v_actor uuid:=auth.uid(); v_discipline public.competition_player_discipline;
+declare v_actor uuid:=auth.uid(); v_discipline public.competition_player_discipline; v_user_id uuid; v_player_name text;
 begin
   if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
   if p_reason is null or length(btrim(p_reason))<5 then raise exception 'Enter a reason of at least 5 characters'; end if;
@@ -109,6 +109,8 @@ begin
       and public.can_administer_location(l.location_id)
   ) then raise exception 'You are not assigned to a location with this player''s competition history'; end if;
 
+  select cpi.user_id,cpi.display_name into v_user_id,v_player_name
+  from public.competition_player_identities cpi where cpi.id=p_competition_player_id;
   select * into v_discipline from public.competition_player_discipline
   where competition_player_id=p_competition_player_id for update;
   if not found then raise exception 'Disciplinary record not found'; end if;
@@ -124,6 +126,12 @@ begin
     p_competition_player_id::text,btrim(p_reason),
     jsonb_build_object('inactive_pending_review',true,'straight_red_strikes',v_discipline.straight_red_strikes),
     jsonb_build_object('inactive_pending_review',false,'straight_red_strikes',v_discipline.straight_red_strikes));
+  if v_user_id is not null then
+    perform public.enqueue_notification_event(v_user_id,'player_disciplinary_return_approved',jsonb_build_object(
+      'competition_player_id',p_competition_player_id::text,'title','Approved to return to play',
+      'message','An Open Play administrator has approved your return. Your permanent straight-red history remains on your competition record.',
+      'reason',btrim(p_reason),'changed_at',now()::text,'url','/player-hub'));
+  end if;
   return v_discipline;
 end;
 $$;
