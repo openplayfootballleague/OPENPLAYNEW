@@ -86,8 +86,7 @@ begin
   insert into public.season_teams(team_id,season_id,name,slug,registration_status,approved_by)
   values
     (v_team_one,v_season,'Messaging Test Team','ci-messaging-test-team','approved',v_captain),
-    (v_team_two,v_season,'Messaging Other Team','ci-messaging-other-team','approved',v_player_c)
-  returning id into v_season_team_one;
+    (v_team_two,v_season,'Messaging Other Team','ci-messaging-other-team','approved',v_player_c);
   select id into v_season_team_one from public.season_teams where team_id=v_team_one and season_id=v_season;
   select id into v_season_team_two from public.season_teams where team_id=v_team_two and season_id=v_season;
 
@@ -126,6 +125,10 @@ begin
   from public.get_my_message_conversations(50)
   where conversation_id=v_direct;
   if coalesce(v_unread,0)<>0 then raise exception 'Sender should not have unread messages'; end if;
+
+  update public.message_conversation_participants
+  set last_read_at=now()-interval '1 minute'
+  where conversation_id=v_direct and user_id=v_player_b;
 
   execute 'reset role';
   execute 'set local role authenticated';
@@ -235,7 +238,11 @@ begin
   select body into v_body from public.get_message_history(v_direct,50,null)
   where message_id=v_message;
   if v_body<>'[Message hidden by moderation]' then raise exception 'Moderated message was not hidden from participants'; end if;
-  perform public.unblock_message_user(v_player_a);
+  execute 'reset role';
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_player_a::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_a::text,'role','authenticated')::text,true);
+  perform public.unblock_message_user(v_player_b);
   execute 'reset role';
 
   -- Leaving a team revokes access to its group history immediately.
