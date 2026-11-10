@@ -507,3 +507,77 @@ as $$
 $$;
 revoke all on function public.get_active_referee_locations() from public,anon;
 grant execute on function public.get_active_referee_locations() to authenticated;
+
+
+create or replace function public.admin_list_referee_applications(p_status text default 'pending')
+returns table(
+  application_id uuid,
+  user_id uuid,
+  player_name text,
+  email text,
+  contact_phone text,
+  experience_summary text,
+  qualifications text[],
+  availability jsonb,
+  preferred_location_ids uuid[],
+  preferred_location_names text[],
+  additional_notes text,
+  status text,
+  submitted_at timestamptz,
+  reviewed_at timestamptz,
+  review_reason text
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+  if p_status is null or p_status not in ('all','pending','approved','rejected') then
+    raise exception 'Invalid referee application status filter';
+  end if;
+
+  return query
+  select
+    application.id,
+    application.user_id,
+    coalesce(player.full_name,'Registered applicant'),
+    account.email,
+    application.contact_phone,
+    application.experience_summary,
+    application.qualifications,
+    application.availability,
+    application.preferred_location_ids,
+    array(
+      select location.name || ' · ' || location.town
+      from unnest(application.preferred_location_ids) preferred(location_id)
+      join public.locations location on location.id=preferred.location_id
+      order by location.name
+    ),
+    application.additional_notes,
+    application.status,
+    application.submitted_at,
+    application.reviewed_at,
+    application.review_reason
+  from public.referee_applications application
+  join auth.users account on account.id=application.user_id
+  left join public.players player on player.user_id=application.user_id
+  where (p_status='all' or application.status=p_status)
+    and (
+      public.has_global_admin_role()
+      or exists (
+        select 1
+        from unnest(application.preferred_location_ids) preferred(location_id)
+        where public.can_administer_location(preferred.location_id)
+      )
+    )
+  order by
+    case when application.status='pending' then 0 else 1 end,
+    application.submitted_at desc;
+end;
+$$;
+revoke all on function public.admin_list_referee_applications(text) from public,anon;
+grant execute on function public.admin_list_referee_applications(text) to authenticated;
