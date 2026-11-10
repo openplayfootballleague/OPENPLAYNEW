@@ -76,10 +76,16 @@ function RefereeMatchdayPage() {
                   <span>{appointment.home_team_name} v {appointment.away_team_name}</span>
                   <small>{appointment.venue_name ?? "Venue to be confirmed"} · {new Date(appointment.scheduled_at).toLocaleString("en-GB", { dateStyle: "full", timeStyle: "short" })}</small>
                   <small>Status: {appointment.fixture_status}</small>
+                  {new Date(appointment.scheduled_at).getTime() <= Date.now() &&
+                    !["cancelled", "postponed"].includes(appointment.fixture_status) && (
+                      <Link className="button" to="/referee/report/$fixtureId" params={{ fixtureId: appointment.fixture_id }}>
+                        OPEN MATCH REPORT
+                      </Link>
+                    )}
                 </div>
               </article>
             ))}
-            <p className="form-note">Appointments are private to your referee account. Match reporting will be enabled in the next component.</p>
+            <p className="form-note">Appointments are private to your referee account. Submit each report within the 24-hour reporting window; rejected reports remain available for correction.</p>
           </section>
         ) : <p className="form-note">An active referee membership is required to view this workspace.</p>}
         <Link className="auth-switch" to="/referee">Back to referee home</Link>
