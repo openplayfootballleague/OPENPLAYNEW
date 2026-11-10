@@ -479,7 +479,7 @@ begin
   foreach v_old_referee in array v_previous_referees loop
     if v_old_referee<>p_referee_user_id then
       perform public.enqueue_notification_event(v_old_referee,'referee_assignment_removed',jsonb_build_object(
-        'fixture_id',p_fixture_id::text,'scheduled_at',v_fixture.scheduled_at::text,
+        'fixture_id',p_fixture_id::text,'fixture_time',v_fixture.scheduled_at::text,
         'title','Referee assignment changed','message','Your assignment for '||v_fixture.home_team_name||' v '||v_fixture.away_team_name||' has been removed.',
         'changed_at',now()::text,'url','/referee'));
     end if;
@@ -521,7 +521,7 @@ begin
   values(v_actor,'referee.fixture.assignment_removed','fixture_referee_assignment',p_assignment_id::text,btrim(p_reason),
     jsonb_build_object('fixture_id',v_fixture_id));
   perform public.enqueue_notification_event(v_referee_user_id,'referee_assignment_removed',jsonb_build_object(
-    'fixture_id',v_fixture_id::text,'scheduled_at',v_scheduled_at::text,
+    'fixture_id',v_fixture_id::text,'fixture_time',v_scheduled_at::text,
     'title','Referee assignment removed','message','Your assignment for '||v_home_team_name||' v '||v_away_team_name||' has been removed. Reason: '||btrim(p_reason),
     'changed_at',now()::text,'url','/referee'));
   return true;
