@@ -6,7 +6,7 @@ import { getSupabaseClient } from "../lib/supabase/client";
 type LocationOption = { id: string; name: string; town: string };
 type SeasonOption = { id: string; name: string; league_name: string; location_name: string };
 type TeamOption = { id: string; name: string; season_name: string; location_name: string };
-type PlayerOption = { user_id: string; full_name: string; email: string };
+type PlayerOption = { user_id: string; full_name: string };
 type Setup = {
   locations?: LocationOption[];
   seasons?: SeasonOption[];
@@ -49,7 +49,7 @@ function AdminMessagesPage() {
     const supabase = getSupabaseClient();
     const [{ data: preference, error: preferenceError }, { data: setupData, error: setupError }, { data: reportData, error: reportError }] = await Promise.all([
       supabase.rpc("get_admin_context_preference"),
-      supabase.rpc("get_admin_competition_setup"),
+      supabase.rpc("admin_get_message_target_options"),
       supabase.rpc("admin_get_message_reports", { p_status: "open", p_limit: 100 }),
     ]);
     if (preferenceError || setupError || reportError) {
@@ -59,6 +59,7 @@ function AdminMessagesPage() {
     }
     const context = preference as { is_global_admin?: boolean } | null;
     setIsGlobalAdmin(Boolean(context?.is_global_admin));
+    setTargetType(context?.is_global_admin ? "everyone" : "location");
     setSetup((setupData ?? {}) as Setup);
     setReports((reportData ?? []) as MessageReport[]);
     setLoading(false);
@@ -70,7 +71,7 @@ function AdminMessagesPage() {
   }, [authStatus, load]);
 
   const needsTarget = ["location", "season", "team", "individual"].includes(targetType);
-  const options = targetType === "location" || (targetType === "captains" && !isGlobalAdmin)
+  const options = targetType === "location" || targetType === "captains"
     ? (setup.locations ?? []).map((item) => ({ value: item.id, label: item.name + " · " + item.town }))
     : targetType === "season"
       ? (setup.seasons ?? []).map((item) => ({ value: item.id, label: item.location_name + " · " + item.league_name + " · " + item.name }))
