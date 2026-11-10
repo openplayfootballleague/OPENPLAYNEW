@@ -4,6 +4,7 @@ do $referee_connect_payouts$
 declare
   v_admin constant uuid:='97000000-0000-4000-8000-000000000001';
   v_referee constant uuid:='97000000-0000-4000-8000-000000000002';
+  v_location_admin constant uuid:='97000000-0000-4000-8000-000000000003';
   v_location uuid;
   v_league uuid;
   v_season uuid;
@@ -24,11 +25,15 @@ begin
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
   values
     (v_admin,'authenticated','authenticated','ci-connect-admin@openplay.invalid','','{}'::jsonb,now(),now(),now()),
-    (v_referee,'authenticated','authenticated','ci-connect-referee@openplay.invalid','','{}'::jsonb,now(),now(),now());
-  insert into public.user_roles(user_id,role,granted_by) values(v_admin,'admin',v_admin);
+    (v_referee,'authenticated','authenticated','ci-connect-referee@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    (v_location_admin,'authenticated','authenticated','ci-connect-location-admin@openplay.invalid','','{}'::jsonb,now(),now(),now());
+  insert into public.user_roles(user_id,role,granted_by) values
+    (v_admin,'admin',v_admin),(v_location_admin,'league_admin',v_admin);
 
   select id into v_location from public.locations where is_active=true order by created_at limit 1;
   if v_location is null then raise exception 'Expected an active location from earlier database regressions'; end if;
+  insert into public.location_admin_assignments(user_id,location_id,assigned_by)
+  values(v_location_admin,v_location,v_admin);
   insert into public.leagues(location_id,name,slug,is_published)
   values(v_location,'CI Referee Connect League','ci-referee-connect-league',false)
   returning id into v_league;
@@ -116,14 +121,14 @@ begin
   begin
     perform public.claim_referee_payout_transfer('match_report',v_match_payout);
   exception when others then
-    v_rejected:=sqlerrm like '%Finance access required%';
+    v_rejected:=sqlerrm like '%cannot administer this referee payout location%';
   end;
   if not v_rejected then raise exception 'A referee was able to claim an administrator payout transfer'; end if;
   execute 'reset role';
 
-  -- Match-report transfer is scoped to finance admin and location, and reconciles idempotently.
+  -- Match-report transfer is scoped to the approving location admin (without requiring finance role).
   execute 'set local role authenticated';
-  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  perform set_config('request.jwt.claim.sub',v_location_admin::text,true);
   v_claim:=public.claim_referee_payout_transfer('match_report',v_match_payout);
   if v_claim->>'stripe_account_id'<>v_account_id
      or (v_claim->>'amount_pence')::integer<>2200
@@ -176,7 +181,7 @@ begin
   end if;
   execute 'reset role';
   execute 'set local role authenticated';
-  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  perform set_config('request.jwt.claim.sub',v_location_admin::text,true);
   v_claim:=public.claim_referee_payout_transfer('match_report',v_match_payout);
   if (v_claim->>'attempt')::integer<>2 then
     raise exception 'Reversed transfer retry did not increment the attempt number';
