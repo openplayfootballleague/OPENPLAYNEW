@@ -539,13 +539,13 @@ begin
     if v_old_referee<>p_referee_user_id then
       perform public.enqueue_notification_event(v_old_referee,'referee_assignment_removed',jsonb_build_object(
         'fixture_id',p_fixture_id::text,'fixture_time',v_fixture.scheduled_at::text,
-        'title','Referee assignment changed','message','Your assignment for '||v_fixture.home_team_name||' v '||v_fixture.away_team_name||' has been removed.',
+        'title','Referee assignment changed','message','Your assignment for '||v_fixture.home_team_name||' v '||v_fixture.away_team_name||' at '||to_char(v_fixture.scheduled_at at time zone 'Europe/London','DD Mon YYYY HH24:MI')||' has been removed.',
         'changed_at',now()::text,'url','/referee'));
     end if;
   end loop;
   perform public.enqueue_notification_event(p_referee_user_id,'referee_assignment_created',jsonb_build_object(
     'fixture_id',p_fixture_id::text,'fixture_time',v_fixture.scheduled_at::text,
-    'title','New referee assignment','message','You have been assigned to Gameweek '||v_fixture.gameweek||': '||v_fixture.home_team_name||' v '||v_fixture.away_team_name||'.',
+    'title','New referee assignment','message','You have been assigned to Gameweek '||v_fixture.gameweek||': '||v_fixture.home_team_name||' v '||v_fixture.away_team_name||' at '||to_char(v_fixture.scheduled_at at time zone 'Europe/London','DD Mon YYYY HH24:MI')||'.',
     'changed_at',now()::text,'url','/referee'));
   return v_assignment_id;
 end;
@@ -581,7 +581,7 @@ begin
     jsonb_build_object('fixture_id',v_fixture_id));
   perform public.enqueue_notification_event(v_referee_user_id,'referee_assignment_removed',jsonb_build_object(
     'fixture_id',v_fixture_id::text,'fixture_time',v_scheduled_at::text,
-    'title','Referee assignment removed','message','Your assignment for '||v_home_team_name||' v '||v_away_team_name||' has been removed. Reason: '||btrim(p_reason),
+    'title','Referee assignment removed','message','Your assignment for '||v_home_team_name||' v '||v_away_team_name||' at '||to_char(v_scheduled_at at time zone 'Europe/London','DD Mon YYYY HH24:MI')||' has been removed. Reason: '||btrim(p_reason),
     'changed_at',now()::text,'url','/referee'));
   return true;
 end;
