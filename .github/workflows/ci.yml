@@ -39,7 +39,7 @@ jobs:
         with:
           deno-version: v2.x
       - name: Type-check Supabase Edge Functions
-        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts supabase/functions/player-account-retention/index.ts supabase/functions/create-team-fixture-checkout/index.ts supabase/functions/team-stripe-webhook/index.ts supabase/functions/process-team-payment-deadlines/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts supabase/functions/player-account-retention/index.ts supabase/functions/create-team-fixture-checkout/index.ts supabase/functions/team-stripe-webhook/index.ts supabase/functions/process-team-payment-deadlines/index.ts supabase/functions/admin-postpone-gameweek/index.ts
       - name: Run domain tests
         run: npm test
       - name: Type-check and build
@@ -124,6 +124,27 @@ jobs:
           path: supabase/migrations/*_team_weekly_payment_workflow.sql
           if-no-files-found: error
           retention-days: 1
+      - name: Generate weather gameweek postponement migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponements.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 2
+            supabase migration new weather_gameweek_postponements < supabase/drafts/weather_gameweek_postponements.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponements.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/weather_gameweek_postponements.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
+      - name: Preserve CLI-generated weather postponement migration for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: weather-gameweek-postponement-migration
+          path: supabase/migrations/*_weather_gameweek_postponements.sql
+          if-no-files-found: error
+          retention-days: 1
       - name: Preserve CLI-generated referee migrations for review
         uses: actions/upload-artifact@v4
         with:
@@ -206,6 +227,10 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/team_weekly_payment_workflow.sql
+      - name: Verify weather postponements, payment cycles and chronological gameweek renumbering
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/weather_gameweek_postponements.sql
 
       - name: Verify age tiers and guardian consent lifecycle
         env:
