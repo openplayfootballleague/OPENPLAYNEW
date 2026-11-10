@@ -87,8 +87,8 @@ Deno.serve(async(req)=>{
     });
     if(syncError)throw new Error(syncError.message);
 
-    if(transfersEnabled&&account.payouts_enabled){
-      return json({connected:true,onboarding_status:"enabled",payouts_enabled:true},200,headers);
+    if(transfersEnabled){
+      return json({connected:true,onboarding_status:"enabled",payouts_enabled:!!account.payouts_enabled},200,headers);
     }
 
     const linkParams=new URLSearchParams();
