@@ -106,7 +106,9 @@ Deno.serve(async(req)=>{
       const latest=intent.latest_charge as Record<string,unknown>|string|null;
       const charge=typeof latest==="object"&&latest!==null?latest:null;
       const paidAt=Number(charge?.created);
-      if(Number(intent.amount_received)!==obligation.amount_pence||
+      if(session.mode!=="payment"||Number(session.amount_total)!==obligation.amount_pence||
+        String(session.currency??"").toLowerCase()!==obligation.currency||
+        intent.status!=="succeeded"||Number(intent.amount_received)!==obligation.amount_pence||
         String(intent.currency??"").toLowerCase()!==obligation.currency||
         metadata?.team_fixture_payment_obligation_id!==obligation.id||
         !Number.isSafeInteger(paidAt)){
