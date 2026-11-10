@@ -68,6 +68,30 @@ create index messages_conversation_created_idx
 create index messages_sender_created_idx
   on public.messages(sender_id,created_at desc);
 
+-- Account erasure removes message text while retaining a neutral thread placeholder.
+create or replace function public.redact_messages_on_account_erasure()
+returns trigger
+language plpgsql
+security definer
+set search_path=''
+as $
+begin
+  update public.messages
+  set body='[Message removed after account erasure]',
+      is_hidden=true,
+      hidden_by=null,
+      hidden_at=now(),
+      hidden_reason='Account erasure'
+  where sender_id=old.id;
+  return old;
+end;
+$;
+revoke all on function public.redact_messages_on_account_erasure() from public,anon,authenticated;
+drop trigger if exists auth_users_redact_messages_before_delete on auth.users;
+create trigger auth_users_redact_messages_before_delete
+before delete on auth.users
+for each row execute function public.redact_messages_on_account_erasure();
+
 create table public.message_user_blocks (
   blocker_id uuid not null references auth.users(id) on delete cascade,
   blocked_user_id uuid not null references auth.users(id) on delete cascade,
@@ -269,7 +293,8 @@ begin
   return query
   select c.id,c.kind,c.title,c.season_team_id,c.created_at,c.updated_at,
     lm.id,
-    case when lm.is_hidden then '[Message hidden by moderation]' else lm.body end,
+    case when lm.hidden_reason='Account erasure' then '[Message removed after account erasure]'
+      when lm.is_hidden then '[Message hidden by moderation]' else lm.body end,
     lm.created_at,lm.sender_id,
     (select count(*) from public.messages um
       where um.conversation_id=c.id
@@ -337,9 +362,10 @@ begin
   end if;
   return query
   select m.id,m.conversation_id,m.sender_id,
-    case when m.sender_id is null then 'Former member'
+    case when m.sender_id is null or coalesce(p.account_retention_status,'closed')<>'active' then 'Former member'
       else coalesce(nullif(p.display_name,''),pl.full_name,'Open Play member') end,
-    case when m.is_hidden then '[Message hidden by moderation]' else m.body end,
+    case when m.hidden_reason='Account erasure' then '[Message removed after account erasure]'
+      when m.is_hidden then '[Message hidden by moderation]' else m.body end,
     m.message_type,m.is_hidden,m.created_at
   from public.messages m
   left join public.profiles p on p.id=m.sender_id
@@ -989,9 +1015,12 @@ begin
     into v_global;
   return query
   select r.id,r.message_id,r.conversation_id,c.title,
-    coalesce(rp.display_name,rpl.full_name,'Former member'),
-    coalesce(up.display_name,upl.full_name,'Former member'),
-    case when m.is_hidden then '[Message hidden by moderation]' else m.body end,
+    case when r.reporter_id is null or coalesce(rp.account_retention_status,'closed')<>'active' then 'Former member'
+      else coalesce(rp.display_name,rpl.full_name,'Former member') end,
+    case when r.reported_user_id is null or coalesce(up.account_retention_status,'closed')<>'active' then 'Former member'
+      else coalesce(up.display_name,upl.full_name,'Former member') end,
+    case when m.hidden_reason='Account erasure' then '[Message removed after account erasure]'
+      when m.is_hidden then '[Message hidden by moderation]' else m.body end,
     r.reason,r.status,r.created_at,c.location_id
   from public.message_reports r
   left join public.message_conversations c on c.id=r.conversation_id
