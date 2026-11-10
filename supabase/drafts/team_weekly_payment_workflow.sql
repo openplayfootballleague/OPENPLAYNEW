@@ -401,7 +401,7 @@ begin
   elsif p_paid_at<=v_obligation.deadline_at then
     v_status:='paid';
     v_reason:='Payment received by the original 24-hour deadline';
-  elsif p_paid_at<v_obligation.grace_ends_at then
+  elsif p_paid_at<=v_obligation.grace_ends_at then
     v_status:='late_paid';
     v_reason:='Payment received during the 12-hour grace period';
     insert into public.team_payment_strikes(
