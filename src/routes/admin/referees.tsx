@@ -560,7 +560,7 @@ function AdminRefereesPage() {
           <div className="hub-section-heading"><span className="hub-kicker">ADMIN MATCH REPORT ENTRY</span></div>
           <p>Submit or amend a report for a completed fixture with both team sheets locked. The result remains unpublished until a separate administrator review approves it.</p>
           {reportableFixturesLoading ? <p className="form-note">Loading completed fixtures…</p> : (
-            <div className="admin-sheet-editor">
+            <div className="admin-sheet-editor admin-report-entry">
               <label>
                 Completed fixture
                 <select value={selectedAdminReportFixtureId} disabled={adminReportOptionsLoading} onChange={(event) => setSelectedAdminReportFixtureId(event.target.value)}>
@@ -575,6 +575,7 @@ function AdminRefereesPage() {
               {adminReportOptionsLoading && <p className="form-note">Loading team-sheet players…</p>}
               {adminReportOptions && adminReportOptions.fixture.id === selectedAdminReportFixtureId && <>
                 <p className="form-note">GW {adminReportOptions.fixture.gameweek} · {adminReportOptions.fixture.home_team_name} v {adminReportOptions.fixture.away_team_name}. Starters count as appearances automatically; select substitutes who appeared before selecting goalscorers.</p>
+                {adminReportOptions.report?.review_reason && <p className="form-note"><strong>Previous review:</strong> {adminReportOptions.report.review_reason}</p>}
                 <div className="admin-report-score-grid">
                   <label>{adminReportOptions.fixture.home_team_name} score
                     <input type="number" min={0} max={32767} value={adminReportHomeScore} onChange={(event) => setAdminReportHomeScore(event.target.value)} />
@@ -701,7 +702,7 @@ function AdminRefereesPage() {
         </section>
         <section className="hub-memberships">
           <div className="hub-section-heading">
-            <span className="hub-kicker">REFEREE PAYOUT OBLIGATIONS</span>
+            <span className="hub-kicker">MATCH REPORT PAYOUT OBLIGATIONS</span>
             <select aria-label="Filter referee payouts" value={payoutStatusFilter} onChange={(event) => setPayoutStatusFilter(event.target.value)}>
               <option value="pending_connect">Pending Connect</option>
               <option value="transferred">Transferred</option>
@@ -710,7 +711,7 @@ function AdminRefereesPage() {
               <option value="all">All statuses</option>
             </select>
           </div>
-          <p>Read-only location-scoped payout records created by approved referee reports. A pending obligation is not a payment; transfer status must only change after Stripe Connect confirmation and webhook reconciliation.</p>
+          <p>Read-only location-scoped payout records created by approved referee match reports. Milestone rewards are tracked separately and are not included in this view. A pending obligation is not a payment; transfer status must only change after Stripe Connect confirmation and webhook reconciliation.</p>
           {payoutsLoading ? <p className="form-note">Loading referee payout obligations…</p> : payouts.length === 0 ? (
             <p className="form-note">No referee payout obligations match this status for your permitted locations.</p>
           ) : payouts.map((payout) => (
