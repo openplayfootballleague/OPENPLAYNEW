@@ -97,6 +97,16 @@ describe("admin analytics aggregation", () => {
     })).toMatchObject([{ locationName: "Bideford", fixtures: 0, publishedResults: 0, goals: 0 }]);
   });
 
+  it("preserves a restricted global-only player review metric instead of rendering a false zero", () => {
+    const result = buildAnalyticsOverview(setup, {
+      pending_player_reviews: null,
+      pending_team_applications: 0,
+      pending_membership_requests: 0,
+      open_seasons: 0,
+    }, [], { locationId: "loc-a", leagueId: "league-a", seasonId: "", fromDate: "", toDate: "" });
+    expect(result.pendingPlayerReviews).toBeNull();
+  });
+
   it("aggregates integer-pence finance totals without converting to floating point", () => {
     expect(aggregateFinanceTotals([
       { charges_pence: 3000, payments_pence: "2000", refunds_pence: 0, credits_pence: 0, fines_pence: 500, outstanding_pence: 1500 },
