@@ -97,59 +97,67 @@ function AdminAnalyticsPage() {
     if (!contextReady || authStatus !== "authenticated") return;
     setLoading(true);
     setError("");
-    const args = {
-      p_location_id: locationId || undefined,
-      p_league_id: leagueId || undefined,
-      p_season_id: seasonId || undefined,
-    };
-    const [dashboardResult, fixtureResult] = await Promise.all([
-      getSupabaseClient().rpc("get_admin_dashboard_contextual", args),
-      getSupabaseClient().rpc("get_admin_contextual_fixtures", args),
-    ]);
-    if (dashboardResult.error || fixtureResult.error) {
-      setError(dashboardResult.error?.message ?? fixtureResult.error?.message ?? "Unable to load analytics data.");
-      setDashboard(null);
-      setFixtures([]);
-      setLoading(false);
-      return;
-    }
-    setDashboard(dashboardResult.data as Dashboard);
-    setFixtures((fixtureResult.data ?? []) as Fixture[]);
+    try {
+      const args = {
+        p_location_id: locationId || undefined,
+        p_league_id: leagueId || undefined,
+        p_season_id: seasonId || undefined,
+      };
+      const [dashboardResult, fixtureResult] = await Promise.all([
+        getSupabaseClient().rpc("get_admin_dashboard_contextual", args),
+        getSupabaseClient().rpc("get_admin_contextual_fixtures", args),
+      ]);
+      if (dashboardResult.error || fixtureResult.error) {
+        throw new Error(dashboardResult.error?.message ?? fixtureResult.error?.message ?? "Unable to load analytics data.");
+      }
+      setDashboard(dashboardResult.data as Dashboard);
+      setFixtures((fixtureResult.data ?? []) as Fixture[]);
 
-    if (seasonId) {
-      const { data, error: statsRpcError } = await getSupabaseClient().rpc("get_admin_season_statistics", { p_season_id: seasonId });
-      if (statsRpcError) {
-        setSeasonStats(null);
-        setSeasonError(statsRpcError.message);
+      if (seasonId) {
+        const { data, error: statsRpcError } = await getSupabaseClient().rpc("get_admin_season_statistics", { p_season_id: seasonId });
+        if (statsRpcError) {
+          setSeasonStats(null);
+          setSeasonError(statsRpcError.message);
+        } else {
+          setSeasonStats(data as SeasonStats);
+          setSeasonError("");
+        }
       } else {
-        setSeasonStats(data as SeasonStats);
+        setSeasonStats(null);
         setSeasonError("");
       }
-    } else {
-      setSeasonStats(null);
-      setSeasonError("");
-    }
 
-    const { data: financeOptionRows, error: financeOptionError } = await getSupabaseClient().rpc("get_finance_options");
-    if (financeOptionError) {
-      setFinanceAccess(false);
-      setFinanceOptions([]);
-      setFinanceRows([]);
-      setFinanceError("Finance reporting is restricted to authorised finance administrators.");
-    } else {
-      setFinanceAccess(true);
-      setFinanceOptions((financeOptionRows ?? []) as FinanceOption[]);
-      const { data: summaryRows, error: financeSummaryError } = await getSupabaseClient().rpc("get_finance_summary", { p_season_id: seasonId || undefined });
-      if (financeSummaryError) {
+      const { data: financeOptionRows, error: financeOptionError } = await getSupabaseClient().rpc("get_finance_options");
+      if (financeOptionError) {
+        setFinanceAccess(false);
+        setFinanceOptions([]);
         setFinanceRows([]);
-        setFinanceError("Finance summary could not be loaded for this context.");
+        setFinanceError("Finance reporting is restricted to authorised finance administrators.");
       } else {
-        setFinanceRows((summaryRows ?? []) as FinanceSummaryRow[]);
-        setFinanceError("");
+        setFinanceAccess(true);
+        setFinanceOptions((financeOptionRows ?? []) as FinanceOption[]);
+        if (!seasonId && (locationId || leagueId)) {
+          setFinanceRows([]);
+          setFinanceError("Choose a season to view finance totals scoped to this location or league.");
+        } else {
+          const { data: summaryRows, error: financeSummaryError } = await getSupabaseClient().rpc("get_finance_summary", { p_season_id: seasonId || undefined });
+          if (financeSummaryError) {
+            setFinanceRows([]);
+            setFinanceError("Finance summary could not be loaded for this context.");
+          } else {
+            setFinanceRows((summaryRows ?? []) as FinanceSummaryRow[]);
+            setFinanceError("");
+          }
+        }
       }
+      setRefreshedAt(new Date());
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to load analytics workspace.");
+      setDashboard(null);
+      setFixtures([]);
+    } finally {
+      setLoading(false);
     }
-    setRefreshedAt(new Date());
-    setLoading(false);
   }, [authStatus, contextReady, leagueId, locationId, seasonId]);
 
   useEffect(() => {
@@ -245,7 +253,7 @@ function AdminAnalyticsPage() {
   }
 
   if (error && !dashboard) {
-    return <main className="notice-page analytics-page"><section className="notice-panel analytics-panel"><Link className="notice-brand" to="/admin">OPEN PLAY ADMIN</Link><p className="eyebrow eyebrow-dark">ADMIN ANALYTICS</p><h1>Access<br/><em>required.</em></h1><p className="form-error" role="alert">{error}</p><Link className="auth-switch" to="/admin">Back to Admin Dashboard</Link></section></main>;
+    return <main className="notice-page analytics-page"><section className="notice-panel analytics-panel"><Link className="notice-brand" to="/admin">OPEN PLAY ADMIN</Link><p className="eyebrow eyebrow-dark">ADMIN ANALYTICS</p><h1>Analytics<br/><em>unavailable.</em></h1><p className="form-error" role="alert">{error}</p><Link className="auth-switch" to="/admin">Back to Admin Dashboard</Link></section></main>;
   }
 
   return <main className="notice-page analytics-page"><section className="notice-panel analytics-panel">
@@ -335,7 +343,7 @@ function AdminAnalyticsPage() {
             <article><span>Refunds</span><strong>{money(financeTotals.refundsPence)}</strong></article>
             <article><span>Fines</span><strong>{money(financeTotals.finesPence)}</strong></article>
             <article><span>Outstanding</span><strong>{money(financeTotals.outstandingPence)}</strong></article>
-            <article><span>Finance seasons</span><strong>{financeOptions.length}</strong></article>
+            <article><span>Finance seasons</span><strong>{new Set(financeOptions.map((option) => option.season_id)).size}</strong></article>
           </div>
           <p className="form-note">This is a ledger summary, not a profit statement. It excludes operating costs and does not treat Stripe transfers or payouts as revenue.</p>
         </>}
