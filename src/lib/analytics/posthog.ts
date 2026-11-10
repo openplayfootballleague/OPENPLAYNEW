@@ -9,6 +9,10 @@ let activeUserId: string | null = null;
 let anonymousId: string | null = null;
 let memoryConsent: Consent = null;
 
+export function isAnalyticsConsentEnabled(): boolean {
+  return import.meta.env.VITE_POSTHOG_CONSENT_ENABLED === "true" && Boolean(configuredKey());
+}
+
 function configuredKey(): string {
   return import.meta.env.VITE_POSTHOG_KEY?.trim() ?? "";
 }
@@ -61,7 +65,7 @@ async function capture(
   properties: Record<string, unknown> = {},
 ): Promise<void> {
   const apiKey = configuredKey();
-  if (consent() !== "granted" || !apiKey || typeof window === "undefined") return;
+  if (!isAnalyticsConsentEnabled() || consent() !== "granted" || !apiKey || typeof window === "undefined") return;
 
   try {
     await fetch(`${host()}/capture/?ip=0`, {
@@ -90,7 +94,7 @@ export function getAnalyticsConsent(): Consent {
 }
 
 export function setAnalyticsConsent(allowed: boolean): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || !isAnalyticsConsentEnabled()) return;
   memoryConsent = allowed ? "granted" : "denied";
   try { window.localStorage.setItem(CONSENT_KEY, memoryConsent); } catch { /* memory-only fallback */ }
   if (allowed) {
@@ -110,7 +114,7 @@ export function setAnalyticsConsent(allowed: boolean): void {
 }
 
 export function setAnalyticsIdentity(userId: string | null): void {
-  if (typeof window === "undefined" || consent() !== "granted") {
+  if (typeof window === "undefined" || !isAnalyticsConsentEnabled() || consent() !== "granted") {
     activeUserId = null;
     return;
   }
@@ -130,7 +134,7 @@ export function setAnalyticsIdentity(userId: string | null): void {
 }
 
 export function trackAnalyticsPageView(pathname: string): void {
-  if (typeof window === "undefined" || consent() !== "granted") return;
+  if (typeof window === "undefined" || !isAnalyticsConsentEnabled() || consent() !== "granted") return;
   const safePath = pathname
     .split("/")
     .map((segment) =>
