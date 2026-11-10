@@ -65,7 +65,7 @@ begin
   values
     (v_home_team,v_season,'Report Home','ci-report-home','approved',now(),v_admin),
     (v_away_team,v_season,'Report Away','ci-report-away','approved',now(),v_admin)
-  returning id into v_home_season_team;
+  ;
   select id into v_home_season_team from public.season_teams where slug='ci-report-home';
   select id into v_away_season_team from public.season_teams where slug='ci-report-away';
 
@@ -171,7 +171,10 @@ begin
   if not v_rejected then raise exception 'Initial referee report was accepted after the 24-hour deadline'; end if;
 
   -- Rejected report resubmission remains allowed even though its gameweek is no longer latest.
+  execute 'reset role';
   update public.players set disciplinary_strikes=2,disciplinary_inactive=false where user_id=v_home_user;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_referee::text,true);
   v_report_one:=public.submit_referee_match_report(
     v_fixture_one,1,0,'{}'::uuid[],'{}'::uuid[],array[v_home_identity],'{}'::uuid[],v_events,
     'Corrected match report after administrator feedback.'
@@ -233,7 +236,7 @@ begin
   end if;
   execute 'reset role';
 
-  if (select count(*) from public.referee_match_report_history where report_id=v_report_one)<>2 then
+  if (select count(*) from public.referee_match_report_history where report_id=v_report_one)<>3 then
     raise exception 'Rejection and resubmission history was not preserved';
   end if;
 end;
