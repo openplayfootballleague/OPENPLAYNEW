@@ -219,6 +219,10 @@ begin
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_admin::text,'role','authenticated')::text,true);
+  select count(*) into v_count
+  from jsonb_array_elements(public.admin_get_message_target_options()->'teams') as targets(item)
+  where targets.item->>'id'=v_season_team_one::text;
+  if v_count<>1 then raise exception 'Admin target options did not return the permitted team'; end if;
   v_broadcast:=public.admin_create_message_broadcast(
     'Team-only update','A message for the active team only','team',v_season_team_one
   );
@@ -229,6 +233,15 @@ begin
     select 1 from public.message_conversation_participants
     where conversation_id=v_broadcast and user_id=v_player_c
   ) then raise exception 'Team-targeted admin broadcast recipients are incorrect'; end if;
+  if not exists (
+    select 1 from public.message_conversation_participants
+    where conversation_id=v_broadcast and user_id=v_admin
+  ) then raise exception 'Broadcast creator was not enrolled in the broadcast conversation'; end if;
+  if not exists (
+    select 1 from public.notification_events
+    where user_id=v_player_a and channel='in_app' and event_type='message.new'
+      and payload->>'conversation_id'=v_broadcast::text
+  ) then raise exception 'Admin broadcast did not enqueue an in-app message notification'; end if;
   select count(*) into v_count from public.admin_get_message_reports('open',50)
   where report_id=v_report;
   if v_count<>1 then raise exception 'Administrator could not review the message report'; end if;
