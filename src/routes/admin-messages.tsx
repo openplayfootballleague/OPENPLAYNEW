@@ -13,6 +13,8 @@ type Setup = {
   teams?: TeamOption[];
   players?: PlayerOption[];
 };
+type MessagingRpcClient = { rpc: (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> };
+const messagingRpc = () => getSupabaseClient() as unknown as MessagingRpcClient;
 type MessageReport = {
   report_id: string;
   message_id: string | null;
@@ -49,8 +51,8 @@ function AdminMessagesPage() {
     const supabase = getSupabaseClient();
     const [{ data: preference, error: preferenceError }, { data: setupData, error: setupError }, { data: reportData, error: reportError }] = await Promise.all([
       supabase.rpc("get_admin_context_preference"),
-      supabase.rpc("admin_get_message_target_options"),
-      supabase.rpc("admin_get_message_reports", { p_status: "open", p_limit: 100 }),
+      messagingRpc().rpc("admin_get_message_target_options"),
+      messagingRpc().rpc("admin_get_message_reports", { p_status: "open", p_limit: 100 }),
     ]);
     if (preferenceError || setupError || reportError) {
       setError(preferenceError?.message ?? setupError?.message ?? reportError?.message ?? "Unable to load messaging administration.");
@@ -92,7 +94,7 @@ function AdminMessagesPage() {
       return;
     }
     setBusy(true); setError(""); setNotice("");
-    const { error: rpcError } = await getSupabaseClient().rpc("admin_create_message_broadcast", {
+    const { error: rpcError } = await messagingRpc().rpc("admin_create_message_broadcast", {
       p_title: title.trim(),
       p_body: body.trim(),
       p_target_type: targetType,
@@ -114,7 +116,7 @@ function AdminMessagesPage() {
       return;
     }
     setBusy(true); setError(""); setNotice("");
-    const { error: rpcError } = await getSupabaseClient().rpc("admin_resolve_message_report", {
+    const { error: rpcError } = await messagingRpc().rpc("admin_resolve_message_report", {
       p_report_id: reportId,
       p_action: action,
       p_reason: reason,
