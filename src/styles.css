@@ -1342,3 +1342,6 @@ a { color: inherit; text-decoration: none; }
   .messaging-message { width:100%; }
   .messaging-moderation-actions { flex-direction:column; }
 }
+
+.messaging-load-older { align-self:center; padding:8px 12px; border:1px solid #cfcec5; background:#fffefa; color:#686960; font-size:8px; font-weight:850; letter-spacing:.08em; cursor:pointer; }
+.messaging-load-older:disabled { opacity:.55; cursor:wait; }
