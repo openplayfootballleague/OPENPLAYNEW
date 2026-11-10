@@ -229,6 +229,16 @@ begin
     raise exception 'Administrative report incorrectly generated a referee payout';
   end if;
 
+  -- A player made inactive by the third strike cannot be added to another team sheet.
+  v_rejected:=false;
+  begin
+    insert into public.fixture_team_sheet_players(team_sheet_id,user_id,competition_player_id,role,is_goalkeeper,did_appear)
+    values(v_away_sheet_two,v_home_user,v_home_identity,'substitute',false,false);
+  exception when others then
+    v_rejected:=true;
+  end;
+  if not v_rejected then raise exception 'A disciplinarily inactive player was added to a team sheet'; end if;
+
   -- Reactivation is audited and does not erase the permanent strike record.
   perform public.admin_reactivate_disciplined_player(v_home_identity,'Administrator reviewed and approved reactivation');
   if not exists(select 1 from public.players where user_id=v_home_user and disciplinary_strikes=3 and disciplinary_inactive=false) then
