@@ -136,12 +136,23 @@ Deno.serve(async(req)=>{
       if(!error)refundsSucceeded++;
     }else if(stripeResponse.ok&&(result.status==="pending"||result.status==="requires_action")){
       refundsPending++;
-    }else if(!stripeResponse.ok&&stripeResponse.status>=400&&stripeResponse.status<500){
-      await admin.rpc("record_team_fixture_payment_refund_result",{
-        p_refund_id:refund.id,p_succeeded:false,p_failure_reason:String((result.error as Record<string,unknown>|undefined)?.message??"Stripe rejected the refund"),
+    }else if(stripeResponse.ok&&(result.status==="failed"||result.status==="canceled")){
+      const {error}=await admin.rpc("record_team_fixture_payment_refund_result",{
+        p_refund_id:refund.id,p_succeeded:false,
+        p_failure_reason:String((result.failure_reason as string|undefined)??"Stripe confirmed that the refund failed"),
       });
-      refundsFailed++;
+      if(!error)refundsFailed++;
+      else refundsPending++;
+    }else if(!stripeResponse.ok&&[400,402,404,422].includes(stripeResponse.status)){
+      const {error}=await admin.rpc("record_team_fixture_payment_refund_result",{
+        p_refund_id:refund.id,p_succeeded:false,
+        p_failure_reason:String((result.error as Record<string,unknown>|undefined)?.message??"Stripe rejected the refund"),
+      });
+      if(!error)refundsFailed++;
+      else refundsPending++;
     }else{
+      // Rate limits, authentication/configuration errors and server/network
+      // failures are not proof that the refund failed. Keep them reconcilable.
       refundsPending++;
     }
   }
