@@ -218,7 +218,7 @@ begin
   if not exists(select 1 from public.players where user_id=v_home_user and disciplinary_strikes=3 and disciplinary_inactive=true) then
     raise exception 'Third straight-red strike did not make the player inactive';
   end if;
-  if (select count(*) from public.referee_report_payouts where report_id=v_report_one and amount_pence=2200 and status='pending_connect')<>1 then
+  if (select count(*) from public.referee_report_payouts where report_id=v_report_one and gross_allocation_pence=2200 and referee_net_pence>=2000 and status='pending_connect')<>1 then
     raise exception 'Approved referee report did not create exactly one £22 payout obligation';
   end if;
 
