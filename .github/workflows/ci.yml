@@ -64,6 +64,7 @@ jobs:
         run: |
           migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_application_workflow.sql' -print -quit)"
           if [ -z "$migration_file" ]; then
+            sleep 1
             supabase migration new referee_application_workflow < supabase/drafts/referee_application_workflow.sql
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_application_workflow.sql' -print -quit)"
           else
@@ -75,6 +76,7 @@ jobs:
         run: |
           migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_fixture_assignments.sql' -print -quit)"
           if [ -z "$migration_file" ]; then
+            sleep 1
             supabase migration new referee_fixture_assignments < supabase/drafts/referee_fixture_assignments.sql
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_fixture_assignments.sql' -print -quit)"
           else
@@ -86,6 +88,7 @@ jobs:
         run: |
           migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_match_reports.sql' -print -quit)"
           if [ -z "$migration_file" ]; then
+            sleep 1
             supabase migration new referee_match_reports < supabase/drafts/referee_match_reports.sql
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_match_reports.sql' -print -quit)"
           else
@@ -97,6 +100,7 @@ jobs:
         run: |
           migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_corrections.sql' -print -quit)"
           if [ -z "$migration_file" ]; then
+            sleep 1
             supabase migration new referee_approved_report_corrections < supabase/drafts/referee_approved_report_corrections.sql
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_corrections.sql' -print -quit)"
           else
@@ -108,6 +112,7 @@ jobs:
         run: |
           migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_team_weekly_payment_workflow.sql' -print -quit)"
           if [ -z "$migration_file" ]; then
+            sleep 1
             supabase migration new team_weekly_payment_workflow < supabase/drafts/team_weekly_payment_workflow.sql
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_team_weekly_payment_workflow.sql' -print -quit)"
           else
@@ -128,6 +133,7 @@ jobs:
         run: |
           migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponement.sql' -print -quit)"
           if [ -z "$migration_file" ]; then
+            sleep 1
             supabase migration new weather_gameweek_postponement < supabase/drafts/weather_gameweek_postponement.sql
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponement.sql' -print -quit)"
           else
@@ -148,6 +154,7 @@ jobs:
         run: |
           migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_correction_options.sql' -print -quit)"
           if [ -z "$migration_file" ]; then
+            sleep 1
             supabase migration new referee_approved_report_correction_options < supabase/drafts/referee_approved_report_correction_options.sql
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_correction_options.sql' -print -quit)"
           else
