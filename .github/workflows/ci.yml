@@ -91,8 +91,8 @@ jobs:
             supabase/migrations/*_referee_fixture_assignments.sql
           if-no-files-found: error
           retention-days: 1
-      - name: Replay every migration against a clean local database
-        run: supabase db reset --local --no-seed
+      # The hosted-order verifier performs the one clean reset and then applies
+      # pending migrations; avoid restarting the local Docker stack twice.
       - name: Verify pending migrations after the applied hosted baseline
         run: node scripts/verify-hosted-migration-order.mjs
       - name: Set up Node.js for Auth lifecycle integration
