@@ -57,6 +57,7 @@ begin
     'referee_get_active_locations()',
     'referee_get_match_report(uuid)',
     'referee_get_payment_entitlements()',
+    'referee_get_career_summary()',
     'admin_list_referee_applications(text)',
     'admin_list_active_referees(uuid)',
     'admin_list_referee_availability(uuid)',
@@ -156,6 +157,12 @@ begin
   select pg_get_functiondef('public.referee_get_assigned_fixtures()'::regprocedure) into v_definition;
   if position('is_referee_reporting_enabled' in v_definition)=0 then
     raise exception 'Referee fixture access must respect the global feature flag';
+  end if;
+  select pg_get_functiondef('public.referee_get_career_summary()'::regprocedure) into v_definition;
+  if position('is_active_referee' in v_definition)=0
+    or position('Open Play Ambassador' in v_definition)=0
+    or position('lifetime_games' in v_definition)=0 then
+    raise exception 'Referee career summary must be membership-scoped and calculate permanent milestones';
   end if;
   select pg_get_functiondef('public.referee_save_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean,boolean)'::regprocedure) into v_definition;
   if position('v_is_referee and not public.is_referee_reporting_enabled()' in v_definition)=0 then
