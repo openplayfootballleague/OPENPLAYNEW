@@ -128,6 +128,10 @@ begin
   if position('is_referee_reporting_enabled' in v_definition)=0 then
     raise exception 'Referee fixture access must respect the global feature flag';
   end if;
+  select pg_get_functiondef('public.referee_save_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean,boolean)'::regprocedure) into v_definition;
+  if position('v_is_referee and not public.is_referee_reporting_enabled()' in v_definition)=0 then
+    raise exception 'Referee report submission must respect the global feature flag';
+  end if;
 
   if not exists (
     select 1 from pg_constraint where conrelid='public.referee_payment_entitlements'::regclass
