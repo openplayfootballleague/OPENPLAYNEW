@@ -46,7 +46,11 @@ begin
   if not found
      or v_policy.cmd <> 'SELECT'
      or v_policy.roles <> array['authenticated']::name[]
-     or pg_catalog.strpos(lower(v_policy.qual), 'has_global_admin_role') = 0 then
+      or pg_catalog.strpos(lower(v_policy.qual), 'user_roles') = 0
+      or pg_catalog.strpos(lower(v_policy.qual), '''admin''') = 0
+      or pg_catalog.strpos(lower(v_policy.qual), '''super_admin''') = 0
+      or pg_catalog.strpos(lower(v_policy.qual), 'league_admin') > 0
+      or pg_catalog.strpos(lower(v_policy.qual), 'finance_admin') > 0 then
     raise exception 'Identity-review SELECT policy must be limited to global administrators';
   end if;
 
