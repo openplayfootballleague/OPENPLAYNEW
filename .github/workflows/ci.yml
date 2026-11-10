@@ -283,6 +283,9 @@ jobs:
         run: npm install --no-save --package-lock=false @playwright/test@1.55.0
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
+      - name: Use the browser runner's supported local workerd compatibility date
+        run: |
+          node -e "const fs=require('node:fs');const config=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8'));config.compatibility_date='2026-09-18';fs.writeFileSync('wrangler.jsonc',JSON.stringify(config,null,2)+'\\n');"
       - name: Build production application with isolated Supabase test endpoint
         env:
           VITE_SUPABASE_URL: http://127.0.0.1:54321
