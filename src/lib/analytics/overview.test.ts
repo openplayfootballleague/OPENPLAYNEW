@@ -25,8 +25,8 @@ const setup: AnalyticsSetup = {
     { id: "team-b", season_id: "season-b", name: "B team", registration_status: "approved", member_count: 5 },
   ],
   fixtures: [
-    { id: "fixture-a", season_id: "season-a", gameweek: 1, status: "completed", home_score: 3, away_score: 2 },
-    { id: "fixture-b", season_id: "season-b", gameweek: 1, status: "scheduled", home_score: null, away_score: null },
+    { id: "fixture-a", season_id: "season-a", gameweek: 1, status: "completed", home_score: 3, away_score: 2, scheduled_at: "2026-10-01T20:00:00Z" },
+    { id: "fixture-b", season_id: "season-b", gameweek: 1, status: "scheduled", home_score: null, away_score: null, scheduled_at: "2026-10-08T20:00:00Z" },
   ],
 };
 
