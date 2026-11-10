@@ -6,7 +6,6 @@ import { getSupabaseClient } from "../../lib/supabase/client";
 
 type ContextPreference = { location_id: string | null; league_id: string | null; season_id: string | null; is_global_admin: boolean };
 type Dashboard = { counts: AnalyticsDashboardCounts };
-type Fixture = { id: string; season_id: string; gameweek: number; status: string; home_score: number | null; away_score: number | null; scheduled_at: string | null; home_team_name: string; away_team_name: string };
 type SeasonStats = {
   season: { id: string; name: string; status: string; is_public: boolean };
   summary: { fixtures: number; published_results: number; goals: number; goals_per_match: number; home_wins: number; away_wins: number; draws: number; team_clean_sheets: number };
@@ -35,10 +34,9 @@ function AdminAnalyticsPage() {
   const [contextSaving, setContextSaving] = useState(false);
   const [setup, setSetup] = useState<AnalyticsSetup>({ locations: [], leagues: [], seasons: [], season_teams: [], fixtures: [] });
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
-  const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [seasonStats, setSeasonStats] = useState<SeasonStats | null>(null);
   const [seasonError, setSeasonError] = useState("");
-  const [seasonTrendSnapshots, setSeasonTrendSnapshots] = useState<SeasonStatsSnapshot[]>([]);
+  const [seasonAnalyticsSnapshots, setSeasonTrendSnapshots] = useState<SeasonStatsSnapshot[]>([]);
   const [seasonTrendError, setSeasonTrendError] = useState("");
   const [financeAccess, setFinanceAccess] = useState(false);
   const [financeError, setFinanceError] = useState("");
@@ -52,6 +50,7 @@ function AdminAnalyticsPage() {
   }, [authStatus, navigate]);
 
   const trendSeasonDefinitions = useMemo(() => {
+    if (!locationId && !leagueId && setup.locations.length > 1) return [];
     const locationByLeague = new Map(setup.leagues.map((league) => [league.id, league.location_id]));
     return setup.seasons
       .filter((season) => {
@@ -61,6 +60,23 @@ function AdminAnalyticsPage() {
       .sort((a, b) => (a.starts_on ?? "").localeCompare(b.starts_on ?? ""))
       .slice(-6);
   }, [leagueId, locationId, setup]);
+
+  const comparisonSeasonDefinitions = useMemo(() => {
+    const locationByLeague = new Map(setup.leagues.map((league) => [league.id, league.location_id]));
+    const grouped = new Map<string, AnalyticsSetup["seasons"]>();
+    for (const season of setup.seasons) {
+      if (leagueId && season.league_id !== leagueId) continue;
+      if (seasonId && season.id !== seasonId) continue;
+      const seasonLocationId = season.location_id ?? locationByLeague.get(season.league_id);
+      if (!seasonLocationId) continue;
+      const group = grouped.get(seasonLocationId) ?? [];
+      group.push(season);
+      grouped.set(seasonLocationId, group);
+    }
+    return [...grouped.values()].flatMap((seasons) =>
+      [...seasons].sort((a, b) => (a.starts_on ?? "").localeCompare(b.starts_on ?? "")).slice(-6),
+    );
+  }, [leagueId, seasonId, setup]);
 
   useEffect(() => {
     if (authStatus !== "authenticated") return;
@@ -128,19 +144,13 @@ function AdminAnalyticsPage() {
         p_league_id: leagueId || undefined,
         p_season_id: seasonId || undefined,
       };
-      const [dashboardResult, fixtureResult] = await Promise.all([
-        getSupabaseClient().rpc("get_admin_dashboard_contextual", args),
-        getSupabaseClient().rpc("get_admin_contextual_fixtures", args),
-      ]);
-      if (dashboardResult.error || fixtureResult.error) {
-        throw new Error(dashboardResult.error?.message ?? fixtureResult.error?.message ?? "Unable to load analytics data.");
-      }
-      setDashboard(dashboardResult.data as Dashboard);
-      setFixtures((fixtureResult.data ?? []) as Fixture[]);
+      const { data: dashboardData, error: dashboardError } = await getSupabaseClient().rpc("get_admin_dashboard_contextual", args);
+      if (dashboardError) throw dashboardError;
+      setDashboard(dashboardData as Dashboard);
 
-      const trendSeasons = trendSeasonDefinitions;
       const requestedSeasonIds = [...new Set([
-        ...trendSeasons.map((season) => season.id),
+        ...trendSeasonDefinitions.map((season) => season.id),
+        ...comparisonSeasonDefinitions.map((season) => season.id),
         ...(seasonId ? [seasonId] : []),
       ])];
       const trendResults = await Promise.all(requestedSeasonIds.map(async (requestedSeasonId) => {
@@ -193,11 +203,10 @@ function AdminAnalyticsPage() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to load analytics workspace.");
       setDashboard(null);
-      setFixtures([]);
     } finally {
       setLoading(false);
     }
-  }, [authStatus, contextReady, leagueId, locationId, seasonId, trendSeasonDefinitions]);
+  }, [authStatus, comparisonSeasonDefinitions, contextReady, leagueId, locationId, seasonId, trendSeasonDefinitions]);
 
   useEffect(() => {
     if (contextReady) void loadContextData();
@@ -205,11 +214,11 @@ function AdminAnalyticsPage() {
 
   const filters: AnalyticsFilters = { locationId, leagueId, seasonId };
   const overview = useMemo(() => dashboard
-    ? buildAnalyticsOverview(setup, dashboard.counts, fixtures, filters)
-    : null, [dashboard, fixtures, leagueId, locationId, seasonId, setup]);
+    ? buildAnalyticsOverview(setup, dashboard.counts, seasonAnalyticsSnapshots, filters)
+    : null, [dashboard, leagueId, locationId, seasonAnalyticsSnapshots, seasonId, setup]);
   const locationComparisons = useMemo(
-    () => buildLocationComparisons(setup, { leagueId, seasonId }),
-    [leagueId, seasonId, setup],
+    () => buildLocationComparisons(setup, { leagueId, seasonId }, seasonAnalyticsSnapshots),
+    [leagueId, seasonAnalyticsSnapshots, seasonId, setup],
   );
   const financeTotals = useMemo(() => aggregateFinanceTotals(financeRows), [financeRows]);
   const seasonTrends = useMemo(
@@ -365,7 +374,7 @@ function AdminAnalyticsPage() {
       </> : tab === "usage" ? <div className="analytics-state"><h2>App usage</h2><p>Page views, sessions, device/browser distribution and navigation trends will appear after consented analytics ingestion is approved and enabled.</p><p className="analytics-state-label">No user-activity figures are being fabricated or inferred from page loads.</p></div> : tab === "growth" ? <>
         <h2>Competition participation growth</h2>
         {seasonTrendError && <p className="form-note" role="status">{seasonTrendError}</p>}
-        {seasonTrends.length === 0 ? <p className="form-note">No season statistics are available for this location and league yet.</p> : <>
+        {!canCompareSeasonTrends ? <p className="form-note">Choose a location or league above to compare seasons without mixing participation across locations.</p> : seasonTrends.length === 0 ? <p className="form-note">No season statistics are available for this location and league yet.</p> : <>
           <div className="analytics-table-wrap"><table><thead><tr><th>Season</th><th>Approved teams</th><th>Players with appearances</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{seasonTrends.map((trend) => <tr key={trend.seasonId}><td>{trend.seasonName}</td><td>{trend.approvedTeams}</td><td>{trend.playersWithAppearances}</td><td>{trend.fixtures}</td><td>{trend.publishedResults}</td><td>{trend.goals}</td></tr>)}</tbody></table></div>
           <div className="analytics-bars">{seasonTrends.map((trend) => {
             const max = Math.max(1, ...seasonTrends.map((item) => item.playersWithAppearances));
@@ -388,7 +397,7 @@ function AdminAnalyticsPage() {
       </> : tab === "engagement" ? <>
         <h2>Competition engagement &amp; return rate</h2>
         {seasonTrendError && <p className="form-note" role="status">{seasonTrendError}</p>}
-        {seasonTrends.length === 0 ? <p className="form-note">No verified appearance history is available for this context yet.</p> : <>
+        {!canCompareSeasonTrends ? <p className="form-note">Choose a location or league above to compare returning players within the same competition context.</p> : seasonTrends.length === 0 ? <p className="form-note">No verified appearance history is available for this context yet.</p> : <>
           <div className="analytics-stat-grid">
             <article><span>Latest season players</span><strong>{latestTrend?.playersWithAppearances ?? 0}</strong></article>
             <article><span>Returning players</span><strong>{latestTrend?.returningPlayers ?? "—"}</strong></article>
@@ -414,7 +423,7 @@ function AdminAnalyticsPage() {
       </> : tab === "locations" ? <>
         <h2>Location comparison</h2>
         <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.publishedResults}</td><td>{row.goals}</td></tr>)}</tbody></table></div>
-        <p className="form-note">Location rows are limited to the locations returned by your administrator-scoped setup RPC. Squad memberships count current approved-team memberships, not unique people across multiple seasons.</p>
+        <p className="form-note">Location rows are limited to the locations returned by your administrator-scoped setup RPC. Results and goals come from confirmed season-statistics RPCs; each row includes up to the latest six seasons matching the league/season filter. Squad memberships count current approved-team memberships, not unique people across multiple seasons.</p>
       </> : tab === "business" ? <>
         {!financeAccess ? <div className="analytics-state"><h2>Finance reporting restricted</h2><p>{financeError || "This section is available to authorised finance administrators."}</p><Link className="admin-inline-action" to="/finance">OPEN FINANCE LEDGER ↗</Link></div> : financeError ? <p className="form-error" role="alert">{financeError}</p> : <>
           <h2>Business performance · verified ledger</h2>
@@ -449,7 +458,7 @@ function AdminAnalyticsPage() {
       {financeAccess && !financeError && <p>Ledger charges: {money(financeTotals.chargesPence)} · Payments: {money(financeTotals.paymentsPence)} · Refunds: {money(financeTotals.refundsPence)} · Credits: {money(financeTotals.creditsPence)} · Fines: {money(financeTotals.finesPence)} · Outstanding: {money(financeTotals.outstandingPence)}</p>}
       <p>Generated {new Date().toLocaleString("en-GB")}. Aggregate operational data only; no player personal details included.</p>
     </section>
-    <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs. Reporting window: selected season or all seasons in the accessible context. Date-range cohort reporting and consented app-usage metrics remain gated on the analytics release review.</p>
+    <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs. Season-based comparisons include up to the latest six seasons per accessible location. Date-range cohorts and consented app-usage metrics remain gated on the analytics release review.</p>
     <Link className="auth-switch" to="/admin">← BACK TO ADMIN DASHBOARD</Link>
   </section></main>;
 }
