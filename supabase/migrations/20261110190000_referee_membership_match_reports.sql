@@ -614,7 +614,10 @@ begin
   end if;
   if p_completed_at is null or p_completed_at>now() then raise exception 'A valid match completion time is required'; end if;
   select * into v_fixture from public.fixtures f where f.id=p_fixture_id for update;
-  if not found or v_fixture.status not in ('scheduled','in_progress') then raise exception 'Fixture is not available for referee reporting'; end if;
+  if not found then raise exception 'Fixture not found'; end if;
+  if (v_is_referee and v_fixture.status not in ('scheduled','in_progress')) or (not v_is_referee and v_fixture.status not in ('scheduled','in_progress','completed')) then
+    raise exception 'Fixture is not available for report entry';
+  end if;
   if v_fixture.scheduled_at is null or p_completed_at<v_fixture.scheduled_at then raise exception 'Match completion cannot be before scheduled kick-off'; end if;
   if v_is_referee then
     if now()>p_completed_at+interval '24 hours' then raise exception 'The referee report deadline has expired; an administrator must complete this report'; end if;
@@ -814,7 +817,7 @@ as $$
 declare
   v_actor uuid:=auth.uid(); v_report public.referee_match_reports; v_fixture public.fixtures;
   v_location uuid; v_home_count integer; v_away_count integer; v_goal record; v_incident record;
-  v_user_id uuid; v_entitlement_id uuid; v_before jsonb;
+  v_user_id uuid; v_entitlement_id uuid; v_before jsonb; v_existing_result public.fixture_results;
 begin
   if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
   if p_decision is null or p_decision not in ('approve','return','reject') then raise exception 'Invalid report decision'; end if;
@@ -846,34 +849,43 @@ begin
     if v_home_count<>v_report.home_score or v_away_count<>v_report.away_score then
       raise exception 'Report score does not reconcile to its goal entries';
     end if;
-    if exists(select 1 from public.fixture_results fr where fr.fixture_id=v_fixture.id and fr.confirmed_at is not null) then
-      raise exception 'This fixture already has a published result; use the audited admin correction workflow';
-    end if;
-    insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
-    values(v_fixture.id,v_report.home_score,v_report.away_score,now(),v_actor)
-    on conflict(fixture_id) do update set home_score=excluded.home_score,away_score=excluded.away_score,
-      confirmed_at=excluded.confirmed_at,confirmed_by=excluded.confirmed_by,updated_at=now();
-    update public.fixtures set status='completed',updated_at=now() where id=v_fixture.id;
-    -- Preserve any unconfirmed legacy goal rows as voided history before
-    -- making this approved report the sole active goalscorer source.
-    update public.fixture_goal_records
-    set voided_at=now(),voided_by=v_actor,void_reason='Superseded by approved referee report'
-    where fixture_id=v_fixture.id and voided_at is null;
+    select * into v_existing_result from public.fixture_results fr
+    where fr.fixture_id=v_fixture.id for update;
+    if found and v_existing_result.confirmed_at is not null then
+      if v_existing_result.home_score<>v_report.home_score or v_existing_result.away_score<>v_report.away_score then
+        raise exception 'Published result score differs from referee report; use the audited admin correction workflow';
+      end if;
+      -- A previously published result and its active goal records remain authoritative.
+      -- The referee report adds the missing official report/fines/entitlement without
+      -- silently replacing a result already published through the admin workflow.
+      update public.fixtures set status='completed',updated_at=now() where id=v_fixture.id;
+    else
+      insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
+      values(v_fixture.id,v_report.home_score,v_report.away_score,now(),v_actor)
+      on conflict(fixture_id) do update set home_score=excluded.home_score,away_score=excluded.away_score,
+        confirmed_at=excluded.confirmed_at,confirmed_by=excluded.confirmed_by,updated_at=now();
+      update public.fixtures set status='completed',updated_at=now() where id=v_fixture.id;
+      -- Preserve unconfirmed legacy goal rows as voided history before publishing
+      -- the approved report as the active goalscorer source.
+      update public.fixture_goal_records
+      set voided_at=now(),voided_by=v_actor,void_reason='Superseded by approved referee report'
+      where fixture_id=v_fixture.id and voided_at is null;
 
-    for v_goal in
-      select g.* from public.referee_match_report_goals g
-      where g.report_id=p_report_id and g.is_own_goal is false and g.is_unattributed is false
-    loop
-      select tsp.user_id into v_user_id
-      from public.fixture_team_sheets sh
-      join public.fixture_team_sheet_players tsp on tsp.team_sheet_id=sh.id
-      where sh.fixture_id=v_fixture.id and sh.season_team_id=v_goal.credited_team_id
-        and tsp.competition_player_id=v_goal.scorer_competition_player_id
-      limit 1;
-      insert into public.fixture_goal_records(
-        fixture_id,season_team_id,scorer_user_id,competition_player_id,created_by
-      ) values(v_fixture.id,v_goal.credited_team_id,v_user_id,v_goal.scorer_competition_player_id,v_actor);
-    end loop;
+      for v_goal in
+        select g.* from public.referee_match_report_goals g
+        where g.report_id=p_report_id and g.is_own_goal is false and g.is_unattributed is false
+      loop
+        select tsp.user_id into v_user_id
+        from public.fixture_team_sheets sh
+        join public.fixture_team_sheet_players tsp on tsp.team_sheet_id=sh.id
+        where sh.fixture_id=v_fixture.id and sh.season_team_id=v_goal.credited_team_id
+          and tsp.competition_player_id=v_goal.scorer_competition_player_id
+        limit 1;
+        insert into public.fixture_goal_records(
+          fixture_id,season_team_id,scorer_user_id,competition_player_id,created_by
+        ) values(v_fixture.id,v_goal.credited_team_id,v_user_id,v_goal.scorer_competition_player_id,v_actor);
+      end loop;
+    end if;
     for v_incident in
       select i.* from public.referee_match_report_incidents i
       where i.report_id=p_report_id and i.finance_entry_id is null
