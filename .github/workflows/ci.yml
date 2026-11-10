@@ -64,11 +64,24 @@ jobs:
           fi
           test -n "$migration_file"
           printf '%s\n' "$migration_file"
-      - name: Preserve CLI-generated referee migration for review
+      - name: Generate referee fixture assignment migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_fixture_assignments.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new referee_fixture_assignments < supabase/drafts/referee_fixture_assignments.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_fixture_assignments.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_fixture_assignments.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\\n' "$migration_file"
+      - name: Preserve CLI-generated referee migrations for review
         uses: actions/upload-artifact@v4
         with:
-          name: referee-application-migration
-          path: supabase/migrations/*_referee_application_workflow.sql
+          name: referee-phase1-migrations
+          path: |
+            supabase/migrations/*_referee_application_workflow.sql
+            supabase/migrations/*_referee_fixture_assignments.sql
           if-no-files-found: error
           retention-days: 1
       - name: Replay every migration against a clean local database
@@ -129,6 +142,10 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_application_workflow.sql
+      - name: Verify referee fixture allocation, availability, authorization and cancellation
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_fixture_assignments.sql
 
       - name: Verify age tiers and guardian consent lifecycle
         env:
