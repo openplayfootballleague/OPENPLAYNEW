@@ -416,3 +416,37 @@ begin
   end if;
 end;
 $referee_match_reports$;
+
+-- Location-scoped disciplinary return queue uses the existing players/event ledger.
+do $disciplinary_return_queue$
+declare
+  v_definition text;
+begin
+  if not has_function_privilege('authenticated','public.admin_list_disciplinary_suspensions(uuid)','execute')
+     or has_function_privilege('anon','public.admin_list_disciplinary_suspensions(uuid)','execute') then
+    raise exception 'Disciplinary return queue grants are incorrect';
+  end if;
+  select pg_get_functiondef('public.admin_list_disciplinary_suspensions(uuid)'::regprocedure)
+    into v_definition;
+  if position('has_platform_role' in v_definition)=0
+     or position('can_administer_location' in v_definition)=0
+     or position('referee_disciplinary_events' in v_definition)=0
+     or position('disciplinary_inactive' in v_definition)=0 then
+    raise exception 'Disciplinary return queue must be platform-role and location scoped over approved events';
+  end if;
+
+  if not has_function_privilege('authenticated','public.admin_reactivate_disciplined_player(uuid,text)','execute')
+     or has_function_privilege('anon','public.admin_reactivate_disciplined_player(uuid,text)','execute') then
+    raise exception 'Disciplinary reactivation grants are incorrect';
+  end if;
+  select pg_get_functiondef('public.admin_reactivate_disciplined_player(uuid,text)'::regprocedure)
+    into v_definition;
+  if position('referee_disciplinary_events' in v_definition)=0
+     or position('can_administer_location' in v_definition)=0
+     or position('disciplinary_inactive' in v_definition)=0
+     or position('enqueue_notification_event' in v_definition)=0
+     or position('length(btrim(coalesce(p_reason' in v_definition)=0 then
+    raise exception 'Disciplinary reactivation must use historical location scope, preserve strike history, audit and notify';
+  end if;
+end;
+$disciplinary_return_queue$;
