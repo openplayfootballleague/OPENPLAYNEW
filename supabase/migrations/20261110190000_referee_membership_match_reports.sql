@@ -945,6 +945,68 @@ $payments$;
 revoke all on function public.referee_get_payment_entitlements() from public,anon;
 grant execute on function public.referee_get_payment_entitlements() to authenticated;
 
+
+create or replace function public.admin_list_active_referees(p_location_id uuid default null)
+returns table(referee_user_id uuid,referee_name text,approved_at timestamptz,availability_slots integer)
+language plpgsql stable security definer set search_path = ''
+as $active_referees$
+begin
+  if auth.uid() is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
+  if p_location_id is not null and not public.can_administer_location(p_location_id) then
+    raise exception 'You are not assigned to this location';
+  end if;
+  return query
+  select rm.user_id,coalesce(pr.display_name,nullif(btrim(pr.first_name||' '||pr.last_name),''),'Referee'),
+    rm.approved_at,
+    (select count(*)::integer from public.referee_availability av
+      where av.referee_user_id=rm.user_id and av.available_on>=current_date
+        and (p_location_id is null or av.location_id=p_location_id))
+  from public.referee_memberships rm
+  join public.referee_applications ra on ra.id=rm.application_id
+  join public.profiles pr on pr.id=rm.user_id
+  where rm.status='active'
+    and (
+      public.has_global_admin_role()
+      or exists(
+        select 1 from unnest(ra.preferred_location_ids) loc_id
+        where (p_location_id is null or loc_id=p_location_id)
+          and public.can_administer_location(loc_id)
+      )
+    )
+  order by pr.display_name nulls last,rm.approved_at;
+end;
+$active_referees$;
+revoke all on function public.admin_list_active_referees(uuid) from public,anon;
+grant execute on function public.admin_list_active_referees(uuid) to authenticated;
+
+create or replace function public.admin_list_referee_availability(p_location_id uuid default null)
+returns table(
+  referee_user_id uuid,referee_name text,available_on date,starts_at time,ends_at time,
+  location_id uuid,location_name text,note text
+)
+language plpgsql stable security definer set search_path = ''
+as $referee_availability$
+begin
+  if auth.uid() is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
+  if p_location_id is not null and not public.can_administer_location(p_location_id) then
+    raise exception 'You are not assigned to this location';
+  end if;
+  return query
+  select av.referee_user_id,coalesce(pr.display_name,nullif(btrim(pr.first_name||' '||pr.last_name),''),'Referee'),
+    av.available_on,av.starts_at,av.ends_at,av.location_id,l.name,av.note
+  from public.referee_availability av
+  join public.referee_memberships rm on rm.user_id=av.referee_user_id and rm.status='active'
+  join public.profiles pr on pr.id=av.referee_user_id
+  join public.locations l on l.id=av.location_id
+  where av.available_on>=current_date
+    and (p_location_id is null or av.location_id=p_location_id)
+    and public.can_administer_location(av.location_id)
+  order by av.available_on,av.starts_at,pr.display_name;
+end;
+$referee_availability$;
+revoke all on function public.admin_list_referee_availability(uuid) from public,anon;
+grant execute on function public.admin_list_referee_availability(uuid) to authenticated;
+
 comment on table public.referee_applications is
   'Referee applications are separate from platform user_roles; approval is required before referee membership and portal access.';
 comment on table public.fixture_referee_assignments is
