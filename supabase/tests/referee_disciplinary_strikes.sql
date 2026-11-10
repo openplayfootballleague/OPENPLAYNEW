@@ -35,6 +35,9 @@ begin
     raise exception 'Disciplinary suspension queue must be role- and location-scoped';
   end if;
   select pg_get_functiondef('public.admin_review_player_disciplinary_return(uuid,text)'::regprocedure) into v_definition;
+  if position('enqueue_notification_event' in v_definition)=0 then
+    raise exception 'Approved disciplinary return must notify the affected player account';
+  end if;
   if position('has_platform_role' in v_definition)=0
     or position('can_administer_location' in v_definition)=0
     or position('length(btrim(p_reason))<5' in v_definition)=0 then
