@@ -264,3 +264,39 @@ jobs:
       - name: Stop local Supabase database
         if: always()
         run: supabase stop --no-backup
+
+  browser-acceptance:
+    name: Chromium responsive and PWA acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked application dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install isolated Playwright test runner
+        run: npm install --no-save --package-lock=false @playwright/test@1.55.0
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build production application with isolated Supabase test endpoint
+        env:
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_PUBLISHABLE_KEY: playwright-public-test-key
+        run: npm run build
+      - name: Run responsive route, manifest and offline PWA acceptance
+        env:
+          CI: "true"
+        run: npx playwright test --config=playwright.config.ts
+      - name: Upload browser traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openplay-browser-acceptance-traces
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
