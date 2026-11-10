@@ -499,3 +499,209 @@ grant execute on function public.admin_postpone_gameweek(uuid,timestamptz,text) 
 create trigger season_gameweeks_set_updated_at
 before update on public.season_gameweeks
 for each row execute function public.set_updated_at();
+
+-- The unique strike key is now fixture/team rather than payment cycle. Use an
+-- untargeted conflict clause so a rescheduled late payment cannot add another strike.
+create or replace function public.process_team_fixture_payment_deadlines(p_as_of timestamptz default now())
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_obligation public.team_fixture_payment_obligations;
+  v_fixture public.fixtures;
+  v_opponent_id uuid;
+  v_opponent public.team_fixture_payment_obligations;
+  v_captain uuid;
+  v_opponent_refund_created boolean;
+  v_count integer:=0;
+begin
+  for v_obligation in
+    select * from public.team_fixture_payment_obligations
+    where status in ('due','grace_period')
+      and (deadline_at<=p_as_of or grace_ends_at<=p_as_of)
+    order by grace_ends_at
+    for update skip locked
+  loop
+    select * into v_fixture from public.fixtures where id=v_obligation.fixture_id for update;
+    if not found then continue; end if;
+
+    if v_fixture.status<>'scheduled'
+       or v_fixture.scheduled_at is distinct from v_obligation.scheduled_at_snapshot then
+      update public.team_fixture_payment_obligations
+      set status='admin_review'
+      where id=v_obligation.id;
+      insert into public.team_fixture_payment_history(
+        obligation_id,action,from_status,to_status,actor_user_id,reason,metadata
+      ) values(v_obligation.id,'schedule_changed',v_obligation.status,'admin_review',null,
+        'Fixture status or scheduled time changed; payment deadline requires administrator review',
+        jsonb_build_object('fixture_status',v_fixture.status,'current_scheduled_at',v_fixture.scheduled_at));
+      v_count:=v_count+1;
+      continue;
+    end if;
+
+    if p_as_of>=v_obligation.grace_ends_at and v_obligation.stripe_checkout_session_id is not null then
+      update public.team_fixture_payment_obligations set status='admin_review' where id=v_obligation.id;
+      insert into public.team_fixture_payment_history(
+        obligation_id,action,from_status,to_status,actor_user_id,reason,metadata
+      ) values(v_obligation.id,'provider_reconciliation_required',v_obligation.status,'admin_review',null,
+        'An open Stripe Checkout session must be reconciled before cancellation',
+        jsonb_build_object('stripe_checkout_session_id',v_obligation.stripe_checkout_session_id));
+      v_count:=v_count+1;
+      continue;
+    end if;
+
+    if p_as_of>=v_obligation.grace_ends_at then
+      v_opponent_refund_created:=false;
+      update public.team_fixture_payment_obligations
+      set status='defaulted',defaulted_at=p_as_of
+      where id=v_obligation.id;
+      insert into public.team_payment_strikes(
+        obligation_id,fixture_id,season_team_id,original_deadline_at,reason
+      ) values(v_obligation.id,v_obligation.fixture_id,v_obligation.season_team_id,
+        v_obligation.deadline_at,'unpaid_at_grace_end')
+      on conflict do nothing;
+      update public.fixtures set status='cancelled' where id=v_fixture.id and status='scheduled';
+
+      v_opponent_id:=case when v_fixture.home_team_id=v_obligation.season_team_id
+        then v_fixture.away_team_id else v_fixture.home_team_id end;
+      select * into v_opponent from public.team_fixture_payment_obligations
+      where fixture_id=v_fixture.id and season_team_id=v_opponent_id for update;
+      if found and v_opponent.status in ('paid','late_paid') then
+        insert into public.team_fixture_payment_refunds(
+          obligation_id,amount_pence,stripe_payment_intent_id
+        ) values(v_opponent.id,v_opponent.amount_pence,v_opponent.stripe_payment_intent_id)
+        on conflict do nothing;
+        update public.team_fixture_payment_obligations
+        set status='refund_pending' where id=v_opponent.id and status in ('paid','late_paid');
+        v_opponent_refund_created:=true;
+      end if;
+
+      insert into public.team_fixture_payment_history(
+        obligation_id,action,from_status,to_status,actor_user_id,reason,metadata
+      ) values(v_obligation.id,'defaulted',v_obligation.status,'defaulted',null,
+        'Payment not received by the end of the 12-hour grace period',
+        jsonb_build_object('cancelled_fixture',true,'team_fee_remains_due',true,
+          'opponent_refund_created',v_opponent_refund_created));
+      for v_captain in select user_id from public.team_memberships
+        where season_team_id=v_obligation.season_team_id and status='active' and is_captain
+      loop
+        perform public.enqueue_notification_event(v_captain,'team.payment.defaulted',
+          jsonb_build_object('fixture_id',v_fixture.id,'obligation_id',v_obligation.id,
+            'gameweek',v_fixture.gameweek,'fee_remains_due',true));
+      end loop;
+    else
+      update public.team_fixture_payment_obligations
+      set status='grace_period' where id=v_obligation.id and status='due';
+      insert into public.team_fixture_payment_history(
+        obligation_id,action,from_status,to_status,actor_user_id,reason
+      ) values(v_obligation.id,'grace_period_started','due','grace_period',null,
+        'The original 24-hour payment deadline has passed; the 12-hour grace period has started');
+      for v_captain in select user_id from public.team_memberships
+        where season_team_id=v_obligation.season_team_id and status='active' and is_captain
+      loop
+        perform public.enqueue_notification_event(v_captain,'team.payment.grace_period',
+          jsonb_build_object('fixture_id',v_fixture.id,'obligation_id',v_obligation.id,
+            'deadline_at',v_obligation.deadline_at,'grace_ends_at',v_obligation.grace_ends_at));
+      end loop;
+    end if;
+    v_count:=v_count+1;
+  end loop;
+  return v_count;
+end;
+$$;
+revoke all on function public.process_team_fixture_payment_deadlines(timestamptz) from public,anon,authenticated;
+grant execute on function public.process_team_fixture_payment_deadlines(timestamptz) to service_role;
+
+
+create or replace function public.record_team_fixture_payment_success(
+  p_obligation_id uuid,
+  p_stripe_payment_intent_id text,
+  p_paid_at timestamptz
+)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_obligation public.team_fixture_payment_obligations;
+  v_fixture public.fixtures;
+  v_status text;
+  v_entry public.finance_entries;
+  v_reason text;
+begin
+  if p_stripe_payment_intent_id is null or length(btrim(p_stripe_payment_intent_id))<5
+     or p_paid_at is null then raise exception 'Verified payment details are required'; end if;
+  select * into v_obligation from public.team_fixture_payment_obligations
+  where id=p_obligation_id for update;
+  if not found then raise exception 'Team fixture payment obligation not found'; end if;
+  if v_obligation.stripe_payment_intent_id is not null then
+    if v_obligation.stripe_payment_intent_id<>p_stripe_payment_intent_id then
+      raise exception 'A different PaymentIntent is already attached to this obligation';
+    end if;
+    return v_obligation.status;
+  end if;
+  select * into v_fixture from public.fixtures where id=v_obligation.fixture_id for update;
+  if not found then raise exception 'Fixture not found'; end if;
+
+  if v_obligation.status='defaulted' then
+    v_status:='paid_after_cancellation';
+    v_reason:='Defaulting team settled its outstanding fee after fixture cancellation; fixture remains cancelled';
+    insert into public.team_payment_strikes(
+      obligation_id,fixture_id,season_team_id,original_deadline_at,paid_at,reason
+    ) values(v_obligation.id,v_obligation.fixture_id,v_obligation.season_team_id,
+      v_obligation.deadline_at,p_paid_at,'unpaid_at_grace_end')
+    on conflict do nothing;
+  elsif p_paid_at<=v_obligation.deadline_at then
+    v_status:='paid';
+    v_reason:='Payment received by the original 24-hour deadline';
+  elsif p_paid_at<v_obligation.grace_ends_at then
+    v_status:='late_paid';
+    v_reason:='Payment received during the 12-hour grace period';
+    insert into public.team_payment_strikes(
+      obligation_id,fixture_id,season_team_id,original_deadline_at,paid_at,reason
+    ) values(v_obligation.id,v_obligation.fixture_id,v_obligation.season_team_id,
+      v_obligation.deadline_at,p_paid_at,'paid_during_grace')
+    on conflict do nothing;
+  else
+    v_status:='paid_after_cancellation';
+    v_reason:='Payment received after the 12-hour grace period; fixture remains cancelled';
+    insert into public.team_payment_strikes(
+      obligation_id,fixture_id,season_team_id,original_deadline_at,paid_at,reason
+    ) values(v_obligation.id,v_obligation.fixture_id,v_obligation.season_team_id,
+      v_obligation.deadline_at,p_paid_at,'paid_after_cancellation')
+    on conflict do nothing;
+    if v_fixture.status='scheduled' then
+      update public.fixtures set status='cancelled' where id=v_fixture.id;
+    end if;
+  end if;
+
+  if v_obligation.status in ('refund_pending','refunded','refund_failed') then
+    raise exception 'A refunded or refund-pending payment cannot be re-settled';
+  end if;
+  update public.team_fixture_payment_obligations
+  set status=v_status,paid_at=p_paid_at,stripe_payment_intent_id=p_stripe_payment_intent_id
+  where id=v_obligation.id;
+
+  insert into public.finance_entries(
+    season_team_id,fixture_id,entry_type,amount_pence,description,payment_method,reference,created_by
+  ) values(
+    v_obligation.season_team_id,v_obligation.fixture_id,'payment',v_obligation.amount_pence,
+    'Stripe weekly team fixture payment','other',p_stripe_payment_intent_id,v_obligation.created_by
+  ) returning * into v_entry;
+  update public.team_fixture_payment_obligations
+  set finance_payment_entry_id=v_entry.id where id=v_obligation.id;
+
+  insert into public.team_fixture_payment_history(
+    obligation_id,action,from_status,to_status,actor_user_id,reason,metadata
+  ) values(v_obligation.id,'payment_confirmed',v_obligation.status,v_status,null,v_reason,
+    jsonb_build_object('stripe_payment_intent_id',p_stripe_payment_intent_id,'paid_at',p_paid_at));
+  return v_status;
+end;
+$$;
+revoke all on function public.record_team_fixture_payment_success(uuid,text,timestamptz) from public,anon,authenticated;
+grant execute on function public.record_team_fixture_payment_success(uuid,text,timestamptz) to service_role;
+
+
