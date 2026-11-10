@@ -2,11 +2,15 @@
 
 do $location_activation_role_boundary$
 declare
-  v_definition text := pg_catalog.pg_get_functiondef(
-    'public.admin_set_location_active(uuid,boolean,text)'::regprocedure
+  v_definition text := pg_catalog.regexp_replace(
+    pg_catalog.lower(pg_catalog.pg_get_functiondef(
+      'public.admin_set_location_active(uuid,boolean,text)'::regprocedure
+    )),
+    '[[:space:]]+', '', 'g'
   );
 begin
-  if v_definition not ilike '%role in (''admin'', ''super_admin'')%' then
+  if v_definition not like '%public.user_rolesur%'
+     or v_definition not like '%ur.rolein(''admin'',''super_admin'')%' then
     raise exception 'Location activation must explicitly require a global admin or super admin role';
   end if;
   if pg_catalog.has_function_privilege('anon',
