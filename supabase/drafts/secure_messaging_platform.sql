@@ -142,8 +142,7 @@ as $$
       )
     );
 $$;
-revoke all on function public.message_actor_is_active(uuid) from public,anon;
-grant execute on function public.message_actor_is_active(uuid) to authenticated;
+revoke all on function public.message_actor_is_active(uuid) from public,anon,authenticated;
 
 create or replace function public.can_access_message_conversation(p_conversation_id uuid)
 returns boolean
