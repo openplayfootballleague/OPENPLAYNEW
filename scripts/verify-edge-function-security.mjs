@@ -23,6 +23,10 @@ for (const [name, expected] of [
   ["team-stripe-webhook", false],
   ["process-team-payment-deadlines", false],
   ["admin-postpone-gameweek", true],
+  ["start-referee-connect-onboarding", true],
+  ["refresh-referee-connect-status", true],
+  ["process-referee-payouts", false],
+  ["referee-connect-webhook", false],
 ]) {
   verifyJwtSetting(name, expected);
 }
@@ -88,5 +92,17 @@ const adminPostponement = readFileSync("supabase/functions/admin-postpone-gamewe
 assert.ok(adminPostponement.includes('userClient.auth.getUser(token)'), "Gameweek postponement must validate the signed-in administrator");
 assert.ok(adminPostponement.includes('rpc("get_admin_postponable_gameweeks"') && adminPostponement.includes('rpc("admin_postpone_gameweek"'), "Gameweek postponement must use the permission-scoped listing and audited RPC");
 assert.ok(adminPostponement.includes('stripeKey?.startsWith("sk_test_")'), "Weather refund reconciliation must remain test-mode only");
+
+
+const refereeConnectStart = readFileSync("supabase/functions/start-referee-connect-onboarding/index.ts", "utf8");
+assert.ok(refereeConnectStart.includes('userClient.auth.getUser(token)') && refereeConnectStart.includes('membership?.status!=="active"'), "Connect onboarding must require an authenticated active referee");
+assert.ok(refereeConnectStart.includes('stripeKey?.startsWith("sk_test_")'), "Connect onboarding must remain test-mode only");
+const refereeConnectRefresh = readFileSync("supabase/functions/refresh-referee-connect-status/index.ts", "utf8");
+assert.ok(refereeConnectRefresh.includes('userClient.auth.getUser(token)') && refereeConnectRefresh.includes('stripeKey?.startsWith("sk_test_")'), "Connect status refresh must be authenticated and test-mode only");
+const refereePayoutWorker = readFileSync("supabase/functions/process-referee-payouts/index.ts", "utf8");
+assert.ok(refereePayoutWorker.includes("REFEREE_PAYOUT_CRON_SECRET") && refereePayoutWorker.includes('"Idempotency-Key"'), "Referee payout worker must be cron-secret protected and idempotent");
+assert.ok(refereePayoutWorker.includes('stripeKey?.startsWith("sk_test_")'), "Referee payout worker must remain test-mode only");
+const refereeConnectWebhook = readFileSync("supabase/functions/referee-connect-webhook/index.ts", "utf8");
+assert.ok(refereeConnectWebhook.includes("REFEREE_CONNECT_WEBHOOK_SECRET") && refereeConnectWebhook.includes('event.livemode!==false'), "Connect webhook must verify Stripe signatures and reject live-mode events");
 
 console.log("Edge Function security configuration and Phase 1 workflow boundary assertions passed.");
