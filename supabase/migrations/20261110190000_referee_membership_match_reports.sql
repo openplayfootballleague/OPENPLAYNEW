@@ -268,9 +268,10 @@ $$;
 revoke all on function public.referee_submit_application(text,text,text,text,uuid[]) from public, anon;
 grant execute on function public.referee_submit_application(text,text,text,text,uuid[]) to authenticated;
 
-create or replace function public.admin_list_referee_applications(p_status text default 'pending')
+drop function if exists public.admin_list_referee_applications(text);
+create function public.admin_list_referee_applications(p_status text default 'pending')
 returns table(
-  application_id uuid,user_id uuid,experience_summary text,qualifications text,
+  application_id uuid,user_id uuid,applicant_name text,applicant_email text,experience_summary text,qualifications text,
   availability_notes text,contact_phone text,preferred_location_ids uuid[],
   status text,created_at timestamptz
 )
@@ -280,9 +281,12 @@ begin
   if auth.uid() is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
   if p_status not in ('pending','approved','rejected','all') then raise exception 'Invalid application status'; end if;
   return query
-  select a.id,a.user_id,a.experience_summary,a.qualifications,a.availability_notes,a.contact_phone,
+  select a.id,a.user_id,coalesce(pr.display_name,nullif(btrim(pr.first_name||' '||pr.last_name),''),'Applicant'),u.email,
+    a.experience_summary,a.qualifications,a.availability_notes,a.contact_phone,
     a.preferred_location_ids,a.status,a.created_at
   from public.referee_applications a
+  join auth.users u on u.id=a.user_id
+  left join public.profiles pr on pr.id=a.user_id
   where (p_status='all' or a.status=p_status)
     and (
       public.has_global_admin_role()
@@ -907,13 +911,23 @@ begin
     'review_reason',v_report.review_reason,
     'goals',(select coalesce(jsonb_agg(jsonb_build_object(
       'id',g.id,'credited_team_id',g.credited_team_id,'scorer_team_id',g.scorer_team_id,
-      'scorer_competition_player_id',g.scorer_competition_player_id,'is_own_goal',g.is_own_goal
-    ) order by g.created_at),'[]'::jsonb) from public.referee_match_report_goals g where g.report_id=v_report.id),
+      'scorer_competition_player_id',g.scorer_competition_player_id,'is_own_goal',g.is_own_goal,
+      'credited_team_name',credited.name,'scorer_name',cpi.display_name
+    ) order by g.created_at),'[]'::jsonb)
+    from public.referee_match_report_goals g
+    join public.season_teams credited on credited.id=g.credited_team_id
+    left join public.competition_player_identities cpi on cpi.id=g.scorer_competition_player_id
+    where g.report_id=v_report.id),
     'incidents',(select coalesce(jsonb_agg(jsonb_build_object(
       'id',i.id,'team_id',i.team_id,'recipient_category',i.recipient_category,
       'competition_player_id',i.competition_player_id,'squad_number_snapshot',i.squad_number_snapshot,
-      'card_outcome',i.card_outcome,'fine_amount_pence',i.fine_amount_pence
-    ) order by i.created_at),'[]'::jsonb) from public.referee_match_report_incidents i where i.report_id=v_report.id)
+      'card_outcome',i.card_outcome,'fine_amount_pence',i.fine_amount_pence,
+      'team_name',st.name,'player_name',cpi.display_name
+    ) order by i.created_at),'[]'::jsonb)
+    from public.referee_match_report_incidents i
+    join public.season_teams st on st.id=i.team_id
+    left join public.competition_player_identities cpi on cpi.id=i.competition_player_id
+    where i.report_id=v_report.id)
   );
 end;
 $report$;
