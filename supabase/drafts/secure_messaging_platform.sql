@@ -123,7 +123,6 @@ as $$
     and exists (
       select 1 from public.profiles p
       where p.id=p_user_id
-        and coalesce(p.account_retention_status,'active')='active'
     )
     and (
       exists (
