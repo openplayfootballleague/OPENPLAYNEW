@@ -25,7 +25,7 @@ type ReportQueueItem = {
   referee_name: string; status: string; home_score: number; away_score: number;
   submitted_at: string | null; match_summary: string | null;
 };
-type MilestoneReward = { reward_id: string; referee_user_id: string; referee_name: string; milestone_games: number; reward_amount_pence: number; status: string; created_at: string; approved_at: string | null; review_reason: string | null };
+type MilestoneReward = { reward_id: string; referee_user_id: string; referee_name: string; location_name: string; milestone_games: number; reward_amount_pence: number; status: string; created_at: string; approved_at: string | null; review_reason: string | null };
 type DisciplinarySuspension = { competition_player_id: string; player_name: string; straight_red_strikes: number; last_straight_red_at: string | null; last_fixture_id: string | null; last_gameweek: number | null; last_team_name: string | null };
 type FixtureOption = {
   id: string; gameweek: number; scheduled_at: string | null;
@@ -381,7 +381,7 @@ function AdminRefereeWorkspace() {
                 <section className="admin-referee-panel">
       <div className="admin-referee-section-title"><span className="eyebrow">04 · CAREER REWARDS</span><h2>Milestone rewards awaiting approval <b>{milestoneRewards.length}</b></h2></div>
       {milestoneRewards.length === 0 ? <p className="admin-referee-muted">No referee milestone rewards are awaiting approval in this location scope.</p> : milestoneRewards.map((reward) => <article className="admin-referee-card" key={reward.reward_id}>
-        <h3>{reward.referee_name}</h3><p>{reward.milestone_games} approved games · £{(reward.reward_amount_pence / 100).toFixed(2)} reward</p>
+        <h3>{reward.referee_name}</h3><p>{reward.milestone_games} approved games · {reward.location_name} · £{(reward.reward_amount_pence / 100).toFixed(2)} reward</p>
         <p className="admin-referee-muted">Unlocked {dateTime(reward.created_at)} · Approval records the reward; it does not initiate payment.</p>
         <label>Approval reason<textarea value={decisionReasons[reward.reward_id] ?? ""} onChange={(event) => setDecisionReasons((current) => ({ ...current, [reward.reward_id]: event.target.value }))} placeholder="Required audit reason (minimum five characters)" /></label>
         <div className="admin-referee-actions"><button disabled={saving} onClick={() => void approveMilestoneReward(reward)}>Approve £50 reward</button></div>
