@@ -107,8 +107,8 @@ create table public.referee_match_reports (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint referee_report_submission_pair check (
-    (status in ('draft','returned') and submitted_at is null)
-    or (status in ('submitted','approved','rejected','unpublished','deleted') and submitted_at is not null)
+    (status = 'draft' and submitted_at is null)
+    or (status in ('submitted','returned','approved','rejected','unpublished','deleted') and submitted_at is not null)
   ),
   constraint referee_report_review_pair check (
     (status in ('approved','rejected','unpublished','deleted') and reviewed_at is not null and reviewed_by is not null)
@@ -537,7 +537,7 @@ declare
   v_goal jsonb; v_incident jsonb; v_credited_team uuid; v_scorer_team uuid;
   v_competition_player uuid; v_recipient text; v_card text; v_team uuid; v_fine integer;
   v_role public.lineup_role; v_squad_number smallint;
-  v_home_count integer; v_away_count integer; v_snapshot jsonb;
+  v_home_count integer; v_away_count integer;
 begin
   if v_actor is null or not public.is_active_referee() then raise exception 'Approved referee membership required'; end if;
   if p_home_score is null or p_away_score is null or p_home_score not between 0 and 99 or p_away_score not between 0 and 99 then
@@ -568,14 +568,6 @@ begin
   if found then
     if v_report.status not in ('draft','returned') then raise exception 'This report is already submitted or under review'; end if;
     v_report_id:=v_report.id; v_version:=v_report.version+1;
-    v_snapshot:=jsonb_build_object(
-      'status',v_report.status,'home_score',v_report.home_score,'away_score',v_report.away_score,
-      'completed_at',v_report.completed_at,'match_summary',v_report.match_summary,
-      'goals',(select coalesce(jsonb_agg(to_jsonb(g)),'[]'::jsonb) from public.referee_match_report_goals g where g.report_id=v_report.id),
-      'incidents',(select coalesce(jsonb_agg(to_jsonb(i)),'[]'::jsonb) from public.referee_match_report_incidents i where i.report_id=v_report.id)
-    );
-    insert into public.referee_match_report_versions(report_id,version,actor_user_id,action,snapshot)
-    values(v_report.id,v_report.version,v_actor,'draft_saved',v_snapshot);
     update public.referee_match_reports set assignment_id=v_assignment.id,assigned_referee_user_id=v_actor,
       reporter_user_id=v_actor,status=case when p_submit then 'submitted' else 'draft' end,
       completed_at=p_completed_at,submitted_at=case when p_submit then now() else null end,
@@ -733,12 +725,12 @@ begin
 
   v_before:=jsonb_build_object('status',v_report.status,'home_score',v_report.home_score,'away_score',v_report.away_score);
   if p_decision='return' then
-    update public.referee_match_reports set status='returned',reviewed_by=null,reviewed_at=null,review_reason=btrim(p_reason),updated_at=now()
+    update public.referee_match_reports set status='returned',version=version+1,reviewed_by=null,reviewed_at=null,review_reason=btrim(p_reason),updated_at=now()
     where id=p_report_id returning * into v_report;
     insert into public.referee_match_report_versions(report_id,version,actor_user_id,action,snapshot)
     values(p_report_id,v_report.version,v_actor,'returned',jsonb_build_object('before',v_before,'reason',btrim(p_reason)));
   elsif p_decision='reject' then
-    update public.referee_match_reports set status='rejected',reviewed_by=v_actor,reviewed_at=now(),review_reason=btrim(p_reason),updated_at=now()
+    update public.referee_match_reports set status='rejected',version=version+1,reviewed_by=v_actor,reviewed_at=now(),review_reason=btrim(p_reason),updated_at=now()
     where id=p_report_id returning * into v_report;
     insert into public.referee_match_report_versions(report_id,version,actor_user_id,action,snapshot)
     values(p_report_id,v_report.version,v_actor,'rejected',jsonb_build_object('before',v_before,'reason',btrim(p_reason)));
@@ -794,7 +786,7 @@ begin
       values(p_report_id,v_report.assigned_referee_user_id)
       on conflict(report_id) do nothing;
     end if;
-    update public.referee_match_reports set status='approved',reviewed_by=v_actor,reviewed_at=now(),
+    update public.referee_match_reports set status='approved',version=version+1,reviewed_by=v_actor,reviewed_at=now(),
       review_reason=null,updated_at=now() where id=p_report_id returning * into v_report;
     insert into public.referee_match_report_versions(report_id,version,actor_user_id,action,snapshot)
     values(p_report_id,v_report.version,v_actor,'approved',jsonb_build_object('before',v_before,'home_score',v_report.home_score,'away_score',v_report.away_score));
