@@ -142,6 +142,11 @@ begin
     or position('No matching referee availability' in v_definition)=0 then
     raise exception 'Referee assignment must respect availability or require an audited override reason';
   end if;
+
+  if position('already assigned to another fixture at the same kick-off time' in v_definition)=0
+    or position('existing_fixture.scheduled_at=v_fixture.scheduled_at' in v_definition)=0 then
+    raise exception 'A referee must not be assigned to simultaneous fixtures';
+  end if;
   select pg_get_functiondef('public.admin_remove_referee_assignment(uuid,text)'::regprocedure) into v_definition;
   if position('enqueue_notification_event' in v_definition)=0 then
     raise exception 'Referee assignment removal must queue a notification';
