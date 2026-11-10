@@ -4,9 +4,16 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+# Every push creates a PR check; serialize the local Supabase database replay
+# so concurrent attempts cannot contend for the same Docker host ports.
+concurrency:
+  group: openplay-phase1-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -53,9 +60,39 @@ jobs:
           version: 2.84.2
       - name: Start isolated local Supabase database
         run: supabase start -x studio,edge-runtime,logflare,vector
-      # The hosted-order verifier owns the single clean reset: it hides the pending
-      # migrations, replays the applied baseline, then restores and applies all pending
-      # migrations with --include-all. A second reset here would restart Docker twice.
+      - name: Generate referee application migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_application_workflow.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new referee_application_workflow < supabase/drafts/referee_application_workflow.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_application_workflow.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_application_workflow.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\n' "$migration_file"
+      - name: Generate referee fixture assignment migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_fixture_assignments.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new referee_fixture_assignments < supabase/drafts/referee_fixture_assignments.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_fixture_assignments.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_fixture_assignments.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\\n' "$migration_file"
+      - name: Preserve CLI-generated referee migrations for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: referee-phase1-migrations
+          path: |
+            supabase/migrations/*_referee_application_workflow.sql
+            supabase/migrations/*_referee_fixture_assignments.sql
+          if-no-files-found: error
+          retention-days: 1
+      # The hosted-order verifier performs the one clean reset and then applies
+      # pending migrations; avoid restarting the local Docker stack twice.
       - name: Verify pending migrations after the applied hosted baseline
         run: node scripts/verify-hosted-migration-order.mjs
       - name: Set up Node.js for Auth lifecycle integration
@@ -108,6 +145,14 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/registration_safeguards.sql
+      - name: Verify referee application, approval, RLS and membership lifecycle
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_application_workflow.sql
+      - name: Verify referee fixture allocation, availability, authorization and cancellation
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_fixture_assignments.sql
 
       - name: Verify age tiers and guardian consent lifecycle
         env:

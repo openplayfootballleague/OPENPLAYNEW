@@ -1,5 +1,5 @@
 import { useEffect,useMemo,useState } from "react";
-import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
+import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 import { PlayerCompetitionSelector, usePlayerCompetitionContext } from "../lib/competition/player-context";
 import { Link,createFileRoute } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
@@ -58,5 +58,5 @@ function MatchCentrePage(){
    </section>
   </>}
   <Link className="auth-switch" to="/teams">Explore teams</Link><Link className="auth-switch" to="/">Back to Open Play</Link>
- </section><PlayerBottomNavigation/></main>;
+ </section><RefereeBottomNavigation /></main>;
 }

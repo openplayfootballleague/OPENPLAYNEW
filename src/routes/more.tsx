@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
+import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 import { getSupabaseClient } from "../lib/supabase/client";
 
 type MoreAccess = {
@@ -104,6 +104,7 @@ function MorePage() {
           <Link className="admin-inline-action" to="/teams">TEAMS &amp; LEAGUES <span aria-hidden="true">↗</span></Link>
           <Link className="admin-inline-action" to="/gallery">MATCHDAY GALLERY <span aria-hidden="true">↗</span></Link>
           <Link className="admin-inline-action" to="/match-centre">FIXTURES, RESULTS &amp; TABLES <span aria-hidden="true">↗</span></Link>
+          <Link className="admin-inline-action" to="/referee">REFEREE APPLICATION / WORKSPACE <span aria-hidden="true">↗</span></Link>
         </section>
 
         {access.loading ? (
@@ -133,7 +134,7 @@ function MorePage() {
         </section>
         <Link className="auth-switch" to="/">Back to Open Play home</Link>
       </section>
-      <PlayerBottomNavigation />
+      <RefereeBottomNavigation />
     </main>
   );
 }

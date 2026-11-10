@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
+import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 import { PlayerCompetitionSelector, usePlayerCompetitionContext } from "../lib/competition/player-context";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
@@ -83,5 +83,5 @@ function PlayerHubPage(){
    <section className="hub-memberships hub-payment-history"><div className="hub-section-heading"><span className="hub-kicker">YOUR FIXTURE PAYMENTS</span><button type="button" className="auth-text-button" onClick={()=>void refreshPayments()}>REFRESH</button></div>{payments.length===0?<p className="form-note">No fixture payments recorded yet.</p>:payments.map(p=><article className="player-notification" key={p.payment_record_id}><div><strong>{p.gameweek?`Gameweek ${p.gameweek} fixture`:"Fixture payment"}</strong><p>{(p.amount_pence/100).toLocaleString("en-GB",{style:"currency",currency:p.currency.toUpperCase()})} · {p.status.replaceAll("_"," ")}</p><small>{p.scheduled_at?new Date(p.scheduled_at).toLocaleDateString("en-GB"):"Date to be confirmed"}{p.amount_refunded_pence>0?` · Refunded ${(p.amount_refunded_pence/100).toLocaleString("en-GB",{style:"currency",currency:p.currency.toUpperCase()})}`:""}</small></div></article>)}</section>
   </>}
   {isAdmin&&<Link className="button button-small admin-link" to="/admin">OPEN ADMIN DASHBOARD <span>↗</span></Link>}<Link className="auth-switch" to="/">Back to Open Play</Link>
- </section><PlayerBottomNavigation /></main>;
+ </section><RefereeBottomNavigation /></main>;
 }

@@ -22,13 +22,27 @@ assert.ok(more.includes('access.admin && <Link') && more.includes('to="/admin"')
 assert.ok(more.includes('access.finance && <Link') && more.includes('to="/finance"'), "Finance Workspace must only appear after the finance access check");
 assert.ok(more.includes('get_admin_context_preference') && more.includes('get_finance_options'), "More page must resolve protected workspace access from server-authorized RPCs");
 assert.ok(more.includes('Your account has basic-view access'), "Viewer accounts must receive the restricted basic-view explanation");
-assert.ok(readFileSync("src/routes/index.tsx", "utf8").includes("<PlayerBottomNavigation />"), "Public home must render the bottom navigation");
+const refereeNavigation = readFileSync("src/components/referee-bottom-navigation.tsx", "utf8");
+const refereeTabs = [
+  'to: "/referee" as const, label: "Home"',
+  'to: "/match-centre" as const, label: "Match Centre"',
+  'to: "/teams" as const, label: "Teams"',
+  'to: "/referee/matchday" as const, label: "Matchday"',
+  'to: "/more" as const, label: "More"',
+];
+for (const tab of refereeTabs) assert.ok(refereeNavigation.includes(tab), "Approved referee navigation is missing " + tab);
+assert.equal((refereeNavigation.match(/to: "[^"]*" as const, label:/g) ?? []).length, 5, "Referee navigation must contain exactly five tabs");
+assert.ok(refereeNavigation.includes('portal.membership?.status === "active"') && refereeNavigation.includes("<PlayerBottomNavigation />"), "Only an active approved referee membership may switch from player navigation");
+for (const route of ["index.tsx","player.tsx","captain.tsx","join.tsx","match-centre.tsx","teams.tsx","more.tsx","referee.tsx","referee/matchday.tsx"]) {
+  const source = readFileSync("src/routes/" + route, "utf8");
+  assert.ok(source.includes("<RefereeBottomNavigation"), route + " must use role-aware navigation");
+}
 const joinPage = readFileSync("src/routes/join.tsx", "utf8");
 assert.ok(joinPage.includes('if(!player||player.registration_status!=="registered"||player.is_banned)'), "Unregistered viewer accounts must not submit team join or registration requests");
 const registrationPage = readFileSync("src/routes/register-player.tsx", "utf8");
 assert.ok(registrationPage.includes("Under-16s can browse public Open Play information but cannot register as players or join teams."), "Under-16 registration must explain the basic-view restriction");
 assert.ok(registrationPage.includes("disabled={busy||isUnderSixteen||waitingGuardianReview}"), "Under-16 player registration submission must be disabled in the interface");
-console.log("Open Play four-tab navigation assertions passed.");
+console.log("Open Play player and five-tab referee navigation assertions passed.");
 
 const playerHub = readFileSync("src/routes/player.tsx", "utf8");
 assert.ok(playerHub.includes('if(player?.is_banned){void navigate({to:"/register-player",replace:true});return;}'), "Banned players must be redirected away from Player Hub to the restricted registration-status screen");
