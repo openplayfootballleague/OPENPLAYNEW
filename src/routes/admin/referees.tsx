@@ -724,7 +724,7 @@ function AdminRefereesPage() {
                 <button type="button" disabled={busy === "admin-report"} onClick={() => void submitAdminMatchReport()}>
                   {busy === "admin-report" ? "SAVING…" : correctionMode ? "SAVE APPROVED REPORT CORRECTION" : adminReportOptions.report ? "SAVE ADMIN REPORT AMENDMENT" : "SUBMIT ADMIN MATCH REPORT"}
                 </button>
-                {correctionMode && <button type="button" className="reject" disabled={busy === "admin-report"} onClick={() => {setCorrectionMode(false);setAdminReportOptions(null);setAdminReportReason("");}}>CANCEL CORRECTION</button>}
+                {correctionMode && <button type="button" className="reject" disabled={busy === "admin-report"} onClick={() => {setCorrectionMode(false);setSelectedAdminReportFixtureId("");setAdminReportOptions(null);setAdminReportReason("");}}>CANCEL CORRECTION</button>}
               </>}
             </div>
           )}
