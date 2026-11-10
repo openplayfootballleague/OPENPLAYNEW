@@ -437,3 +437,73 @@ revoke all on function public.set_referee_membership_status(uuid,text,text)
   from public, anon;
 grant execute on function public.set_referee_membership_status(uuid,text,text)
   to authenticated;
+
+
+create or replace function public.get_my_referee_portal_state()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_application jsonb;
+  v_membership jsonb;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required';
+  end if;
+
+  select jsonb_build_object(
+    'id',application.id,
+    'status',application.status,
+    'experience_summary',application.experience_summary,
+    'qualifications',application.qualifications,
+    'availability',application.availability,
+    'contact_phone',application.contact_phone,
+    'preferred_location_ids',application.preferred_location_ids,
+    'additional_notes',application.additional_notes,
+    'submitted_at',application.submitted_at,
+    'reviewed_at',application.reviewed_at,
+    'review_reason',application.review_reason
+  )
+  into v_application
+  from public.referee_applications application
+  where application.user_id=v_user_id
+  order by application.submitted_at desc
+  limit 1;
+
+  select jsonb_build_object(
+    'status',membership.status,
+    'approved_at',membership.approved_at,
+    'status_changed_at',membership.status_changed_at,
+    'status_reason',membership.status_reason
+  )
+  into v_membership
+  from public.referee_memberships membership
+  where membership.user_id=v_user_id;
+
+  return jsonb_build_object(
+    'application',v_application,
+    'membership',v_membership
+  );
+end;
+$$;
+revoke all on function public.get_my_referee_portal_state() from public,anon;
+grant execute on function public.get_my_referee_portal_state() to authenticated;
+
+create or replace function public.get_active_referee_locations()
+returns table(id uuid,name text,town text,region text)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select location.id,location.name,location.town,location.region
+  from public.locations location
+  where location.is_active=true
+  order by location.name
+$$;
+revoke all on function public.get_active_referee_locations() from public,anon;
+grant execute on function public.get_active_referee_locations() to authenticated;
