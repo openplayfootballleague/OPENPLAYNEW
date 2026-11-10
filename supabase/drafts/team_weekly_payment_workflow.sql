@@ -487,11 +487,21 @@ begin
     update public.team_fixture_payment_refunds
     set refund_finance_entry_id=v_entry.id,credit_finance_entry_id=v_credit.id
     where id=v_refund.id;
+    insert into public.team_fixture_payment_history(
+      obligation_id,action,from_status,to_status,actor_user_id,reason,metadata
+    ) values(v_obligation.id,'opponent_refund_confirmed','refund_pending','refunded',null,
+      'Stripe confirmed the opponent refund and the fee credit was recorded',
+      jsonb_build_object('stripe_refund_id',p_stripe_refund_id,'amount_pence',v_refund.amount_pence));
   else
     update public.team_fixture_payment_refunds
     set status='failed',failure_reason=left(coalesce(p_failure_reason,'Stripe refund failed'),500)
     where id=v_refund.id;
     update public.team_fixture_payment_obligations set status='refund_failed' where id=v_obligation.id;
+    insert into public.team_fixture_payment_history(
+      obligation_id,action,from_status,to_status,actor_user_id,reason,metadata
+    ) values(v_obligation.id,'opponent_refund_failed','refund_pending','refund_failed',null,
+      'Stripe refund failed and requires finance administrator follow-up',
+      jsonb_build_object('failure_reason',left(coalesce(p_failure_reason,'Stripe refund failed'),500)));
   end if;
   return case when p_succeeded then 'refunded' else 'failed' end;
 end;
