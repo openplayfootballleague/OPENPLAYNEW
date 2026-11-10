@@ -17,8 +17,9 @@ declare
   v_fixture_one uuid;
   v_fixture_two uuid;
   v_assignment public.referee_fixture_assignments;
-  v_home_identity uuid;
-  v_away_identity uuid;
+  v_referee_identity constant uuid:='95000000-0000-4000-8000-000000000005';
+  v_home_identity constant uuid:='95000000-0000-4000-8000-000000000006';
+  v_away_identity constant uuid:='95000000-0000-4000-8000-000000000007';
   v_home_sheet_one uuid;
   v_away_sheet_one uuid;
   v_home_sheet_two uuid;
@@ -40,14 +41,17 @@ begin
     (v_home_user,'authenticated','authenticated','ci-referee-report-home@openplay.invalid','','{}'::jsonb,now(),now(),now()),
     (v_away_user,'authenticated','authenticated','ci-referee-report-away@openplay.invalid','','{}'::jsonb,now(),now(),now());
 
-  insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status,is_banned)
+  insert into public.competition_player_identities(id,display_name,counts_for_statistics)
   values
-    (v_referee,'Report Test Referee','07700900802','ci-referee-report-referee@openplay.invalid',date '1990-03-02','registered',false),
-    (v_home_user,'Report Home Player','07700900803','ci-referee-report-home@openplay.invalid',date '1990-03-03','registered',false),
-    (v_away_user,'Report Away Player','07700900804','ci-referee-report-away@openplay.invalid',date '1990-03-04','registered',false);
+    (v_referee_identity,'Report Test Referee',false),
+    (v_home_identity,'Report Home Player',true),
+    (v_away_identity,'Report Away Player',true);
 
-  select competition_player_id into v_home_identity from public.players where user_id=v_home_user;
-  select competition_player_id into v_away_identity from public.players where user_id=v_away_user;
+  insert into public.players(user_id,competition_player_id,full_name,phone,email,date_of_birth,registration_status,is_banned,is_genuine)
+  values
+    (v_referee,v_referee_identity,'Report Test Referee','07700900802','ci-referee-report-referee@openplay.invalid',date '1990-03-02','registered',false,true),
+    (v_home_user,v_home_identity,'Report Home Player','07700900803','ci-referee-report-home@openplay.invalid',date '1990-03-03','registered',false,true),
+    (v_away_user,v_away_identity,'Report Away Player','07700900804','ci-referee-report-away@openplay.invalid',date '1990-03-04','registered',false,true);
   insert into public.user_roles(user_id,role,granted_by) values(v_admin,'admin',v_admin);
   select id into v_location from public.locations where is_active=true order by created_at limit 1;
   if v_location is null then raise exception 'Expected an active location from earlier regression'; end if;
