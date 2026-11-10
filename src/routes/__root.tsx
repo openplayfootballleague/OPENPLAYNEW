@@ -7,6 +7,7 @@ import {
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { ConsentAwareAnalytics } from "../components/analytics-provider";
 import "../styles.css";
 
 type AccountGateStatus = "checking" | "public" | "active" | "unavailable" | "blocked";
@@ -174,7 +175,9 @@ function RootComponent() {
 
   return (
     <RootDocument>
-      {accountGate === "public" || accountGate === "active" ? <Outlet /> : gateContent}
+      <ConsentAwareAnalytics>
+        {accountGate === "public" || accountGate === "active" ? <Outlet /> : gateContent}
+      </ConsentAwareAnalytics>
     </RootDocument>
   );
 }

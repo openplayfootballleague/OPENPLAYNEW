@@ -123,6 +123,7 @@ function MorePage() {
 
         <section className="hub-memberships">
           <div className="hub-section-heading"><span className="hub-kicker">ACCOUNT</span></div>
+          <Link className="admin-inline-action" to="/privacy-security">PRIVACY &amp; SECURITY <span aria-hidden="true">↗</span></Link>
           {access.signedIn ? (
             <button className="auth-text-button" type="button" onClick={signOut}>SIGN OUT</button>
           ) : (
