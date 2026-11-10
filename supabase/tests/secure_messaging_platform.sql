@@ -230,6 +230,11 @@ begin
   v_report:=public.report_message(v_message,'This message is being reported for review');
   v_message_two:=public.report_message(v_message,'This duplicate report should resolve to the same open report');
   if v_report<>v_message_two then raise exception 'Duplicate open reports were not deduplicated'; end if;
+  if not exists (
+    select 1 from public.notification_events
+    where user_id=v_admin and channel='in_app' and event_type='message.reported'
+      and payload->>'report_id'=v_report::text
+  ) then raise exception 'A new message report did not notify an administrator'; end if;
 
   execute 'reset role';
   execute 'set local role authenticated';
