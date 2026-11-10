@@ -229,6 +229,21 @@ begin
     raise exception 'Match write-up must be 2,000 characters or fewer';
   end if;
 
+  -- Authorise before revealing fixture or locked team-sheet information.
+  if p_source='referee' then
+    if not exists(select 1 from public.referee_memberships membership
+      where membership.user_id=p_actor and membership.status='active') then
+      raise exception 'An active referee membership is required to submit a match report';
+    end if;
+    if not exists(select 1 from public.referee_fixture_assignments assignment
+      where assignment.fixture_id=p_fixture_id and assignment.referee_user_id=p_actor
+        and assignment.cancelled_at is null) then
+      raise exception 'Only the appointed referee can submit this fixture report';
+    end if;
+  else
+    if not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
+  end if;
+
   select * into v_fixture from public.fixtures where id=p_fixture_id for update;
   if not found then raise exception 'Fixture not found'; end if;
   if v_fixture.scheduled_at is null or v_fixture.scheduled_at > now()
@@ -303,15 +318,6 @@ begin
   end if;
 
   if p_source='referee' then
-    if not exists(select 1 from public.referee_memberships membership
-      where membership.user_id=p_actor and membership.status='active') then
-      raise exception 'An active referee membership is required to submit a match report';
-    end if;
-    if not exists(select 1 from public.referee_fixture_assignments assignment
-      where assignment.fixture_id=p_fixture_id and assignment.referee_user_id=p_actor
-        and assignment.cancelled_at is null) then
-      raise exception 'Only the appointed referee can submit this fixture report';
-    end if;
     select max(gameweek) into v_latest_gameweek
     from public.fixtures
     where season_id=v_fixture.season_id and scheduled_at<=now()
@@ -322,7 +328,6 @@ begin
       and scheduled_at is not null and status not in ('cancelled','postponed');
     v_deadline:=v_latest_fixture_at+interval '24 hours';
   else
-    if not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
     perform public.assert_admin_location_context((
       select league.location_id from public.seasons season
       join public.leagues league on league.id=season.league_id
@@ -424,12 +429,12 @@ begin
     where user_id=v_actor and status='active') then
     raise exception 'An active referee membership is required';
   end if;
-  select * into v_fixture from public.fixtures where id=p_fixture_id;
-  if not found then raise exception 'Fixture not found'; end if;
   if not exists(select 1 from public.referee_fixture_assignments
     where fixture_id=p_fixture_id and referee_user_id=v_actor and cancelled_at is null) then
     raise exception 'You are not appointed to this fixture';
   end if;
+  select * into v_fixture from public.fixtures where id=p_fixture_id;
+  if not found then raise exception 'Fixture not found'; end if;
   select * into v_home_sheet from public.fixture_team_sheets
     where fixture_id=p_fixture_id and season_team_id=v_fixture.home_team_id and is_locked=true;
   select * into v_away_sheet from public.fixture_team_sheets
