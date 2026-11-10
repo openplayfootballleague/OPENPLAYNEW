@@ -331,6 +331,18 @@ begin
   perform set_config('request.jwt.claim.role','authenticated',true);
   if not v_rejected then raise exception 'The disciplinary team-sheet guard did not block the inactive player'; end if;
 
+  -- The location-scoped return queue exposes the suspended competition identity
+  -- before an administrator approves the return.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  if not exists(
+    select 1 from public.admin_list_disciplinary_suspensions(null)
+    where competition_player_id=v_home_identity and disciplinary_strikes=3
+  ) then
+    raise exception 'The disciplinary return queue did not expose the three-strike player to the authorised administrator';
+  end if;
+  execute 'reset role';
+
   -- Reactivation is audited and does not erase the permanent strike record.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
