@@ -208,8 +208,8 @@ begin
   select count(*) into v_count from public.user_roles where user_id='00000000-0000-4000-8000-000000000005';
   if v_count <> 0 then raise exception 'Location admin can directly read another administrator role'; end if;
   select count(*) into v_count from public.team_memberships where season_team_id='00000000-0000-4000-8000-000000000050';
-  -- The assigned team has three seeded memberships (two active and one pending).
-  if v_count <> 3 then raise exception 'Location admin cannot read all memberships within its assigned location'; end if;
+  -- The assigned team has four seeded memberships (two active and two pending).
+  if v_count <> 4 then raise exception 'Location admin cannot read all memberships within its assigned location'; end if;
   select count(*) into v_count from public.team_memberships where season_team_id='00000000-0000-4000-8000-000000000052';
   if v_count <> 0 then raise exception 'Location admin can directly read memberships outside its assigned location'; end if;
   v_setup := public.get_admin_competition_setup();
