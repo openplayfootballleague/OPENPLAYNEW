@@ -2762,6 +2762,23 @@ export type Database = {
           team_name: string
         }[]
       }
+      get_captain_team_fixture_payments: {
+        Args: never
+        Returns: {
+          amount_pence: number
+          deadline_at: string
+          fixture_id: string
+          gameweek: number
+          grace_ends_at: string
+          obligation_id: string
+          opponent_name: string
+          paid_at: string
+          scheduled_at: string
+          season_team_id: string
+          status: string
+          team_name: string
+        }[]
+      }
       get_captain_team_sheet: {
         Args: { p_fixture_id: string }
         Returns: {
