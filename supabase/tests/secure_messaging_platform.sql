@@ -190,6 +190,22 @@ begin
   if coalesce(v_unread,0)<>1 then raise exception 'New private support message was not marked unread for the admin'; end if;
   execute 'reset role';
   execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_player_c::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_c::text,'role','authenticated')::text,true);
+  v_failed:=false;
+  begin
+    perform public.get_message_history(v_support,50,null);
+  exception when others then v_failed:=true;
+  end;
+  if not v_failed then raise exception 'Unrelated player could read a private admin-support thread'; end if;
+  v_failed:=false;
+  begin
+    perform public.admin_create_message_broadcast('Unauthorised','Player cannot broadcast','team',v_season_team_one);
+  exception when others then v_failed:=true;
+  end;
+  if not v_failed then raise exception 'Ordinary player was allowed to create an admin broadcast'; end if;
+  execute 'reset role';
+  execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_player_a::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_a::text,'role','authenticated')::text,true);
 
