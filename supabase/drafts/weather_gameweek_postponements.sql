@@ -42,7 +42,6 @@ set search_path = ''
 as $$
 declare v_gameweek_id uuid;
 begin
-  if new.gameweek_id is not null then return new; end if;
   insert into public.season_gameweeks as existing_week(season_id,week_number,scheduled_at)
   values(new.season_id,new.gameweek,new.scheduled_at)
   on conflict(season_id,week_number) do update
@@ -59,7 +58,7 @@ $$;
 revoke all on function public.assign_fixture_gameweek_identity() from public,anon,authenticated;
 drop trigger if exists fixtures_assign_gameweek_identity on public.fixtures;
 create trigger fixtures_assign_gameweek_identity
-before insert on public.fixtures
+before insert or update of season_id,gameweek,gameweek_id on public.fixtures
 for each row execute function public.assign_fixture_gameweek_identity();
 
 -- Each rescheduled gameweek starts a new payment cycle. Previous receipts are
