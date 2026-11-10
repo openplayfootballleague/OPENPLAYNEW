@@ -98,7 +98,6 @@ begin
   perform public.save_admin_context_preference(v_location,v_league,v_season);
   v_assignment:=public.admin_assign_referee_to_fixture(v_fixture_one,v_referee,'lead');
   execute 'reset role';
-  update public.fixtures set scheduled_at=now()-interval '1 hour',status='in_progress' where id=v_fixture_one;
 
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)
   values(v_fixture_one,v_home_season_team,v_admin,true) returning id into v_home_sheet_one;
@@ -108,6 +107,9 @@ begin
   values
     (v_home_sheet_one,v_home_user,v_home_identity,'starter',false,true),
     (v_away_sheet_one,v_away_user,v_away_identity,'starter',false,true);
+
+  -- Create team sheets before simulating the completed match; kickoff lock remains enforced.
+  update public.fixtures set scheduled_at=now()-interval '1 hour',status='in_progress' where id=v_fixture_one;
 
   v_events:=jsonb_build_array(
     jsonb_build_object('season_team_id',v_home_season_team,'recipient_type','registered_player',
@@ -163,7 +165,6 @@ begin
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
   v_assignment:=public.admin_assign_referee_to_fixture(v_fixture_two,v_referee,'lead');
   execute 'reset role';
-  update public.fixtures set scheduled_at=now()-interval '2 days',status='in_progress' where id=v_fixture_two;
 
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)
   values(v_fixture_two,v_home_season_team,v_admin,true) returning id into v_home_sheet_two;
@@ -173,6 +174,9 @@ begin
   values
     (v_home_sheet_two,v_home_user,v_home_identity,'starter',false,true),
     (v_away_sheet_two,v_away_user,v_away_identity,'starter',false,true);
+
+  -- Create team sheets before simulating the completed match; kickoff lock remains enforced.
+  update public.fixtures set scheduled_at=now()-interval '2 days',status='in_progress' where id=v_fixture_two;
 
   -- Initial referee reports after the 24-hour deadline are blocked.
   execute 'set local role authenticated';
