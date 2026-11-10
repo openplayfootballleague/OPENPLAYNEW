@@ -67,9 +67,21 @@ alter table public.team_fixture_payment_obligations
 alter table public.team_fixture_payment_obligations
   add constraint team_fixture_payment_obligation_cycle_unique
   unique(fixture_id,season_team_id,payment_cycle);
+alter table public.team_fixture_payment_obligations
+  drop constraint if exists team_fixture_payment_obligations_status_check;
+alter table public.team_fixture_payment_obligations
+  add constraint team_fixture_payment_obligations_status_check
+  check(status in ('due','grace_period','paid','late_paid','defaulted','paid_after_cancellation',
+    'refund_pending','refunded','refund_failed','admin_review','cancelled'));
+alter table public.team_fixture_payment_obligations
+  drop constraint if exists team_fixture_payment_paid_state;
+alter table public.team_fixture_payment_obligations
+  add constraint team_fixture_payment_paid_state check (
+    (status in ('paid','late_paid','paid_after_cancellation','refund_pending','refunded','refund_failed')
+      and paid_at is not null and stripe_payment_intent_id is not null)
+    or status in ('due','grace_period','defaulted','admin_review','cancelled')
+  );
 
-alter table public.team_payment_strikes
-  drop constraint if exists team_payment_strikes_obligation_id_key;
 create unique index team_payment_strikes_fixture_team_unique
   on public.team_payment_strikes(fixture_id,season_team_id);
 create index team_payment_strikes_obligation_idx
@@ -358,7 +370,7 @@ begin
       insert into public.team_fixture_payment_refunds(
         obligation_id,amount_pence,stripe_payment_intent_id
       ) values(v_old_payment.id,v_old_payment.amount_pence,v_old_payment.stripe_payment_intent_id)
-      on conflict(obligation_id) do nothing;
+      on conflict do nothing;
       update public.team_fixture_payment_obligations
       set status='refund_pending' where id=v_old_payment.id;
       v_refunds:=v_refunds+1;
