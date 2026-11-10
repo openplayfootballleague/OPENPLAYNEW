@@ -280,8 +280,8 @@ function AdminAnalyticsPage() {
         <label>Season<select value={seasonId} disabled={contextSaving} onChange={(event) => void saveContext(locationId, leagueId, event.target.value)}>
           <option value="">All seasons</option>{setup.seasons.filter((season) => (!locationId || season.location_id === locationId) && (!leagueId || season.league_id === leagueId)).map((season) => <option key={season.id} value={season.id}>{season.name} · {season.status}</option>)}
         </select></label>
-        <label>From date<input type="date" value={fromDate} disabled={contextSaving} onChange={(event) => setFromDate(event.target.value)} /></label>
-        <label>To date<input type="date" value={toDate} disabled={contextSaving} min={fromDate || undefined} onChange={(event) => setToDate(event.target.value)} /></label>
+        <label>Fixture date from<input type="date" value={fromDate} max={toDate || undefined} disabled={contextSaving} onChange={(event) => setFromDate(event.target.value)} /></label>
+        <label>Fixture date to<input type="date" value={toDate} disabled={contextSaving} min={fromDate || undefined} onChange={(event) => setToDate(event.target.value)} /></label>
       </div>
       <p className="form-note">The selected location, league and season define this report. Results are refreshed from the database; no manually edited statistics are used.</p>
     </section>
@@ -373,7 +373,7 @@ function AdminAnalyticsPage() {
       {financeAccess && !financeError && <p>Ledger charges: {money(financeTotals.chargesPence)} · Payments: {money(financeTotals.paymentsPence)} · Refunds: {money(financeTotals.refundsPence)} · Fines: {money(financeTotals.finesPence)} · Outstanding: {money(financeTotals.outstandingPence)}</p>}
       <p>Generated {new Date().toLocaleString("en-GB")}. Aggregate operational data only; no player personal details included.</p>
     </section>
-    <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs. Reporting window: {fromDate || toDate ? `${fromDate || "Any date"} to ${toDate || "Any date"}` : "all dates"} within the selected season or accessible context. Cohort reporting and consented app-usage metrics remain gated on the analytics release review.</p>
+    <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs. Fixture reporting window: {fromDate || toDate ? `${fromDate || "Any date"} to ${toDate || "Any date"}` : "all dates"} within the selected season or accessible context. Team and queue figures are current snapshots; finance figures are ledger totals for the selected season. Cohort reporting and consented app-usage metrics remain gated on the analytics release review.</p>
     <Link className="auth-switch" to="/admin">← BACK TO ADMIN DASHBOARD</Link>
   </section></main>;
 }
