@@ -357,6 +357,9 @@ begin
     v_new_scheduled_at:=(
       p_replacement_date + (v_fixture.scheduled_at at time zone 'Europe/London')::time
     ) at time zone 'Europe/London';
+    if v_new_scheduled_at<=now()+interval '36 hours' then
+      raise exception 'Replacement kickoff must be at least 36 hours away so the 24-hour deadline and 12-hour grace period can operate correctly';
+    end if;
 
     insert into public.weather_postponement_fixtures(
       postponement_id,fixture_id,original_gameweek,new_gameweek,
