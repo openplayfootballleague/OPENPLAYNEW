@@ -498,13 +498,14 @@ create or replace function public.admin_remove_referee_assignment(p_assignment_i
 returns boolean
 language plpgsql security definer set search_path = ''
 as $$
-declare v_actor uuid:=auth.uid(); v_fixture_id uuid; v_location uuid; v_referee_user_id uuid; v_fixture record;
+declare v_actor uuid:=auth.uid(); v_fixture_id uuid; v_location uuid; v_referee_user_id uuid;
+  v_scheduled_at timestamptz; v_gameweek integer; v_home_team_name text; v_away_team_name text;
 begin
   if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
   if p_reason is null or length(btrim(p_reason))<5 then raise exception 'Enter a reason of at least 5 characters'; end if;
   select a.fixture_id,l.location_id,a.referee_user_id,
-    f.scheduled_at,f.gameweek,ht.name as home_team_name,at.name as away_team_name
-    into v_fixture_id,v_location,v_referee_user_id,v_fixture
+    f.scheduled_at,f.gameweek,ht.name,at.name
+    into v_fixture_id,v_location,v_referee_user_id,v_scheduled_at,v_gameweek,v_home_team_name,v_away_team_name
   from public.fixture_referee_assignments a
   join public.fixtures f on f.id=a.fixture_id
   join public.seasons s on s.id=f.season_id
@@ -520,8 +521,8 @@ begin
   values(v_actor,'referee.fixture.assignment_removed','fixture_referee_assignment',p_assignment_id::text,btrim(p_reason),
     jsonb_build_object('fixture_id',v_fixture_id));
   perform public.enqueue_notification_event(v_referee_user_id,'referee_assignment_removed',jsonb_build_object(
-    'fixture_id',v_fixture_id::text,'scheduled_at',v_fixture.scheduled_at::text,
-    'title','Referee assignment removed','message','Your assignment for '||v_fixture.home_team_name||' v '||v_fixture.away_team_name||' has been removed. Reason: '||btrim(p_reason),
+    'fixture_id',v_fixture_id::text,'scheduled_at',v_scheduled_at::text,
+    'title','Referee assignment removed','message','Your assignment for '||v_home_team_name||' v '||v_away_team_name||' has been removed. Reason: '||btrim(p_reason),
     'changed_at',now()::text,'url','/referee'));
   return true;
 end;
