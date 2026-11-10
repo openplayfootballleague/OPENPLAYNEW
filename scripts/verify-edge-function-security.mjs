@@ -22,6 +22,9 @@ for (const [name, expected] of [
   ["create-team-fixture-checkout", true],
   ["team-stripe-webhook", false],
   ["process-team-payment-deadlines", false],
+  ["create-referee-connect-account", true],
+  ["pay-referee-payout", true],
+  ["referee-connect-webhook", false],
 ]) {
   verifyJwtSetting(name, expected);
 }
@@ -81,5 +84,23 @@ const teamDeadlineWorker = readFileSync("supabase/functions/process-team-payment
 assert.ok(teamDeadlineWorker.includes('req.headers.get("x-team-payment-cron-secret")'), "Team payment scheduler must validate its dedicated cron secret");
 assert.ok(teamDeadlineWorker.includes('Idempotency-Key') && teamDeadlineWorker.includes("openplay-team-refund-"), "Team refunds must be idempotent at the provider");
 assert.ok(teamDeadlineWorker.includes('stripeKey?.startsWith("sk_test_")'), "Team payment scheduler must remain test-mode only");
+
+const connectOnboarding = readFileSync("supabase/functions/create-referee-connect-account/index.ts", "utf8");
+assert.ok(connectOnboarding.includes("userClient.auth.getUser()"), "Connect onboarding must validate the signed-in referee");
+assert.ok(connectOnboarding.includes('stripeKey?.startsWith("sk_test_")'), "Connect onboarding must remain test-mode only");
+assert.ok(connectOnboarding.includes('rpc("get_my_referee_connect_status")') && connectOnboarding.includes('rpc("sync_referee_connect_account")'), "Connect onboarding must require active referee membership and synchronize verified account state");
+assert.ok(connectOnboarding.includes("metadata[openplay_referee_user_id]"), "Connect accounts must retain the internal referee identity mapping");
+
+const refereePayout = readFileSync("supabase/functions/pay-referee-payout/index.ts", "utf8");
+assert.ok(refereePayout.includes("userClient.auth.getUser()"), "Referee payout transfers must validate the signed-in administrator");
+assert.ok(refereePayout.includes('rpc("claim_referee_payout_transfer")'), "Referee payout transfers must be claimed through the scoped finance RPC");
+assert.ok(refereePayout.includes("Idempotency-Key") && refereePayout.includes("openplay-referee-"), "Referee payout transfers must use attempt-scoped Stripe idempotency keys");
+assert.ok(refereePayout.includes('stripeKey?.startsWith("sk_test_")'), "Referee payout transfers must remain test-mode only");
+assert.ok(refereePayout.includes("if(!transferCreated&&canMarkFailed)"), "Ambiguous or already-created transfers must remain in reconciliation instead of becoming retryable");
+
+const refereeConnectWebhook = readFileSync("supabase/functions/referee-connect-webhook/index.ts", "utf8");
+assert.ok(refereeConnectWebhook.includes('req.headers.get("stripe-signature")') && refereeConnectWebhook.includes("verifyStripeSignature(rawBody,signature,secret)"), "Connect webhook must verify the raw-body Stripe signature");
+assert.ok(refereeConnectWebhook.includes("event.livemode!==false"), "Connect webhook must reject live-mode events");
+assert.ok(refereeConnectWebhook.includes("referee_connect_webhook_events") && refereeConnectWebhook.includes("processed_at"), "Connect webhook processing must be idempotent and retryable");
 
 console.log("Edge Function security configuration and Phase 1 workflow boundary assertions passed.");
