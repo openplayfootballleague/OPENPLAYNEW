@@ -41,7 +41,7 @@ begin
 
   insert into public.locations(name,slug,town,region,is_active)
   values
-    ('CI Referee Location','ci-referee-location','Barnstaple','North Devon',true),
+    ('CI Referee Location','ci-referee-location','Bideford','North Devon',true),
     ('CI Referee Inactive Location','ci-referee-inactive-location','Bideford','North Devon',false);
 
   select id into v_location from public.locations where slug='ci-referee-location';
