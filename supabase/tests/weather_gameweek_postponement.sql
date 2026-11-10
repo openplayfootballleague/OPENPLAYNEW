@@ -39,7 +39,7 @@ begin
     (v_home_captain,'authenticated','authenticated','ci-weather-home@openplay.invalid','','{}'::jsonb,now(),now(),now()),
     (v_away_captain,'authenticated','authenticated','ci-weather-away@openplay.invalid','','{}'::jsonb,now(),now(),now());
 
-  insert into public.user_roles(user_id,role,granted_by) values(v_admin,'admin',v_admin);
+  insert into public.user_roles(user_id,role,granted_by) values(v_admin,'league_admin',v_admin);
   insert into public.competition_player_identities(id,display_name,counts_for_statistics)
   values
     (v_home_identity,'Weather Home Captain',true),
@@ -54,6 +54,8 @@ begin
       'ci-weather-away@openplay.invalid',date '1990-04-12','registered',false,true);
   select id into v_location from public.locations where is_active=true order by created_at limit 1;
   if v_location is null then raise exception 'Expected an active location from earlier regressions'; end if;
+  insert into public.location_admin_assignments(user_id,location_id,assigned_by)
+  values(v_admin,v_location,v_admin);
 
   insert into public.leagues(location_id,name,slug,is_published)
   values(v_location,'CI Weather League','ci-weather-league',false) returning id into v_league;
