@@ -36,6 +36,19 @@ describe("Open Play Phase 1 finance and discipline policy", () => {
     const deadlineAt = "2026-11-10T12:00:00.000Z";
     expect(assessTeamPayment({ feePence: 3500, deadlineAt, assessedAt: "2026-11-10T11:59:59Z" }).state).toBe("on_time");
     expect(assessTeamPayment({ feePence: 3500, deadlineAt, assessedAt: "2026-11-10T18:00:00Z" }).state).toBe("grace_period");
+    const exactlyAtGraceBoundary = assessTeamPayment({
+      feePence: 3500,
+      deadlineAt,
+      assessedAt: "2026-11-11T00:00:00Z",
+    });
+    expect(exactlyAtGraceBoundary).toMatchObject({ state: "grace_period", strike: false, fixtureCancelled: false });
+    const paidExactlyAtGraceBoundary = assessTeamPayment({
+      feePence: 3500,
+      deadlineAt,
+      assessedAt: "2026-11-11T00:00:00Z",
+      paidAt: "2026-11-11T00:00:00Z",
+    });
+    expect(paidExactlyAtGraceBoundary).toMatchObject({ state: "late_paid", strike: true, fixtureCancelled: false });
     const paidLate = assessTeamPayment({ feePence: 3500, deadlineAt, assessedAt: "2026-11-10T13:00:00Z", paidAt: "2026-11-10T13:00:00Z" });
     expect(paidLate).toMatchObject({ state: "late_paid", strike: true, fixtureCancelled: false });
     const paidAfterGrace = assessTeamPayment({
