@@ -102,11 +102,12 @@ export function buildAnalyticsOverview(
 
 export function buildLocationComparisons(
   setup: AnalyticsSetup,
-  filters: Pick<AnalyticsFilters, "leagueId" | "seasonId"> = { leagueId: "", seasonId: "" },
+  filters: Pick<AnalyticsFilters, "locationId" | "leagueId" | "seasonId"> = { locationId: "", leagueId: "", seasonId: "" },
 ): AnalyticsLocationComparison[] {
   return setup.locations.flatMap((location) => {
     const seasons = setup.seasons.filter((season) =>
       season.location_id === location.id
+      && (!filters.locationId || location.id === filters.locationId)
       && (!filters.leagueId || season.league_id === filters.leagueId)
       && (!filters.seasonId || season.id === filters.seasonId),
     );
