@@ -81,13 +81,19 @@ export function assessTeamPayment(input: {
   }
 
   if (paid !== null) {
-    const late = paid > deadline;
+    if (paid <= deadline) {
+      return { state: "on_time", strike: false, fixtureCancelled: false, teamFeeLiabilityPence: 0, opponentRefundDue: false };
+    }
+    if (paid < deadline + GRACE_PERIOD_MS) {
+      return { state: "late_paid", strike: true, fixtureCancelled: false, teamFeeLiabilityPence: 0, opponentRefundDue: false };
+    }
+    // Payment after the grace period does not reinstate a cancelled fixture.
     return {
-      state: late ? "late_paid" : "on_time",
-      strike: late,
-      fixtureCancelled: false,
+      state: "defaulted",
+      strike: true,
+      fixtureCancelled: true,
       teamFeeLiabilityPence: 0,
-      opponentRefundDue: false,
+      opponentRefundDue: input.opponentHasPaid === true,
     };
   }
 
@@ -95,7 +101,7 @@ export function assessTeamPayment(input: {
     return { state: "on_time", strike: false, fixtureCancelled: false, teamFeeLiabilityPence: 0, opponentRefundDue: false };
   }
 
-  if (assessed <= deadline + GRACE_PERIOD_MS) {
+  if (assessed < deadline + GRACE_PERIOD_MS) {
     return { state: "grace_period", strike: false, fixtureCancelled: false, teamFeeLiabilityPence: 0, opponentRefundDue: false };
   }
 
@@ -116,6 +122,7 @@ export interface GameweekFixture {
   id: string;
   gameweekId: string;
   scheduledAt: string;
+  gameweekNumber: number;
   completed: boolean;
 }
 
@@ -128,15 +135,19 @@ export function renumberUnplayedGameweeks(
   fixtures: readonly GameweekFixture[],
 ): ReadonlyMap<string, number> {
   const rounds = new Map<string, number>();
+  let lastCompletedNumber = 0;
   for (const fixture of fixtures) {
-    if (fixture.completed) continue;
+    if (fixture.completed) {
+      lastCompletedNumber = Math.max(lastCompletedNumber, fixture.gameweekNumber);
+      continue;
+    }
     const timestamp = new Date(fixture.scheduledAt).getTime();
     if (!Number.isFinite(timestamp)) throw new RangeError("Fixture date must be valid");
     const current = rounds.get(fixture.gameweekId);
     if (current === undefined || timestamp < current) rounds.set(fixture.gameweekId, timestamp);
   }
   const ordered = [...rounds.entries()].sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]));
-  return new Map(ordered.map(([gameweekId], index) => [gameweekId, index + 1]));
+  return new Map(ordered.map(([gameweekId], index) => [gameweekId, lastCompletedNumber + index + 1]));
 }
 
 export interface RefereeAllocation {
