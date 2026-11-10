@@ -93,6 +93,9 @@ begin
   if position('v_report.status not in (''draft'',''returned'',''rejected'')' in v_definition)=0 then
     raise exception 'Rejected reports must remain correctable and resubmittable by the assigned referee';
   end if;
+  if position('v_fixture.status not in (''scheduled'',''in_progress'',''completed'')' in v_definition)=0 then
+    raise exception 'Admin report completion must support completed fixtures as well as unplayed fixtures';
+  end if;
   if position('fixture_team_sheet_players' in v_definition)=0
     or position('Goalscorer must be selected from the relevant submitted team sheet' in v_definition)=0
     or position('Only an administrator may enter an unattributed goal' in v_definition)=0
