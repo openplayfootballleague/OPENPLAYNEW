@@ -27,6 +27,28 @@ type RefereeApplication = {
   reviewed_at: string | null;
   review_reason: string | null;
 };
+type RefereeMatchReport = {
+  report_id: string;
+  fixture_id: string;
+  referee_user_id: string | null;
+  referee_name: string;
+  referee_email: string | null;
+  report_source: "referee" | "admin";
+  status: "submitted";
+  version: number;
+  submitted_at: string;
+  scheduled_at: string;
+  gameweek: number;
+  fixture_number: number;
+  location_name: string;
+  home_team_name: string;
+  away_team_name: string;
+  home_score: number;
+  away_score: number;
+  disciplinary_events: Array<{ recipient_type: string; card_type: string; season_team_id: string }>;
+  match_write_up: string | null;
+  review_reason: string | null;
+};
 
 const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -50,6 +72,9 @@ function AdminRefereesPage() {
   const [assignmentRole, setAssignmentRole] = useState<"lead" | "assistant">("lead");
   const [allocationLoading, setAllocationLoading] = useState(true);
   const [allocationReason, setAllocationReason] = useState<Record<string, string>>({});
+  const [reports, setReports] = useState<RefereeMatchReport[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportReasons, setReportReasons] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (authStatus === "unauthenticated") void navigate({ to: "/sign-in", replace: true });
@@ -88,6 +113,21 @@ function AdminRefereesPage() {
   }, []);
 
   useEffect(() => { void loadAllocationData(); }, [loadAllocationData]);
+
+  const loadReports = useCallback(async () => {
+    setReportsLoading(true);
+    const rpc = getSupabaseClient() as unknown as RpcClient;
+    const result = await rpc.rpc("admin_list_referee_match_reports", { p_status: "submitted", p_location_id: null });
+    if (result.error) {
+      setError(result.error.message);
+      setReports([]);
+    } else {
+      setReports((result.data ?? []) as RefereeMatchReport[]);
+    }
+    setReportsLoading(false);
+  }, []);
+
+  useEffect(() => { void loadReports(); }, [loadReports]);
 
   const selectedFixture = fixtures.find((fixture) => fixture.fixture_id === selectedFixtureId);
   const eligibleCandidates = selectedFixture
@@ -138,6 +178,32 @@ function AdminRefereesPage() {
     }
     setNotice("Appointment cancelled, with the history retained and referee notified.");
     await loadAllocationData();
+  }
+
+  async function reviewReport(report: RefereeMatchReport, decision: "approved" | "rejected") {
+    const reason = (reportReasons[report.report_id] ?? "").trim();
+    if (reason.length < 5) {
+      setError("Enter a review reason of at least five characters.");
+      return;
+    }
+    setBusy(report.report_id);
+    setError("");
+    setNotice("");
+    const rpc = getSupabaseClient() as unknown as RpcClient;
+    const result = await rpc.rpc("admin_review_referee_match_report", {
+      p_report_id: report.report_id,
+      p_decision: decision,
+      p_reason: reason,
+    });
+    setBusy("");
+    if (result.error) {
+      setError(result.error.message);
+      return;
+    }
+    setNotice(decision === "approved"
+      ? "Match report approved. The official result, disciplinary events and team fines have been recorded."
+      : "Match report returned to the referee with your review reason.");
+    await loadReports();
   }
 
   async function decide(application: RefereeApplication, decision: "approved" | "rejected") {
@@ -277,6 +343,36 @@ function AdminRefereesPage() {
             </article>
           ))}
           <button type="button" disabled={allocationLoading} onClick={() => void loadAllocationData()}>REFRESH ALLOCATIONS</button>
+        </section>
+        <section className="hub-memberships">
+          <div className="hub-section-heading"><span className="hub-kicker">REFEREE MATCH REPORTS · AWAITING REVIEW</span></div>
+          {reportsLoading ? <p className="form-note">Loading match reports…</p> : reports.length === 0 ? (
+            <p className="form-note">No referee match reports are awaiting review.</p>
+          ) : reports.map((report) => (
+            <article className="admin-queue-row" key={report.report_id}>
+              <div>
+                <strong>GW {report.gameweek} · {report.home_team_name} {report.home_score}–{report.away_score} {report.away_team_name}</strong>
+                <span>{report.report_source === "referee" ? report.referee_name + (report.referee_email ? " · " + report.referee_email : "") : "Administrator-submitted report"}</span>
+                <small>{report.location_name} · {new Date(report.scheduled_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</small>
+                <small>Submitted {new Date(report.submitted_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })} · Version {report.version}</small>
+                {report.disciplinary_events.length > 0 && <small>{report.disciplinary_events.length} disciplinary event(s): {report.disciplinary_events.map((event) => event.card_type.replaceAll("_", " ")).join(", ")}</small>}
+                {report.match_write_up && <p className="form-note">{report.match_write_up}</p>}
+              </div>
+              <div className="admin-sheet-editor">
+                <label>
+                  Review reason
+                  <textarea rows={2} minLength={5} maxLength={500} value={reportReasons[report.report_id] ?? ""} onChange={(event) => setReportReasons((current) => ({ ...current, [report.report_id]: event.target.value }))} placeholder="Record the approval or rejection reason." />
+                </label>
+                <button type="button" disabled={busy === report.report_id} onClick={() => void reviewReport(report, "approved")}>
+                  {busy === report.report_id ? "SAVING…" : "APPROVE & PUBLISH RESULT"}
+                </button>
+                <button type="button" className="reject" disabled={busy === report.report_id} onClick={() => void reviewReport(report, "rejected")}>
+                  RETURN TO REFEREE
+                </button>
+              </div>
+            </article>
+          ))}
+          <button type="button" disabled={reportsLoading} onClick={() => void loadReports()}>REFRESH MATCH REPORTS</button>
         </section>
         <Link className="auth-switch" to="/admin">Back to Admin Dashboard</Link>
       </section>
