@@ -107,7 +107,7 @@ begin
     join public.leagues l on l.id=s.league_id
     where tsp.competition_player_id=p_competition_player_id
       and public.can_administer_location(l.location_id)
-  ) then raise exception 'You are not assigned to a location with this player's competition history'; end if;
+  ) then raise exception 'You are not assigned to a location with this player''s competition history'; end if;
 
   select * into v_discipline from public.competition_player_discipline
   where competition_player_id=p_competition_player_id for update;
