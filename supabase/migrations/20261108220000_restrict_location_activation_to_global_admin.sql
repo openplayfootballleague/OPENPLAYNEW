@@ -21,7 +21,7 @@ begin
     select 1
       from public.user_roles ur
      where ur.user_id = v_actor
-       and ur.role in ('admin', 'super_admin')
+       and ur.role in ('admin','super_admin')
   ) then
     raise exception 'Global administrator permission required' using errcode = '42501';
   end if;
