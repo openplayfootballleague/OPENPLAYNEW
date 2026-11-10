@@ -7,7 +7,7 @@ create table public.message_conversations (
   kind text not null check (kind in ('direct','team','support','announcement')),
   title text not null check (length(btrim(title)) between 1 and 120),
   created_by uuid references auth.users(id) on delete set null,
-  season_team_id uuid references public.season_teams(id) on delete set null,
+  season_team_id uuid references public.season_teams(id) on delete restrict,
   location_id uuid references public.locations(id) on delete set null,
   season_id uuid references public.seasons(id) on delete set null,
   target_type text check (target_type is null or target_type in ('everyone','players','captains','admins','location','season','team','individual')),
@@ -787,8 +787,9 @@ set search_path=''
 as $$
 declare v_user uuid:=auth.uid();
 begin
-  if v_user is null or p_blocked_user_id is null or p_blocked_user_id=v_user then
-    raise exception 'Choose another member to block';
+  if v_user is null or not public.message_actor_is_active(v_user)
+     or p_blocked_user_id is null or p_blocked_user_id=v_user then
+    raise exception 'Choose another active member to block';
   end if;
   if not exists (
     select 1 from public.message_conversations c
@@ -810,15 +811,38 @@ returns void
 language plpgsql
 security definer
 set search_path=''
-as $$
+as $
 begin
   if auth.uid() is null then raise exception 'Authentication required'; end if;
   delete from public.message_user_blocks
   where blocker_id=auth.uid() and blocked_user_id=p_blocked_user_id;
 end;
-$$;
+$;
 revoke all on function public.unblock_message_user(uuid) from public,anon;
 grant execute on function public.unblock_message_user(uuid) to authenticated;
+
+create or replace function public.get_my_blocked_message_users()
+returns table(user_id uuid,display_name text,blocked_at timestamptz)
+language plpgsql
+stable
+security definer
+set search_path=''
+as $
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  return query
+  select b.blocked_user_id,
+    coalesce(nullif(p.display_name,''),pl.full_name,'Open Play member'),
+    b.created_at
+  from public.message_user_blocks b
+  left join public.profiles p on p.id=b.blocked_user_id
+  left join public.players pl on pl.user_id=b.blocked_user_id
+  where b.blocker_id=auth.uid()
+  order by b.created_at desc;
+end;
+$;
+revoke all on function public.get_my_blocked_message_users() from public,anon;
+grant execute on function public.get_my_blocked_message_users() to authenticated;
 
 create or replace function public.admin_get_message_reports(p_status text default 'open',p_limit integer default 50)
 returns table(
