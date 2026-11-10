@@ -162,6 +162,11 @@ begin
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
   perform public.admin_review_referee_match_report(v_report_one,'rejected','Please verify the card details');
   execute 'reset role';
+  if not exists(
+    select 1 from public.notification_events
+    where user_id=v_referee and event_type='referee.report.rejected'
+      and payload->>'report_id'=v_report_one::text
+  ) then raise exception 'Rejected referee report did not enqueue a notification'; end if;
 
   -- A later gameweek makes the first report older than the current reporting window.
   -- Rejected work must remain active and resubmittable even after the deadline.
@@ -223,6 +228,11 @@ begin
 
   -- Approval creates the official result, permanent cards, team fines and one £22 payout obligation.
   perform public.admin_review_referee_match_report(v_report_one,'approved','Report and card details verified');
+  if not exists(
+    select 1 from public.notification_events
+    where user_id=v_referee and event_type='referee.report.approved'
+      and payload->>'report_id'=v_report_one::text
+  ) then raise exception 'Approved referee report did not enqueue a notification'; end if;
   if not exists(select 1 from public.fixture_results where fixture_id=v_fixture_one and home_score=1 and away_score=0 and confirmed_at is not null) then
     raise exception 'Approved referee report did not publish the official fixture result';
   end if;
