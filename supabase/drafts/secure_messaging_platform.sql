@@ -790,7 +790,7 @@ begin
     into v_global;
   return jsonb_build_object(
     'locations',coalesce((
-      select jsonb_agg(jsonb_build_object('id',l.id,'name',l.name,'town',l.town) order by l.name)
+      select jsonb_agg(jsonb_build_object('id',l.id,'name',l.name,'town',coalesce(l.town,'')) order by l.name)
       from public.locations l
       where l.is_active and (v_global or public.can_administer_location(l.id))
     ),'[]'::jsonb),
