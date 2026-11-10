@@ -368,7 +368,7 @@ function AdminRefereeWorkspace() {
       <form className="admin-referee-form" onSubmit={assignReferee}>
         <label>Fixture<select required value={selectedFixture} onChange={(event) => setSelectedFixture(event.target.value)}><option value="">Choose fixture</option>{openFixtures.map((fixture) => <option key={fixture.id} value={fixture.id}>GW{fixture.gameweek} · {fixture.home_team_name} v {fixture.away_team_name} · {dateTime(fixture.scheduled_at)}</option>)}</select></label>
         <label>Approved referee<select required value={selectedReferee} onChange={(event) => setSelectedReferee(event.target.value)}><option value="">Choose referee</option>{referees.map((referee) => <option key={referee.referee_user_id} value={referee.referee_user_id}>{referee.referee_name} · {referee.availability_slots} upcoming slots</option>)}</select></label>
-        <label>Reason / scheduling note<input value={assignmentReason} onChange={(event) => setAssignmentReason(event.target.value)} placeholder="Optional note" /></label>
+        <label>Reason / availability override<input value={assignmentReason} onChange={(event) => setAssignmentReason(event.target.value)} placeholder="Required if no matching availability slot" /></label>
         <button disabled={saving || !openFixtures.length || !referees.length}>Allocate referee</button>
       </form>
       <div className="admin-referee-section-title"><h2>Active allocations</h2></div>
