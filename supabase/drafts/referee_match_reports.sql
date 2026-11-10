@@ -301,7 +301,7 @@ begin
        or v_existing.report_source<>'referee' or v_existing.referee_user_id<>p_actor) then
       raise exception 'Only your rejected report can be resubmitted';
     end if;
-    if p_source='referee' and v_fixture.gameweek<>v_latest_gameweek then
+    if p_source='referee' and v_existing.status<>'rejected' and v_fixture.gameweek<>v_latest_gameweek then
       raise exception 'Referees can only submit reports for the latest completed gameweek';
     end if;
     if p_source='referee' and v_existing.status<>'rejected' and now()>v_deadline then
@@ -412,7 +412,7 @@ begin
       'home_team_id',v_fixture.home_team_id,'home_team_name',(select name from public.season_teams where id=v_fixture.home_team_id),
       'away_team_id',v_fixture.away_team_id,'away_team_name',(select name from public.season_teams where id=v_fixture.away_team_id)),
     'latest_gameweek',v_latest_gameweek,'report_deadline_at',v_deadline,
-    'can_submit',v_fixture.gameweek=v_latest_gameweek and now()<=v_deadline
+    'can_submit',(v_report.id is null and v_fixture.gameweek=v_latest_gameweek and now()<=v_deadline)
       or (v_report.status='rejected' and v_report.referee_user_id=v_actor),
     'report',case when v_report.id is null then null else jsonb_build_object(
       'id',v_report.id,'status',v_report.status,'version',v_report.version,
