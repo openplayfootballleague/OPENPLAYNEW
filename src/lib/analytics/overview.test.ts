@@ -64,7 +64,7 @@ describe("admin analytics aggregation", () => {
   });
 
   it("filters location comparisons by the selected league or season", () => {
-    expect(buildLocationComparisons(setup, { leagueId: "league-b", seasonId: "" })).toHaveLength(1);
+    expect(buildLocationComparisons(setup, { locationId: "", leagueId: "league-b", seasonId: "" })).toHaveLength(1);
     expect(buildLocationComparisons(setup, { locationId: "loc-a", leagueId: "", seasonId: "" })).toHaveLength(1);
     expect(buildLocationComparisons(setup, { locationId: "loc-a", leagueId: "", seasonId: "season-a" })[0].locationName).toBe("Bideford");
   });
