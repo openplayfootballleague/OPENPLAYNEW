@@ -59,6 +59,13 @@ jobs:
             supabase migration new referee_application_workflow < supabase/drafts/referee_application_workflow.sql
           fi
           find supabase/migrations -maxdepth 1 -type f -name '*_referee_application_workflow.sql' -print
+      - name: Preserve CLI-generated referee migration for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: referee-application-migration
+          path: supabase/migrations/*_referee_application_workflow.sql
+          if-no-files-found: error
+          retention-days: 1
       - name: Replay every migration against a clean local database
         run: supabase db reset --local --no-seed
       - name: Verify pending migrations after the applied hosted baseline
