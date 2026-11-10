@@ -230,6 +230,7 @@ function RefereePage() {
             {notice && <p className="form-note" role="status">{notice}</p>}
 
             {state.membership?.status === "active" ? (
+              <>
               <section className="hub-memberships">
                 <div className="hub-section-heading"><span className="hub-kicker">MEMBERSHIP</span></div>
                 <h2>You're an approved Open Play referee.</h2>
@@ -265,6 +266,7 @@ function RefereePage() {
                 </button>
                 <p className="form-note">Payout transfers are currently restricted to Stripe test mode while Open Play completes platform acceptance testing.</p>
               </section>
+              </>
 
             ) : state.membership?.status === "suspended" ? (
               <section className="hub-memberships">
