@@ -2146,6 +2146,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_get_approved_referee_report_correction_options: {
+        Args: { p_report_id: string }
+        Returns: Json
+      }
       admin_postpone_gameweek_weather: {
         Args: {
           p_gameweek: number
