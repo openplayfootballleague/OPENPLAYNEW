@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRequiredSession } from "../../lib/auth/use-required-session";
 import { getSupabaseClient } from "../../lib/supabase/client";
+import { AdminDisciplinarySuspensions } from "../../components/admin-disciplinary-suspensions";
 
 type RpcError = { message: string };
 type RpcClient = {
@@ -583,6 +584,8 @@ function AdminRefereesPage() {
         <p className="eyebrow eyebrow-dark">ADMINISTRATION · OFFICIALS</p>
         <h1>Referee<br /><em>applications.</em></h1>
         <p>Review referee applicants for the locations you administer. Approval grants a separate referee membership; it does not rely on user-editable account metadata.</p>
+
+        <AdminDisciplinarySuspensions />
 
         <section className="hub-memberships">
           <div className="hub-section-heading">
