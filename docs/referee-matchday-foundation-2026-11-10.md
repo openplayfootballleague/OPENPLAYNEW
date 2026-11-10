@@ -13,12 +13,13 @@
 - Report versions are retained. Admin review can approve, return or reject a submitted report. Approval posts a single team fine ledger entry per incident and creates the referee entitlement.
 - Approval publishes the fixture result, reconciles active goalscorer records, posts team fine ledger entries, records straight-red strikes against permanent competition identities and creates one £22 gross referee entitlement with a £20 minimum net guarantee.
 - Three straight-red strikes mark a competition identity inactive pending administrator return approval. The database guard blocks new inserts/edits that would place the identity on a future scheduled team sheet. A player already present on a previously locked future sheet still needs an audited admin sheet amendment; automatic retroactive sheet rewriting is not implemented.
-- Referee tables have RLS enabled and direct client table grants revoked. Access is through role- and assignment-checked RPCs.
+- A global referee-reporting feature flag defaults to disabled. Only a global administrator can change it with a mandatory reason and audit event. Applications, referee availability, referee fixture access and referee report submission are gated server-side; administrators can still review or complete existing reports.
+- Referee and feature-flag tables have RLS enabled and direct client table grants revoked. Access is through role- and assignment-checked RPCs.
 
 ## UI delivered in this branch
 
 - Referee application and approved-member Hub route at `/referee`, including the five-tab navigation, assigned match centre, both team sheets, score/goals/cards form, draft/submission controls, availability and entitlement history.
-- Admin referee workspace at `/admin-referees`, linked from the main admin navigation, including application decisions, location-scoped availability, fixture allocation/reassignment/removal, missing-report completion and report review. Admin-completed reports enter the approval queue and do not publish automatically.
+- Admin referee workspace at `/admin-referees`, linked from the main admin navigation, including the global reporting switch, application decisions, location-scoped availability, fixture allocation/reassignment/removal, missing-report completion and report review. Admin-completed reports enter the approval queue and do not publish automatically.
 
 ## Deliberately not claimed complete
 
@@ -28,7 +29,6 @@
 - Own goals and explicitly unattributed admin-entered goals are recorded for score reconciliation but are not attributed to player goal statistics until the owner-confirmed attribution rule is decided.
 - Appearance tracking remains unchanged; the owner decision between submitted team sheet and actual participation remains open.
 - Referee payment entitlements are created on approval, but Stripe Connect onboarding, transfer, payout, fee reconciliation and portal balances are not yet wired.
-- The global referee-reporting feature toggle is not yet connected.
 - No production migrations, live payments, deployment or merge has been performed.
 
 ## Verification gates
