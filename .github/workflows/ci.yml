@@ -81,7 +81,7 @@ jobs:
             diff -u supabase/drafts/referee_fixture_assignments.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\\n' "$migration_file"
+          printf '%s\n' "$migration_file"
       - name: Generate referee match report migration using the pinned Supabase CLI
         run: |
           migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_match_reports.sql' -print -quit)"
@@ -92,7 +92,7 @@ jobs:
             diff -u supabase/drafts/referee_match_reports.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\\n' "$migration_file"
+          printf '%s\n' "$migration_file"
       - name: Generate approved referee report correction migration using the pinned Supabase CLI
         run: |
           migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_corrections.sql' -print -quit)"
@@ -103,7 +103,7 @@ jobs:
             diff -u supabase/drafts/referee_approved_report_corrections.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\\n' "$migration_file"
+          printf '%s\n' "$migration_file"
       - name: Generate team weekly payment migration using the pinned Supabase CLI
         run: |
           migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_team_weekly_payment_workflow.sql' -print -quit)"
@@ -114,9 +114,9 @@ jobs:
             diff -u supabase/drafts/team_weekly_payment_workflow.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
-          printf '%s\\n' "$migration_file"
+          printf '%s\n' "$migration_file"
       - name: Preserve CLI-generated team payment migration for review
         uses: actions/upload-artifact@v4
         with:
@@ -134,9 +134,9 @@ jobs:
             diff -u supabase/drafts/weather_gameweek_postponements.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
-          printf '%s\\n' "$migration_file"
+          printf '%s\n' "$migration_file"
       - name: Preserve CLI-generated weather postponement migration for review
         uses: actions/upload-artifact@v4
         with:
