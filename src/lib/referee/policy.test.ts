@@ -38,6 +38,20 @@ describe("Open Play Phase 1 finance and discipline policy", () => {
     expect(assessTeamPayment({ feePence: 3500, deadlineAt, assessedAt: "2026-11-10T18:00:00Z" }).state).toBe("grace_period");
     const paidLate = assessTeamPayment({ feePence: 3500, deadlineAt, assessedAt: "2026-11-10T13:00:00Z", paidAt: "2026-11-10T13:00:00Z" });
     expect(paidLate).toMatchObject({ state: "late_paid", strike: true, fixtureCancelled: false });
+    const paidAfterGrace = assessTeamPayment({
+      feePence: 3500,
+      deadlineAt,
+      assessedAt: "2026-11-11T00:01:00Z",
+      paidAt: "2026-11-11T00:01:00Z",
+      opponentHasPaid: true,
+    });
+    expect(paidAfterGrace).toMatchObject({
+      state: "defaulted",
+      strike: true,
+      fixtureCancelled: true,
+      teamFeeLiabilityPence: 0,
+      opponentRefundDue: true,
+    });
   });
 
   it("cancels an unpaid fixture after grace but leaves only that team's fee liable", () => {
@@ -62,13 +76,13 @@ describe("Open Play Phase 1 finance and discipline policy", () => {
 
   it("renumbers unplayed rounds chronologically without rewriting completed rounds", () => {
     const result = renumberUnplayedGameweeks([
-      { id: "f1", gameweekId: "round-1", scheduledAt: "2026-01-01T18:00:00Z", completed: true },
-      { id: "f2", gameweekId: "round-2", scheduledAt: "2026-01-08T18:00:00Z", completed: false },
-      { id: "f3", gameweekId: "round-3", scheduledAt: "2026-01-15T18:00:00Z", completed: false },
-      { id: "f4", gameweekId: "round-2", scheduledAt: "2026-01-22T18:00:00Z", completed: false },
+      { id: "f1", gameweekId: "round-1", scheduledAt: "2026-01-01T18:00:00Z", gameweekNumber: 1, completed: true },
+      { id: "f2", gameweekId: "round-2", scheduledAt: "2026-01-08T18:00:00Z", gameweekNumber: 2, completed: false },
+      { id: "f3", gameweekId: "round-3", scheduledAt: "2026-01-15T18:00:00Z", gameweekNumber: 3, completed: false },
+      { id: "f4", gameweekId: "round-2", scheduledAt: "2026-01-22T18:00:00Z", gameweekNumber: 2, completed: false },
     ]);
-    expect(result.get("round-2")).toBe(1);
-    expect(result.get("round-3")).toBe(2);
+    expect(result.get("round-2")).toBe(2);
+    expect(result.get("round-3")).toBe(3);
     expect(result.has("round-1")).toBe(false);
   });
 
