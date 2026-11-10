@@ -7,6 +7,7 @@ type RpcClient = {
   rpc(name: string): Promise<{ data: unknown; error: { message: string } | null }>;
 };
 type PortalState = { membership?: { status?: "active" | "suspended" } | null };
+type RefereeAppointment = { assignment_id: string; fixture_id: string; assignment_role: "lead" | "assistant"; assigned_at: string; scheduled_at: string; gameweek: number; fixture_number: number; home_team_name: string; away_team_name: string; venue_name: string | null; fixture_status: string };
 
 export const Route = createFileRoute("/referee/matchday")({ component: RefereeMatchdayPage });
 
@@ -15,6 +16,7 @@ function RefereeMatchdayPage() {
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState(false);
   const [error, setError] = useState("");
+  const [appointments, setAppointments] = useState<RefereeAppointment[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -30,7 +32,14 @@ function RefereeMatchdayPage() {
       if (!alive) return;
       if (result.error) setError(result.error.message);
       else if (result.data && typeof result.data === "object") {
-        setActive((result.data as PortalState).membership?.status === "active");
+        const isActive = (result.data as PortalState).membership?.status === "active";
+        setActive(isActive);
+        if (isActive) {
+          const appointmentResult = await (supabase as unknown as RpcClient).rpc("get_my_referee_assignments");
+          if (!alive) return;
+          if (appointmentResult.error) setError(appointmentResult.error.message);
+          else setAppointments((appointmentResult.data ?? []) as RefereeAppointment[]);
+        }
       }
       setLoading(false);
     }
@@ -55,9 +64,22 @@ function RefereeMatchdayPage() {
         ) : active ? (
           <section className="hub-memberships">
             <div className="hub-section-heading"><span className="hub-kicker">YOUR APPOINTMENTS</span></div>
-            <h2>No fixtures allocated yet.</h2>
-            <p>Your matchday appointments will appear here once an Open Play administrator has assigned fixtures to you. You will only see fixtures allocated to your referee membership.</p>
-            <p className="form-note">Fixture allocation and match reporting are the next development components. No appointment or payment is created by this page.</p>
+            {appointments.length === 0 ? (
+              <>
+                <h2>No fixtures allocated yet.</h2>
+                <p>Your appointments will appear here once an Open Play administrator assigns a fixture to you.</p>
+              </>
+            ) : appointments.map((appointment) => (
+              <article className="admin-queue-row" key={appointment.assignment_id}>
+                <div>
+                  <strong>Gameweek {appointment.gameweek} · {appointment.assignment_role.toUpperCase()}</strong>
+                  <span>{appointment.home_team_name} v {appointment.away_team_name}</span>
+                  <small>{appointment.venue_name ?? "Venue to be confirmed"} · {new Date(appointment.scheduled_at).toLocaleString("en-GB", { dateStyle: "full", timeStyle: "short" })}</small>
+                  <small>Status: {appointment.fixture_status}</small>
+                </div>
+              </article>
+            ))}
+            <p className="form-note">Appointments are private to your referee account. Match reporting will be enabled in the next component.</p>
           </section>
         ) : <p className="form-note">An active referee membership is required to view this workspace.</p>}
         <Link className="auth-switch" to="/referee">Back to referee home</Link>
