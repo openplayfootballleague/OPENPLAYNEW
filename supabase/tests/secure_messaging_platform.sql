@@ -298,6 +298,11 @@ begin
   where report_id=v_report;
   if v_count<>1 then raise exception 'Administrator could not review the message report'; end if;
   perform public.admin_resolve_message_report(v_report,'hide_message','Hidden after moderation review');
+  if not exists (
+    select 1 from public.audit_log
+    where action='message.report.resolved'
+      and entity_type='message_report' and entity_id=v_report::text
+  ) then raise exception 'Message moderation action was not written to the audit log'; end if;
   execute 'reset role';
 
   execute 'set local role authenticated';
