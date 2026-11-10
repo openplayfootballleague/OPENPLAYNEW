@@ -20,8 +20,13 @@ from public.fixtures f
 group by f.season_id,f.gameweek
 on conflict(season_id,week_number) do nothing;
 
+alter table public.season_gameweeks
+  add constraint season_gameweeks_id_season_unique unique(id,season_id);
 alter table public.fixtures
   add column gameweek_id uuid references public.season_gameweeks(id) on delete restrict;
+alter table public.fixtures
+  add constraint fixtures_gameweek_season_fk
+  foreign key(gameweek_id,season_id) references public.season_gameweeks(id,season_id) on delete restrict;
 update public.fixtures f
 set gameweek_id=sg.id
 from public.season_gameweeks sg
@@ -38,13 +43,13 @@ as $$
 declare v_gameweek_id uuid;
 begin
   if new.gameweek_id is not null then return new; end if;
-  insert into public.season_gameweeks(season_id,week_number,scheduled_at)
+  insert into public.season_gameweeks as existing_week(season_id,week_number,scheduled_at)
   values(new.season_id,new.gameweek,new.scheduled_at)
   on conflict(season_id,week_number) do update
     set scheduled_at=case
-      when public.season_gameweeks.scheduled_at is null then excluded.scheduled_at
-      when excluded.scheduled_at is null then public.season_gameweeks.scheduled_at
-      else least(public.season_gameweeks.scheduled_at,excluded.scheduled_at)
+      when existing_week.scheduled_at is null then excluded.scheduled_at
+      when excluded.scheduled_at is null then existing_week.scheduled_at
+      else least(existing_week.scheduled_at,excluded.scheduled_at)
     end
   returning id into v_gameweek_id;
   new.gameweek_id:=v_gameweek_id;
@@ -104,6 +109,8 @@ create table public.gameweek_postponement_history (
   before_data jsonb not null default '{}'::jsonb,
   after_data jsonb not null default '{}'::jsonb
 );
+create unique index gameweek_postponement_history_idempotency_idx
+  on public.gameweek_postponement_history(gameweek_id,new_scheduled_at);
 alter table public.gameweek_postponement_history enable row level security;
 revoke all on public.gameweek_postponement_history from public,anon,authenticated;
 
@@ -282,6 +289,7 @@ as $$
 declare
   v_actor uuid:=auth.uid();
   v_week public.season_gameweeks;
+  v_existing_history public.gameweek_postponement_history;
   v_season_id uuid;
   v_location_id uuid;
   v_fixture_count integer;
@@ -313,6 +321,18 @@ begin
 
   select * into v_week from public.season_gameweeks where id=p_gameweek_id for update;
   if not found then raise exception 'Gameweek not found'; end if;
+  select * into v_existing_history from public.gameweek_postponement_history
+  where gameweek_id=p_gameweek_id and new_scheduled_at=p_replacement_at limit 1;
+  if found then
+    return jsonb_build_object('gameweek_id',p_gameweek_id,
+      'old_week_number',v_existing_history.old_week_number,
+      'new_week_number',v_existing_history.new_week_number,
+      'scheduled_at',v_existing_history.new_scheduled_at,
+      'fixture_count',v_existing_history.affected_fixtures,
+      'refunds_queued',v_existing_history.refunded_team_payments,
+      'unpaid_cycles_credited',v_existing_history.credited_unpaid_obligations,
+      'already_applied',true);
+  end if;
   v_old_number:=v_week.week_number;
   v_season_id:=v_week.season_id;
   select coalesce(f.venue_id,l.location_id) into v_location_id
