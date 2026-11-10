@@ -192,6 +192,10 @@ declare
   v_event jsonb;
   v_team_id uuid;
   v_player_id uuid;
+  v_recipient text;
+  v_card text;
+  v_minute integer;
+  v_description text;
   v_deadline timestamptz;
   v_before jsonb;
 begin
@@ -238,6 +242,39 @@ begin
   select * into v_away_sheet from public.fixture_team_sheets
   where fixture_id=p_fixture_id and season_team_id=v_fixture.away_team_id and is_locked=true;
   if not found then raise exception 'The away team must submit and lock its team sheet before a report can be submitted'; end if;
+
+  for v_event in select value from jsonb_array_elements(p_disciplinary_events) loop
+    v_team_id:=nullif(v_event->>'season_team_id','')::uuid;
+    v_recipient:=v_event->>'recipient_type';
+    v_card:=v_event->>'card_type';
+    v_player_id:=nullif(v_event->>'competition_player_id','')::uuid;
+    v_minute:=nullif(v_event->>'minute','')::integer;
+    v_description:=nullif(btrim(coalesce(v_event->>'description','')),'');
+    if v_team_id is null or v_team_id not in (v_fixture.home_team_id,v_fixture.away_team_id) then
+      raise exception 'Each disciplinary event must belong to one of the fixture teams';
+    end if;
+    if v_recipient is null or v_recipient not in ('registered_player','bench','supporter')
+       or v_card is null or v_card not in ('yellow','second_yellow_red','straight_red') then
+      raise exception 'Invalid disciplinary recipient or card type';
+    end if;
+    if v_minute is not null and v_minute not between 0 and 120 then
+      raise exception 'Disciplinary event minute must be between 0 and 120';
+    end if;
+    if v_description is not null and length(v_description)>500 then
+      raise exception 'Disciplinary event notes must be 500 characters or fewer';
+    end if;
+    if v_recipient='registered_player' then
+      if v_player_id is null or not exists(
+        select 1 from public.fixture_team_sheet_players tsp
+        where tsp.team_sheet_id=case when v_team_id=v_fixture.home_team_id then v_home_sheet.id else v_away_sheet.id end
+          and tsp.competition_player_id=v_player_id
+      ) then
+        raise exception 'Registered player cards must identify a player on that team sheet';
+      end if;
+    elsif v_player_id is not null then
+      raise exception 'Bench and supporter events cannot identify a registered player';
+    end if;
+  end loop;
 
   if exists (
     select 1 from unnest(coalesce(p_home_substitute_appearances,'{}'::uuid[])) selected(identity_id)
