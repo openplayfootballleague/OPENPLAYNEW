@@ -214,14 +214,17 @@ declare
   v_attempt integer;
   v_report_id uuid;
 begin
-  if v_actor is null or not public.has_finance_access() then
-    raise exception 'Finance access required';
+  if v_actor is null then
+    raise exception 'Authentication required';
   end if;
   if p_payout_type is null or p_payout_type not in ('match_report','milestone') or p_payout_id is null then
     raise exception 'A valid referee payout type and ID are required';
   end if;
-  if p_payout_type='milestone' and not public.has_platform_role() then
-    raise exception 'Global administrator permission required for referee milestone rewards';
+  -- Match-report transfers are authorised by the same location scope as report
+  -- approval. Milestone rewards remain restricted to finance-capable global admins.
+  if p_payout_type='milestone' and
+     (not public.has_platform_role() or not public.has_finance_access()) then
+    raise exception 'Global finance administrator permission required for referee milestone rewards';
   end if;
 
   if p_payout_type='match_report' then
