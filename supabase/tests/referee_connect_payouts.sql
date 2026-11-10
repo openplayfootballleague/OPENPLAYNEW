@@ -133,6 +133,24 @@ begin
   execute 'reset role';
 
   execute 'set local role service_role';
+  v_rejected:=false;
+  begin
+    perform public.record_referee_payout_transfer_success(
+      'match_report',v_match_payout,'tr_ci_referee_wrong_destination', 'acct_wrong_destination',2200,'gbp'
+    );
+  exception when others then
+    v_rejected:=sqlerrm like '%destination does not match%';
+  end;
+  if not v_rejected then raise exception 'A transfer to an unlinked Stripe account was accepted'; end if;
+  v_rejected:=false;
+  begin
+    perform public.record_referee_payout_transfer_success(
+      'match_report',v_match_payout,'tr_ci_referee_wrong_amount',v_account_id,2100,'gbp'
+    );
+  exception when others then
+    v_rejected:=sqlerrm like '%amount does not match%';
+  end;
+  if not v_rejected then raise exception 'A transfer with an incorrect amount was accepted'; end if;
   v_status:=public.record_referee_payout_transfer_success(
     'match_report',v_match_payout,'tr_ci_referee_match_000001',v_account_id,2200,'gbp'
   );
@@ -211,6 +229,9 @@ begin
   if (select count(*) from public.admin_list_referee_milestone_rewards_connect('all')
       where reward_id=v_milestone_payout)<>1 then
     raise exception 'Finance queue did not expose the milestone reward and Connect state';
+  end if;
+  if (select count(*) from public.admin_get_referee_payout_transfer_history('match_report',v_match_payout))<>2 then
+    raise exception 'Finance administrator cannot inspect the two match payout transfer attempts';
   end if;
   execute 'reset role';
 end;
