@@ -284,6 +284,13 @@ begin
       continue;
     end if;
 
+    -- At the exact grace boundary, a provider-confirmed payment timestamp
+    -- may still qualify. Defer a previously-graced obligation until time is
+    -- strictly later, avoiding a race with the payment webhook.
+    if v_obligation.status='grace_period' and p_as_of<=v_obligation.grace_ends_at then
+      continue;
+    end if;
+
     if p_as_of>=v_obligation.grace_ends_at and v_obligation.stripe_checkout_session_id is not null then
       update public.team_fixture_payment_obligations set status='admin_review' where id=v_obligation.id;
       insert into public.team_fixture_payment_history(
@@ -295,7 +302,7 @@ begin
       continue;
     end if;
 
-    if p_as_of>=v_obligation.grace_ends_at then
+    if p_as_of>v_obligation.grace_ends_at then
       v_opponent_refund_created:=false;
       update public.team_fixture_payment_obligations
       set status='defaulted',defaulted_at=p_as_of
