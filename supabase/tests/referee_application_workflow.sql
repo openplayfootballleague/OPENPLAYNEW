@@ -3,11 +3,11 @@
 
 do $referee_application_workflow$
 declare
-  v_admin constant uuid := '92000000-0000-4000-8000-000000000001';
-  v_applicant constant uuid := '92000000-0000-4000-8000-000000000002';
-  v_other_applicant constant uuid := '92000000-0000-4000-8000-000000000003';
-  v_unregistered constant uuid := '92000000-0000-4000-8000-000000000004';
-  v_banned constant uuid := '92000000-0000-4000-8000-000000000005';
+  v_admin constant uuid := '94000000-0000-4000-8000-000000000001';
+  v_applicant constant uuid := '94000000-0000-4000-8000-000000000002';
+  v_other_applicant constant uuid := '94000000-0000-4000-8000-000000000003';
+  v_unregistered constant uuid := '94000000-0000-4000-8000-000000000004';
+  v_banned constant uuid := '94000000-0000-4000-8000-000000000005';
   v_location uuid;
   v_other_location uuid;
   v_application uuid;
