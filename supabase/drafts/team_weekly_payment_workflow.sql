@@ -257,6 +257,7 @@ declare
   v_opponent_id uuid;
   v_opponent public.team_fixture_payment_obligations;
   v_captain uuid;
+  v_opponent_refund_created boolean;
   v_count integer:=0;
 begin
   for v_obligation in
@@ -283,7 +284,19 @@ begin
       continue;
     end if;
 
+    if p_as_of>=v_obligation.grace_ends_at and v_obligation.stripe_checkout_session_id is not null then
+      update public.team_fixture_payment_obligations set status='admin_review' where id=v_obligation.id;
+      insert into public.team_fixture_payment_history(
+        obligation_id,action,from_status,to_status,actor_user_id,reason,metadata
+      ) values(v_obligation.id,'provider_reconciliation_required',v_obligation.status,'admin_review',null,
+        'An open Stripe Checkout session must be reconciled before cancellation',
+        jsonb_build_object('stripe_checkout_session_id',v_obligation.stripe_checkout_session_id));
+      v_count:=v_count+1;
+      continue;
+    end if;
+
     if p_as_of>=v_obligation.grace_ends_at then
+      v_opponent_refund_created:=false;
       update public.team_fixture_payment_obligations
       set status='defaulted',defaulted_at=p_as_of
       where id=v_obligation.id;
@@ -305,6 +318,7 @@ begin
         on conflict(obligation_id) do nothing;
         update public.team_fixture_payment_obligations
         set status='refund_pending' where id=v_opponent.id and status in ('paid','late_paid');
+        v_opponent_refund_created:=true;
       end if;
 
       insert into public.team_fixture_payment_history(
@@ -312,7 +326,7 @@ begin
       ) values(v_obligation.id,'defaulted',v_obligation.status,'defaulted',null,
         'Payment not received by the end of the 12-hour grace period',
         jsonb_build_object('cancelled_fixture',true,'team_fee_remains_due',true,
-          'opponent_refund_created',found and v_opponent.status in ('paid','late_paid')));
+          'opponent_refund_created',v_opponent_refund_created));
       for v_captain in select user_id from public.team_memberships
         where season_team_id=v_obligation.season_team_id and status='active' and is_captain
       loop
