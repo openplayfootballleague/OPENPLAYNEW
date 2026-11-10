@@ -48,7 +48,7 @@ begin
   values
     (v_home,v_season,'Appointment Home','ci-appointment-home','approved',now(),v_admin),
     (v_away,v_season,'Appointment Away','ci-appointment-away','approved',now(),v_admin)
-  returning id into v_home;
+  ;
 
   select id into v_home from public.season_teams where slug='ci-appointment-home';
   select id into v_away from public.season_teams where slug='ci-appointment-away';
