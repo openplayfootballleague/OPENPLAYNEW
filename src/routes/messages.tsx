@@ -43,6 +43,8 @@ function MessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [messages, setMessages] = useState<MessageRow[]>([]);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [olderLoading, setOlderLoading] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [captainTeams, setCaptainTeams] = useState<string[]>([]);
@@ -91,10 +93,32 @@ function MessagesPage() {
       setError(rpcError.message);
       setMessages([]);
     } else {
-      setMessages(((data ?? []) as MessageRow[]).slice().reverse());
+      const rows = (data ?? []) as MessageRow[];
+      setMessages(rows.slice().reverse());
+      setHasMoreMessages(rows.length === 100);
     }
     setThreadLoading(false);
   }, []);
+
+  async function loadOlderMessages() {
+    if (!selectedId || !messages.length || olderLoading) return;
+    setOlderLoading(true); setError("");
+    const { data, error: rpcError } = await messagingRpc().rpc("get_message_history", {
+      p_conversation_id: selectedId,
+      p_limit: 100,
+      p_before: messages[0].created_at,
+    });
+    if (rpcError) setError(rpcError.message);
+    else {
+      const older = ((data ?? []) as MessageRow[]).slice().reverse();
+      setMessages((current) => {
+        const currentIds = new Set(current.map((message) => message.message_id));
+        return [...older.filter((message) => !currentIds.has(message.message_id)), ...current];
+      });
+      setHasMoreMessages(older.length === 100);
+    }
+    setOlderLoading(false);
+  }
 
   useEffect(() => {
     if (authStatus !== "authenticated") {
@@ -350,6 +374,7 @@ function MessagesPage() {
                 {selected.kind==="direct"&&selected.other_participant_user_id&&<button type="button" className="messaging-block-button" disabled={busy} onClick={()=>void blockParticipant()}>BLOCK MEMBER</button>}
               </header>
               <div className="messaging-message-list" aria-live="polite">
+                {hasMoreMessages&&<button type="button" className="messaging-load-older" disabled={olderLoading} onClick={()=>void loadOlderMessages()}>{olderLoading?"LOADING…":"LOAD OLDER MESSAGES"}</button>}
                 {threadLoading ? <p className="form-note">Loading conversation…</p> : messages.map((message) => <article key={message.message_id} className={message.sender_id===userId?"messaging-message mine":"messaging-message"}>
                   <div className="messaging-message-meta"><strong>{message.sender_id===userId?"YOU":message.sender_name}</strong><time>{new Date(message.created_at).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"})}</time>{message.message_type==="announcement"&&<b>ANNOUNCEMENT</b>}</div>
                   <p>{message.body}</p>
