@@ -108,6 +108,11 @@ describe("Open Play Phase 1 finance and discipline policy", () => {
       rewardDuePence: 10000,
     });
     expect(getRefereeMilestone(500).nextMilestoneGames).toBeNull();
+    expect(getRefereeMilestone(550)).toMatchObject({
+      completedMilestones: 10,
+      nextMilestoneGames: null,
+      rewardDuePence: 50000,
+    });
   });
 });
 
