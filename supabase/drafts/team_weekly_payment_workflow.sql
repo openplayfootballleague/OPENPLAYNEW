@@ -538,6 +538,7 @@ create policy team_stripe_webhook_events_deny_client_access
   using(false) with check(false);
 grant select on public.team_fixture_payment_obligations,public.team_fixture_payment_refunds
   to service_role;
+grant select,insert,update on public.team_stripe_webhook_events to service_role;
 
 create or replace function public.claim_team_fixture_payment_checkout_attempt(
   p_obligation_id uuid,
