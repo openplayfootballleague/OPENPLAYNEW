@@ -130,6 +130,22 @@ begin
     or position('length(btrim(p_reason))<5' in v_definition)=0 then
     raise exception 'Only global administrators may change the referee reporting feature flag with a reason';
   end if;
+  select pg_get_functiondef('public.admin_assign_referee(uuid,uuid,text)'::regprocedure) into v_definition;
+  if position('enqueue_notification_event' in v_definition)=0 then
+    raise exception 'Referee assignment changes must queue notifications for affected officials';
+  end if;
+  select pg_get_functiondef('public.admin_remove_referee_assignment(uuid,text)'::regprocedure) into v_definition;
+  if position('enqueue_notification_event' in v_definition)=0 then
+    raise exception 'Referee assignment removal must queue a notification';
+  end if;
+  select pg_get_functiondef('public.admin_review_referee_application(uuid,text,text)'::regprocedure) into v_definition;
+  if position('enqueue_notification_event' in v_definition)=0 then
+    raise exception 'Referee application decisions must notify the applicant';
+  end if;
+  select pg_get_functiondef('public.admin_review_referee_match_report(uuid,text,text)'::regprocedure) into v_definition;
+  if position('enqueue_notification_event' in v_definition)=0 then
+    raise exception 'Referee report review decisions must notify the assigned official';
+  end if;
   if position('reporting_enabled' in pg_get_function_result('public.referee_get_my_status()'::regprocedure))=0 then
     raise exception 'Referee status RPC must return the feature-enabled state';
   end if;
