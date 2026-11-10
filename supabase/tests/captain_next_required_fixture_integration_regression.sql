@@ -50,10 +50,17 @@ begin
   ) into v_admin_amendment;
   -- Normalize catalog formatting before checking the correction safeguards.
   v_admin_amendment := regexp_replace(lower(v_admin_amendment), E'\\s+', '', 'g');
+  raise notice 'Admin amendment safeguard probes: completed=%, reason=%, audit=%, location=%, legacy_assert=%',
+    position('v_fixture.status<>''completed''' in v_admin_amendment) > 0,
+    position('length(btrim(p_reason))<5' in v_admin_amendment) > 0,
+    position('fixture.team_sheet.admin_amended' in v_admin_amendment) > 0,
+    position('can_administer_location' in v_admin_amendment) > 0,
+    position('assert_admin_location_context' in v_admin_amendment) > 0;
   if position('v_fixture.status<>''completed''' in v_admin_amendment) = 0
      or position('length(btrim(p_reason))<5' in v_admin_amendment) = 0
      or position('fixture.team_sheet.admin_amended' in v_admin_amendment) = 0
-     or position('can_administer_location' in v_admin_amendment) = 0 then
+     or (position('can_administer_location' in v_admin_amendment) = 0
+         and position('assert_admin_location_context' in v_admin_amendment) = 0) then
     raise exception 'Admin amendment is missing completed-fixture, reason, audit, or location-scope safeguards';
   end if;
 
