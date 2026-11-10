@@ -93,10 +93,21 @@ assert.ok(connectOnboarding.includes("metadata[openplay_referee_user_id]"), "Con
 
 const refereePayout = readFileSync("supabase/functions/pay-referee-payout/index.ts", "utf8");
 assert.ok(refereePayout.includes("userClient.auth.getUser()"), "Referee payout transfers must validate the signed-in administrator");
-assert.ok(refereePayout.includes('rpc("claim_referee_payout_transfer",'), "Referee payout transfers must be claimed through the scoped finance RPC");
+assert.ok(refereePayout.includes('rpc("claim_referee_payout_transfer",'), "Referee payout transfers must be claimed through the location-scoped approval RPC");
+assert.ok(refereePayout.includes('eq("report_id",reportId)'), "Approval-triggered transfers must resolve the payout obligation from the approved report server-side");
 assert.ok(refereePayout.includes("Idempotency-Key") && refereePayout.includes("openplay-referee-"), "Referee payout transfers must use attempt-scoped Stripe idempotency keys");
 assert.ok(refereePayout.includes('stripeKey?.startsWith("sk_test_")'), "Referee payout transfers must remain test-mode only");
 assert.ok(refereePayout.includes("if(!transferCreated&&canMarkFailed)"), "Ambiguous or already-created transfers must remain in reconciliation instead of becoming retryable");
+
+const refereeConnectSql = readFileSync("supabase/drafts/referee_connect_payouts.sql", "utf8");
+const reportClaim = refereeConnectSql.slice(refereeConnectSql.indexOf("create or replace function public.claim_referee_payout_transfer"), refereeConnectSql.indexOf("create or replace function public.record_referee_payout_transfer_success"));
+assert.ok(reportClaim.includes("public.can_administer_location(v_location_id)"), "Match-report transfers must remain scoped to the approving administrator's location");
+assert.ok(reportClaim.includes("not public.has_platform_role() or not public.has_finance_access()"), "Milestone transfers must remain restricted to global finance administrators");
+
+const adminReferees = readFileSync("src/routes/admin/referees.tsx", "utf8");
+const reportReview = adminReferees.slice(adminReferees.indexOf("async function reviewReport"), adminReferees.indexOf("async function decide("));
+assert.ok(reportReview.includes('functions.invoke("pay-referee-payout"'), "Approving a referee match report must immediately invoke the referee transfer workflow");
+assert.ok(reportReview.includes('report_id:report.report_id'), "The approval trigger must identify the report, not trust a browser-supplied payout amount or destination");
 
 const refereeConnectWebhook = readFileSync("supabase/functions/referee-connect-webhook/index.ts", "utf8");
 assert.ok(refereeConnectWebhook.includes('req.headers.get("stripe-signature")') && refereeConnectWebhook.includes("verifyStripeSignature(rawBody,signature,secret)"), "Connect webhook must verify the raw-body Stripe signature");
