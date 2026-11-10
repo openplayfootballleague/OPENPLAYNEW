@@ -48,6 +48,13 @@ begin
 
   foreach v_function in array array[
     'referee_submit_application(text,text,text,text,uuid[])',
+    'referee_get_my_status()',
+    'referee_get_active_locations()',
+    'referee_get_match_report(uuid)',
+    'referee_get_payment_entitlements()',
+    'admin_list_referee_applications(text)',
+    'admin_list_active_referees(uuid)',
+    'admin_list_referee_availability(uuid)',
     'referee_save_availability(date,time,time,uuid,text)',
     'referee_get_assigned_fixtures()',
     'referee_save_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean,boolean)',
