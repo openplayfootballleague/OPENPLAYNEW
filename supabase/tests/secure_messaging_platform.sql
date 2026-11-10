@@ -19,6 +19,8 @@ declare
   v_direct uuid;
   v_team_conversation uuid;
   v_support uuid;
+  v_spammer_support uuid;
+  v_spammer_support_message uuid;
   v_broadcast uuid;
   v_message uuid;
   v_message_two uuid;
@@ -363,12 +365,15 @@ begin
   if not v_failed then raise exception 'Former teammates were allowed to continue a direct conversation'; end if;
   execute 'reset role';
 
-  -- A fresh sender may send ten messages per minute, but not an eleventh.
+  -- The per-user limit spans direct and support messages, not just one thread.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_spammer::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_spammer::text,'role','authenticated')::text,true);
   v_direct:=public.create_direct_message_conversation(v_captain);
-  for v_i in 1..10 loop
+  v_spammer_support:=public.create_support_message_conversation('Sensitive support subject','Please remove my personal information from this support thread');
+  select id into v_spammer_support_message from public.messages
+  where conversation_id=v_spammer_support and sender_id=v_spammer;
+  for v_i in 1..9 loop
     perform public.send_message(v_direct,'Rate-limit test message '||v_i);
   end loop;
   v_failed:=false;
@@ -387,6 +392,15 @@ begin
   where id=v_message and sender_id is null and is_hidden=true;
   if v_body<>'[Message removed after account erasure]' then
     raise exception 'Account erasure did not redact message content and detach sender identity';
+  end if;
+  select title into v_body from public.message_conversations where id=v_spammer_support;
+  if v_body<>'Former member support request' then
+    raise exception 'Account erasure did not redact the private support subject';
+  end if;
+  select body into v_body from public.messages
+  where id=v_spammer_support_message and sender_id is null and is_hidden=true;
+  if v_body<>'[Message removed after account erasure]' then
+    raise exception 'Account erasure did not redact support message content';
   end if;
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_captain::text,true);
