@@ -5,6 +5,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { getTeamRequestDisplay, type TeamRequestStatus } from "../lib/team-request-status";
+import { useOpenPlayAnalytics } from "../components/analytics-provider";
 
 type TeamOption = { id: string; name: string; season_id: string };
 type PlayerState = { registration_status: "registered" | "pending_review" | "rejected"; is_banned: boolean };
@@ -13,6 +14,7 @@ export const Route = createFileRoute("/join")({ component: JoinPage });
 
 function JoinPage() {
   const competition = usePlayerCompetitionContext();
+  const capture = useOpenPlayAnalytics();
   const [session,setSession]=useState<Session|null>(null);
   const [player,setPlayer]=useState<PlayerState|null>(null);
   const [loading,setLoading]=useState(true);
@@ -74,9 +76,10 @@ function JoinPage() {
       if(!teamId)throw new Error("Choose a team first.");
       const {error:rpcError}=await getSupabaseClient().rpc("request_team_membership",{p_season_team_id:teamId});
       if(rpcError)throw rpcError;
+      capture("player_join_request_submitted", { feature: "team_membership", outcome: "success", season_id: competition.selectedSeasonId });
       setMessage("Your request has been sent. You will become a team member only after the captain approves it.");
       try{await refreshMyRequests();}catch{}
-    }catch(cause){setError(cause instanceof Error?cause.message:"Unable to send your team request.");}
+    }catch(cause){capture("workflow_error", { feature: "team_membership", error_code: "unexpected_error", outcome: "failure" });setError(cause instanceof Error?cause.message:"Unable to send your team request.");}
     finally{setBusy(false);}
   }
 
@@ -86,10 +89,11 @@ function JoinPage() {
       if(!competition.selectedSeasonId)throw new Error("There is no open season available for team registration.");
       const {data,error:rpcError}=await getSupabaseClient().rpc("register_team",{p_season_id:competition.selectedSeasonId,p_team_name:teamName.trim(),p_primary_colour:primaryColour||undefined,p_secondary_colour:secondaryColour||undefined});
       if(rpcError)throw rpcError;
+      capture("team_registration_submitted", { feature: "team_registration", outcome: "success", season_id: competition.selectedSeasonId });
       setMessage(`Your application for ${data.name} has been submitted for administrator approval. You will become its captain only after approval.`);
       try{await refreshMyRequests();}catch{}
       setTeamName("");setPrimaryColour("");setSecondaryColour("");
-    }catch(cause){setError(cause instanceof Error?cause.message:"Unable to submit team registration.");}
+    }catch(cause){capture("workflow_error", { feature: "team_registration", error_code: "unexpected_error", outcome: "failure" });setError(cause instanceof Error?cause.message:"Unable to submit team registration.");}
     finally{setBusy(false);}
   }
 
