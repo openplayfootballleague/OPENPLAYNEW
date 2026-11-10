@@ -641,6 +641,19 @@ begin
     insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
     values(v_actor,'referee.report.rejected','referee_match_report',v_report.id::text,btrim(p_reason),
       jsonb_build_object('status','submitted'),jsonb_build_object('status','rejected'));
+    if v_report.report_source='referee' and v_report.referee_user_id is not null then
+      perform public.enqueue_notification_event(
+        v_report.referee_user_id,'referee.report.rejected',
+        jsonb_build_object(
+          'fixture_id',v_fixture.id,'report_id',v_report.id,'report_version',v_report.version,
+          'gameweek',v_fixture.gameweek,
+          'home_team_name',(select name from public.season_teams where id=v_fixture.home_team_id),
+          'away_team_name',(select name from public.season_teams where id=v_fixture.away_team_id),
+          'home_score',v_report.home_score,'away_score',v_report.away_score,
+          'review_reason',btrim(p_reason)
+        )
+      );
+    end if;
     return;
   end if;
 
@@ -690,6 +703,17 @@ begin
   where id=v_report.id;
 
   if v_report.report_source='referee' and v_report.referee_user_id is not null then
+    perform public.enqueue_notification_event(
+      v_report.referee_user_id,'referee.report.approved',
+      jsonb_build_object(
+        'fixture_id',v_fixture.id,'report_id',v_report.id,'report_version',v_report.version,
+        'gameweek',v_fixture.gameweek,
+        'home_team_name',(select name from public.season_teams where id=v_fixture.home_team_id),
+        'away_team_name',(select name from public.season_teams where id=v_fixture.away_team_id),
+        'home_score',v_report.home_score,'away_score',v_report.away_score,
+        'review_reason',btrim(p_reason)
+      )
+    );
     insert into public.referee_report_payouts(
       report_id,referee_user_id,gross_allocation_pence,deductions_pence,
       referee_net_pence,open_play_top_up_pence,status
