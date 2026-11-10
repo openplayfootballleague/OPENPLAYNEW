@@ -62,6 +62,17 @@ function RootComponent() {
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    const supabase = getSupabaseClient();
+    const refreshAnalyticsIdentity = () => {
+      void supabase.auth.getSession().then(({ data: { session } }) => {
+        setAnalyticsIdentity(session?.user.id ?? null);
+      }).catch(() => setAnalyticsIdentity(null));
+    };
+    window.addEventListener("openplay:analytics-consent", refreshAnalyticsIdentity);
+    return () => window.removeEventListener("openplay:analytics-consent", refreshAnalyticsIdentity);
+  }, []);
+
+  useEffect(() => {
     trackAnalyticsPageView(location.pathname);
   }, [location.pathname]);
 
