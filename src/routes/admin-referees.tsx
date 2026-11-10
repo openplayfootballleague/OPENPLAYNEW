@@ -75,7 +75,8 @@ function AdminRefereeWorkspace() {
   const [adminEntryLoading, setAdminEntryLoading] = useState(false);
 
   const openFixtures = useMemo(() => fixtures.filter((fixture) => ["scheduled", "in_progress"].includes(fixture.status)), [fixtures]);
-  const missingReportFixtures = useMemo(() => openFixtures.filter((fixture) => !existingReportFixtureIds.includes(fixture.id)), [openFixtures, existingReportFixtureIds]);
+  const adminCompletableFixtures = useMemo(() => fixtures.filter((fixture) => ["scheduled","in_progress","completed"].includes(fixture.status)), [fixtures]);
+  const missingReportFixtures = useMemo(() => adminCompletableFixtures.filter((fixture) => !existingReportFixtureIds.includes(fixture.id)), [adminCompletableFixtures, existingReportFixtureIds]);
 
   async function loadWorkspace() {
     setLoading(true); setError("");
