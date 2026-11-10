@@ -1256,6 +1256,100 @@ grant execute on function public.admin_list_referee_availability(uuid) to authen
 
 -- Extend the existing admin scorer context to return permanent competition
 -- identity IDs and the locked squad-number snapshot used by referee reports.
+
+create or replace function public.referee_get_milestone_rewards()
+returns table(
+  reward_id uuid,milestone_games integer,reward_amount_pence integer,status text,
+  approved_at timestamptz,paid_at timestamptz,review_reason text,created_at timestamptz
+)
+language plpgsql stable security definer set search_path = ''
+as $rewards$
+begin
+  if auth.uid() is null or not exists(select 1 from public.referee_memberships rm where rm.user_id=auth.uid()) then
+    raise exception 'Referee membership required';
+  end if;
+  return query
+  select r.id,r.milestone_games,r.reward_amount_pence,r.status,r.approved_at,r.paid_at,r.review_reason,r.created_at
+  from public.referee_milestone_rewards r where r.referee_user_id=auth.uid()
+  order by r.milestone_games;
+end;
+$rewards$;
+revoke all on function public.referee_get_milestone_rewards() from public,anon;
+grant execute on function public.referee_get_milestone_rewards() to authenticated;
+
+create or replace function public.admin_list_referee_milestone_rewards(
+  p_status text default 'pending_approval',p_location_id uuid default null
+)
+returns table(
+  reward_id uuid,referee_user_id uuid,referee_name text,milestone_games integer,
+  reward_amount_pence integer,status text,created_at timestamptz,approved_at timestamptz,review_reason text
+)
+language plpgsql stable security definer set search_path = ''
+as $reward_queue$
+begin
+  if auth.uid() is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
+  if p_location_id is not null and not public.can_administer_location(p_location_id) then
+    raise exception 'You are not assigned to this location';
+  end if;
+  if p_status is null or p_status not in ('pending_approval','approved_pending_payment','paid','cancelled','all') then
+    raise exception 'Invalid milestone reward status';
+  end if;
+  return query
+  select r.id,r.referee_user_id,coalesce(pr.display_name,nullif(btrim(pr.first_name||' '||pr.last_name),''),'Referee'),
+    r.milestone_games,r.reward_amount_pence,r.status,r.created_at,r.approved_at,r.review_reason
+  from public.referee_milestone_rewards r
+  join public.profiles pr on pr.id=r.referee_user_id
+  where (p_status='all' or r.status=p_status)
+    and exists(
+      select 1 from public.referee_match_reports mr
+      join public.fixtures f on f.id=mr.fixture_id
+      join public.seasons se on se.id=f.season_id
+      join public.leagues lg on lg.id=se.league_id
+      where mr.assigned_referee_user_id=r.referee_user_id and mr.status='approved'
+        and (p_location_id is null or lg.location_id=p_location_id)
+        and public.can_administer_location(lg.location_id)
+    )
+  order by r.milestone_games,r.created_at;
+end;
+$reward_queue$;
+revoke all on function public.admin_list_referee_milestone_rewards(text,uuid) from public,anon;
+grant execute on function public.admin_list_referee_milestone_rewards(text,uuid) to authenticated;
+
+create or replace function public.admin_approve_referee_milestone_reward(p_reward_id uuid,p_reason text)
+returns public.referee_milestone_rewards
+language plpgsql security definer set search_path = ''
+as $approve_reward$
+declare v_actor uuid:=auth.uid(); v_reward public.referee_milestone_rewards;
+begin
+  if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
+  if p_reason is null or length(btrim(p_reason))<5 then raise exception 'Enter a reason of at least 5 characters'; end if;
+  select * into v_reward from public.referee_milestone_rewards where id=p_reward_id for update;
+  if not found then raise exception 'Milestone reward not found'; end if;
+  if v_reward.status<>'pending_approval' then raise exception 'This milestone reward has already been reviewed'; end if;
+  if not public.has_global_admin_role() and not exists(
+    select 1 from public.referee_match_reports mr
+    join public.fixtures f on f.id=mr.fixture_id
+    join public.seasons se on se.id=f.season_id
+    join public.leagues lg on lg.id=se.league_id
+    where mr.assigned_referee_user_id=v_reward.referee_user_id and mr.status='approved'
+      and public.can_administer_location(lg.location_id)
+  ) then raise exception 'You are not assigned to a location with this referee history'; end if;
+  update public.referee_milestone_rewards
+  set status='approved_pending_payment',approved_by=v_actor,approved_at=now(),review_reason=btrim(p_reason),updated_at=now()
+  where id=p_reward_id returning * into v_reward;
+  insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,after_data)
+  values(v_actor,'referee.milestone_reward.approved','referee_milestone_reward',p_reward_id::text,btrim(p_reason),
+    jsonb_build_object('referee_user_id',v_reward.referee_user_id,'milestone_games',v_reward.milestone_games,'reward_amount_pence',v_reward.reward_amount_pence));
+  perform public.enqueue_notification_event(v_reward.referee_user_id,'referee_milestone_reward_approved',jsonb_build_object(
+    'title','Referee career reward approved','message','Your £50 reward for reaching '||v_reward.milestone_games||' approved games has been approved and is awaiting payment.',
+    'milestone_games',v_reward.milestone_games,'reward_amount_pence',v_reward.reward_amount_pence,
+    'changed_at',now()::text,'url','/referee'));
+  return v_reward;
+end;
+$approve_reward$;
+revoke all on function public.admin_approve_referee_milestone_reward(uuid,text) from public,anon;
+grant execute on function public.admin_approve_referee_milestone_reward(uuid,text) to authenticated;
+
 create or replace function public.get_admin_fixture_scorer_options(p_fixture_id uuid)
 returns jsonb
 language plpgsql stable security definer set search_path = ''
