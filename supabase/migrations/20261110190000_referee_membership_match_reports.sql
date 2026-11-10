@@ -3,24 +3,6 @@
 -- user_roles grants platform administration privileges.
 
 
-create table public.referee_milestone_rewards (
-  id uuid primary key default gen_random_uuid(),
-  referee_user_id uuid not null references auth.users(id) on delete restrict,
-  milestone_report_id uuid not null references public.referee_match_reports(id) on delete restrict,
-  location_id uuid not null references public.locations(id) on delete restrict,
-  milestone_games integer not null check (milestone_games in (50,100,150,200,250,300,350,400,450,500)),
-  reward_amount_pence integer not null default 5000 check (reward_amount_pence=5000),
-  status text not null default 'pending_approval' check (status in ('pending_approval','approved_pending_payment','paid','cancelled')),
-  approved_by uuid references auth.users(id) on delete set null,
-  approved_at timestamptz,
-  paid_at timestamptz,
-  payment_reference text,
-  review_reason text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  unique(referee_user_id,milestone_games)
-);
-
 create table public.platform_feature_flags (
   feature_key text primary key check (feature_key in ('referee_reporting')),
   enabled boolean not null default false,
@@ -235,6 +217,24 @@ create table public.referee_payment_entitlements (
 );
 create index referee_payment_entitlements_referee_idx
   on public.referee_payment_entitlements(referee_user_id, created_at desc);
+
+create table public.referee_milestone_rewards (
+  id uuid primary key default gen_random_uuid(),
+  referee_user_id uuid not null references auth.users(id) on delete restrict,
+  milestone_report_id uuid not null references public.referee_match_reports(id) on delete restrict,
+  location_id uuid not null references public.locations(id) on delete restrict,
+  milestone_games integer not null check (milestone_games in (50,100,150,200,250,300,350,400,450,500)),
+  reward_amount_pence integer not null default 5000 check (reward_amount_pence=5000),
+  status text not null default 'pending_approval' check (status in ('pending_approval','approved_pending_payment','paid','cancelled')),
+  approved_by uuid references auth.users(id) on delete set null,
+  approved_at timestamptz,
+  paid_at timestamptz,
+  payment_reference text,
+  review_reason text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(referee_user_id,milestone_games)
+);
 
 -- All referee data is intentionally accessed through narrowly scoped RPCs.
 -- There are no direct client table policies; SECURITY DEFINER functions enforce roles.
