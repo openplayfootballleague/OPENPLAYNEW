@@ -207,6 +207,10 @@ begin
   select id into v_team_e from public.season_teams where slug='ci-pending-membership';
   select id into v_team_f from public.season_teams where slug='ci-no-successor';
 
+  -- Seed the pre-existing multi-club legacy state that the ban/succession
+  -- workflow must repair. The live trigger prevents new duplicates; disabling
+  -- it only for this synthetic historical fixture models rows predating rollout.
+  alter table public.team_memberships disable trigger team_memberships_one_active_club_per_league;
   insert into public.team_memberships(season_team_id,user_id,status,is_captain)
   values
     (v_team_a,v_target,'active',true),
@@ -222,6 +226,7 @@ begin
     (v_team_e,v_pending_captain,'active',true),
     (v_team_e,v_target,'pending',false),
     (v_team_f,v_target,'active',true);
+  alter table public.team_memberships enable trigger team_memberships_one_active_club_per_league;
 
   -- The sheet guard requires the submitting captain's authenticated identity.
   perform set_config('request.jwt.claim.sub',v_target::text,true);
