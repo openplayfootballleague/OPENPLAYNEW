@@ -306,6 +306,7 @@ declare
   v_credits integer:=0;
   v_delta interval;
   v_captain uuid;
+  v_history_id uuid;
 begin
   if v_actor is null or not public.has_platform_role() then
     raise exception 'Administrator permission required';
@@ -501,7 +502,7 @@ begin
     btrim(p_reason),v_actor,v_fixture_count,v_refunds,v_credits,
     jsonb_build_object('week_number',v_old_number,'scheduled_at',v_week.scheduled_at),
     jsonb_build_object('week_number',v_new_number,'scheduled_at',p_replacement_at)
-  );
+  ) returning id into v_history_id;
   insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
   values(v_actor,'gameweek.postponed','season_gameweek',p_gameweek_id::text,btrim(p_reason),
     jsonb_build_object('week_number',v_old_number,'scheduled_at',v_week.scheduled_at),
@@ -516,7 +517,7 @@ begin
     where f.gameweek_id=p_gameweek_id and tm.status='active' and tm.is_captain
   loop
     perform public.enqueue_notification_event(v_captain,'gameweek.postponed',
-      jsonb_build_object('gameweek_id',p_gameweek_id,'old_gameweek',v_old_number,
+      jsonb_build_object('postponement_id',v_history_id,'gameweek_id',p_gameweek_id,'old_gameweek',v_old_number,
         'new_gameweek',v_new_number,'replacement_at',p_replacement_at,
         'refunds_queued',v_refunds,'reason',btrim(p_reason)));
   end loop;
@@ -738,3 +739,46 @@ revoke all on function public.record_team_fixture_payment_success(uuid,text,time
 grant execute on function public.record_team_fixture_payment_success(uuid,text,timestamptz) to service_role;
 
 
+
+-- Include the unique postponement history ID in notification deduplication so
+-- a second weather postponement of the same gameweek can notify captains again.
+create or replace function public.enqueue_notification_event(
+  p_user_id uuid,
+  p_event_type text,
+  p_payload jsonb
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare v_preferences public.notification_preferences; v_dedupe text;
+begin
+  if p_user_id is null or p_event_type is null or length(btrim(p_event_type))<3 then return; end if;
+  insert into public.notification_preferences(user_id) values(p_user_id) on conflict(user_id) do nothing;
+  select * into v_preferences from public.notification_preferences where user_id=p_user_id;
+  v_dedupe:=p_event_type||':'||coalesce(
+    p_payload->>'postponement_id',
+    p_payload->>'fixture_id',
+    p_payload->>'membership_id',
+    p_payload->>'season_team_id',
+    'event'
+  )||':'||p_user_id::text;
+
+  if v_preferences.email_enabled then
+    insert into public.notification_events(user_id,channel,event_type,status,payload,dedupe_key)
+    values(p_user_id,'email',p_event_type,'queued',coalesce(p_payload,'{}'::jsonb),v_dedupe||':email')
+    on conflict(dedupe_key) where dedupe_key is not null do nothing;
+  end if;
+  if v_preferences.sms_enabled then
+    insert into public.notification_events(user_id,channel,event_type,status,payload,dedupe_key)
+    values(p_user_id,'sms',p_event_type,'queued',coalesce(p_payload,'{}'::jsonb),v_dedupe||':sms')
+    on conflict(dedupe_key) where dedupe_key is not null do nothing;
+  end if;
+  if v_preferences.in_app_enabled then
+    insert into public.notification_events(user_id,channel,event_type,status,payload,dedupe_key,sent_at)
+    values(p_user_id,'in_app',p_event_type,'sent',coalesce(p_payload,'{}'::jsonb),v_dedupe||':in_app',now())
+    on conflict(dedupe_key) where dedupe_key is not null do nothing;
+  end if;
+end;
+$$;
