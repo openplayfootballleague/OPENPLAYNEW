@@ -124,6 +124,26 @@ jobs:
           path: supabase/migrations/*_team_weekly_payment_workflow.sql
           if-no-files-found: error
           retention-days: 1
+      - name: Generate weather gameweek postponement migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponement.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new weather_gameweek_postponement < supabase/drafts/weather_gameweek_postponement.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponement.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/weather_gameweek_postponement.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\\n' "$migration_file"
+      - name: Preserve CLI-generated weather postponement migration for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: weather-gameweek-postponement-migration
+          path: supabase/migrations/*_weather_gameweek_postponement.sql
+          if-no-files-found: error
+          retention-days: 1
       - name: Preserve CLI-generated referee migrations for review
         uses: actions/upload-artifact@v4
         with:
@@ -207,6 +227,11 @@ jobs:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/team_weekly_payment_workflow.sql
 
+      - name: Verify whole-gameweek weather postponements, refunds and chronological renumbering
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/weather_gameweek_postponement.sql
+
       - name: Verify age tiers and guardian consent lifecycle
         env:
           PGPASSWORD: postgres
@@ -239,3 +264,42 @@ jobs:
       - name: Stop local Supabase database
         if: always()
         run: supabase stop --no-backup
+
+  browser-acceptance:
+    name: Chromium responsive and PWA acceptance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked application dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install isolated Playwright test runner
+        run: npm install --no-save --package-lock=false @playwright/test@1.55.0
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Use the browser runner's supported local workerd compatibility date
+        run: |
+          node -e "const fs=require('node:fs');const config=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8'));config.compatibility_date='2026-09-18';fs.writeFileSync('wrangler.jsonc',JSON.stringify(config,null,2)+'\\n');"
+      - name: Build production application with isolated Supabase test endpoint
+        env:
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_PUBLISHABLE_KEY: playwright-public-test-key
+        run: npm run build
+      - name: Run responsive route, manifest and offline PWA acceptance
+        env:
+          CI: "true"
+        run: npx playwright test --config=playwright.config.ts
+      - name: Upload browser traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openplay-browser-acceptance-traces
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
