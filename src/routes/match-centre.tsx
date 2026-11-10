@@ -1,8 +1,9 @@
-import { useEffect,useMemo,useState } from "react";
+import { useEffect,useMemo,useRef,useState } from "react";
 import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 import { PlayerCompetitionSelector, usePlayerCompetitionContext } from "../lib/competition/player-context";
 import { Link,createFileRoute } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { useOpenPlayAnalytics } from "../components/analytics-provider";
 import { buildStandings, getJointFirstTeams, type Standing } from "../lib/competition/standings";
 
 type Team={id:string;name:string};
@@ -12,6 +13,7 @@ type Result={fixture_id:string;home_score:number;away_score:number};
 export const Route=createFileRoute("/match-centre")({component:MatchCentrePage});
 
 function MatchCentrePage(){
+ const capture=useOpenPlayAnalytics();
  const competition=usePlayerCompetitionContext();
  const [teams,setTeams]=useState<Team[]>([]);
  const [fixtures,setFixtures]=useState<Fixture[]>([]);
@@ -44,6 +46,15 @@ function MatchCentrePage(){
  const resultMap=new Map(results.map(r=>[r.fixture_id,r]));
  const standings=useMemo<Standing[]>(()=>buildStandings(teams,fixtures,results),[teams,fixtures,results]);
  const jointFirstTeams=useMemo(()=>getJointFirstTeams(standings),[standings]);
+ const lastTrackedSeason=useRef("");
+ useEffect(()=>{
+  if(loading||error||!competition.selectedSeasonId||lastTrackedSeason.current===competition.selectedSeasonId)return;
+  let captured=false;
+  if(fixtures.length>0)captured=capture("fixture_viewed",{feature:"fixtures",season_id:competition.selectedSeasonId})||captured;
+  if(results.length>0)captured=capture("result_viewed",{feature:"results",season_id:competition.selectedSeasonId})||captured;
+  if(standings.length>0)captured=capture("league_table_viewed",{feature:"league_table",season_id:competition.selectedSeasonId})||captured;
+  if(captured)lastTrackedSeason.current=competition.selectedSeasonId;
+ },[capture,competition.selectedSeasonId,error,fixtures.length,loading,results.length,standings.length]);
 
  return <main className="notice-page player-facing"><section className="notice-panel match-panel">
   <Link className="notice-brand" to="/player"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link><p className="eyebrow eyebrow-dark">PUBLIC MATCH CENTRE</p><h1>Every game.<br/><em>Every point.</em></h1>
