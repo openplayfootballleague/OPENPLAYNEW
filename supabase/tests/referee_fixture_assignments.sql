@@ -89,7 +89,11 @@ begin
   -- Location admin can appoint an eligible referee to the lead role.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
-  v_assignment:=public.admin_assign_referee_to_fixture(v_fixture,v_referee,'lead');
+  begin
+    v_assignment:=public.admin_assign_referee_to_fixture(v_fixture,v_referee,'lead');
+  exception when others then
+    raise exception 'Admin appointment creation failed: %',sqlerrm;
+  end;
   if v_assignment.cancelled_at is not null or v_assignment.assignment_role<>'lead' then
     raise exception 'Referee appointment was not created as an active lead assignment';
   end if;
