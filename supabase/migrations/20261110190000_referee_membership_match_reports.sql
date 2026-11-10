@@ -259,15 +259,16 @@ create or replace function public.admin_set_referee_reporting_feature(p_enabled 
 returns public.platform_feature_flags
 language plpgsql security definer set search_path = ''
 as $feature_set$
-declare v_actor uuid:=auth.uid(); v_flag public.platform_feature_flags;
+declare v_actor uuid:=auth.uid(); v_flag public.platform_feature_flags; v_before boolean;
 begin
   if v_actor is null or not public.has_global_admin_role() then raise exception 'Global administrator permission required'; end if;
   if p_reason is null or length(btrim(p_reason))<5 then raise exception 'Enter a reason of at least 5 characters'; end if;
+  select enabled into v_before from public.platform_feature_flags where feature_key='referee_reporting' for update;
   update public.platform_feature_flags set enabled=p_enabled,updated_by=v_actor,updated_at=now(),reason=btrim(p_reason)
   where feature_key='referee_reporting' returning * into v_flag;
   insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
   values(v_actor,'platform.feature.referee_reporting.changed','platform_feature_flag','referee_reporting',
-    btrim(p_reason),jsonb_build_object('enabled',not p_enabled),jsonb_build_object('enabled',p_enabled));
+    btrim(p_reason),jsonb_build_object('enabled',v_before),jsonb_build_object('enabled',p_enabled));
   return v_flag;
 end;
 $feature_set$;
