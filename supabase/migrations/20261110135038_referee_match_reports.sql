@@ -99,7 +99,10 @@ create table public.referee_report_payouts (
   id uuid primary key default gen_random_uuid(),
   report_id uuid not null unique references public.referee_match_reports(id) on delete restrict,
   referee_user_id uuid references auth.users(id) on delete set null,
-  amount_pence integer not null default 2200 check (amount_pence = 2200),
+  gross_allocation_pence integer not null default 2200 check (gross_allocation_pence = 2200),
+  deductions_pence integer not null default 0 check (deductions_pence >= 0),
+  referee_net_pence integer not null default 2200 check (referee_net_pence >= 2000),
+  open_play_top_up_pence integer not null default 0 check (open_play_top_up_pence >= 0),
   status text not null default 'pending_connect'
     check (status in ('pending_connect','transferred','failed','cancelled')),
   stripe_transfer_id text unique,
@@ -643,8 +646,10 @@ begin
   where id=v_report.id;
 
   if v_report.report_source='referee' and v_report.referee_user_id is not null then
-    insert into public.referee_report_payouts(report_id,referee_user_id,amount_pence,status)
-    values(v_report.id,v_report.referee_user_id,2200,'pending_connect')
+    insert into public.referee_report_payouts(
+      report_id,referee_user_id,gross_allocation_pence,deductions_pence,
+      referee_net_pence,open_play_top_up_pence,status
+    ) values(v_report.id,v_report.referee_user_id,2200,0,2200,0,'pending_connect')
     on conflict(report_id) do nothing;
     select count(*) into v_approved_games from public.referee_match_reports
       where referee_user_id=v_report.referee_user_id and report_source='referee' and status='approved';
@@ -660,7 +665,8 @@ begin
     jsonb_build_object('status','submitted'),
     jsonb_build_object('status','approved','fixture_id',v_fixture.id,'home_score',v_report.home_score,
       'away_score',v_report.away_score,'referee_user_id',v_report.referee_user_id,
-      'referee_gross_payout_pence',case when v_report.report_source='referee' then 2200 else 0 end));
+      'referee_gross_allocation_pence',case when v_report.report_source='referee' then 2200 else 0 end,
+      'referee_minimum_net_pence',case when v_report.report_source='referee' then 2000 else 0 end));
 end;
 $$;
 revoke all on function public.admin_review_referee_match_report(uuid,text,text) from public,anon;
