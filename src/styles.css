@@ -1406,3 +1406,11 @@ a { color: inherit; text-decoration: none; }
  .admin-referee-table article{grid-template-columns:1fr 1fr}
  .admin-referee-header{padding-top:12px}
 }
+
+
+.admin-referee-report-entry{grid-template-columns:1fr}
+.admin-referee-report-entry label{max-width:100%}
+.admin-referee-score-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.admin-referee-report-entry h3{margin:10px 0 0;font-size:14px}
+.admin-referee-warning{padding:12px;color:#ffe0b5;background:#3e2c17;border:1px solid #785027;border-radius:7px;font-size:12px}
+@media(max-width:700px){.admin-referee-score-fields{grid-template-columns:1fr}}
