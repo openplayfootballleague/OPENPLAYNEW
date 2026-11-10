@@ -103,7 +103,7 @@ function AdminRefereeWorkspace() {
       setReports((reportResult.data ?? []) as ReportQueueItem[]);
       setFixtures((fixtureResult.data ?? []) as FixtureOption[]);
       if (!selectedFixture && fixtureResult.data?.length) setSelectedFixture(fixtureResult.data[0].id);
-      if (!selectedReferee && refereeResult.data?.length) setSelectedReferee(refereeResult.data[0].referee_user_id);
+      if (!refereeResult.data?.some((referee: RefereeOption) => referee.referee_user_id === selectedReferee)) setSelectedReferee(refereeResult.data?.[0]?.referee_user_id ?? "");
     }
     setLoading(false);
   }
