@@ -283,7 +283,7 @@ function AdminAnalyticsPage() {
         <label>Fixture date from<input type="date" value={fromDate} max={toDate || undefined} disabled={contextSaving} onChange={(event) => setFromDate(event.target.value)} /></label>
         <label>Fixture date to<input type="date" value={toDate} disabled={contextSaving} min={fromDate || undefined} onChange={(event) => setToDate(event.target.value)} /></label>
       </div>
-      <p className="form-note">The selected location, league and season define this report. Results are refreshed from the database; no manually edited statistics are used.</p>
+      <p className="form-note">The selected location, league and season define this report. Date filters apply to fixture and result counts; team and queue figures remain current snapshots, and finance figures remain ledger totals for the selected season.</p>
     </section>
     <div className="analytics-toolbar"><span>{refreshedAt ? `Last refreshed ${refreshedAt.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}` : "Waiting for data"}</span><button type="button" className="admin-inline-action" onClick={() => void loadContextData()} disabled={loading || contextSaving}>{loading ? "REFRESHING…" : "REFRESH"}</button></div>
     <nav className="analytics-tab-list" role="tablist" aria-label="Analytics reports">
@@ -356,7 +356,7 @@ function AdminAnalyticsPage() {
       </> : <>
         <h2>Reports &amp; exports</h2>
         <p>Export the current permission-scoped aggregate snapshot. Player names, contact details, dates of birth, message content and payment references are excluded.</p>
-        <div className="analytics-report-actions"><button type="button" className="button" onClick={exportCsv} disabled={!overview || dateRangeInvalid}>EXPORT CSV</button><button type="button" className="admin-inline-action" onClick={() => window.print()}>PRINT / SAVE PDF</button></div>
+        <div className="analytics-report-actions"><button type="button" className="button" onClick={exportCsv} disabled={!overview || dateRangeInvalid}>EXPORT CSV</button><button type="button" className="admin-inline-action" onClick={() => window.print()} disabled={!overview || dateRangeInvalid}>PRINT / SAVE PDF</button></div>
         <p className="form-note">CSV values are in integer pence for financial totals. Use the Finance Ledger for itemised financial records.</p>
       </>}
     </section>
