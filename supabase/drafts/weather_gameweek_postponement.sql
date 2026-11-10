@@ -64,6 +64,14 @@ alter table public.team_fixture_payment_obligations
     'due','grace_period','paid','late_paid','defaulted','paid_after_cancellation',
     'refund_pending','refunded','refund_failed','admin_review','weather_cancelled'
   ));
+alter table public.team_fixture_payment_obligations
+  drop constraint team_fixture_payment_paid_state;
+alter table public.team_fixture_payment_obligations
+  add constraint team_fixture_payment_paid_state check (
+    (status in ('paid','late_paid','paid_after_cancellation','refund_pending','refunded','refund_failed')
+      and paid_at is not null and stripe_payment_intent_id is not null)
+    or status in ('due','grace_period','defaulted','admin_review','weather_cancelled')
+  );
 alter table public.team_fixture_payment_refunds
   add column reason text not null default 'payment_default'
   check(reason in ('payment_default','weather_postponement','team_withdrawal'));
