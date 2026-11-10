@@ -718,6 +718,56 @@ $admin_report_options$;
 revoke all on function public.admin_get_referee_fixture_report_options(uuid) from public,anon;
 grant execute on function public.admin_get_referee_fixture_report_options(uuid) to authenticated;
 
+create or replace function public.admin_list_referee_report_payouts(
+  p_status text default 'pending_connect',
+  p_location_id uuid default null
+)
+returns table(
+  payout_id uuid,report_id uuid,referee_user_id uuid,referee_name text,referee_email text,
+  fixture_id uuid,gameweek integer,fixture_number integer,scheduled_at timestamptz,
+  location_id uuid,location_name text,gross_allocation_pence integer,deductions_pence integer,
+  referee_net_pence integer,open_play_top_up_pence integer,status text,
+  stripe_transfer_id text,created_at timestamptz,transferred_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $referee_payout_queue$
+begin
+  if auth.uid() is null or not public.has_platform_role() then
+    raise exception 'Administrator permission required';
+  end if;
+  if p_status not in ('pending_connect','transferred','failed','cancelled','all') then
+    raise exception 'Invalid referee payout status filter';
+  end if;
+  if p_location_id is not null and not public.can_administer_location(p_location_id) then
+    raise exception 'You are not assigned to this referee location';
+  end if;
+  return query
+  select payout.id,report.id,payout.referee_user_id,
+    coalesce(player.full_name,'Former referee'),account.email::text,
+    fixture.id,fixture.gameweek,fixture.fixture_number,fixture.scheduled_at,
+    location.id,location.name,payout.gross_allocation_pence,payout.deductions_pence,
+    payout.referee_net_pence,payout.open_play_top_up_pence,payout.status,
+    payout.stripe_transfer_id,payout.created_at,payout.transferred_at
+  from public.referee_report_payouts payout
+  join public.referee_match_reports report on report.id=payout.report_id
+  join public.fixtures fixture on fixture.id=report.fixture_id
+  join public.seasons season on season.id=fixture.season_id
+  join public.leagues league on league.id=season.league_id
+  join public.locations location on location.id=coalesce(fixture.venue_id,league.location_id)
+  left join public.players player on player.user_id=payout.referee_user_id
+  left join auth.users account on account.id=payout.referee_user_id
+  where (p_status='all' or payout.status=p_status)
+    and (p_location_id is null or location.id=p_location_id)
+    and public.can_administer_location(location.id)
+  order by payout.created_at desc,payout.id;
+end;
+$referee_payout_queue$;
+revoke all on function public.admin_list_referee_report_payouts(text,uuid) from public,anon;
+grant execute on function public.admin_list_referee_report_payouts(text,uuid) to authenticated;
+
 create or replace function public.admin_review_referee_match_report(
   p_report_id uuid,p_decision text,p_reason text
 )
