@@ -164,13 +164,16 @@ begin
   if length(btrim(coalesce(p_reason,''))) not between 5 and 500 then
     raise exception 'A cancellation reason of 5 to 500 characters is required';
   end if;
-  select assignment,fixture
-    into v_assignment,v_fixture
+  select assignment.*
+    into v_assignment
   from public.referee_fixture_assignments assignment
-  join public.fixtures fixture on fixture.id=assignment.fixture_id
   where assignment.id=p_assignment_id
-  for update of assignment;
+  for update;
   if not found then raise exception 'Referee appointment not found'; end if;
+  select * into v_fixture
+  from public.fixtures
+  where id=v_assignment.fixture_id;
+  if not found then raise exception 'Appointment fixture not found'; end if;
   if v_assignment.cancelled_at is not null then
     raise exception 'This referee appointment has already been cancelled';
   end if;
