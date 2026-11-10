@@ -102,6 +102,9 @@ begin
   v_assignment:=public.admin_assign_referee_to_fixture(v_fixture_one,v_referee,'lead');
   execute 'reset role';
 
+  -- Synthetic test setup uses the trusted service-role path; application
+  -- writes remain restricted to captain/admin RPCs.
+  perform set_config('request.jwt.claim.role','service_role',true);
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)
   values(v_fixture_one,v_home_season_team,v_admin,true) returning id into v_home_sheet_one;
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)
@@ -110,6 +113,7 @@ begin
   values
     (v_home_sheet_one,v_home_user,v_home_identity,'starter',false,true),
     (v_away_sheet_one,v_away_user,v_away_identity,'starter',false,true);
+  perform set_config('request.jwt.claim.role','authenticated',true);
 
   -- Create team sheets before simulating the completed match; kickoff lock remains enforced.
   update public.fixtures set scheduled_at=now()-interval '1 hour',status='in_progress' where id=v_fixture_one;
@@ -169,6 +173,7 @@ begin
   v_assignment:=public.admin_assign_referee_to_fixture(v_fixture_two,v_referee,'lead');
   execute 'reset role';
 
+  perform set_config('request.jwt.claim.role','service_role',true);
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)
   values(v_fixture_two,v_home_season_team,v_admin,true) returning id into v_home_sheet_two;
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)
@@ -177,6 +182,7 @@ begin
   values
     (v_home_sheet_two,v_home_user,v_home_identity,'starter',false,true),
     (v_away_sheet_two,v_away_user,v_away_identity,'starter',false,true);
+  perform set_config('request.jwt.claim.role','authenticated',true);
 
   -- Create team sheets before simulating the completed match; kickoff lock remains enforced.
   update public.fixtures set scheduled_at=now()-interval '2 days',status='in_progress' where id=v_fixture_two;
@@ -255,10 +261,12 @@ begin
   insert into public.fixtures(season_id,gameweek,fixture_number,home_team_id,away_team_id,venue_id,scheduled_at,status)
   values(v_season,993,1,v_home_season_team,v_away_season_team,v_location,now()+interval '6 days','scheduled')
   returning id into v_fixture_three;
+  perform set_config('request.jwt.claim.role','service_role',true);
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)
   values(v_fixture_three,v_home_season_team,v_admin,true) returning id into v_home_sheet_three;
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)
   values(v_fixture_three,v_away_season_team,v_admin,true) returning id into v_away_sheet_three;
+  perform set_config('request.jwt.claim.role','authenticated',true);
 
   -- The disciplinary trigger must reject an inactive player even on a future
   -- sheet. Use the trusted service-role claim to isolate this trigger from the
