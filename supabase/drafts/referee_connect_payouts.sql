@@ -552,7 +552,7 @@ begin
   where history.payout_type=p_payout_type and history.payout_id=p_payout_id
   order by history.attempt_number desc;
 end;
-$;
+$$;
 revoke all on function public.admin_get_referee_payout_transfer_history(text,uuid) from public,anon;
 grant execute on function public.admin_get_referee_payout_transfer_history(text,uuid) to authenticated;
 
