@@ -123,6 +123,7 @@ as $$
     and exists (
       select 1 from public.profiles p
       where p.id=p_user_id
+        and p.account_retention_status='active'
     )
     and (
       exists (
