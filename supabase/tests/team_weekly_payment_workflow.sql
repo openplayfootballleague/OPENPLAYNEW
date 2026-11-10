@@ -229,6 +229,17 @@ begin
   end if;
   execute 'reset role';
 
+  -- Captains can see only their own payment records, never the finance-wide queue.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_home_captain::text,true);
+  begin
+    perform 1 from public.get_admin_team_fixture_payment_queue(v_season);
+    raise exception 'A team captain was incorrectly allowed to read the finance-wide payment queue';
+  exception when others then
+    if sqlerrm not like 'Finance access required%' then raise; end if;
+  end;
+  execute 'reset role';
+
   if (select count(*) from public.team_fixture_payment_history where obligation_id in (v_home_obligation,v_away_obligation))<6 then
     raise exception 'Payment lifecycle history is incomplete';
   end if;
