@@ -1,5 +1,3 @@
-import { getSupabaseClient } from "../supabase/client";
-
 const CONSENT_KEY = "openplay.analytics-consent.v1";
 const ANON_ID_KEY = "openplay.analytics-anonymous-id.v1";
 
@@ -100,13 +98,6 @@ export function setAnalyticsConsent(allowed: boolean): void {
   if (allowed) {
     activeUserId = null;
     void capture("analytics_consent_granted", getAnonymousId());
-    // If the person is already signed in when they opt in, identify only now.
-    void getSupabaseClient().auth.getSession().then(({ data }) => {
-      setAnalyticsIdentity(data.session?.user.id ?? null);
-      trackAnalyticsPageView(window.location.pathname);
-    }).catch(() => {
-      // Consent is saved; analytics must remain non-essential and non-blocking.
-    });
   } else {
     rotateAnonymousId();
   }
