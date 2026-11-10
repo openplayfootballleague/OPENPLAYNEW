@@ -16,8 +16,8 @@ const setup: AnalyticsSetup = {
     { id: "league-b", location_id: "loc-b", name: "Barnstaple 6s" },
   ],
   seasons: [
-    { id: "season-a", league_id: "league-a", location_id: "loc-a", name: "A", status: "active" },
-    { id: "season-b", league_id: "league-b", location_id: "loc-b", name: "B", status: "completed" },
+    { id: "season-a", league_id: "league-a", name: "A", status: "active" },
+    { id: "season-b", league_id: "league-b", name: "B", status: "completed" },
   ],
   season_teams: [
     { id: "team-a", season_id: "season-a", name: "A team", registration_status: "approved", member_count: 6 },
