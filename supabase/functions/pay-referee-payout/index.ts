@@ -49,6 +49,8 @@ Deno.serve(async(req)=>{
     return json({error:"The payout could not be prepared for transfer"},409,headers);
   }
 
+  let transferCreated=false;
+  let createdTransfer:any=null;
   try{
     const params=new URLSearchParams();
     params.set("amount",String(payout.amount_pence));
@@ -72,6 +74,8 @@ Deno.serve(async(req)=>{
     const transfer=await response.json();
     if(!response.ok)throw new Error(transfer?.error?.message??"Stripe transfer failed");
     if(transfer.livemode!==false)throw new Error("Live-mode transfers are disabled for this workflow");
+    transferCreated=true;
+    createdTransfer=transfer;
 
     const {error:recordError}=await serviceClient.rpc("record_referee_payout_transfer_success",{
       p_payout_type:payoutType,
@@ -81,13 +85,25 @@ Deno.serve(async(req)=>{
       p_amount_pence:transfer.amount,
       p_currency:transfer.currency,
     });
-    if(recordError)throw new Error(recordError.message);
+    if(recordError){
+      // The transfer already exists at Stripe. Leave the payout in processing;
+      // the signed transfer.created webhook will reconcile it. Never make it retryable here.
+      return json({
+        error:"Stripe created the transfer, but database confirmation is pending. Do not retry this payout.",
+        transfer_id:transfer.id,status:"processing",
+      },503,headers);
+    }
     return json({success:true,payout_type:payoutType,payout_id:payoutId,transfer_id:transfer.id,status:"transferred"},200,headers);
   }catch(error){
     const reason=error instanceof Error?error.message:"Stripe transfer failed";
-    await serviceClient.rpc("record_referee_payout_transfer_failure",{
-      p_payout_type:payoutType,p_payout_id:payoutId,p_failure_reason:reason,p_transfer_reversed:false,
-    });
-    return json({error:reason},402,headers);
+    if(!transferCreated){
+      await serviceClient.rpc("record_referee_payout_transfer_failure",{
+        p_payout_type:payoutType,p_payout_id:payoutId,p_failure_reason:reason,p_transfer_reversed:false,
+      });
+    }
+    return json({
+      error:reason,
+      ...(transferCreated&&createdTransfer?.id?{transfer_id:createdTransfer.id,status:"processing"}:{}),
+    },transferCreated?503:402,headers);
   }
 });
