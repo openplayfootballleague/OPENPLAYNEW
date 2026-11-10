@@ -64,14 +64,14 @@ function PrivacySecurityPage() {
 
   async function signOutOtherDevices() {
     if (!signedIn || sessionsBusy) return;
-    if (!window.confirm("Sign out of all other Open Play sessions? This device will remain signed in.")) return;
+    if (!window.confirm("Sign out of all other Open Play sessions? This session will remain signed in.")) return;
     setSessionsBusy(true);
     setSessionsMessage("");
     setSessionsError("");
     try {
       const { error } = await getSupabaseClient().auth.signOut({ scope: "others" });
       if (error) throw error;
-      setSessionsMessage("Other active sessions have been signed out. This device remains signed in.");
+      setSessionsMessage("Other active sessions have been signed out. This session remains signed in.");
     } catch (cause) {
       setSessionsError(cause instanceof Error ? cause.message : "Unable to sign out other sessions. Please try again.");
     } finally {
@@ -110,10 +110,10 @@ function PrivacySecurityPage() {
         </section>
         <section className="account-security-section">
           <h2>Active sessions</h2>
-          <p>Sign out of other devices if you no longer recognise a session. This does not sign out the device you are using now. A per-device session list and individual revocation controls are not yet available.</p>
+          <p>Sign out of other sessions if you no longer recognise one. This does not sign out the session you are using now. A per-device session list and individual revocation controls are not yet available.</p>
           {signedIn ? (
             <button className="auth-text-button" type="button" onClick={() => void signOutOtherDevices()} disabled={sessionsBusy}>
-              {sessionsBusy ? "SIGNING OUT OTHER DEVICES…" : "SIGN OUT OTHER DEVICES"}
+              {sessionsBusy ? "SIGNING OUT OTHER DEVICES…" : "SIGN OUT OTHER SESSIONS"}
             </button>
           ) : (
             <Link className="auth-switch" to="/sign-in">Sign in to manage active sessions</Link>
