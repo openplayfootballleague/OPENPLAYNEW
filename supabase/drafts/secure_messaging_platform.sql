@@ -602,6 +602,7 @@ declare
   v_user uuid:=auth.uid();
   v_conversation_id uuid;
   v_count integer;
+  v_admin_count integer;
 begin
   if v_user is null or not public.message_actor_is_active(v_user) then
     raise exception 'Active Open Play account required';
@@ -625,6 +626,13 @@ begin
   where ur.role in ('admin','super_admin','league_admin','finance_admin')
     and public.message_actor_is_active(ur.user_id)
   on conflict do nothing;
+  select count(*) into v_admin_count
+  from public.message_conversation_participants cp
+  join public.user_roles ur on ur.user_id=cp.user_id
+  where cp.conversation_id=v_conversation_id
+    and ur.role in ('admin','super_admin','league_admin','finance_admin')
+    and cp.left_at is null;
+  if v_admin_count=0 then raise exception 'Administrator support is not available right now'; end if;
   perform public.send_message(v_conversation_id,p_initial_message,'message');
   return v_conversation_id;
 end;
