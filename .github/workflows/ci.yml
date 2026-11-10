@@ -104,6 +104,26 @@ jobs:
           fi
           test -n "$migration_file"
           printf '%s\\n' "$migration_file"
+      - name: Generate team weekly payment migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_team_weekly_payment_workflow.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new team_weekly_payment_workflow < supabase/drafts/team_weekly_payment_workflow.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_team_weekly_payment_workflow.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/team_weekly_payment_workflow.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\\n' "$migration_file"
+      - name: Preserve CLI-generated team payment migration for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-weekly-payment-migration
+          path: supabase/migrations/*_team_weekly_payment_workflow.sql
+          if-no-files-found: error
+          retention-days: 1
       - name: Preserve CLI-generated referee migrations for review
         uses: actions/upload-artifact@v4
         with:
@@ -181,6 +201,11 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_match_reports.sql
+
+      - name: Verify team weekly payment deadlines, strikes, cancellation and refund ledger
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/team_weekly_payment_workflow.sql
 
       - name: Verify age tiers and guardian consent lifecycle
         env:
