@@ -106,6 +106,10 @@ type AdminReportOptions = {
   home_players: AdminReportPlayer[];
   away_players: AdminReportPlayer[];
 };
+type RefereePayoutTransferHistory = {
+  attempt_number:number;status:string;amount_pence:number;stripe_transfer_id:string|null;
+  failure_reason:string|null;created_at:string;
+};
 type RefereeMilestoneReward = {
   reward_id:string;referee_user_id:string|null;referee_name:string;milestone_number:number;
   approved_games:number;amount_pence:number;
@@ -175,6 +179,8 @@ function AdminRefereesPage() {
   const [payouts, setPayouts] = useState<RefereePayoutObligation[]>([]);
   const [milestoneRewards, setMilestoneRewards] = useState<RefereeMilestoneReward[]>([]);
   const [milestoneRewardsLoading, setMilestoneRewardsLoading] = useState(false);
+  const [payoutHistoryOpen, setPayoutHistoryOpen] = useState("");
+  const [payoutHistory, setPayoutHistory] = useState<Record<string,RefereePayoutTransferHistory[]>>({});
   const [payoutsLoading, setPayoutsLoading] = useState(false);
   const [payoutStatusFilter, setPayoutStatusFilter] = useState("pending_connect");
   const [reportableFixtures, setReportableFixtures] = useState<AdminReportableFixture[]>([]);
@@ -295,6 +301,18 @@ function AdminRefereesPage() {
   }, []);
 
   useEffect(() => { void loadMilestoneRewards(); }, [loadMilestoneRewards]);
+
+  async function togglePayoutHistory(payoutType:"match_report"|"milestone",payoutId:string){
+    const key=`${payoutType}:${payoutId}`;
+    if(payoutHistoryOpen===key){setPayoutHistoryOpen("");return;}
+    const rpc=getSupabaseClient() as unknown as RpcClient;
+    const {data,error:historyError}=await rpc.rpc("admin_get_referee_payout_transfer_history",{
+      p_payout_type:payoutType,p_payout_id:payoutId,
+    });
+    if(historyError){setError(historyError.message);return;}
+    setPayoutHistory((current)=>({...current,[key]:(data??[]) as RefereePayoutTransferHistory[]}));
+    setPayoutHistoryOpen(key);
+  }
 
   async function sendRefereePayout(payoutType: "match_report" | "milestone", payoutId: string) {
     setBusy(`referee-payout:${payoutId}`);
@@ -869,6 +887,14 @@ function AdminRefereesPage() {
                     {busy===`referee-payout:${payout.payout_id}`?"SENDING…":payout.status==="failed"?"RETRY REFEREE TRANSFER":"SEND REFEREE PAYMENT"}
                   </button>
                 )}
+                <button type="button" className="reject" onClick={()=>void togglePayoutHistory("match_report",payout.payout_id)}>
+                  {payoutHistoryOpen===`match_report:${payout.payout_id}`?"HIDE TRANSFER HISTORY":"VIEW TRANSFER HISTORY"}
+                </button>
+                {payoutHistoryOpen===`match_report:${payout.payout_id}`&&(
+                  <div className="form-note">{(payoutHistory[`match_report:${payout.payout_id}`]??[]).map((attempt)=>(
+                    <p key={attempt.attempt_number}>Attempt {attempt.attempt_number} · {attempt.status.toUpperCase()} · {formatPence(attempt.amount_pence)} · {attempt.stripe_transfer_id??"No transfer ID"}{attempt.failure_reason? ` · ${attempt.failure_reason}`:""}</p>
+                  ))}</div>
+                )}
               </div>
             </article>
           ))}
@@ -893,6 +919,14 @@ function AdminRefereesPage() {
                   <button type="button" disabled={busy===`referee-payout:${reward.reward_id}`} onClick={()=>void sendRefereePayout("milestone",reward.reward_id)}>
                     {busy===`referee-payout:${reward.reward_id}`?"SENDING…":reward.status==="failed"?"RETRY MILESTONE TRANSFER":"SEND MILESTONE REWARD"}
                   </button>
+                )}
+                <button type="button" className="reject" onClick={()=>void togglePayoutHistory("milestone",reward.reward_id)}>
+                  {payoutHistoryOpen===`milestone:${reward.reward_id}`?"HIDE TRANSFER HISTORY":"VIEW TRANSFER HISTORY"}
+                </button>
+                {payoutHistoryOpen===`milestone:${reward.reward_id}`&&(
+                  <div className="form-note">{(payoutHistory[`milestone:${reward.reward_id}`]??[]).map((attempt)=>(
+                    <p key={attempt.attempt_number}>Attempt {attempt.attempt_number} · {attempt.status.toUpperCase()} · {formatPence(attempt.amount_pence)} · {attempt.stripe_transfer_id??"No transfer ID"}{attempt.failure_reason? ` · ${attempt.failure_reason}`:""}</p>
+                  ))}</div>
                 )}
               </div>
             </article>
