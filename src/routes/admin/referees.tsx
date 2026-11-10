@@ -517,7 +517,7 @@ function AdminRefereesPage() {
             <div className="admin-sheet-editor">
               <label>
                 Completed fixture
-                <select value={selectedAdminReportFixtureId} onChange={(event) => setSelectedAdminReportFixtureId(event.target.value)}>
+                <select value={selectedAdminReportFixtureId} disabled={adminReportOptionsLoading} onChange={(event) => setSelectedAdminReportFixtureId(event.target.value)}>
                   <option value="">Choose a completed fixture</option>
                   {reportableFixtures.map((fixture) => <option key={fixture.fixture_id} value={fixture.fixture_id}>
                     {fixture.location_name} · GW {fixture.gameweek} · {fixture.home_team_name} v {fixture.away_team_name}
@@ -527,7 +527,7 @@ function AdminRefereesPage() {
               </label>
               {reportableFixtures.length === 0 && <p className="form-note">No completed fixtures with locked team sheets need an administrator report.</p>}
               {adminReportOptionsLoading && <p className="form-note">Loading team-sheet players…</p>}
-              {adminReportOptions && <>
+              {adminReportOptions && adminReportOptions.fixture.id === selectedAdminReportFixtureId && <>
                 <p className="form-note">GW {adminReportOptions.fixture.gameweek} · {adminReportOptions.fixture.home_team_name} v {adminReportOptions.fixture.away_team_name}. Starters count as appearances automatically; select substitutes who appeared before selecting goalscorers.</p>
                 <div className="admin-report-score-grid">
                   <label>{adminReportOptions.fixture.home_team_name} score
