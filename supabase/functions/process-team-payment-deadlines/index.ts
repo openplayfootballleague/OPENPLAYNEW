@@ -26,14 +26,19 @@ Deno.serve(async(req)=>{
   const admin=createClient(supabaseUrl,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
   const now=new Date();
   const nowIso=now.toISOString();
-  const {data:obligations,error:loadError}=await admin.from("team_fixture_payment_obligations")
-    .select("id,status,amount_pence,currency,deadline_at,grace_ends_at,stripe_checkout_session_id")
-    .in("status",["due","grace_period","admin_review","weather_cancelled"])
-    .limit(500);
-  if(loadError)return response({error:"Could not load team payment deadlines"},500);
+  const obligations:Array<Record<string,unknown>>=[];
+  for(let offset=0;;offset+=500){
+    const {data:page,error:loadError}=await admin.from("team_fixture_payment_obligations")
+      .select("id,status,amount_pence,currency,deadline_at,grace_ends_at,stripe_checkout_session_id")
+      .in("status",["due","grace_period","admin_review"])
+      .order("id").range(offset,offset+499);
+    if(loadError)return response({error:"Could not load team payment deadlines"},500);
+    obligations.push(...(page??[]));
+    if((page??[]).length<500)break;
+  }
 
   let reconciled=0,expired=0,refundsSucceeded=0,refundsFailed=0,refundsPending=0;
-  for(const obligation of obligations??[]){
+  for(const obligation of obligations){
     const sessionId=obligation.stripe_checkout_session_id as string|null;
     if(!sessionId)continue;
     const weatherCancelled=obligation.status==="weather_cancelled";
@@ -101,11 +106,16 @@ Deno.serve(async(req)=>{
   });
   if(processError)return response({error:"Could not process team payment deadlines"},500);
 
-  const {data:refundRows,error:refundLoadError}=await admin.from("team_fixture_payment_refunds")
-    .select("id,amount_pence,stripe_payment_intent_id")
-    .eq("status","pending").limit(200);
-  if(refundLoadError)return response({error:"Could not load opponent refunds"},500);
-  for(const refund of refundRows??[]){
+  const refundRows:Array<Record<string,unknown>>=[];
+  for(let offset=0;;offset+=500){
+    const {data:page,error:refundLoadError}=await admin.from("team_fixture_payment_refunds")
+      .select("id,amount_pence,stripe_payment_intent_id")
+      .eq("status","pending").order("id").range(offset,offset+499);
+    if(refundLoadError)return response({error:"Could not load opponent refunds"},500);
+    refundRows.push(...(page??[]));
+    if((page??[]).length<500)break;
+  }
+  for(const refund of refundRows){
     const form=new URLSearchParams();
     form.set("payment_intent",String(refund.stripe_payment_intent_id));
     form.set("amount",String(refund.amount_pence));
