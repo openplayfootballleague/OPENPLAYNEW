@@ -384,7 +384,8 @@ create or replace function public.record_referee_payout_transfer_failure(
   p_payout_type text,
   p_payout_id uuid,
   p_failure_reason text,
-  p_transfer_reversed boolean default false
+  p_transfer_reversed boolean default false,
+  p_stripe_transfer_id text default null
 )
 returns text
 language plpgsql
@@ -407,6 +408,9 @@ begin
     if v_status not in ('processing','transferred') or (v_status='transferred' and not p_transfer_reversed) then
       raise exception 'Referee payout cannot be marked failed from its current state';
     end if;
+    if p_transfer_reversed and (p_stripe_transfer_id is null or v_transfer_id is distinct from p_stripe_transfer_id) then
+      return 'stale_reversal';
+    end if;
     insert into public.referee_payout_transfer_history(
       payout_type,payout_id,referee_user_id,attempt_number,stripe_transfer_id,
       amount_pence,currency,status,failure_reason
@@ -428,6 +432,9 @@ begin
     if v_status not in ('processing','transferred') or (v_status='transferred' and not p_transfer_reversed) then
       raise exception 'Referee milestone cannot be marked failed from its current state';
     end if;
+    if p_transfer_reversed and (p_stripe_transfer_id is null or v_transfer_id is distinct from p_stripe_transfer_id) then
+      return 'stale_reversal';
+    end if;
     insert into public.referee_payout_transfer_history(
       payout_type,payout_id,referee_user_id,attempt_number,stripe_transfer_id,
       amount_pence,currency,status,failure_reason
@@ -447,9 +454,9 @@ begin
   return 'failed';
 end;
 $$;
-revoke all on function public.record_referee_payout_transfer_failure(text,uuid,text,boolean)
+revoke all on function public.record_referee_payout_transfer_failure(text,uuid,text,boolean,text)
   from public,anon,authenticated;
-grant execute on function public.record_referee_payout_transfer_failure(text,uuid,text,boolean)
+grant execute on function public.record_referee_payout_transfer_failure(text,uuid,text,boolean,text)
   to service_role;
 
 create or replace function public.admin_list_referee_report_payouts_connect(
