@@ -26,7 +26,7 @@ async function stripeRequest(path:string,method:"GET"|"POST",key:string,params?:
 }
 
 Deno.serve(async(req)=>{
-  const allowedOrigin=Deno.env.get("APP_ORIGIN")??"";
+  const allowedOrigin=(Deno.env.get("APP_ORIGIN")??"").replace(/\/+$/,"");
   const headers=cors(allowedOrigin);
   if(req.method==="OPTIONS")return new Response("ok",{headers});
   if(req.method!=="POST")return json({error:"Method not allowed"},405,headers);
