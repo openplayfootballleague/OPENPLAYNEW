@@ -289,6 +289,15 @@ begin
   exception when others then v_failed:=true;
   end;
   if not v_failed then raise exception 'Former team member retained team conversation access'; end if;
+  -- Existing direct history remains available, but replies stop when the shared
+  -- active-team relationship ends.
+  perform public.get_message_history(v_direct,50,null);
+  v_failed:=false;
+  begin
+    perform public.send_message(v_direct,'A former teammate cannot reply here');
+  exception when others then v_failed:=true;
+  end;
+  if not v_failed then raise exception 'Former teammates were allowed to continue a direct conversation'; end if;
   execute 'reset role';
 
   -- A fresh sender may send ten messages per minute, but not an eleventh.
