@@ -258,6 +258,7 @@ function AdminAnalyticsPage() {
       ["Accessible locations", overview.locations],
       ["Leagues in context", overview.leagues],
       ["Seasons in context", overview.seasons],
+      ["Verified season summaries", overview.verifiedSeasons],
       ["Open seasons", overview.openSeasons],
       ["Approved teams", overview.approvedTeams],
       ["Total team applications", overview.totalTeamApplications],
@@ -348,7 +349,9 @@ function AdminAnalyticsPage() {
     </nav>
     <section id={`analytics-tab-${tab}`} role="tabpanel" className="analytics-tab-content">
       {!overview ? <p className="form-note">Analytics data is not available for this context.</p> : tab === "overview" ? <>
+        {seasonTrendError && <p className="form-note" role="status">{seasonTrendError}</p>}
         <div className="analytics-stat-grid">
+          <article><span>Verified seasons</span><strong>{overview.verifiedSeasons} / {overview.seasons}</strong></article>
           <article><span>Approved teams</span><strong>{overview.approvedTeams}</strong></article>
           <article><span>Squad memberships</span><strong>{overview.squadMemberships}</strong></article>
           <article><span>Fixtures</span><strong>{overview.fixtures}</strong></article>
@@ -423,7 +426,7 @@ function AdminAnalyticsPage() {
       </> : tab === "locations" ? <>
         <h2>Location comparison</h2>
         <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.publishedResults}</td><td>{row.goals}</td></tr>)}</tbody></table></div>
-        <p className="form-note">Location rows are limited to the locations returned by your administrator-scoped setup RPC. Results and goals come from confirmed season-statistics RPCs; each row includes up to the latest six seasons matching the league/season filter. Squad memberships count current approved-team memberships, not unique people across multiple seasons.</p>
+        <p className="form-note">Location rows are limited to the locations returned by your administrator-scoped setup RPC. {seasonTrendError ? "Some location statistics may be incomplete. " : ""}Results and goals come from confirmed season-statistics RPCs; each row includes up to the latest six seasons matching the league/season filter. Squad memberships count current approved-team memberships, not unique people across multiple seasons.</p>
       </> : tab === "business" ? <>
         {!financeAccess ? <div className="analytics-state"><h2>Finance reporting restricted</h2><p>{financeError || "This section is available to authorised finance administrators."}</p><Link className="admin-inline-action" to="/finance">OPEN FINANCE LEDGER ↗</Link></div> : financeError ? <p className="form-error" role="alert">{financeError}</p> : <>
           <h2>Business performance · verified ledger</h2>
@@ -449,7 +452,7 @@ function AdminAnalyticsPage() {
       <h2>Open Play reporting summary</h2>
       <p>Reporting context: {locationId ? setup.locations.find((item) => item.id === locationId)?.name ?? "Selected location" : "All accessible locations"} · {leagueId ? setup.leagues.find((item) => item.id === leagueId)?.name ?? "Selected league" : "All accessible leagues"} · {seasonId ? setup.seasons.find((item) => item.id === seasonId)?.name ?? "Selected season" : "All accessible seasons"}</p>
       {overview && <div className="analytics-print-metrics">
-        <p>Approved teams: {overview.approvedTeams} · Team approval rate: {overview.teamApprovalRate === null ? "—" : `${overview.teamApprovalRate.toFixed(1)}%`} · Squad memberships: {overview.squadMemberships}</p>
+        <p>Verified seasons: {overview.verifiedSeasons}/{overview.seasons} · Approved teams: {overview.approvedTeams} · Team approval rate: {overview.teamApprovalRate === null ? "—" : `${overview.teamApprovalRate.toFixed(1)}%`} · Squad memberships: {overview.squadMemberships}</p>
         <p>Fixtures: {overview.fixtures} · Published results: {overview.publishedResults} · Goals: {overview.goals}</p>
         <p>Open seasons: {overview.openSeasons} · Pending player reviews: {overview.pendingPlayerReviews} · Pending team applications: {overview.pendingTeamApplications} · Pending join requests: {overview.pendingMembershipRequests}</p>
       </div>}
