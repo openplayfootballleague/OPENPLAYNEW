@@ -27,9 +27,8 @@ Deno.serve(async(req)=>{
   const now=new Date();
   const nowIso=now.toISOString();
   const {data:obligations,error:loadError}=await admin.from("team_fixture_payment_obligations")
-    .select("id,status,grace_ends_at,stripe_checkout_session_id")
-    .in("status",["due","grace_period","admin_review"])
-    .lte("deadline_at",nowIso)
+    .select("id,status,deadline_at,grace_ends_at,stripe_checkout_session_id")
+    .in("status",["due","grace_period","admin_review","weather_cancelled"])
     .limit(500);
   if(loadError)return response({error:"Could not load team payment deadlines"},500);
 
@@ -37,7 +36,9 @@ Deno.serve(async(req)=>{
   for(const obligation of obligations??[]){
     const sessionId=obligation.stripe_checkout_session_id as string|null;
     if(!sessionId)continue;
-    if(new Date(String(obligation.grace_ends_at)).getTime()>now.getTime())continue;
+    const weatherCancelled=obligation.status==="weather_cancelled";
+    if(!weatherCancelled&&new Date(String(obligation.deadline_at)).getTime()>now.getTime())continue;
+    if(!weatherCancelled&&new Date(String(obligation.grace_ends_at)).getTime()>now.getTime())continue;
 
     const sessionResult=await stripeGet(stripeKey,`checkout/sessions/${encodeURIComponent(sessionId)}`);
     if(!sessionResult.ok)continue;
