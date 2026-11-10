@@ -2769,23 +2769,6 @@ export type Database = {
           team_name: string
         }[]
       }
-      get_admin_postponable_gameweeks: {
-        Args: { p_season_id?: string | null }
-        Returns: {
-          fixture_count: number
-          gameweek_id: string
-          location_name: string
-          paid_team_count: number
-          scheduled_at: string
-          season_id: string
-          season_name: string
-          week_number: number
-        }[]
-      }
-      admin_postpone_gameweek: {
-        Args: { p_gameweek_id: string; p_replacement_at: string; p_reason: string }
-        Returns: Json
-      }
       get_admin_team_sheets: {
         Args: never
         Returns: {
