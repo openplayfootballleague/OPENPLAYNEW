@@ -65,7 +65,8 @@ describe("admin analytics aggregation", () => {
 
   it("filters location comparisons by the selected league or season", () => {
     expect(buildLocationComparisons(setup, { leagueId: "league-b", seasonId: "" })).toHaveLength(1);
-    expect(buildLocationComparisons(setup, { leagueId: "", seasonId: "season-a" })[0].locationName).toBe("Bideford");
+    expect(buildLocationComparisons(setup, { locationId: "loc-a", leagueId: "", seasonId: "" })).toHaveLength(1);
+    expect(buildLocationComparisons(setup, { locationId: "loc-a", leagueId: "", seasonId: "season-a" })[0].locationName).toBe("Bideford");
   });
 
   it("aggregates integer-pence finance totals without converting to floating point", () => {
