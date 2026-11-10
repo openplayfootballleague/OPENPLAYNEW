@@ -69,6 +69,34 @@ describe("admin analytics aggregation", () => {
     expect(buildLocationComparisons(setup, { locationId: "loc-a", leagueId: "", seasonId: "season-a" })[0].locationName).toBe("Bideford");
   });
 
+  it("applies inclusive date boundaries and excludes fixtures without a scheduled date", () => {
+    const withUndatedFixture: AnalyticsSetup = {
+      ...setup,
+      fixtures: [...setup.fixtures, {
+        id: "fixture-undated",
+        season_id: "season-a",
+        gameweek: 2,
+        status: "completed",
+        home_score: 1,
+        away_score: 0,
+        scheduled_at: null,
+      }],
+    };
+    const dashboard = { pending_player_reviews: 0, pending_team_applications: 0, pending_membership_requests: 0, open_seasons: 1 };
+    const result = buildAnalyticsOverview(
+      withUndatedFixture,
+      dashboard,
+      withUndatedFixture.fixtures,
+      { locationId: "loc-a", leagueId: "league-a", seasonId: "season-a", fromDate: "2026-10-01", toDate: "2026-10-01" },
+    );
+    expect(result.fixtures).toBe(1);
+    expect(result.publishedResults).toBe(1);
+    expect(result.goals).toBe(5);
+    expect(buildLocationComparisons(withUndatedFixture, {
+      locationId: "loc-a", leagueId: "league-a", seasonId: "season-a", fromDate: "2026-10-02", toDate: "2026-10-09",
+    })).toHaveLength(0);
+  });
+
   it("aggregates integer-pence finance totals without converting to floating point", () => {
     expect(aggregateFinanceTotals([
       { charges_pence: 3000, payments_pence: "2000", refunds_pence: 0, credits_pence: 0, fines_pence: 500, outstanding_pence: 1500 },
