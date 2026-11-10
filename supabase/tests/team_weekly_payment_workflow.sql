@@ -13,6 +13,10 @@ declare
   v_home_season_team uuid;
   v_away_season_team uuid;
   v_fixture uuid;
+  v_late_fixture uuid;
+  v_late_obligation uuid;
+  v_late_deadline timestamptz;
+  v_late_grace_ends timestamptz;
   v_home_obligation uuid;
   v_away_obligation uuid;
   v_deadline timestamptz;
@@ -185,10 +189,43 @@ begin
   end if;
   execute 'reset role';
 
+  -- A payment one minute after the 24-hour deadline is accepted during the
+  -- 12-hour grace period, creates one strike, and leaves the fixture scheduled.
+  insert into public.fixtures(
+    season_id,gameweek,fixture_number,home_team_id,away_team_id,venue_id,scheduled_at,status
+  ) values(
+    v_season,2,1,v_home_season_team,v_away_season_team,v_location,now()+interval '6 days','scheduled'
+  ) returning id into v_late_fixture;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_home_captain::text,true);
+  select obligation_id,deadline_at,grace_ends_at
+    into v_late_obligation,v_late_deadline,v_late_grace_ends
+  from public.create_team_fixture_payment_obligation(v_late_fixture,v_home_season_team);
+  execute 'reset role';
+  execute 'set local role service_role';
+  v_status:=public.record_team_fixture_payment_success(
+    v_late_obligation,'pi_ci_team_payment_late_001',v_late_deadline+interval '1 minute'
+  );
+  execute 'reset role';
+  if v_status<>'late_paid'
+     or (select status from public.team_fixture_payment_obligations where id=v_late_obligation)<>'late_paid' then
+    raise exception 'Payment during the grace period was not accepted as late_paid';
+  end if;
+  if (select count(*) from public.team_payment_strikes
+      where obligation_id=v_late_obligation and reason='paid_during_grace')<>1 then
+    raise exception 'A grace-period payment must apply exactly one late-payment strike';
+  end if;
+  if (select status from public.fixtures where id=v_late_fixture)<>'scheduled' then
+    raise exception 'A payment made within the grace period must not cancel its fixture';
+  end if;
+  if v_late_grace_ends<=v_late_deadline then
+    raise exception 'The grace period must end after the original payment deadline';
+  end if;
+
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
-  if (select count(*) from public.get_admin_team_fixture_payment_queue(v_season))<>2 then
-    raise exception 'Finance administrator queue did not return both team obligations';
+  if (select count(*) from public.get_admin_team_fixture_payment_queue(v_season))<>3 then
+    raise exception 'Finance administrator queue did not return all three team payment obligations';
   end if;
   execute 'reset role';
 
