@@ -1,5 +1,5 @@
 export type AnalyticsLocation = { id: string; name: string; town: string };
-export type AnalyticsSeason = { id: string; league_id: string; location_id?: string; name: string; status: string };
+export type AnalyticsSeason = { id: string; league_id: string; location_id?: string; name: string; status: string; starts_on?: string | null; season_number?: number | null };
 export type AnalyticsTeam = { id: string; season_id: string; name: string; registration_status: string; member_count: number };
 export type AnalyticsFixture = {
   id: string;
@@ -29,6 +29,10 @@ export type AnalyticsOverview = {
   seasons: number;
   openSeasons: number;
   approvedTeams: number;
+  totalTeamApplications: number;
+  rejectedTeamApplications: number;
+  withdrawnTeamApplications: number;
+  teamApprovalRate: number | null;
   squadMemberships: number;
   fixtures: number;
   publishedResults: number;
@@ -47,6 +51,28 @@ export type AnalyticsLocationComparison = {
   publishedResults: number;
   goals: number;
 };
+export type SeasonStatsSnapshot = {
+  seasonId: string;
+  stats: {
+    season: { id: string; name: string };
+    summary: { fixtures: number; published_results: number; goals: number; goals_per_match: number };
+    teams: Array<{ team_id: string }>;
+    players: Array<{ competition_player_id: string; apps: number }>;
+  };
+};
+export type SeasonTrend = {
+  seasonId: string;
+  seasonName: string;
+  startsOn: string | null;
+  approvedTeams: number;
+  playersWithAppearances: number;
+  fixtures: number;
+  publishedResults: number;
+  goals: number;
+  returningPlayers: number | null;
+  returnRate: number | null;
+};
+
 export type FinanceSummaryRow = {
   charges_pence: number | string;
   payments_pence: number | string;
@@ -84,7 +110,8 @@ export function buildAnalyticsOverview(
   const locationByLeague = new Map(setup.leagues.map((league) => [league.id, league.location_id]));
   const seasons = setup.seasons.filter((season) => matchesFilters(season, filters, locationByLeague));
   const seasonIds = new Set(seasons.map((season) => season.id));
-  const teams = setup.season_teams.filter((team) => seasonIds.has(team.season_id) && team.registration_status === "approved");
+  const teamApplications = setup.season_teams.filter((team) => seasonIds.has(team.season_id));
+  const teams = teamApplications.filter((team) => team.registration_status === "approved");
   const results = contextualFixtures.filter(isPublishedResult);
   return {
     locations: filters.locationId ? 1 : setup.locations.length,
@@ -92,6 +119,10 @@ export function buildAnalyticsOverview(
     seasons: seasons.length,
     openSeasons: Number(dashboard.open_seasons ?? 0),
     approvedTeams: teams.length,
+    totalTeamApplications: teamApplications.length,
+    rejectedTeamApplications: teamApplications.filter((team) => team.registration_status === "rejected").length,
+    withdrawnTeamApplications: teamApplications.filter((team) => team.registration_status === "withdrawn").length,
+    teamApprovalRate: teamApplications.length > 0 ? (teams.length / teamApplications.length) * 100 : null,
     squadMemberships: teams.reduce((total, team) => total + Math.max(0, Number(team.member_count) || 0), 0),
     fixtures: contextualFixtures.length,
     publishedResults: results.length,
@@ -132,6 +163,49 @@ export function buildLocationComparisons(
       publishedResults: results.length,
       goals: results.reduce((total, fixture) => total + Number(fixture.home_score ?? 0) + Number(fixture.away_score ?? 0), 0),
     }];
+  });
+}
+
+export function buildSeasonTrends(
+  seasons: AnalyticsSeason[],
+  snapshots: SeasonStatsSnapshot[],
+): SeasonTrend[] {
+  const seasonById = new Map(seasons.map((season) => [season.id, season]));
+  const ordered = snapshots
+    .filter((snapshot) => seasonById.has(snapshot.seasonId))
+    .sort((a, b) => {
+      const aDate = seasonById.get(a.seasonId)?.starts_on ?? "";
+      const bDate = seasonById.get(b.seasonId)?.starts_on ?? "";
+      return aDate.localeCompare(bDate) || a.stats.season.name.localeCompare(b.stats.season.name);
+    });
+
+  return ordered.map((snapshot, index) => {
+    const season = seasonById.get(snapshot.seasonId)!;
+    const currentPlayers = new Set(snapshot.stats.players
+      .filter((player) => Number(player.apps) > 0)
+      .map((player) => player.competition_player_id));
+    const previous = ordered[index - 1];
+    const previousPlayers = previous
+      ? new Set(previous.stats.players.filter((player) => Number(player.apps) > 0).map((player) => player.competition_player_id))
+      : null;
+    const returningPlayers = previousPlayers
+      ? [...currentPlayers].filter((playerId) => previousPlayers.has(playerId)).length
+      : null;
+
+    return {
+      seasonId: snapshot.seasonId,
+      seasonName: snapshot.stats.season.name,
+      startsOn: season.starts_on ?? null,
+      approvedTeams: snapshot.stats.teams.length,
+      playersWithAppearances: currentPlayers.size,
+      fixtures: snapshot.stats.summary.fixtures,
+      publishedResults: snapshot.stats.summary.published_results,
+      goals: snapshot.stats.summary.goals,
+      returningPlayers,
+      returnRate: previousPlayers && previousPlayers.size > 0 && returningPlayers !== null
+        ? (returningPlayers / previousPlayers.size) * 100
+        : null,
+    };
   });
 }
 
