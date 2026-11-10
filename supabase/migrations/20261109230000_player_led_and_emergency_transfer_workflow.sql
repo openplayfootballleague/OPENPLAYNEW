@@ -824,6 +824,8 @@ set search_path = ''
 as $$
 declare
   v_request public.player_transfer_requests;
+  v_source public.team_memberships;
+  v_source_team_id uuid;
   v_destination public.season_teams;
   v_season public.seasons;
   v_player public.players;
@@ -859,10 +861,32 @@ begin
     raise exception 'This transfer has already been resolved or secured by another club';
   end if;
 
+  select * into v_source from public.team_memberships
+  where id=v_request.source_membership_id for share;
+  if not found
+     or v_source.user_id is distinct from v_request.user_id
+     or v_source.season_team_id is distinct from v_request.source_season_team_id
+     or v_source.status<>'left'
+     or v_source.voluntarily_left_at is null then
+    raise exception 'The source membership was not voluntarily left by this player';
+  end if;
+
+  select st.team_id into v_source_team_id
+  from public.season_teams st
+  join public.seasons source_season on source_season.id=st.season_id
+  where st.id=v_source.season_team_id
+    and source_season.league_id=v_request.league_id;
+  if v_source_team_id is null then
+    raise exception 'The source membership does not belong to this league';
+  end if;
+
   select * into v_destination from public.season_teams
   where id=v_request.destination_season_team_id for share;
   if not found or v_destination.registration_status<>'approved' then
     raise exception 'Destination club is no longer approved';
+  end if;
+  if v_source_team_id=v_destination.team_id then
+    raise exception 'A transfer must move the player to a different club';
   end if;
 
   select * into v_season from public.seasons
@@ -890,6 +914,7 @@ begin
     join public.seasons s on s.id=st.season_id
     where tm.user_id=v_request.user_id and tm.status='active'
       and s.league_id=v_request.league_id
+      and tm.id<>v_source.id
   ) then
     raise exception 'Player is already attached to a club in this league';
   end if;
