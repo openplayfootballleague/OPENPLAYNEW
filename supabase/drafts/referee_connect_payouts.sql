@@ -505,6 +505,53 @@ $$;
 revoke all on function public.admin_list_referee_report_payouts_connect(text) from public,anon;
 grant execute on function public.admin_list_referee_report_payouts_connect(text) to authenticated;
 
+create or replace function public.admin_get_referee_payout_transfer_history(
+  p_payout_type text,
+  p_payout_id uuid
+)
+returns table(
+  attempt_number integer,status text,amount_pence integer,
+  stripe_transfer_id text,failure_reason text,created_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $
+declare
+  v_location_id uuid;
+begin
+  if auth.uid() is null or not public.has_finance_access() then
+    raise exception 'Finance access required';
+  end if;
+  if p_payout_type is null or p_payout_type not in ('match_report','milestone') or p_payout_id is null then
+    raise exception 'A valid referee payout is required';
+  end if;
+  if p_payout_type='match_report' then
+    select coalesce(fixture.venue_id,league.location_id) into v_location_id
+    from public.referee_report_payouts payout
+    join public.referee_match_reports report on report.id=payout.report_id
+    join public.fixtures fixture on fixture.id=report.fixture_id
+    join public.seasons season on season.id=fixture.season_id
+    join public.leagues league on league.id=season.league_id
+    where payout.id=p_payout_id;
+    if v_location_id is null or not public.can_administer_location(v_location_id) then
+      raise exception 'You cannot administer this referee payout location';
+    end if;
+  elsif not exists(select 1 from public.referee_milestone_rewards where id=p_payout_id) then
+    raise exception 'Referee milestone reward not found';
+  end if;
+  return query
+  select history.attempt_number,history.status,history.amount_pence,
+    history.stripe_transfer_id,history.failure_reason,history.created_at
+  from public.referee_payout_transfer_history history
+  where history.payout_type=p_payout_type and history.payout_id=p_payout_id
+  order by history.attempt_number desc;
+end;
+$;
+revoke all on function public.admin_get_referee_payout_transfer_history(text,uuid) from public,anon;
+grant execute on function public.admin_get_referee_payout_transfer_history(text,uuid) to authenticated;
+
 create or replace function public.admin_list_referee_milestone_rewards_connect(
   p_status text default 'pending_connect'
 )
