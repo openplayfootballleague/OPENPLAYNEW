@@ -134,7 +134,7 @@ jobs:
             diff -u supabase/drafts/weather_gameweek_postponement.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\\n' "$migration_file"
       - name: Preserve CLI-generated weather postponement migration for review
