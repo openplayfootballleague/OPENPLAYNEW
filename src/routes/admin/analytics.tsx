@@ -67,21 +67,33 @@ function AdminAnalyticsPage() {
       const preference = preferenceResult.data as ContextPreference;
       const setupData = (setupResult.data ?? { locations: [], leagues: [], seasons: [], season_teams: [], fixtures: [] }) as AnalyticsSetup;
       let nextLocation = preference.location_id ?? "";
-      if (!preference.is_global_admin && !nextLocation && setupData.locations.length === 1) {
+      let nextLeague = preference.league_id ?? "";
+      let nextSeason = preference.season_id ?? "";
+      const assignedLocationIsValid = setupData.locations.some((location) => location.id === nextLocation);
+      if (!preference.is_global_admin && (!nextLocation || !assignedLocationIsValid)) {
+        nextLocation = setupData.locations[0]?.id ?? "";
+        nextLeague = "";
+        nextSeason = "";
+        if (!nextLocation) {
+          setError("No administrator locations are currently assigned to this account.");
+          setLoading(false);
+          return;
+        }
         const { error: saveError } = await getSupabaseClient().rpc("save_admin_context_preference", {
-          p_location_id: setupData.locations[0].id,
+          p_location_id: nextLocation,
           p_league_id: undefined,
           p_season_id: undefined,
         });
         if (!alive) return;
         if (saveError) setError(saveError.message);
-        nextLocation = setupData.locations[0].id;
       }
+      if (nextLeague && !setupData.leagues.some((league) => league.id === nextLeague && (!nextLocation || league.location_id === nextLocation))) nextLeague = "";
+      if (nextSeason && !setupData.seasons.some((season) => season.id === nextSeason && (!nextLeague || season.league_id === nextLeague))) nextSeason = "";
       setIsGlobalAdmin(preference.is_global_admin);
       setSetup(setupData);
       setLocationId(nextLocation);
-      setLeagueId(preference.league_id ?? "");
-      setSeasonId(preference.season_id ?? "");
+      setLeagueId(nextLeague);
+      setSeasonId(nextSeason);
       setContextReady(true);
       setLoading(false);
     })().catch((cause: unknown) => {
@@ -269,14 +281,16 @@ function AdminAnalyticsPage() {
       <div className="analytics-context-grid">
         <label>Location<select value={locationId} disabled={contextSaving} onChange={(event) => void saveContext(event.target.value, "", "")}>
           {isGlobalAdmin && <option value="">All accessible locations</option>}
-          {!isGlobalAdmin && setup.locations.length > 1 && <option value="">All assigned locations</option>}
           {setup.locations.map((location) => <option key={location.id} value={location.id}>{location.name} · {location.town}</option>)}
         </select></label>
         <label>League<select value={leagueId} disabled={contextSaving || (!locationId && !isGlobalAdmin)} onChange={(event) => void saveContext(locationId, event.target.value, "")}>
           <option value="">All leagues</option>{setup.leagues.filter((league) => !locationId || league.location_id === locationId).map((league) => <option key={league.id} value={league.id}>{league.name}</option>)}
         </select></label>
         <label>Season<select value={seasonId} disabled={contextSaving} onChange={(event) => void saveContext(locationId, leagueId, event.target.value)}>
-          <option value="">All seasons</option>{setup.seasons.filter((season) => (!locationId || season.location_id === locationId) && (!leagueId || season.league_id === leagueId)).map((season) => <option key={season.id} value={season.id}>{season.name} · {season.status}</option>)}
+          <option value="">All seasons</option>{setup.seasons.filter((season) => {
+            const seasonLocationId = season.location_id ?? setup.leagues.find((league) => league.id === season.league_id)?.location_id;
+            return (!locationId || seasonLocationId === locationId) && (!leagueId || season.league_id === leagueId);
+          }).map((season) => <option key={season.id} value={season.id}>{season.name} · {season.status}</option>)}
         </select></label>
       </div>
       <p className="form-note">The selected location, league and season define this report. Results are refreshed from the database; no manually edited statistics are used.</p>
