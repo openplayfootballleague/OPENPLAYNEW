@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { AnalyticsConsentSettings } from "../components/analytics-consent";
 
 type MoreAccess = {
   loading: boolean;
@@ -131,6 +132,7 @@ function MorePage() {
             </>
           )}
         </section>
+        <AnalyticsConsentSettings />
         <Link className="auth-switch" to="/">Back to Open Play home</Link>
       </section>
       <PlayerBottomNavigation />
