@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { classifyCheckoutWithoutSession, classifyExistingCheckoutSession, nextCheckoutAttempt } from "../../../src/lib/payments/stripe-settlement.ts";
 
 const cors = {
-  "Access-Control-Allow-Origin": Deno.env.get("APP_ORIGIN") ?? "https://openplayfootball.lovable.app",
+  "Access-Control-Allow-Origin": Deno.env.get("APP_ORIGIN") ?? "",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Vary": "Origin",
@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const origin = req.headers.get("origin");
-  const allowedOrigin = Deno.env.get("APP_ORIGIN") ?? "https://openplayfootball.lovable.app";
+  const allowedOrigin = Deno.env.get("APP_ORIGIN") ?? "";
   if (origin && origin !== allowedOrigin) return json({ error: "Origin not allowed" }, 403);
 
   const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");

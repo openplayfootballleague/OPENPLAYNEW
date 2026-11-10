@@ -5,6 +5,7 @@ declare
   v_count integer;
   v_setup jsonb;
   v_denied boolean;
+  v_cross_location_sheet uuid;
 begin
   insert into auth.users (id,aud,role,email,encrypted_password,raw_user_meta_data,created_at,updated_at)
   values
@@ -75,9 +76,36 @@ begin
    ('00000000-0000-4000-8000-000000000070','00000000-0000-4000-8000-000000000030',1,1,'00000000-0000-4000-8000-000000000050','00000000-0000-4000-8000-000000000051'),
    ('00000000-0000-4000-8000-000000000071','00000000-0000-4000-8000-000000000031',1,1,'00000000-0000-4000-8000-000000000052','00000000-0000-4000-8000-000000000053');
 
+  -- Seed the cross-location sheet as its real active captain. A platform
+  -- administrator must not create a captain's matchday sheet.
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000003',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003"}',true);
+  insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
+  values('00000000-0000-4000-8000-000000000071','00000000-0000-4000-8000-000000000052',
+    '00000000-0000-4000-8000-000000000003',true,now())
+  returning id into v_cross_location_sheet;
+
+  -- A global administrator without captaincy cannot create a team sheet directly.
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000005',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000005"}',true);
+  v_denied := false;
+  begin
+    insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
+    values('00000000-0000-4000-8000-000000000071','00000000-0000-4000-8000-000000000052',
+      '00000000-0000-4000-8000-000000000005',true,now());
+  exception when others then
+    if sqlerrm = 'Administrators must amend submitted sheets through admin_amend_team_sheet' then
+      v_denied := true;
+    else
+      raise;
+    end if;
+  end;
+  if not v_denied then raise exception 'Global admin unexpectedly created a captain team sheet'; end if;
+
   -- Ordinary player: own profile/player record and own team's fixture only.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001"}',true);
   if current_user <> 'authenticated' then raise exception 'Could not assume authenticated role'; end if;
   if public.has_global_admin_role() or public.has_platform_role() then raise exception 'Ordinary player unexpectedly has an admin role'; end if;
   select count(*) into v_count from public.profiles where id='00000000-0000-4000-8000-000000000001';
@@ -104,6 +132,7 @@ begin
   -- Captain: their own team's roster and fixtures only.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000002',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002"}',true);
   if not public.is_active_team_captain('00000000-0000-4000-8000-000000000050') then raise exception 'Captain membership was not recognised'; end if;
   if public.has_global_admin_role() or public.has_platform_role() then raise exception 'Captain unexpectedly has an admin role'; end if;
   select count(*) into v_count from public.team_memberships where season_team_id='00000000-0000-4000-8000-000000000050' and status='active';
@@ -144,6 +173,7 @@ begin
   if v_count <> 1 then raise exception 'Cross-team request changed despite authorization denial'; end if;
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000002',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002"}',true);
 
   select count(*) into v_count from public.team_memberships where season_team_id='00000000-0000-4000-8000-000000000052';
   if v_count <> 0 then raise exception 'Captain can see another location roster'; end if;
@@ -163,6 +193,7 @@ begin
   -- Location admin: direct table RLS is not a shortcut around scoped RPCs.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000004',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000004"}',true);
   if current_user <> 'authenticated' then raise exception 'Could not assume authenticated role for location admin'; end if;
   if not public.has_platform_role() then raise exception 'Location admin role was not recognised'; end if;
   if public.has_global_admin_role() then raise exception 'Location admin was incorrectly classified as global'; end if;
@@ -230,11 +261,75 @@ begin
     if sqlerrm = 'Finance access required' then v_denied := true; else raise; end if;
   end;
   if not v_denied then raise exception 'Location admin changed finance settings without finance permission'; end if;
+
+  -- Every newly replaced contextual/history RPC must enforce the selected location.
+  v_denied := false;
+  begin
+    perform * from public.get_admin_team_sheets_contextual('00000000-0000-4000-8000-000000000011',null,null);
+  exception when others then
+    if sqlerrm = 'You are not assigned to this location' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin read team sheets outside their assignment'; end if;
+
+  v_denied := false;
+  begin
+    perform * from public.admin_get_transfer_requests_contextual('all','00000000-0000-4000-8000-000000000011',null,null);
+  exception when others then
+    if sqlerrm = 'You are not assigned to this location' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin read transfer requests outside their assignment'; end if;
+
+  v_denied := false;
+  begin
+    perform * from public.get_admin_contextual_fixtures('00000000-0000-4000-8000-000000000011',null,null);
+  exception when others then
+    if sqlerrm = 'You are not assigned to this location' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin read fixtures outside their assignment'; end if;
+
+  v_denied := false;
+  begin
+    perform public.get_admin_season_statistics('00000000-0000-4000-8000-000000000031');
+  exception when others then
+    if sqlerrm = 'You are not assigned to this location' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin read season statistics outside their assignment'; end if;
+
+  v_denied := false;
+  begin
+    perform public.get_admin_fixture_scorer_options('00000000-0000-4000-8000-000000000071');
+  exception when others then
+    if sqlerrm = 'You are not assigned to this location' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin read scorer options outside their assignment'; end if;
+
+  v_denied := false;
+  begin
+    perform public.admin_record_fixture_result_with_appearances(
+      '00000000-0000-4000-8000-000000000071',0,0,'{}'::uuid[],'{}'::uuid[],'{}'::uuid[],'{}'::uuid[],
+      'Cross-location authorization test'
+    );
+  exception when others then
+    if sqlerrm = 'You are not assigned to this location' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin entered a result outside their assignment'; end if;
+
+  v_denied := false;
+  begin
+    perform public.admin_amend_team_sheet(
+      v_cross_location_sheet,
+      '{}'::uuid[],'{}'::uuid[],null,'Cross-location authorization test'
+    );
+  exception when others then
+    if sqlerrm = 'You are not assigned to this location' then v_denied := true; else raise; end if;
+  end;
+  if not v_denied then raise exception 'Location admin amended a team sheet outside their assignment'; end if;
   execute 'reset role';
 
   -- Finance admin: may manage fees without a platform-admin or location assignment.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000007',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000007"}',true);
   if not public.has_finance_access() then raise exception 'Finance admin does not have finance access'; end if;
   if public.has_platform_role() or public.has_global_admin_role() then raise exception 'Finance admin was incorrectly granted platform-admin access'; end if;
   perform public.admin_set_player_fixture_fee('00000000-0000-4000-8000-000000000031',500,1,'CI finance role scope test');
@@ -250,6 +345,7 @@ begin
   -- Global admin: global visibility and assignment administration remain available.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000005',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000005"}',true);
   if not public.has_global_admin_role() then raise exception 'Global admin role was not recognised'; end if;
   select count(*) into v_count from public.profiles where id in (
     '00000000-0000-4000-8000-000000000001',
@@ -260,11 +356,54 @@ begin
   if v_count <> 4 then raise exception 'Global admin cannot read all player profiles'; end if;
   select count(*) into v_count from public.leagues where id in ('00000000-0000-4000-8000-000000000020','00000000-0000-4000-8000-000000000021');
   if v_count <> 2 then raise exception 'Global admin cannot read both private leagues'; end if;
+
+  -- Global administrators may amend a sheet only after the fixture is completed.
+  v_denied := false;
+  begin
+    perform public.admin_amend_team_sheet(
+      v_cross_location_sheet,
+      '{}'::uuid[],'{}'::uuid[],null,'CI pre-match amendment rejection'
+    );
+  exception when others then
+    if sqlerrm = 'A team sheet can be amended only after its fixture is marked completed' then
+      v_denied := true;
+    else
+      raise;
+    end if;
+  end;
+  if not v_denied then raise exception 'Global admin amended a sheet before its fixture was completed'; end if;
+
   perform public.admin_set_location_assignment('00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000011',true);
   select count(*) into v_count from public.admin_list_location_assignments(null);
   if v_count <> 2 then raise exception 'Global admin cannot manage and list location assignments'; end if;
   v_setup := public.get_admin_competition_setup();
   if jsonb_array_length(v_setup->'locations') <> 2 then raise exception 'Global admin setup did not return all locations'; end if;
+
+  -- Repeating an existing grant is a no-op and must not create duplicate audit entries.
+  perform public.admin_set_location_assignment('00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000011',true);
   execute 'reset role';
+  select count(*) into v_count from public.audit_log
+  where actor_user_id='00000000-0000-4000-8000-000000000005'
+    and action='location_admin.assignment_granted'
+    and entity_type='location_admin_assignment';
+  if v_count <> 1 then raise exception 'Location assignment grant must create exactly one audit event'; end if;
+
+  -- A stale assignment must remain revocable after the league_admin role is removed.
+  delete from public.user_roles
+  where user_id='00000000-0000-4000-8000-000000000004' and role='league_admin';
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000005',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000005"}',true);
+  perform public.admin_set_location_assignment('00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000011',false);
+  execute 'reset role';
+  select count(*) into v_count from public.location_admin_assignments
+  where user_id='00000000-0000-4000-8000-000000000004'
+    and location_id='00000000-0000-4000-8000-000000000011';
+  if v_count <> 0 then raise exception 'Stale location assignment could not be revoked'; end if;
+  select count(*) into v_count from public.audit_log
+  where actor_user_id='00000000-0000-4000-8000-000000000005'
+    and action='location_admin.assignment_revoked'
+    and entity_type='location_admin_assignment';
+  if v_count <> 1 then raise exception 'Location assignment revocation must create exactly one audit event'; end if;
 end;
 $role_matrix$;

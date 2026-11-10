@@ -1,0 +1,65 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+
+const config = readFileSync("supabase/config.toml", "utf8");
+
+function verifyJwtSetting(functionName, expected) {
+  const escaped = functionName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = config.match(new RegExp(`\\[functions\\.${escaped}\\]([^\\[]*)`));
+  assert.ok(match, `Missing Supabase function config for ${functionName}`);
+  const setting = match[1].match(/verify_jwt\s*=\s*(true|false)/);
+  assert.ok(setting, `Missing explicit verify_jwt setting for ${functionName}`);
+  assert.equal(setting[1] === "true", expected, `Unexpected verify_jwt setting for ${functionName}`);
+}
+
+for (const [name, expected] of [
+  ["guardian-consent", false],
+  ["player-account-retention", false],
+  ["public-gallery", false],
+  ["stripe-webhook", false],
+  ["deliver-notifications", true],
+  ["create-player-checkout", true],
+]) {
+  verifyJwtSetting(name, expected);
+}
+
+const guardian = readFileSync("supabase/functions/guardian-consent/index.ts", "utf8");
+assert.ok(guardian.includes("userClient.auth.getUser()"), "Guardian requests must validate the signed-in player");
+assert.ok(guardian.includes("verify_player_guardian_consent") && guardian.includes("withdraw_player_guardian_consent"), "Guardian actions must use the single-use token RPCs");
+assert.ok(!guardian.includes("Their date of birth is"), "Guardian email must not disclose the player date of birth to an unverified address");
+
+const retention = readFileSync("supabase/functions/player-account-retention/index.ts", "utf8");
+assert.ok(retention.includes('req.headers.get("x-account-retention-secret")'), "Retention worker must validate its cron secret");
+assert.ok(retention.includes("get_player_account_reactivation_target") && retention.includes("complete_player_account_reactivation"), "Reactivation must use the token-bound database lifecycle");
+const retentionMigration = readFileSync("supabase/migrations/20261109150000_retry_failed_player_account_erasure.sql", "utf8");
+assert.ok(retentionMigration.includes("account_retention_status in ('closed','erasure_due')"), "Expired archive listing must retry accounts already marked erasure_due");
+assert.ok(retentionMigration.includes("payment_records") && retentionMigration.includes("partially_refunded") && retentionMigration.includes("player_transfer_requests") && retentionMigration.includes("location_admin_assignments"), "Retention eligibility must preserve unresolved payment, transfer and administrator exclusions");
+assert.ok(retentionMigration.includes("if v_previous_status = 'closed' then"), "Repeated erasure queue processing must not duplicate the initial erasure_due audit event");
+const reactivationHandler = retention.slice(retention.indexOf('if (req.method === "POST" && mode === "reactivate")'), retention.indexOf('if (req.method !== "POST")'));
+assert.ok(!reactivationHandler.includes('updateUserById(userId, { ban_duration: "876000h" })'), "A failed concurrent reactivation attempt must not re-ban an account another request may have successfully reactivated");
+
+const assignmentAudit = readFileSync("supabase/migrations/20261109160000_audit_location_admin_assignments.sql", "utf8");
+assert.ok(assignmentAudit.includes("location_admin.assignment_granted") && assignmentAudit.includes("location_admin.assignment_revoked"), "Location administrator grants and revocations must be audited");
+assert.ok(assignmentAudit.includes("if p_assigned and not exists") && assignmentAudit.includes("delete from public.location_admin_assignments"), "Stale location assignments must remain revocable after the league_admin role is removed");
+assert.ok(assignmentAudit.includes("role in ('admin', 'super_admin')"), "Location assignment mutations must remain global-admin-only");
+
+const gallery = readFileSync("supabase/functions/public-gallery/index.ts", "utf8");
+assert.ok(gallery.includes('.eq("is_active", true)') && gallery.includes('.eq("is_published", true)'), "Public gallery must expose only active locations and published items");
+
+const webhook = readFileSync("supabase/functions/stripe-webhook/index.ts", "utf8");
+assert.ok(webhook.includes('req.headers.get("stripe-signature")') && webhook.includes("verifySignature(raw, signature, webhookSecret)"), "Stripe webhook must verify the raw-body Stripe signature");
+
+const notifications = readFileSync("supabase/functions/deliver-notifications/index.ts", "utf8");
+assert.ok(notifications.includes('rpc("has_global_admin_role")'), "Manual notification dispatch must require a global administrator");
+assert.ok(!notifications.includes('rpc("get_admin_dashboard")'), "Do not rely on the revoked legacy admin dashboard RPC");
+const deliveryErrors = readFileSync("supabase/functions/deliver-notifications/shared/delivery-errors.ts", "utf8");
+assert.ok(!deliveryErrors.includes("JSON.stringify(body)"), "Notification provider errors must not persist raw recipient details");
+
+const checkout = readFileSync("supabase/functions/create-player-checkout/index.ts", "utf8");
+assert.ok(checkout.includes("userClient.auth.getUser(token)"), "Checkout must validate the signed-in user");
+assert.ok(!checkout.includes("lovable.app"), "Open Play New must not fall back to the retired Lovable origin");
+
+const captainHub = readFileSync("src/routes/captain.tsx", "utf8");
+assert.ok(captainHub.includes("fixtures[0].fixture_id") && captainHub.includes("!fixtures.some(f=>f.fixture_id===selectedFixture)"), "Captains Hub must preselect the earliest scheduled fixture and restore its saved or submitted sheet");
+
+console.log("Edge Function security configuration and Phase 1 workflow boundary assertions passed.");

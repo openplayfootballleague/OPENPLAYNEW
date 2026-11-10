@@ -1,0 +1,214 @@
+-- Player account retention and reactivation regression tests.
+-- Runs only in the disposable local Supabase database created by CI.
+
+do $player_account_retention$
+declare
+  v_inactive constant uuid := '92000000-0000-4000-8000-000000000001';
+  v_member constant uuid := '92000000-0000-4000-8000-000000000002';
+  v_admin constant uuid := '92000000-0000-4000-8000-000000000003';
+  v_financial constant uuid := '92000000-0000-4000-8000-000000000004';
+  v_warning constant uuid := '92000000-0000-4000-8000-000000000005';
+  v_location uuid;
+  v_league uuid;
+  v_season uuid;
+  v_team uuid;
+  v_season_team uuid;
+  v_token constant text := repeat('e',64);
+  v_token_hash text;
+  v_count integer;
+  v_closed boolean;
+  v_reactivated boolean;
+  v_marked boolean;
+  v_status text;
+  v_archive_expires_at timestamptz;
+  v_closed_at timestamptz;
+  v_warning_anchor timestamptz;
+begin
+  insert into auth.users
+    (id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at,last_sign_in_at)
+  values
+    (v_inactive,'authenticated','authenticated','ci-retention-inactive@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '13 months'),
+    (v_member,'authenticated','authenticated','ci-retention-member@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '13 months'),
+    (v_admin,'authenticated','authenticated','ci-retention-admin@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '13 months'),
+    (v_financial,'authenticated','authenticated','ci-retention-financial@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '13 months'),
+    (v_warning,'authenticated','authenticated','ci-retention-warning@openplay.invalid','','{}'::jsonb,now(),now()-interval '2 years',now(),now()-interval '9 months');
+
+  update public.profiles
+  set last_sign_in_at=now()-interval '13 months'
+  where id in (v_inactive,v_member,v_admin);
+
+  update public.profiles set last_sign_in_at=now()-interval '9 months 3 days' where id=v_warning;
+
+  insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status)
+  values
+    (v_inactive,'Inactive Retention Player','07700900401','ci-retention-inactive@openplay.invalid',date '1990-01-01','registered'),
+    (v_member,'Active Membership Player','07700900402','ci-retention-member@openplay.invalid',date '1990-01-02','registered'),
+    (v_financial,'Unsettled Payment Player','07700900403','ci-retention-financial@openplay.invalid',date '1990-01-03','registered'),
+    (v_warning,'Warning Schedule Player','07700900404','ci-retention-warning@openplay.invalid',date '1990-01-04','registered');
+
+  insert into public.user_roles(user_id,role,granted_by) values(v_admin,'admin',v_admin);
+
+  insert into public.locations(name,slug,town) values('Retention Test Location','retention-test','Bideford') returning id into v_location;
+  insert into public.leagues(location_id,name,slug) values(v_location,'Retention Test League','retention-test-league') returning id into v_league;
+  insert into public.seasons(league_id,name,status) values(v_league,'Retention Test Season','active') returning id into v_season;
+  insert into public.teams(created_by) values(v_admin) returning id into v_team;
+  insert into public.season_teams(team_id,season_id,name,slug,registration_status)
+  values(v_team,v_season,'Retention Test Team','retention-test-team','approved') returning id into v_season_team;
+  insert into public.team_memberships(season_team_id,user_id,status,is_captain)
+  values(v_season_team,v_member,'active',true);
+
+  insert into public.payment_records(season_team_id,amount_pence,fee_snapshot,player_user_id,status)
+  values(v_season_team,500,'{}'::jsonb,v_financial,'processing');
+
+  if has_function_privilege('anon','public.admin_list_inactive_player_accounts()','EXECUTE')
+     or has_function_privilege('authenticated','public.admin_list_inactive_player_accounts()','EXECUTE')
+     or has_function_privilege('anon','public.complete_player_account_reactivation(uuid,text)','EXECUTE')
+     or has_function_privilege('authenticated','public.complete_player_account_reactivation(uuid,text)','EXECUTE')
+     or has_function_privilege('anon','public.admin_claim_player_account_inactivity_warnings()','EXECUTE')
+     or has_function_privilege('authenticated','public.admin_claim_player_account_inactivity_warnings()','EXECUTE')
+     or has_function_privilege('anon','public.admin_finish_player_account_inactivity_warning(uuid,timestamptz,integer,boolean)','EXECUTE')
+     or has_function_privilege('authenticated','public.admin_finish_player_account_inactivity_warning(uuid,timestamptz,integer,boolean)','EXECUTE') then
+    raise exception 'A client role can execute a privileged account-retention function';
+  end if;
+
+  v_token_hash:=public.hash_guardian_consent_token(v_token);
+
+  execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
+  select count(*) into v_count from public.admin_list_inactive_player_accounts();
+  if v_count <> 1 then
+    raise exception 'Expected only the inactive unattached player to be eligible; accounts with active memberships or unresolved payments must be excluded; found % candidates',v_count;
+  end if;
+  select public.admin_close_inactive_player_account(v_financial) into v_closed;
+  if v_closed then raise exception 'An account with an unresolved payment was closed for inactivity'; end if;
+
+  -- Warning stages are due at 90, 30 and 7 days before the 12-month
+  -- closure date. A late run catches up every missed stage, but each stage is
+  -- claimed only once for a given inactivity anchor.
+  select last_sign_in_at into v_warning_anchor from public.profiles where id=v_warning;
+  select count(*) into v_count from public.admin_claim_player_account_inactivity_warnings()
+  where user_id=v_warning and warning_days=90;
+  if v_count <> 1 then raise exception 'The 90-day inactivity warning was not claimable'; end if;
+  select public.admin_finish_player_account_inactivity_warning(v_warning,v_warning_anchor,90,false)
+    into v_reactivated;
+  if not v_reactivated then raise exception 'A failed 90-day warning send was not released for retry'; end if;
+  select count(*) into v_count from public.admin_claim_player_account_inactivity_warnings()
+  where user_id=v_warning and warning_days=90;
+  if v_count <> 1 then raise exception 'A failed warning send was not claimable again'; end if;
+  select public.admin_finish_player_account_inactivity_warning(v_warning,v_warning_anchor,90,true)
+    into v_reactivated;
+  if not v_reactivated then raise exception 'The successful 90-day warning send was not recorded'; end if;
+  select count(*) into v_count from public.admin_claim_player_account_inactivity_warnings()
+  where user_id=v_warning and warning_days=90;
+  if v_count <> 0 then raise exception 'A successfully sent warning was claimed twice'; end if;
+
+  update public.profiles set last_sign_in_at=now()-interval '11 months' where id=v_warning;
+  select count(*) into v_count from public.admin_claim_player_account_inactivity_warnings()
+  where user_id=v_warning;
+  if v_count <> 2 then raise exception 'A delayed worker run did not catch up the 90- and 30-day warning stages'; end if;
+
+  update public.profiles set last_sign_in_at=now()-interval '11 months 25 days' where id=v_warning;
+  select count(*) into v_count from public.admin_claim_player_account_inactivity_warnings()
+  where user_id=v_warning;
+  if v_count <> 3 then raise exception 'A delayed worker run did not catch up all three warning stages'; end if;
+
+  -- The database must fail closed if an account is closed before all warnings
+  -- have been delivered and the final seven-day grace period has elapsed.
+  begin
+    select public.admin_close_inactive_player_account(v_inactive) into v_closed;
+  exception when others then
+    if sqlerrm not like 'Player account closure requires delivered 90, 30 and 7-day warnings%' then
+      raise;
+    end if;
+  end;
+  if coalesce(v_closed,false) then
+    raise exception 'Account closure bypassed the warning delivery requirement';
+  end if;
+
+  update public.player_account_inactivity_warnings
+  set status='sent',
+      claimed_at=now()-interval '8 days',
+      sent_at=now()-interval '8 days'
+  where user_id=v_inactive;
+  select count(*) into v_count
+  from public.player_account_inactivity_warnings
+  where user_id=v_inactive and status='sent';
+  if v_count <> 3 then raise exception 'The late-run catch-up did not claim all three warning stages for the overdue account'; end if;
+
+  select public.admin_close_inactive_player_account(v_inactive) into v_closed;
+  if not v_closed then raise exception 'Eligible inactive player account was not closed after all warnings and grace period'; end if;
+  select account_retention_status,archive_expires_at into v_status,v_archive_expires_at
+  from public.profiles where id=v_inactive;
+  if v_status <> 'closed' or v_archive_expires_at < now()+interval '11 months 29 days' then
+    raise exception 'Account closure did not start the 12-month restricted archive';
+  end if;
+
+  -- Simulate an Auth-owned sign-in timestamp update as the database owner.
+  -- Return to service_role before exercising the retention worker RPCs.
+  execute 'reset role';
+  update auth.users set last_sign_in_at=now() where id=v_inactive;
+  select account_retention_status into v_status
+  from public.profiles where id=v_inactive;
+  if v_status <> 'closed' then
+    raise exception 'An Auth sign-in timestamp update bypassed the closed-account reactivation flow';
+  end if;
+  execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
+
+  -- A second request within the cooldown returns no row.
+  perform * from public.request_player_account_reactivation('ci-retention-inactive@openplay.invalid',v_token_hash);
+  select count(*) into v_count
+  from public.request_player_account_reactivation('ci-retention-inactive@openplay.invalid',repeat('f',64));
+  if v_count <> 0 then raise exception 'Reactivation request cooldown was not enforced'; end if;
+
+  if public.get_player_account_reactivation_target(v_token_hash) <> v_inactive then
+    raise exception 'Valid reactivation token did not resolve to its player account';
+  end if;
+  select public.complete_player_account_reactivation(v_inactive,v_token_hash) into v_reactivated;
+  if not v_reactivated then raise exception 'Valid reactivation token did not reactivate the account'; end if;
+
+  select account_retention_status,account_closed_at
+    into v_status,v_closed_at
+  from public.profiles where id=v_inactive;
+  if v_status <> 'active' or exists (
+    select 1 from public.team_memberships where user_id=v_inactive and status in ('active','pending')
+  ) then
+    raise exception 'Reactivated player was not restored as an unattached registered player';
+  end if;
+
+  select public.complete_player_account_reactivation(v_inactive,v_token_hash) into v_reactivated;
+  if v_reactivated then raise exception 'Reactivation token was reusable'; end if;
+
+  -- An expired archive is moved to the controlled erasure queue, not hard-deleted.
+  -- Seed the warning history for this new inactivity anchor before simulating
+  -- the later closure transition.
+  insert into public.player_account_inactivity_warnings(
+    user_id,inactivity_started_at,warning_days,status,claimed_at,sent_at
+  )
+  select v_inactive,last_sign_in_at,stage,'sent',now()-interval '8 days',now()-interval '8 days'
+  from public.profiles
+  cross join (values (90),(30),(7)) as stages(stage)
+  where id=v_inactive;
+
+  update public.profiles
+  set account_retention_status='closed',
+      account_closed_at=now()-interval '13 months',
+      archive_expires_at=now()-interval '1 minute'
+  where id=v_inactive;
+  select public.admin_mark_player_account_erasure_due(v_inactive) into v_marked;
+  if not v_marked then raise exception 'Expired archive was not marked erasure_due'; end if;
+  if not exists(select 1 from public.profiles where id=v_inactive and account_retention_status='erasure_due') then
+    raise exception 'Expired archive did not enter erasure_due state';
+  end if;
+  select count(*) into v_count from public.admin_list_expired_player_account_archives() where user_id=v_inactive;
+  if v_count <> 1 then raise exception 'An erasure_due account was not returned to the retry queue'; end if;
+  select public.admin_mark_player_account_erasure_due(v_inactive) into v_marked;
+  if not v_marked then raise exception 'Reprocessing an erasure_due account was not idempotently accepted'; end if;
+
+  execute 'reset role';
+
+  if not exists(select 1 from public.team_memberships where user_id=v_member and status='active' and is_captain) then
+    raise exception 'The active member/captain was altered by the retention workflow';
+  end if;
+end;
+$player_account_retention$;

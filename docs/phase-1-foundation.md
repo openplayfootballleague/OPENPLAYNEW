@@ -9,15 +9,15 @@
 - [x] Permanent player identity, one registration per Auth user, advisory-lock serialization and audit event.
 - [x] Automatic approval below the two-of-three identity threshold; manual review at two or more metrics against the same candidate.
 - [x] Pending/rejected registration states and global-admin-only identity-review evidence.
-- [x] Player Hub access only for approved registered players or active captains.
-- [ ] Implement the approved age/access policy: under-16 basic view only; player registration from age 16; mandatory verified parent/legal-guardian consent for ages 16–17.
-- [ ] Implement the approved ban policy: revoke active participation, preserve history, transfer captaincy by current-season appearances then full registered name, and require fresh registration after unban.
-- [ ] Implement canonical E.164 phone normalisation and matching regression coverage.
+- [x] Player Hub access only for approved, non-banned registered players or active captains; banned players are routed to the restricted registration-status screen.
+- [x] Implemented the approved age/access policy: under-16s cannot register as players; ages 16–17 require verified parent/legal-guardian consent and a separate global-admin review. SQL lifecycle tests and registration UI safeguards pass; manual staging acceptance remains open.
+- [x] Implemented the approved ban policy: revoke active participation, preserve history, transfer captaincy by current-season appearances then full registered name, and require fresh registration/approval after unban. SQL regression coverage passes.
+- [x] Implemented canonical E.164 phone normalisation and matching regression coverage; equivalent UK/international formats and collision handling pass.
 - [ ] Complete privacy notice, children's-data safeguards and the proposed retention schedule review before launch.
 - [x] Player picture upload is the only direct profile self-service edit; storage ownership and database column grants enforce it.
 - [x] Verify authenticated signup, confirmation-email delivery, verified sign-in, separate player registration, duplicate-registration rejection, password recovery/update and sign-out with disposable local Auth identities (CI run `42519046139`).
 - [ ] Verify the exact original 1619 × 971 OP asset is integrated (the current smaller PNG is not provenance-verified).
-- [ ] Complete browser and real-device accessibility/responsive acceptance.
+- [ ] Complete browser and real-device accessibility/responsive acceptance. Automated route guards and navigation assertions are not a substitute for manual mobile/iPad testing.
 - [ ] Complete secure first super-admin bootstrap using an owner-approved identity.
 
 ## Database release

@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import type { Database } from "../../../src/lib/supabase/database.types.ts";
-import { isFinalizedPaymentStatus, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "../../../src/lib/payments/stripe-settlement.ts";
+import { isFinalizedPaymentStatus, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, validateRefundSettlement, type PaymentSettlementRecord } from "../../../src/lib/payments/stripe-settlement.ts";
 
 function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
@@ -114,11 +114,12 @@ Deno.serve(async (req) => {
   // completion/expiry/failure overwrite a newer payment or refund state.
   let paymentStatusBeforeEvent: Database["public"]["Enums"]["payment_status"] | null = null;
   let paymentAttemptBeforeEvent: number | null = null;
+  let paymentRefundedBeforeEvent: number | null = null;
   let paymentSessionBeforeEvent: string | null = null;
   let lastStripeEventBeforeEvent: string | null = null;
   if (paymentEvents.has(eventType) && resolvedPaymentId) {
     const { data: currentPayment, error: currentPaymentError } = await admin.from("payment_records")
-      .select("id,amount_pence,currency,status,stripe_checkout_session_id,stripe_payment_intent_id,checkout_attempt,last_stripe_event_at")
+      .select("id,amount_pence,currency,status,stripe_checkout_session_id,stripe_payment_intent_id,checkout_attempt,last_stripe_event_at,amount_refunded_pence")
       .eq("id", resolvedPaymentId)
       .maybeSingle();
     if (currentPaymentError || !currentPayment) {
@@ -131,15 +132,20 @@ Deno.serve(async (req) => {
 
     paymentStatusBeforeEvent = currentPayment.status;
     paymentAttemptBeforeEvent = currentPayment.checkout_attempt;
+    paymentRefundedBeforeEvent = currentPayment.amount_refunded_pence;
     paymentSessionBeforeEvent = currentPayment.stripe_checkout_session_id;
     lastStripeEventBeforeEvent = currentPayment.last_stripe_event_at;
     // Reject mismatched settlement events without mutating the payment ledger.
     const settlementRecord = currentPayment as PaymentSettlementRecord;
     const settlementValidation = eventType.startsWith("checkout.session.")
       ? validateCheckoutSettlement(settlementRecord, object ?? {})
-      : eventType === "charge.succeeded" || eventType === "charge.refunded"
+      : eventType === "charge.succeeded"
         ? validateChargeSettlement(settlementRecord, object ?? {}, chargePaymentIntentMetadata)
-        : { ok: true as const };
+        : eventType === "charge.refunded"
+          ? validateChargeSettlement(settlementRecord, object ?? {}, chargePaymentIntentMetadata).ok
+            ? validateRefundSettlement(settlementRecord, object ?? {})
+            : validateChargeSettlement(settlementRecord, object ?? {}, chargePaymentIntentMetadata)
+          : { ok: true as const };
     if (!settlementValidation.ok) {
       if (settlementValidation.stale) {
         await admin.from("stripe_webhook_events").update({
@@ -279,6 +285,19 @@ Deno.serve(async (req) => {
     paymentUpdate = lastStripeEventBeforeEvent
       ? paymentUpdate.eq("last_stripe_event_at", lastStripeEventBeforeEvent)
       : paymentUpdate.is("last_stripe_event_at", null);
+    // Refund totals are cumulative. Include the inspected amount in the
+    // compare-and-set so concurrent events with the same Stripe timestamp
+    // cannot overwrite a newer cumulative refund snapshot.
+    if (eventType === "charge.refunded") {
+      if (paymentRefundedBeforeEvent === null) {
+        await admin.from("stripe_webhook_events").update({
+          processing_error: "Refund snapshot missing during webhook settlement",
+          processing_started_at: null,
+        }).eq("id", eventId);
+        return new Response("Refund snapshot missing", { status: 500 });
+      }
+      paymentUpdate = paymentUpdate.eq("amount_refunded_pence", paymentRefundedBeforeEvent);
+    }
     const { data: updatedPayment, error: paymentUpdateError } = await paymentUpdate
       .select("id").maybeSingle();
     if (paymentUpdateError) {

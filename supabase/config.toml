@@ -22,3 +22,28 @@ schema_paths = []
 
 [db.seed]
 enabled = false
+
+[functions.guardian-consent]
+# The function validates authenticated requests itself; guardian links are public, single-use tokens.
+verify_jwt = false
+
+[functions.player-account-retention]
+# Public reactivation requests and single-use links are validated by the function.
+# The daily inactivity worker requires ACCOUNT_RETENTION_CRON_SECRET.
+verify_jwt = false
+
+[functions.deliver-notifications]
+# Protected by the Supabase JWT gateway; manual dispatch is global-admin-only.
+verify_jwt = true
+
+[functions.create-player-checkout]
+# Player checkout requires a valid signed-in user session.
+verify_jwt = true
+
+[functions.public-gallery]
+# Public read-only endpoint; it returns only published items at active locations.
+verify_jwt = false
+
+[functions.stripe-webhook]
+# Stripe authenticates requests with the verified stripe-signature header.
+verify_jwt = false

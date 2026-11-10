@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -12,46 +13,59 @@ function HomePage() {
 
   useEffect(() => {
     let alive = true;
+    let requestSequence = 0;
     const supabase = getSupabaseClient();
 
     async function resolveHome(userId: string | null) {
+      const sequence = ++requestSequence;
       if (!userId) {
-        if (alive) setCheckingAccess(false);
+        if (alive && sequence === requestSequence) setCheckingAccess(false);
         return;
       }
 
-      const [{ data: player, error: playerError }, { data: captainMemberships, error: captainError }] =
-        await Promise.all([
-          supabase
-            .from("players")
-            .select("registration_status")
-            .eq("user_id", userId)
-            .maybeSingle(),
-          supabase
-            .from("team_memberships")
-            .select("id")
-            .eq("user_id", userId)
-            .eq("status", "active")
-            .eq("is_captain", true)
-            .limit(1),
-        ]);
+      try {
+        const [{ data: player, error: playerError }, { data: captainMemberships, error: captainError }] =
+          await Promise.all([
+            supabase
+              .from("players")
+              .select("registration_status,is_banned")
+              .eq("user_id", userId)
+              .maybeSingle(),
+            supabase
+              .from("team_memberships")
+              .select("id")
+              .eq("user_id", userId)
+              .eq("status", "active")
+              .eq("is_captain", true)
+              .limit(1),
+          ]);
 
-      if (!alive) return;
+        if (!alive || sequence !== requestSequence) return;
 
-      // Fail closed to the public home if role data cannot be read. This avoids
-      // accidentally hiding the public site because of a transient query error.
-      if (!playerError && !captainError &&
-          (player?.registration_status === "registered" || (captainMemberships?.length ?? 0) > 0)) {
-        await navigate({ to: "/player", replace: true });
-        return;
+        if (!playerError && !captainError && player?.is_banned) {
+          await navigate({ to: "/register-player", replace: true });
+          return;
+        }
+
+        // Fail closed to the public home if role data cannot be read. This avoids
+        // accidentally hiding the public site because of a transient query error.
+        if (!playerError && !captainError &&
+            (player?.registration_status === "registered" || (captainMemberships?.length ?? 0) > 0)) {
+          await navigate({ to: "/player", replace: true });
+          return;
+        }
+
+        setCheckingAccess(false);
+      } catch {
+        if (alive && sequence === requestSequence) setCheckingAccess(false);
       }
-
-      setCheckingAccess(false);
     }
 
-    void supabase.auth.getSession().then(({ data: { session } }) => {
-      void resolveHome(session?.user.id ?? null);
-    });
+    void supabase.auth.getSession()
+      .then(({ data: { session } }) => resolveHome(session?.user.id ?? null))
+      .catch(() => {
+        if (alive && requestSequence === 0) setCheckingAccess(false);
+      });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       void resolveHome(session?.user.id ?? null);
@@ -74,6 +88,7 @@ function HomePage() {
   }
 
   return (
+    <div className="site-home-page">
     <main className="site-shell">
       <header className="site-header">
         <a className="wordmark" href="/player" aria-label="Open Play Player Hub">
@@ -161,5 +176,7 @@ function HomePage() {
         <span>© {new Date().getFullYear()} OPEN PLAY</span>
       </footer>
     </main>
+    <PlayerBottomNavigation />
+    </div>
   );
 }

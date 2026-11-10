@@ -43,9 +43,9 @@ select
       and pg_get_functiondef(p.oid) ilike '%pg_advisory_xact_lock%'
   ) as player_fixture_payment_creation_is_serialized,
   (select pg_get_functiondef('public.create_player_fixture_payment(uuid,uuid)'::regprocedure) ilike '%is_active_team_captain(p_season_team_id)%') as fixture_payment_requires_active_captain,
-  (select pg_get_functiondef('public.resolve_team_membership_request(uuid,text)'::regprocedure) ilike '%pg_advisory_xact_lock%' and pg_get_functiondef('public.resolve_team_membership_request(uuid,text)'::regprocedure) ilike '%v_player.is_banned%' and regexp_replace(pg_get_functiondef('public.resolve_team_membership_request(uuid,text)'::regprocedure), E'\\s+', '', 'g') ilike '%tm.season_team_id<>v_membership.season_team_id%') as membership_approval_checks_eligibility_and_one_team_per_season,
+  (select pg_get_functiondef('public.resolve_team_membership_request(uuid,text)'::regprocedure) ilike '%pg_advisory_xact_lock%' and pg_get_functiondef('public.resolve_team_membership_request(uuid,text)'::regprocedure) ilike '%v_player.is_banned%' and pg_get_functiondef('public.resolve_team_membership_request(uuid,text)'::regprocedure) ilike '%can_administer_location(v_location_id)%' and regexp_replace(pg_get_functiondef('public.resolve_team_membership_request(uuid,text)'::regprocedure), E'\\s+', '', 'g') ilike '%other_team.team_id<>v_team.team_id%') as membership_approval_checks_eligibility_and_one_club_per_league,
   (select pg_get_functiondef('public.admin_add_player_to_team(uuid,uuid,boolean)'::regprocedure) ilike '%pg_advisory_xact_lock%' and pg_get_functiondef('public.admin_add_player_to_team(uuid,uuid,boolean)'::regprocedure) ilike '%v_player.is_banned%') as admin_team_assignment_is_serialized_and_checks_eligibility,
-  (select pg_get_functiondef('public.admin_resolve_player_transfer_request(uuid,text,text)'::regprocedure) ilike '%pg_advisory_xact_lock%' and pg_get_functiondef('public.admin_resolve_player_transfer_request(uuid,text,text)'::regprocedure) ilike '%v_source.user_id<>v_request.user_id%' and pg_get_functiondef('public.admin_resolve_player_transfer_request(uuid,text,text)'::regprocedure) ilike '%tm.id<>v_source.id%') as transfer_approval_is_serialized_and_source_scoped,
+  (select pg_get_functiondef('public._resolve_player_transfer_request(uuid,text,text,uuid,boolean)'::regprocedure) ilike '%pg_advisory_xact_lock%' and pg_get_functiondef('public._resolve_player_transfer_request(uuid,text,text,uuid,boolean)'::regprocedure) ilike '%v_source.user_id is distinct from v_request.user_id%' and pg_get_functiondef('public._resolve_player_transfer_request(uuid,text,text,uuid,boolean)'::regprocedure) ilike '%v_source.season_team_id is distinct from v_request.source_season_team_id%' and regexp_replace(pg_get_functiondef('public._resolve_player_transfer_request(uuid,text,text,uuid,boolean)'::regprocedure), E'\\s+', '', 'g') ilike '%tm.id<>v_source.id%' and pg_get_functiondef('public._resolve_player_transfer_request(uuid,text,text,uuid,boolean)'::regprocedure) ilike '%is_active_team_captain%' and pg_get_functiondef('public.admin_resolve_player_transfer_request(uuid,text,text)'::regprocedure) ilike '%can_administer_location%') as transfer_approval_is_serialized_and_source_scoped,
   (select pg_get_functiondef('public.resolve_team_registration(uuid,text,text)'::regprocedure) ilike '%pg_advisory_xact_lock%' and pg_get_functiondef('public.resolve_team_registration(uuid,text,text)'::regprocedure) ilike '%v_player.is_banned%' and pg_get_functiondef('public.resolve_team_registration(uuid,text,text)'::regprocedure) ilike '%tm.season_team_id<>p_season_team_id%') as team_registration_captain_is_eligible_and_unique,
   (not has_function_privilege('anon','public.handover_team_captain(uuid,uuid)','EXECUTE') and has_function_privilege('authenticated','public.handover_team_captain(uuid,uuid)','EXECUTE') and (select pg_get_functiondef('public.handover_team_captain(uuid,uuid)'::regprocedure) ilike '%is_active_team_captain(p_season_team_id)%' and pg_get_functiondef('public.handover_team_captain(uuid,uuid)'::regprocedure) ilike '%team.captain.handed_over%')) as captain_handover_is_authenticated_captain_only_and_audited,
   ((select not public from storage.buckets where id='open-play-gallery')
@@ -81,7 +81,16 @@ select
     'public.admin_transition_season(uuid,season_status)'::regprocedure,
     'public.resolve_team_membership_request(uuid,text)'::regprocedure,
     'public.resolve_team_registration(uuid,text,text)'::regprocedure
-  ) and (not (pg_get_functiondef(p.oid) ilike '%can_administer_location%') or has_function_privilege('anon',p.oid,'EXECUTE'))) as location_admin_mutations_check_assigned_location,
+  ) and (not (pg_get_functiondef(p.oid) ilike '%can_administer_location%' or pg_get_functiondef(p.oid) ilike '%assert_admin_location_context%') or has_function_privilege('anon',p.oid,'EXECUTE'))) as location_admin_mutations_check_assigned_location,
+  not exists(select 1 from pg_proc p where p.oid in (
+    'public.get_admin_season_statistics(uuid)'::regprocedure,
+    'public.get_admin_fixture_scorer_options(uuid)'::regprocedure,
+    'public.admin_amend_team_sheet(uuid,uuid[],uuid[],uuid,text)'::regprocedure
+  ) and (
+    not (pg_get_functiondef(p.oid) ilike '%assert_admin_location_context%'
+      or pg_get_functiondef(p.oid) ilike '%can_administer_location%')
+    or has_function_privilege('anon',p.oid,'EXECUTE')
+  )) as admin_statistics_scorer_and_sheet_amendments_are_location_scoped,
   has_column_privilege('authenticated','public.profiles','avatar_path','UPDATE')
     and not has_column_privilege('authenticated','public.profiles','first_name','UPDATE')
     and not has_column_privilege('authenticated','public.profiles','last_name','UPDATE')
@@ -121,8 +130,8 @@ select
     and pg_get_functiondef('public.admin_list_location_assignments(uuid)'::regprocedure) ilike '%ur.role in (''admin'',''super_admin'')%'
     and has_function_privilege('authenticated','public.admin_set_location_assignment(uuid,uuid,boolean)','EXECUTE')
     and not has_function_privilege('anon','public.admin_set_location_assignment(uuid,uuid,boolean)','EXECUTE')
-    and pg_get_functiondef('public.admin_set_location_assignment(uuid,uuid,boolean)'::regprocedure) ilike '%ur.user_id = auth.uid()%'
-    and pg_get_functiondef('public.admin_set_location_assignment(uuid,uuid,boolean)'::regprocedure) ilike '%ur.role = ''league_admin''%'
+    and pg_get_functiondef('public.admin_set_location_assignment(uuid,uuid,boolean)'::regprocedure) ilike '%user_id = auth.uid()%'
+    and pg_get_functiondef('public.admin_set_location_assignment(uuid,uuid,boolean)'::regprocedure) ilike '%role in (''admin'', ''super_admin'')%'
   ) as location_assignment_rpcs_are_global_admin_only_and_unambiguous,
   (exists(select 1 from pg_proc p where p.oid='public.get_my_team_request_statuses()'::regprocedure and p.prosecdef)
     and not has_function_privilege('anon','public.get_my_team_request_statuses()','EXECUTE')) as team_request_status_rpc_is_security_definer_and_denies_anon,

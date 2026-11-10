@@ -23,12 +23,16 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Verify canonical migration source manifest
         run: npm run verify:migration-sources
+      - name: Verify Edge Function security configuration
+        run: node scripts/verify-edge-function-security.mjs
+      - name: Verify player navigation specification
+        run: node scripts/verify-player-navigation.mjs
       - name: Set up Deno
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
       - name: Type-check Supabase Edge Functions
-        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts supabase/functions/player-account-retention/index.ts
       - name: Run domain tests
         run: npm test
       - name: Type-check and build
@@ -49,19 +53,17 @@ jobs:
           version: 2.84.2
       - name: Start isolated local Supabase database
         run: supabase start -x studio,edge-runtime,logflare,vector
-      - name: Replay every migration against a clean local database
-        run: supabase db reset --local --no-seed
+      # The hosted-order verifier owns the single clean reset: it hides the pending
+      # migrations, replays the applied baseline, then restores and applies all pending
+      # migrations with --include-all. A second reset here would restart Docker twice.
+      - name: Verify pending migrations after the applied hosted baseline
+        run: node scripts/verify-hosted-migration-order.mjs
       - name: Set up Node.js for Auth lifecycle integration
         uses: actions/setup-node@v4
         with:
           node-version: 22
       - name: Install locked dependencies for Auth lifecycle integration
         run: npm ci --no-audit --no-fund
-      - name: Verify Auth signup, email confirmation and password recovery
-        shell: bash
-        run: |
-          eval "$(supabase status --output env)"
-          SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" MAILPIT_URL="http://127.0.0.1:54324" node scripts/test-auth-lifecycle.mjs
       - name: Install PostgreSQL client for multi-statement role tests
         run: sudo apt-get update && sudo apt-get install --yes postgresql-client
       - name: Verify player self-service profile permission assertions
@@ -82,10 +84,60 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/finance_balance_semantics.sql
+      - name: Verify Open Play points-only league ranking rules
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/league_points_tie_ranking.sql
+      - name: Verify player season statistics across club transfers
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/player_transfer_statistics.sql
+      - name: Verify player-led transfers and matchday emergency window
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/player_transfer_workflow.sql
+      - name: Verify fixture venue location boundaries
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/fixture_venue_location_scope.sql
       - name: Verify player identity matching and review-data access boundaries
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/player_registration_identity_security.sql
+      - name: Verify phone canonicalisation and player ban safeguards
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/registration_safeguards.sql
+
+      - name: Verify age tiers and guardian consent lifecycle
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/age_tier_guardian_consent.sql
+
+      - name: Verify player account retention and reactivation lifecycle
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/player_account_retention.sql
+
+      - name: Verify global-admin player retention holds
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/player_retention_holds.sql
+
+      - name: Verify permanent competition identities and safe player erasure
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/competition_identity_erasure.sql
+      - name: Verify captain next-required fixture and post-match amendment guards
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/captain_next_required_fixture_regression.sql
+
+      - name: Verify Auth signup, email confirmation and password recovery
+        shell: bash
+        run: |
+          eval "$(supabase status --output env)"
+          SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" MAILPIT_URL="http://127.0.0.1:54324" node scripts/test-auth-lifecycle.mjs
       - name: Stop local Supabase database
         if: always()
         run: supabase stop --no-backup
