@@ -197,8 +197,10 @@ begin
   if current_user <> 'authenticated' then raise exception 'Could not assume authenticated role for location admin'; end if;
   if not public.has_platform_role() then raise exception 'Location admin role was not recognised'; end if;
   if public.has_global_admin_role() then raise exception 'Location admin was incorrectly classified as global'; end if;
-  select count(*) into v_count from public.leagues where id in ('00000000-0000-4000-8000-000000000020','00000000-0000-4000-8000-000000000021');
-  if v_count <> 0 then raise exception 'Location admin can directly read private leagues'; end if;
+  select count(*) into v_count from public.leagues where id='00000000-0000-4000-8000-000000000020';
+  if v_count <> 1 then raise exception 'Location admin cannot directly read its assigned private league'; end if;
+  select count(*) into v_count from public.leagues where id='00000000-0000-4000-8000-000000000021';
+  if v_count <> 0 then raise exception 'Location admin can directly read another location private league'; end if;
   select count(*) into v_count from public.profiles where id in ('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000003');
   if v_count <> 0 then raise exception 'Location admin can directly read player profiles'; end if;
   select count(*) into v_count from public.players where user_id in ('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000003');
