@@ -581,5 +581,3 @@ end;
 $$;
 revoke all on function public.admin_list_referee_applications(text) from public,anon;
 grant execute on function public.admin_list_referee_applications(text) to authenticated;
-
-
