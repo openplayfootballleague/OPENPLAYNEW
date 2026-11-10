@@ -537,9 +537,13 @@ declare
   v_goal jsonb; v_incident jsonb; v_credited_team uuid; v_scorer_team uuid;
   v_competition_player uuid; v_recipient text; v_card text; v_team uuid; v_fine integer;
   v_role public.lineup_role; v_squad_number smallint;
-  v_home_count integer; v_away_count integer;
+  v_home_count integer; v_away_count integer; v_is_referee boolean;
 begin
-  if v_actor is null or not public.is_active_referee() then raise exception 'Approved referee membership required'; end if;
+  if v_actor is null then raise exception 'Authentication required'; end if;
+  v_is_referee:=public.is_active_referee();
+  if not v_is_referee and not public.has_platform_role() then
+    raise exception 'Approved referee membership or administrator permission required';
+  end if;
   if p_home_score is null or p_away_score is null or p_home_score not between 0 and 99 or p_away_score not between 0 and 99 then
     raise exception 'Enter a valid final score';
   end if;
@@ -547,13 +551,21 @@ begin
   select * into v_fixture from public.fixtures f where f.id=p_fixture_id for update;
   if not found or v_fixture.status not in ('scheduled','in_progress') then raise exception 'Fixture is not available for referee reporting'; end if;
   if v_fixture.scheduled_at is null or p_completed_at<v_fixture.scheduled_at then raise exception 'Match completion cannot be before scheduled kick-off'; end if;
-  if now()>p_completed_at+interval '24 hours' then raise exception 'The referee report deadline has expired; an administrator must complete this report'; end if;
-  if v_fixture.gameweek<>(select min(f2.gameweek) from public.fixtures f2 where f2.season_id=v_fixture.season_id and f2.status in ('scheduled','in_progress')) then
-    raise exception 'Referee reporting is limited to the latest active gameweek';
+  if v_is_referee then
+    if now()>p_completed_at+interval '24 hours' then raise exception 'The referee report deadline has expired; an administrator must complete this report'; end if;
+    if v_fixture.gameweek<>(select min(f2.gameweek) from public.fixtures f2 where f2.season_id=v_fixture.season_id and f2.status in ('scheduled','in_progress')) then
+      raise exception 'Referee reporting is limited to the latest active gameweek';
+    end if;
+    select * into v_assignment from public.fixture_referee_assignments a
+    where a.fixture_id=p_fixture_id and a.referee_user_id=v_actor and a.removed_at is null for update;
+    if not found then raise exception 'You are not assigned to this fixture'; end if;
+  else
+    if not public.can_administer_location((
+      select lg.location_id from public.seasons se join public.leagues lg on lg.id=se.league_id where se.id=v_fixture.season_id
+    )) then raise exception 'You are not assigned to this location'; end if;
+    select * into v_assignment from public.fixture_referee_assignments a
+    where a.fixture_id=p_fixture_id and a.removed_at is null for update;
   end if;
-  select * into v_assignment from public.fixture_referee_assignments a
-  where a.fixture_id=p_fixture_id and a.referee_user_id=v_actor and a.removed_at is null for update;
-  if not found then raise exception 'You are not assigned to this fixture'; end if;
   if not exists (
     select 1 from public.fixture_team_sheets sh
     where sh.fixture_id=p_fixture_id and sh.season_team_id in (v_fixture.home_team_id,v_fixture.away_team_id)
@@ -566,9 +578,9 @@ begin
 
   select * into v_report from public.referee_match_reports where fixture_id=p_fixture_id for update;
   if found then
-    if v_report.status not in ('draft','returned') then raise exception 'This report is already submitted or under review'; end if;
+    if (v_is_referee and v_report.status not in ('draft','returned')) or (not v_is_referee and v_report.status not in ('draft','returned','submitted')) then raise exception 'This report is already approved or closed'; end if;
     v_report_id:=v_report.id; v_version:=v_report.version+1;
-    update public.referee_match_reports set assignment_id=v_assignment.id,assigned_referee_user_id=v_actor,
+    update public.referee_match_reports set assignment_id=v_assignment.id,assigned_referee_user_id=coalesce(v_assignment.referee_user_id,v_report.assigned_referee_user_id),
       reporter_user_id=v_actor,status=case when p_submit then 'submitted' else 'draft' end,
       completed_at=p_completed_at,submitted_at=case when p_submit then now() else null end,
       home_score=p_home_score,away_score=p_away_score,match_summary=nullif(btrim(p_match_summary),''),
@@ -582,7 +594,7 @@ begin
       fixture_id,assignment_id,assigned_referee_user_id,reporter_user_id,status,completed_at,
       submitted_at,home_score,away_score,match_summary,version
     ) values (
-      p_fixture_id,v_assignment.id,v_actor,v_actor,case when p_submit then 'submitted' else 'draft' end,
+      p_fixture_id,v_assignment.id,v_assignment.referee_user_id,v_actor,case when p_submit then 'submitted' else 'draft' end,
       p_completed_at,case when p_submit then now() else null end,p_home_score,p_away_score,
       nullif(btrim(p_match_summary),''),v_version
     ) returning id into v_report_id;
@@ -670,6 +682,25 @@ $$;
 revoke all on function public.referee_save_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean) from public, anon;
 grant execute on function public.referee_save_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean) to authenticated;
 
+-- Admin fallback uses the same validation and report storage but bypasses the
+-- referee assignment/latest-gameweek/24-hour restrictions after location authorization.
+create or replace function public.admin_save_referee_match_report(
+  p_fixture_id uuid,p_completed_at timestamptz,p_home_score integer,p_away_score integer,
+  p_match_summary text,p_goals jsonb,p_incidents jsonb,p_submit boolean default true
+)
+returns uuid
+language plpgsql security definer set search_path = ''
+as $
+begin
+  if auth.uid() is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
+  return public.referee_save_match_report(
+    p_fixture_id,p_completed_at,p_home_score,p_away_score,p_match_summary,p_goals,p_incidents,p_submit
+  );
+end;
+$;
+revoke all on function public.admin_save_referee_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean) from public, anon;
+grant execute on function public.admin_save_referee_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean) to authenticated;
+
 create or replace function public.admin_list_referee_report_queue(p_status text default 'submitted',p_location_id uuid default null)
 returns table(
   report_id uuid,fixture_id uuid,gameweek integer,scheduled_at timestamptz,
@@ -750,6 +781,12 @@ begin
     on conflict(fixture_id) do update set home_score=excluded.home_score,away_score=excluded.away_score,
       confirmed_at=excluded.confirmed_at,confirmed_by=excluded.confirmed_by,updated_at=now();
     update public.fixtures set status='completed',updated_at=now() where id=v_fixture.id;
+    -- Preserve any unconfirmed legacy goal rows as voided history before
+    -- making this approved report the sole active goalscorer source.
+    update public.fixture_goal_records
+    set voided_at=now(),voided_by=v_actor,void_reason='Superseded by approved referee report'
+    where fixture_id=v_fixture.id and voided_at is null;
+
     for v_goal in
       select g.* from public.referee_match_report_goals g
       where g.report_id=p_report_id and g.is_own_goal is false
