@@ -112,57 +112,42 @@ function PostHogCaptureProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    async function resolveActor(): Promise<AnalyticsActor> {
-      return resolveAnalyticsActorSafely(true, async () => {
+    let identitySequence = 0;
+
+    async function resolveIdentity(): Promise<{ actor: AnalyticsActor; userId: string | null }> {
+      let resolvedUserId: string | null = null;
+      const actor = await resolveAnalyticsActorSafely(true, async () => {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) {
-          setUserId(null);
-          return "unknown";
-        }
-        if (!session) {
-          setUserId(null);
-          return "anonymous";
-        }
+        if (sessionError) return "unknown";
+        if (!session) return "anonymous";
 
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("account_retention_status")
           .eq("id", session.user.id)
           .maybeSingle();
-        if (profileError || !profile || profile.account_retention_status !== "active") {
-          setUserId(null);
-          return "unknown";
-        }
+        if (profileError || !profile || profile.account_retention_status !== "active") return "unknown";
 
         const { data: roles, error: rolesError } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", session.user.id);
-        if (rolesError) {
-          setUserId(null);
-          return "unknown";
-        }
+        if (rolesError) return "unknown";
 
         const privilegedRole = (roles ?? []).map(({ role }) => role).find((role) =>
           ["super_admin", "admin", "finance_admin", "league_admin"].includes(role),
         );
-        if (privilegedRole) {
-          setUserId(null);
-          return privilegedRole as AnalyticsActor;
-        }
+        if (privilegedRole) return privilegedRole as AnalyticsActor;
 
         const { data: player, error: playerError } = await supabase
           .from("players")
           .select("registration_status,is_banned,disciplinary_inactive")
           .eq("user_id", session.user.id)
           .maybeSingle();
-        if (playerError || player?.is_banned || player?.disciplinary_inactive) {
-          setUserId(null);
-          return "unknown";
-        }
+        if (playerError || player?.is_banned || player?.disciplinary_inactive) return "unknown";
 
         if (player?.registration_status !== "registered") {
-          setUserId(session.user.id);
+          resolvedUserId = session.user.id;
           return "account_user";
         }
 
@@ -173,40 +158,50 @@ function PostHogCaptureProvider({ children }: { children: ReactNode }) {
           .eq("status", "active")
           .eq("is_captain", true)
           .limit(1);
-        if (captainError) {
-          setUserId(null);
-          return "unknown";
-        }
+        if (captainError) return "unknown";
 
-        setUserId(session.user.id);
+        resolvedUserId = session.user.id;
         return (captainMemberships ?? []).length > 0 ? "captain" : "player";
       });
+
+      const identifiable = actor === "account_user" || actor === "player" || actor === "captain";
+      return { actor, userId: identifiable ? resolvedUserId : null };
     }
 
     const applyResolvedActor = () => {
-      void resolveActor()
-        .then((resolved) => {
-          if (alive) {
-            if (resolved === "unknown") setUserId(null);
-            setActor(resolved);
+      const sequence = ++identitySequence;
+      void resolveIdentity()
+        .then(({ actor: resolvedActor, userId: resolvedUserId }) => {
+          if (alive && sequence === identitySequence) {
+            setUserId(resolvedUserId);
+            setActor(resolvedActor);
           }
         })
         .catch(() => {
-          if (alive) setActor("unknown");
+          if (alive && sequence === identitySequence) {
+            setUserId(null);
+            setActor("unknown");
+          }
         });
     };
 
     applyResolvedActor();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT") setUserId(null);
+      if (!["INITIAL_SESSION", "SIGNED_IN", "SIGNED_OUT", "USER_UPDATED"].includes(event)) return;
+      setUserId(null);
       setActor("unknown");
       applyResolvedActor();
     });
+    const handleForeground = () => {
+      if (document.visibilityState === "visible") applyResolvedActor();
+    };
+    document.addEventListener("visibilitychange", handleForeground);
 
     return () => {
       alive = false;
       subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", handleForeground);
     };
   }, []);
 
@@ -236,7 +231,7 @@ function PostHogCaptureProvider({ children }: { children: ReactNode }) {
       event,
       properties,
     );
-  }, [actor, posthog]);
+  }, [actor, location.pathname, posthog]);
 
   useEffect(() => {
     if (actor === "unknown") return;
