@@ -50,10 +50,28 @@ create table public.referee_connect_webhook_events (
   created_at timestamptz not null default now()
 );
 
+create table public.referee_payout_transfer_history (
+  id uuid primary key default gen_random_uuid(),
+  payout_type text not null check(payout_type in ('match_report','milestone')),
+  payout_id uuid not null,
+  referee_user_id uuid references auth.users(id) on delete set null,
+  attempt_number integer not null check(attempt_number>0),
+  stripe_transfer_id text unique,
+  amount_pence integer not null check(amount_pence>0),
+  currency text not null default 'gbp' check(currency='gbp'),
+  status text not null check(status in ('transferred','failed','reversed')),
+  failure_reason text,
+  created_at timestamptz not null default now(),
+  unique(payout_type,payout_id,attempt_number)
+);
+create index referee_payout_transfer_history_payout_idx
+  on public.referee_payout_transfer_history(payout_type,payout_id,attempt_number desc);
+
 alter table public.referee_connect_accounts enable row level security;
 alter table public.referee_connect_webhook_events enable row level security;
-revoke all on public.referee_connect_accounts,public.referee_connect_webhook_events
-  from public,anon,authenticated;
+alter table public.referee_payout_transfer_history enable row level security;
+revoke all on public.referee_connect_accounts,public.referee_connect_webhook_events,
+  public.referee_payout_transfer_history from public,anon,authenticated;
 
 create trigger referee_connect_accounts_set_updated_at
 before update on public.referee_connect_accounts
@@ -286,6 +304,8 @@ declare
   v_expected_amount integer;
   v_existing_transfer text;
   v_status text;
+  v_attempt integer;
+  v_referee_user_id uuid;
 begin
   if p_payout_type is null or p_payout_type not in ('match_report','milestone')
      or p_payout_id is null or p_stripe_transfer_id is null
@@ -321,6 +341,26 @@ begin
   if v_status not in ('processing','transferred') then
     raise exception 'Referee payout is not in a transferable state';
   end if;
+  if exists(
+    select 1 from public.referee_payout_transfer_history history
+    where history.payout_type=p_payout_type and history.payout_id=p_payout_id
+      and history.stripe_transfer_id=p_stripe_transfer_id and history.status='reversed'
+  ) then return 'reversed'; end if;
+
+  if p_payout_type='match_report' then
+    select transfer_attempts into v_attempt from public.referee_report_payouts where id=p_payout_id;
+  else
+    select transfer_attempts into v_attempt from public.referee_milestone_rewards where id=p_payout_id;
+  end if;
+  insert into public.referee_payout_transfer_history(
+    payout_type,payout_id,referee_user_id,attempt_number,stripe_transfer_id,
+    amount_pence,currency,status
+  ) values(
+    p_payout_type,p_payout_id,v_referee_user_id,v_attempt,p_stripe_transfer_id,
+    p_amount_pence,'gbp','transferred'
+  )
+  on conflict(payout_type,payout_id,attempt_number) do update set
+    stripe_transfer_id=excluded.stripe_transfer_id,status='transferred',failure_reason=null;
 
   if p_payout_type='match_report' then
     update public.referee_report_payouts
@@ -354,29 +394,55 @@ set search_path = ''
 as $$
 declare
   v_status text;
+  v_referee_user_id uuid;
+  v_amount integer;
+  v_attempt integer;
+  v_transfer_id text;
 begin
   if p_payout_type not in ('match_report','milestone') or p_payout_id is null then
     raise exception 'A valid referee payout is required';
   end if;
   if p_payout_type='match_report' then
-    select status into v_status from public.referee_report_payouts where id=p_payout_id for update;
+    select status,referee_user_id,referee_net_pence,transfer_attempts,stripe_transfer_id into v_status,v_referee_user_id,v_amount,v_attempt,v_transfer_id from public.referee_report_payouts where id=p_payout_id for update;
     if v_status is null then raise exception 'Referee payout not found'; end if;
     if v_status not in ('processing','transferred') or (v_status='transferred' and not p_transfer_reversed) then
       raise exception 'Referee payout cannot be marked failed from its current state';
     end if;
+    insert into public.referee_payout_transfer_history(
+      payout_type,payout_id,referee_user_id,attempt_number,stripe_transfer_id,
+      amount_pence,currency,status,failure_reason
+    ) values(
+      'match_report',p_payout_id,v_referee_user_id,v_attempt,v_transfer_id,v_amount,'gbp',
+      case when p_transfer_reversed then 'reversed' else 'failed' end,
+      left(coalesce(p_failure_reason,'Stripe transfer failed'),500)
+    )
+    on conflict(payout_type,payout_id,attempt_number) do update set
+      status=excluded.status,failure_reason=excluded.failure_reason;
     update public.referee_report_payouts
     set status='failed',failure_reason=left(coalesce(p_failure_reason,'Stripe transfer failed'),500),
-      processing_started_at=null
+      processing_started_at=null,
+      stripe_transfer_id=case when p_transfer_reversed then null else stripe_transfer_id end
     where id=p_payout_id;
   else
-    select status into v_status from public.referee_milestone_rewards where id=p_payout_id for update;
+    select status,referee_user_id,amount_pence,transfer_attempts,stripe_transfer_id into v_status,v_referee_user_id,v_amount,v_attempt,v_transfer_id from public.referee_milestone_rewards where id=p_payout_id for update;
     if v_status is null then raise exception 'Referee milestone reward not found'; end if;
     if v_status not in ('processing','transferred') or (v_status='transferred' and not p_transfer_reversed) then
       raise exception 'Referee milestone cannot be marked failed from its current state';
     end if;
+    insert into public.referee_payout_transfer_history(
+      payout_type,payout_id,referee_user_id,attempt_number,stripe_transfer_id,
+      amount_pence,currency,status,failure_reason
+    ) values(
+      'milestone',p_payout_id,v_referee_user_id,v_attempt,v_transfer_id,v_amount,'gbp',
+      case when p_transfer_reversed then 'reversed' else 'failed' end,
+      left(coalesce(p_failure_reason,'Stripe transfer failed'),500)
+    )
+    on conflict(payout_type,payout_id,attempt_number) do update set
+      status=excluded.status,failure_reason=excluded.failure_reason;
     update public.referee_milestone_rewards
     set status='failed',failure_reason=left(coalesce(p_failure_reason,'Stripe transfer failed'),500),
-      processing_started_at=null
+      processing_started_at=null,
+      stripe_transfer_id=case when p_transfer_reversed then null else stripe_transfer_id end
     where id=p_payout_id;
   end if;
   return 'failed';
