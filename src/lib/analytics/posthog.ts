@@ -5,6 +5,7 @@ type Consent = "granted" | "denied" | null;
 
 let activeUserId: string | null = null;
 let anonymousId: string | null = null;
+let memoryConsent: Consent = null;
 
 function configuredKey(): string {
   return import.meta.env.VITE_POSTHOG_KEY?.trim() ?? "";
@@ -16,14 +17,20 @@ function host(): string {
 }
 
 function consent(): Consent {
-  if (typeof window === "undefined") return null;
-  const value = window.localStorage.getItem(CONSENT_KEY);
-  return value === "granted" || value === "denied" ? value : null;
+  if (typeof window === "undefined") return memoryConsent;
+  try {
+    const value = window.localStorage.getItem(CONSENT_KEY);
+    memoryConsent = value === "granted" || value === "denied" ? value : null;
+  } catch {
+    // Keep the choice in memory if browser storage is unavailable.
+  }
+  return memoryConsent;
 }
 
 function getAnonymousId(): string {
   if (anonymousId) return anonymousId;
-  const existing = window.localStorage.getItem(ANON_ID_KEY);
+  let existing: string | null = null;
+  try { existing = window.localStorage.getItem(ANON_ID_KEY); } catch { /* memory-only fallback */ }
   if (existing) {
     anonymousId = existing;
     return existing;
@@ -31,7 +38,7 @@ function getAnonymousId(): string {
   const created = typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `anon-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-  window.localStorage.setItem(ANON_ID_KEY, created);
+  try { window.localStorage.setItem(ANON_ID_KEY, created); } catch { /* memory-only fallback */ }
   anonymousId = created;
   return created;
 }
@@ -41,7 +48,7 @@ function rotateAnonymousId(): void {
   const created = typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `anon-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-  window.localStorage.setItem(ANON_ID_KEY, created);
+  try { window.localStorage.setItem(ANON_ID_KEY, created); } catch { /* memory-only fallback */ }
   anonymousId = created;
   activeUserId = null;
 }
@@ -82,13 +89,15 @@ export function getAnalyticsConsent(): Consent {
 
 export function setAnalyticsConsent(allowed: boolean): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(CONSENT_KEY, allowed ? "granted" : "denied");
+  memoryConsent = allowed ? "granted" : "denied";
+  try { window.localStorage.setItem(CONSENT_KEY, memoryConsent); } catch { /* memory-only fallback */ }
   if (allowed) {
     activeUserId = null;
     void capture("analytics_consent_granted", getAnonymousId());
   } else {
     rotateAnonymousId();
   }
+  window.dispatchEvent(new Event("openplay:analytics-consent"));
 }
 
 export function setAnalyticsIdentity(userId: string | null): void {
