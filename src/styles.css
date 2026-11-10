@@ -1213,3 +1213,61 @@ a { color: inherit; text-decoration: none; }
   .join-request-item-top { flex-direction: column; }
   .join-request-status { max-width: none; }
 }
+
+
+/* Optional analytics consent — never blocks app use */
+.analytics-consent-banner {
+  position: fixed;
+  z-index: 120;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(88px, calc(76px + env(safe-area-inset-bottom)));
+  left: max(16px, env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: min(760px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 18px;
+  color: #f7f7f7;
+  background: #171b17;
+  border: 1px solid rgba(255,255,255,.2);
+  border-left: 4px solid #ff681f;
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgba(0,0,0,.38);
+}
+.analytics-consent-copy { display: grid; gap: 6px; }
+.analytics-consent-copy strong { font-size: 14px; }
+.analytics-consent-copy p,
+.analytics-consent-settings p { margin: 0; color: rgba(255,255,255,.72); font-size: 12px; line-height: 1.55; }
+.analytics-consent-actions { display: flex; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
+.analytics-consent-actions button {
+  min-height: 42px;
+  padding: 10px 13px;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 7px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .04em;
+  cursor: pointer;
+}
+.analytics-consent-accept { color: #111411; background: #ff681f; border-color: #ff681f !important; }
+.analytics-consent-reject { color: #fff; background: transparent; }
+.analytics-consent-actions button:focus-visible { outline: 3px solid #ff681f; outline-offset: 3px; }
+.analytics-consent-settings {
+  display: grid;
+  gap: 14px;
+  margin: 22px 0;
+  padding: 18px;
+  color: #f7f7f7;
+  background: #171b17;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 12px;
+}
+.analytics-consent-settings h2 { margin: 5px 0 8px; color: inherit; font-size: 18px; }
+@media (max-width: 620px) {
+  .analytics-consent-banner { align-items: stretch; flex-direction: column; gap: 12px; }
+  .analytics-consent-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .analytics-consent-actions button { width: 100%; }
+}
