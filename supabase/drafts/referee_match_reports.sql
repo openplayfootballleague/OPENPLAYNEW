@@ -598,7 +598,7 @@ language plpgsql
 stable
 security definer
 set search_path = ''
-as $
+as $admin_reportable$
 begin
   if auth.uid() is null or not public.has_platform_role() then
     raise exception 'Administrator permission required';
@@ -627,7 +627,7 @@ begin
     and (report.id is null or report.status in ('submitted','rejected'))
   order by fixture.scheduled_at desc,fixture.gameweek desc,fixture.fixture_number;
 end;
-$;
+$admin_reportable$;
 revoke all on function public.admin_list_referee_reportable_fixtures(uuid) from public,anon;
 grant execute on function public.admin_list_referee_reportable_fixtures(uuid) to authenticated;
 
@@ -637,7 +637,7 @@ language plpgsql
 stable
 security definer
 set search_path = ''
-as $
+as $admin_report_options$
 declare
   v_fixture public.fixtures;
   v_home_sheet public.fixture_team_sheets;
@@ -714,7 +714,7 @@ begin
     ),'[]'::jsonb)
   );
 end;
-$;
+$admin_report_options$;
 revoke all on function public.admin_get_referee_fixture_report_options(uuid) from public,anon;
 grant execute on function public.admin_get_referee_fixture_report_options(uuid) to authenticated;
 
