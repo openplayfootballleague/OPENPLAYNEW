@@ -459,6 +459,19 @@ begin
       perform public.assert_admin_location_context(v_conversation.location_id);
     end if;
   end if;
+  if v_conversation.kind='direct' and not exists (
+    select 1 from public.message_conversation_participants othercp
+    join public.team_memberships mine on mine.user_id=v_user and mine.status='active'
+    join public.team_memberships theirs
+      on theirs.user_id=othercp.user_id
+     and theirs.season_team_id=mine.season_team_id
+     and theirs.status='active'
+    where othercp.conversation_id=p_conversation_id
+      and othercp.user_id<>v_user
+      and othercp.left_at is null
+  ) then
+    raise exception 'Direct messages require a shared active team';
+  end if;
   if v_conversation.kind='direct' and exists (
     select 1 from public.message_conversation_participants cp
     join public.message_user_blocks b
