@@ -359,6 +359,16 @@ begin
   if not v_failed then raise exception 'Per-user message rate limit did not activate'; end if;
   execute 'reset role';
 
+  select id into v_message from public.messages
+  where sender_id=v_spammer and body='Rate-limit test message 1'
+  order by created_at limit 1;
+  delete from auth.users where id=v_spammer;
+  select body into v_body from public.messages
+  where id=v_message and sender_id is null;
+  if v_body<>'Rate-limit test message 1' then
+    raise exception 'Account deletion did not detach message identity while preserving thread history';
+  end if;
+
   if not exists (
     select 1 from pg_publication_tables
     where pubname='supabase_realtime' and schemaname='public' and tablename='messages'
