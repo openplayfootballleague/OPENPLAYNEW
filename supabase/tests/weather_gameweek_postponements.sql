@@ -27,6 +27,8 @@ declare
   v_result jsonb;
   v_retry_result jsonb;
   v_admin_weeks integer;
+  v_list_fixture_count bigint;
+  v_list_paid_team_count bigint;
 begin
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
   values
@@ -101,6 +103,13 @@ begin
   select count(*) into v_admin_weeks
   from public.get_admin_postponable_gameweeks(v_season);
   if v_admin_weeks<>2 then raise exception 'Admin gameweek list should exclude the partially completed round'; end if;
+  select fixture_count,paid_team_count
+    into v_list_fixture_count,v_list_paid_team_count
+  from public.get_admin_postponable_gameweeks(v_season)
+  where gameweek_id=v_week_four_id;
+  if v_list_fixture_count<>1 or v_list_paid_team_count<>1 then
+    raise exception 'Postponable gameweek list must count distinct fixtures and paid team obligations';
+  end if;
 
   begin
     perform public.admin_postpone_gameweek(

@@ -136,8 +136,8 @@ begin
     raise exception 'Administrator permission required';
   end if;
   return query
-  select sg.id,s.id,s.name,sg.week_number,sg.scheduled_at,count(f.id),
-    count(o.id) filter(where o.status in ('paid','late_paid')),
+  select sg.id,s.id,s.name,sg.week_number,sg.scheduled_at,count(distinct f.id),
+    count(distinct o.id) filter(where o.status in ('paid','late_paid')),
     min(loc.name)
   from public.season_gameweeks sg
   join public.seasons s on s.id=sg.season_id
@@ -151,7 +151,11 @@ begin
   where (p_season_id is null or s.id=p_season_id)
     and f.status in ('scheduled','postponed')
     and not exists(select 1 from public.fixtures done
-      where done.gameweek_id=sg.id and done.status not in ('scheduled','postponed'))
+      where done.gameweek_id=sg.id
+        and (
+          done.status not in ('scheduled','postponed')
+          or exists(select 1 from public.fixture_results r where r.fixture_id=done.id)
+        ))
   group by sg.id,s.id,s.name,sg.week_number,sg.scheduled_at
   having bool_and(public.can_administer_location(coalesce(f.venue_id,l.location_id)))
   order by s.name,sg.week_number;
@@ -369,6 +373,13 @@ begin
   if exists(select 1 from public.fixtures where gameweek_id=p_gameweek_id
       and (status not in ('scheduled','postponed') or scheduled_at is null)) then
     raise exception 'Only a wholly unplayed gameweek can be postponed';
+  end if;
+  if exists(
+    select 1 from public.fixtures f
+    where f.gameweek_id=p_gameweek_id
+      and exists(select 1 from public.fixture_results r where r.fixture_id=f.id)
+  ) then
+    raise exception 'A gameweek with a published result cannot be postponed';
   end if;
   if exists(select 1 from public.team_fixture_payment_obligations o
       join public.fixtures f on f.id=o.fixture_id
