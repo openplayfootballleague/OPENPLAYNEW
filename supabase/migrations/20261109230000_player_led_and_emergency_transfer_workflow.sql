@@ -394,8 +394,9 @@ begin
     jsonb_build_object('status','left','season_team_id',v_membership.season_team_id));
 
   perform public.enqueue_notification_event(
-    v_user,'team.membership_left',
-    jsonb_build_object('team_name',coalesce(v_team_name,'your club'),'changed_at',now())
+    'team.membership_left',
+    jsonb_build_object('team_name',coalesce(v_team_name,'your club'),'changed_at',now()),
+    v_user
   );
 
   return v_membership;
@@ -952,7 +953,6 @@ begin
   end if;
 
   perform public.enqueue_notification_event(
-    v_request.user_id,
     case when p_decision='approved' then 'player.transfer_approved' else 'player.transfer_rejected' end,
     jsonb_build_object(
       'transfer_request_id',v_request.id,
@@ -961,7 +961,8 @@ begin
       'reason',btrim(p_reason),
       'changed_at',now(),
       'is_emergency',v_request.is_emergency
-    )
+    ),
+    v_request.user_id
   );
 
   insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
