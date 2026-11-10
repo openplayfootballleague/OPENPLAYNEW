@@ -26,6 +26,8 @@ declare
   v_grace timestamptz;
   v_replacement_date date:=(now() at time zone 'Europe/London')::date+30;
   v_replacement_time timestamptz;
+  v_original_local_time time;
+  v_refund uuid;
   v_postponement uuid;
   v_result jsonb;
   v_rejected boolean:=false;
@@ -80,6 +82,8 @@ begin
   values(v_season,4,1,v_home_season_team,v_away_season_team,v_location,
     (((now() at time zone 'Europe/London')::date+16)+time '20:00') at time zone 'Europe/London','scheduled')
   returning id into v_last_fixture;
+  select (scheduled_at at time zone 'Europe/London')::time into v_original_local_time
+  from public.fixtures where id=v_weather_fixture;
 
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_home_captain::text,true);
@@ -119,12 +123,10 @@ begin
   if (select gameweek from public.fixtures where id=v_weather_fixture)<>4 then
     raise exception 'The postponed gameweek replacement date should become the final gameweek 4';
   end if;
-  v_replacement_time:=(
-    v_replacement_date+((
-      select scheduled_at from public.fixtures where id=v_weather_fixture
-    ) at time zone 'Europe/London')::time
-  ) at time zone 'Europe/London';
-  if (select scheduled_at from public.fixtures where id=v_weather_fixture)<>v_replacement_time then
+  if ((select scheduled_at from public.fixtures where id=v_weather_fixture)
+        at time zone 'Europe/London')::date<>v_replacement_date
+     or ((select scheduled_at from public.fixtures where id=v_weather_fixture)
+        at time zone 'Europe/London')::time<>v_original_local_time then
     raise exception 'Replacement date did not preserve the original local kickoff time';
   end if;
   if (select status from public.fixtures where id=v_weather_fixture)<>'scheduled' then
@@ -139,6 +141,22 @@ begin
   end if;
   if (select reason from public.team_fixture_payment_refunds where obligation_id=v_home_obligation)<>'weather_postponement' then
     raise exception 'Paid-team refund was not classified as a weather postponement';
+  end if;
+  select id into v_refund from public.team_fixture_payment_refunds where obligation_id=v_home_obligation;
+  execute 'set local role service_role';
+  perform public.record_team_fixture_payment_refund_result(v_refund,true,'re_ci_weather_refund_home_001',null);
+  execute 'reset role';
+  if (select count(*) from public.finance_entries
+      where fixture_id=v_weather_fixture and season_team_id=v_home_season_team
+        and entry_type='refund')<>1
+     or (select count(*) from public.finance_entries
+      where fixture_id=v_weather_fixture and season_team_id=v_home_season_team
+        and entry_type='credit')<>1 then
+    raise exception 'Weather refund must record both the cash refund and the matching fee waiver';
+  end if;
+  if (select team_balance_pence from public.get_finance_ledger(v_season,v_home_season_team)
+      where fixture_id=v_weather_fixture and entry_type='credit' limit 1)<>0 then
+    raise exception 'Paid home team balance was not reconciled after the weather refund';
   end if;
   if (select status from public.team_fixture_payment_obligations where id=v_away_obligation)<>'weather_cancelled' then
     raise exception 'An unpaid team was not released from its original fee obligation';
