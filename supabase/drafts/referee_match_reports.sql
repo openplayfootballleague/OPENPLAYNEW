@@ -155,7 +155,7 @@ end;
 $$;
 revoke all on function public.prevent_disciplinary_inactive_team_sheet_player() from public, anon, authenticated;
 create trigger fixture_team_sheet_player_disciplinary_guard
-before insert or update of competition_player_id
+before insert or update of competition_player_id, role
 on public.fixture_team_sheet_players
 for each row execute function public.prevent_disciplinary_inactive_team_sheet_player();
 
