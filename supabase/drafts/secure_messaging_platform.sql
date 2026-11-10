@@ -209,6 +209,7 @@ begin
   on conflict(user_id) do nothing;
   select * into v_preferences from public.notification_preferences where user_id=p_user_id;
   v_dedupe:=p_event_type||':'||coalesce(
+    p_payload->>'report_id',
     p_payload->>'message_id',
     p_payload->>'fixture_id',
     p_payload->>'membership_id',
