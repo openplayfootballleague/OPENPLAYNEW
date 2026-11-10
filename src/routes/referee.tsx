@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
+import { RefereeStripeConnectPanel } from "../components/referee-stripe-connect-panel";
 import { getSupabaseClient } from "../lib/supabase/client";
 
 type RpcError = { message: string };
@@ -187,6 +188,7 @@ function RefereePage() {
                 <p className="form-note">Approved {new Date(state.membership.approved_at).toLocaleDateString("en-GB")}</p>
                 <Link className="admin-inline-action" to="/match-centre">MATCH CENTRE <span aria-hidden="true">↗</span></Link>
                 <Link className="admin-inline-action" to="/teams">TEAMS <span aria-hidden="true">↗</span></Link>
+                <RefereeStripeConnectPanel/>
               </section>
             ) : state.membership?.status === "suspended" ? (
               <section className="hub-memberships">
