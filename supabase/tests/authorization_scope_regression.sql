@@ -24,7 +24,7 @@ begin
      or pg_catalog.strpos(v_membership, 'captain or assigned location administrator permission required') = 0
      or pg_catalog.strpos(v_membership, 'for update') = 0
      or pg_catalog.strpos(v_membership, 'pg_advisory_xact_lock') = 0
-     or pg_catalog.strpos(v_membership, 'tm.status = ''active''') = 0
+     or pg_catalog.strpos(v_membership, 'tm.status=''active''') = 0
      or pg_catalog.strpos(v_membership, 'other_season.league_id=v_season.league_id') = 0
      or pg_catalog.strpos(v_membership, 'other_team.team_id<>v_team.team_id') = 0
      or pg_catalog.strpos(v_membership, 'public.membership_status') = 0
