@@ -29,9 +29,9 @@ alter table public.referee_report_payouts
   add constraint referee_report_payouts_status_check
   check(status in ('pending_connect','processing','transferred','failed','cancelled'));
 alter table public.referee_report_payouts
-  add column processing_started_at timestamptz,
-  add column transfer_attempts integer not null default 0 check(transfer_attempts>=0),
-  add column failure_reason text;
+  add column if not exists processing_started_at timestamptz,
+  add column if not exists transfer_attempts integer not null default 0 check(transfer_attempts>=0),
+  add column if not exists failure_reason text;
 
 alter table public.referee_milestone_rewards
   drop constraint referee_milestone_rewards_status_check;
