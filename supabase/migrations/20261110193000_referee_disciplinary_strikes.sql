@@ -130,5 +130,53 @@ $$;
 revoke all on function public.admin_review_player_disciplinary_return(uuid,text) from public,anon;
 grant execute on function public.admin_review_player_disciplinary_return(uuid,text) to authenticated;
 
+
+create or replace function public.admin_list_disciplinary_suspensions(p_location_id uuid default null)
+returns table(
+  competition_player_id uuid,player_name text,straight_red_strikes integer,
+  last_straight_red_at timestamptz,last_fixture_id uuid,last_gameweek integer,last_team_name text
+)
+language plpgsql stable security definer set search_path = ''
+as $suspensions$
+begin
+  if auth.uid() is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
+  if p_location_id is not null and not public.can_administer_location(p_location_id) then
+    raise exception 'You are not assigned to this location';
+  end if;
+  return query
+  select d.competition_player_id,cpi.display_name,d.straight_red_strikes,d.last_straight_red_at,
+    last_incident.fixture_id,last_incident.gameweek,last_incident.team_name
+  from public.competition_player_discipline d
+  join public.competition_player_identities cpi on cpi.id=d.competition_player_id
+  left join lateral (
+    select f.id as fixture_id,f.gameweek,st.name as team_name,i.created_at
+    from public.referee_match_report_incidents i
+    join public.referee_match_reports r on r.id=i.report_id and r.status='approved'
+    join public.fixtures f on f.id=r.fixture_id
+    join public.seasons se on se.id=f.season_id
+    join public.leagues lg on lg.id=se.league_id
+    join public.season_teams st on st.id=i.team_id
+    where i.competition_player_id=d.competition_player_id and i.card_outcome='straight_red'
+      and (p_location_id is null or lg.location_id=p_location_id)
+      and public.can_administer_location(lg.location_id)
+    order by i.created_at desc limit 1
+  ) last_incident on true
+  where d.inactive_pending_review is true
+    and exists(
+      select 1 from public.referee_match_report_incidents i
+      join public.referee_match_reports r on r.id=i.report_id and r.status='approved'
+      join public.fixtures f on f.id=r.fixture_id
+      join public.seasons se on se.id=f.season_id
+      join public.leagues lg on lg.id=se.league_id
+      where i.competition_player_id=d.competition_player_id and i.card_outcome='straight_red'
+        and (p_location_id is null or lg.location_id=p_location_id)
+        and public.can_administer_location(lg.location_id)
+    )
+  order by d.last_straight_red_at desc,cpi.display_name;
+end;
+$suspensions$;
+revoke all on function public.admin_list_disciplinary_suspensions(uuid) from public,anon;
+grant execute on function public.admin_list_disciplinary_suspensions(uuid) to authenticated;
+
 comment on table public.competition_player_discipline is
   'Permanent disciplinary record keyed to competition identity. Three straight-red strikes suspend future team-sheet eligibility until an authorised administrator approves return; the strike history is never reset.';
