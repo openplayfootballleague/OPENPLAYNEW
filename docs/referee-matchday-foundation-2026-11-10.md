@@ -19,7 +19,7 @@
 ## UI delivered in this branch
 
 - Referee application and approved-member Hub route at `/referee`, including the five-tab navigation, assigned match centre, both team sheets, score/goals/cards form, draft/submission controls, availability and entitlement history.
-- Admin referee workspace at `/admin-referees`, linked from the main admin navigation, including the global reporting switch, application decisions, location-scoped availability, fixture allocation/reassignment/removal, disciplinary return approvals, missing-report completion and report review. Admin-completed reports enter the approval queue and do not publish automatically.
+- Admin referee workspace at `/admin-referees`, linked from the main admin navigation, including the global reporting switch, application decisions, location-scoped availability, fixture allocation/reassignment/removal, milestone reward approvals, disciplinary return approvals, missing-report completion and report review. Admin-completed reports enter the approval queue and do not publish automatically.
 
 ## Deliberately not claimed complete
 
