@@ -103,18 +103,26 @@ begin
   if not v_rejected then raise exception 'Referee was double-booked at an identical kickoff'; end if;
 
   -- Declared availability is checked server-side before an appointment is stored.
+  -- Application records are RPC-write-only for authenticated users, so mutate
+  -- this isolated test fixture as the database owner between role assertions.
+  execute 'reset role';
   update public.referee_applications
   set availability=jsonb_build_array(jsonb_build_object('weekday',((v_weekday+1)%7)+1,'start_time','00:00','end_time','23:59'))
   where id=v_application;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
   v_rejected:=false;
   begin
     perform public.admin_assign_referee_to_fixture(v_third_fixture,v_referee,'lead');
   exception when others then v_rejected:=true;
   end;
   if not v_rejected then raise exception 'Referee without declared availability was appointed'; end if;
+  execute 'reset role';
   update public.referee_applications
   set availability=jsonb_build_array(jsonb_build_object('weekday',v_weekday,'start_time','00:00','end_time','23:59'))
   where id=v_application;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
 
   select count(*) into v_count from public.admin_list_referee_appointments(v_location,false);
   if v_count<>1 then raise exception 'Admin appointment register did not return the active assignment'; end if;
