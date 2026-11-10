@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
+import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 import { PlayerCompetitionSelector, usePlayerCompetitionContext } from "../lib/competition/player-context";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
@@ -131,5 +131,5 @@ function JoinPage() {
       </form>}
     </>}
     <Link className="auth-switch" to="/player">Back to Player Hub</Link>
-  </section><PlayerBottomNavigation/></main>;
+  </section><RefereeBottomNavigation /></main>;
 }
