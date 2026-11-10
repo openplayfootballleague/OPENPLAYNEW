@@ -2763,7 +2763,7 @@ export type Database = {
         }[]
       }
       get_admin_postponable_gameweeks: {
-        Args: { p_season_id?: string }
+        Args: { p_season_id?: string | null }
         Returns: {
           fixture_count: number
           gameweek_id: string
