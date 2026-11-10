@@ -178,12 +178,12 @@ begin
   if (select count(*) from public.finance_entries
       where fixture_id=v_fixture and season_team_id=v_away_season_team and entry_type='refund')<>1
      or (select count(*) from public.finance_entries
-      where fixture_id=v_fixture and season_team_id=v_away_season_team and entry_type='credit')<>0 then
-    raise exception 'Confirmed Stripe refund must create one refund ledger entry without a duplicate fee credit';
+      where fixture_id=v_fixture and season_team_id=v_away_season_team and entry_type='credit')<>1 then
+    raise exception 'Confirmed refund must record both the cash refund and the matching fee-waiver credit';
   end if;
   if (select team_balance_pence from public.get_finance_ledger(v_season,v_away_season_team)
-      where fixture_id=v_fixture and entry_type='refund' limit 1)<>0 then
-    raise exception 'Paid team balance must return to zero after its Stripe refund';
+      where fixture_id=v_fixture and entry_type='credit' limit 1)<>0 then
+    raise exception 'Paid team balance must return to zero after its Stripe refund and fee waiver';
   end if;
   execute 'reset role';
 
