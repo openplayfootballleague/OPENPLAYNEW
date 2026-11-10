@@ -19,6 +19,7 @@ export type TeamFixturePaymentAssessment = {
   strikeCount: 0 | 1;
   fixtureCancellationDue: boolean;
   teamFeeRemainsLiable: boolean;
+  adminReviewRequired: boolean;
 };
 
 function parseTimestamp(value: string, label: string): number {
@@ -41,6 +42,7 @@ export function assessTeamFixturePayment(input: {
   const kickoff = parseTimestamp(input.kickoffAt, "kick-off");
   const assessed = parseTimestamp(input.assessedAt, "assessment");
   const paid = input.paidAt ? parseTimestamp(input.paidAt, "payment") : null;
+  if (paid !== null && paid > assessed) throw new RangeError("Payment timestamp cannot be later than the assessment timestamp.");
   const deadline = kickoff - TEAM_FIXTURE_PAYMENT_DEADLINE_HOURS * 60 * 60 * 1000;
   const graceEnds = deadline + TEAM_FIXTURE_PAYMENT_GRACE_HOURS * 60 * 60 * 1000;
   const deadlineAt = new Date(deadline).toISOString();
@@ -48,24 +50,24 @@ export function assessTeamFixturePayment(input: {
 
   if (paid !== null) {
     if (paid <= deadline) {
-      return { state: "paid_on_time", deadlineAt, graceEndsAt, strikeCount: 0, fixtureCancellationDue: false, teamFeeRemainsLiable: false };
+      return { state: "paid_on_time", deadlineAt, graceEndsAt, strikeCount: 0, fixtureCancellationDue: false, teamFeeRemainsLiable: false, adminReviewRequired: false };
     }
     if (paid <= graceEnds) {
-      return { state: "paid_late", deadlineAt, graceEndsAt, strikeCount: 1, fixtureCancellationDue: false, teamFeeRemainsLiable: false };
+      return { state: "paid_late", deadlineAt, graceEndsAt, strikeCount: 1, fixtureCancellationDue: false, teamFeeRemainsLiable: false, adminReviewRequired: false };
     }
-    return { state: "paid_after_deadline", deadlineAt, graceEndsAt, strikeCount: 1, fixtureCancellationDue: true, teamFeeRemainsLiable: false };
+    return { state: "paid_after_deadline", deadlineAt, graceEndsAt, strikeCount: 1, fixtureCancellationDue: !input.adminReviewHold, teamFeeRemainsLiable: false, adminReviewRequired: Boolean(input.adminReviewHold) };
   }
 
   if (assessed <= deadline) {
-    return { state: "due", deadlineAt, graceEndsAt, strikeCount: 0, fixtureCancellationDue: false, teamFeeRemainsLiable: true };
+    return { state: "due", deadlineAt, graceEndsAt, strikeCount: 0, fixtureCancellationDue: false, teamFeeRemainsLiable: true, adminReviewRequired: false };
   }
   if (assessed <= graceEnds) {
-    return { state: "grace_period", deadlineAt, graceEndsAt, strikeCount: 0, fixtureCancellationDue: false, teamFeeRemainsLiable: true };
+    return { state: "grace_period", deadlineAt, graceEndsAt, strikeCount: 0, fixtureCancellationDue: false, teamFeeRemainsLiable: true, adminReviewRequired: false };
   }
   if (input.adminReviewHold) {
-    return { state: "admin_review", deadlineAt, graceEndsAt, strikeCount: 0, fixtureCancellationDue: false, teamFeeRemainsLiable: true };
+    return { state: "admin_review", deadlineAt, graceEndsAt, strikeCount: 0, fixtureCancellationDue: false, teamFeeRemainsLiable: true, adminReviewRequired: true };
   }
-  return { state: "cancellation_due", deadlineAt, graceEndsAt, strikeCount: 1, fixtureCancellationDue: true, teamFeeRemainsLiable: true };
+  return { state: "cancellation_due", deadlineAt, graceEndsAt, strikeCount: 1, fixtureCancellationDue: true, teamFeeRemainsLiable: true, adminReviewRequired: false };
 }
 
 export function calculateTeamFixtureAmountDue(input: {
