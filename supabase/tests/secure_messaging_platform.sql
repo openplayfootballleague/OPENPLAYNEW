@@ -25,6 +25,7 @@ declare
   v_report uuid;
   v_count integer;
   v_unread bigint;
+  v_other_read_at timestamptz;
   v_body text;
   v_failed boolean;
   v_i integer;
@@ -144,6 +145,19 @@ begin
   from public.get_my_message_conversations(50)
   where conversation_id=v_direct;
   if coalesce(v_unread,0)<>0 then raise exception 'Mark-read did not clear unread count'; end if;
+  execute 'reset role';
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_player_a::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_a::text,'role','authenticated')::text,true);
+  select other_participant_last_read_at into v_other_read_at
+  from public.get_my_message_conversations(50) where conversation_id=v_direct;
+  if v_other_read_at is null or v_other_read_at < (select created_at from public.messages where id=v_message) then
+    raise exception 'Direct-message read receipt was not returned to the sender';
+  end if;
+  execute 'reset role';
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_player_b::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_b::text,'role','authenticated')::text,true);
   select body into v_body from public.get_message_history(v_direct,50,null)
   where message_id=v_message;
   if v_body<>'Hello from Player A' then raise exception 'Direct message history was not returned to its participant'; end if;
