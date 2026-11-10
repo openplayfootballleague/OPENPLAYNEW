@@ -192,3 +192,73 @@ export function getRefereeMilestone(approvedGames: number): {
     rewardDuePence: completedMilestones * REFEREE_MILESTONE_REWARD_PENCE,
   };
 }
+
+
+export type RefereeReportStatus = "not_started" | "submitted" | "rejected" | "approved";
+export type ReportSubmissionActor = "assigned_referee" | "admin";
+
+export interface ReportSubmissionAssessment {
+  allowed: boolean;
+  reason: "within_deadline" | "admin_takeover" | "rejected_resubmission" | "deadline_passed" | "already_approved";
+}
+
+/**
+ * Initial referee submissions close 24 hours after the latest fixture in the
+ * gameweek. Admin takeover remains available after the deadline. A rejected
+ * report can be corrected and resubmitted; an approved report is immutable
+ * through this referee submission path.
+ */
+export function assessRefereeReportSubmission(input: {
+  actor: ReportSubmissionActor;
+  status: RefereeReportStatus;
+  latestFixtureAt: string | Date;
+  assessedAt: string | Date;
+}): ReportSubmissionAssessment {
+  const latestFixture = new Date(input.latestFixtureAt).getTime();
+  const assessedAt = new Date(input.assessedAt).getTime();
+  if (!Number.isFinite(latestFixture) || !Number.isFinite(assessedAt)) {
+    throw new RangeError("Report deadline dates must be valid timestamps");
+  }
+  if (input.status === "approved") {
+    return { allowed: false, reason: "already_approved" };
+  }
+  if (input.actor === "admin") {
+    return { allowed: true, reason: "admin_takeover" };
+  }
+  if (input.status === "rejected") {
+    return { allowed: true, reason: "rejected_resubmission" };
+  }
+  const deadline = latestFixture + 24 * 60 * 60 * 1000;
+  return assessedAt <= deadline
+    ? { allowed: true, reason: "within_deadline" }
+    : { allowed: false, reason: "deadline_passed" };
+}
+
+export const REFEREE_MILESTONE_TITLES = [
+  "Bronze Official",
+  "Silver Official",
+  "Gold Official",
+  "Elite Official",
+  "Premier Official",
+  "Platinum Official",
+  "Diamond Official",
+  "Master Official",
+  "Legend Official",
+  "Open Play Ambassador",
+] as const;
+
+export function getRefereeMilestoneTitle(approvedGames: number): string | null {
+  if (!Number.isSafeInteger(approvedGames) || approvedGames < 0) {
+    throw new RangeError("Approved game count must be a non-negative integer");
+  }
+  const milestoneIndex = Math.floor(approvedGames / REFEREE_MILESTONE_INTERVAL) - 1;
+  return milestoneIndex < 0 ? null : REFEREE_MILESTONE_TITLES[Math.min(milestoneIndex, REFEREE_MILESTONE_TITLES.length - 1)];
+}
+
+export const REFEREE_NAVIGATION_TABS = [
+  "Home",
+  "Match Centre",
+  "Teams",
+  "Matchday",
+  "More",
+] as const;
