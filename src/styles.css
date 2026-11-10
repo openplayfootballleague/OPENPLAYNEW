@@ -1274,3 +1274,14 @@ a { color: inherit; text-decoration: none; }
   line-height: 1.45;
 }
 .admin-gameweek-confirm input { margin-top: 2px; accent-color: #e56b2f; }
+
+.referee-connect-panel { margin-top: 22px; }
+.referee-connect-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 14px 0 20px; }
+.referee-payout-history { border-top: 1px solid rgba(0,0,0,.12); padding-top: 14px; }
+.referee-payout-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,.08); }
+.referee-payout-row > div { display: flex; flex-direction: column; gap: 4px; }
+.referee-payout-row > div:last-of-type { text-align: right; }
+.referee-payout-row strong { font-size: .88rem; }
+.referee-payout-row span { font-size: .72rem; color: #73756e; text-transform: capitalize; }
+.referee-payout-row .form-note { grid-column: 1 / -1; }
+@media (max-width: 520px) { .referee-connect-actions { align-items: stretch; flex-direction: column; } }
