@@ -65,7 +65,7 @@ Deno.serve(async(req)=>{
   const fixtureIds=fixtures.map(f=>f.id);
   const {data:obligations,error:obligationError}=await admin.from("team_fixture_payment_obligations")
     .select("id,status,amount_pence,currency,stripe_checkout_session_id,stripe_payment_intent_id")
-    .in("fixture_id",fixtureIds).in("status",["due","grace_period","paid","late_paid"]);
+    .in("fixture_id",fixtureIds).in("status",["due","grace_period","paid","late_paid","admin_review"]);
   if(obligationError)return json({error:"Team payment records could not be loaded"},500,headers);
 
   for(const obligation of obligations??[]){
