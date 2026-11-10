@@ -251,6 +251,10 @@ function AdminAnalyticsPage() {
       ["Seasons in context", overview.seasons],
       ["Open seasons", overview.openSeasons],
       ["Approved teams", overview.approvedTeams],
+      ["Total team applications", overview.totalTeamApplications],
+      ["Rejected team applications", overview.rejectedTeamApplications],
+      ["Withdrawn team applications", overview.withdrawnTeamApplications],
+      ["Current team approval rate (percent)", overview.teamApprovalRate ?? ""],
       ["Current squad memberships", overview.squadMemberships],
       ["Fixtures in context", overview.fixtures],
       ["Published results", overview.publishedResults],
@@ -436,7 +440,7 @@ function AdminAnalyticsPage() {
       <h2>Open Play reporting summary</h2>
       <p>Reporting context: {locationId ? setup.locations.find((item) => item.id === locationId)?.name ?? "Selected location" : "All accessible locations"} · {leagueId ? setup.leagues.find((item) => item.id === leagueId)?.name ?? "Selected league" : "All accessible leagues"} · {seasonId ? setup.seasons.find((item) => item.id === seasonId)?.name ?? "Selected season" : "All accessible seasons"}</p>
       {overview && <div className="analytics-print-metrics">
-        <p>Approved teams: {overview.approvedTeams} · Squad memberships: {overview.squadMemberships}</p>
+        <p>Approved teams: {overview.approvedTeams} · Team approval rate: {overview.teamApprovalRate === null ? "—" : `${overview.teamApprovalRate.toFixed(1)}%`} · Squad memberships: {overview.squadMemberships}</p>
         <p>Fixtures: {overview.fixtures} · Published results: {overview.publishedResults} · Goals: {overview.goals}</p>
         <p>Open seasons: {overview.openSeasons} · Pending player reviews: {overview.pendingPlayerReviews} · Pending team applications: {overview.pendingTeamApplications} · Pending join requests: {overview.pendingMembershipRequests}</p>
       </div>}
