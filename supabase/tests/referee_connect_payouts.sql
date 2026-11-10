@@ -146,7 +146,7 @@ begin
 
   -- A reversed transfer becomes retryable; the next attempt gets a new idempotency attempt number.
   perform public.record_referee_payout_transfer_failure(
-    'match_report',v_match_payout,'Stripe transfer reversed',true
+    'match_report',v_match_payout,'Stripe transfer reversed',true,'tr_ci_referee_match_000001'
   );
   -- Out-of-order transfer.created delivery must not overwrite a recorded reversal.
   v_status:=public.record_referee_payout_transfer_success(
@@ -168,6 +168,14 @@ begin
   perform public.record_referee_payout_transfer_success(
     'match_report',v_match_payout,'tr_ci_referee_match_000002',v_account_id,2200,'gbp'
   );
+  v_status:=public.record_referee_payout_transfer_failure(
+    'match_report',v_match_payout,'Delayed reversal for an earlier transfer',true,'tr_ci_referee_match_000001'
+  );
+  if v_status<>'stale_reversal'
+     or (select status from public.referee_report_payouts where id=v_match_payout)<>'transferred'
+     or (select stripe_transfer_id from public.referee_report_payouts where id=v_match_payout)<>'tr_ci_referee_match_000002' then
+    raise exception 'A stale reversal for an earlier attempt incorrectly reversed a newer successful payout';
+  end if;
 
   -- Milestone rewards use the same verified Connect account and transfer safeguards.
   execute 'reset role';
