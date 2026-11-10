@@ -26,17 +26,19 @@ export function AdminDisciplinarySuspensions() {
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
-    const client = getSupabaseClient() as unknown as RpcClient;
-    const { data, error: rpcError } = await client.rpc("admin_list_disciplinary_suspensions", {
-      p_location_id: null,
-    });
-    if (rpcError) {
-      setRows([]);
-      setError(rpcError.message);
-    } else {
+    try {
+      const client = getSupabaseClient() as unknown as RpcClient;
+      const { data, error: rpcError } = await client.rpc("admin_list_disciplinary_suspensions", {
+        p_location_id: null,
+      });
+      if (rpcError) throw new Error(rpcError.message);
       setRows((data ?? []) as DisciplinarySuspension[]);
+    } catch (cause) {
+      setRows([]);
+      setError(cause instanceof Error ? cause.message : "Unable to load disciplinary records.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => { void load(); }, [load]);
@@ -50,19 +52,21 @@ export function AdminDisciplinarySuspensions() {
     setBusy(row.competition_player_id);
     setError("");
     setNotice("");
-    const client = getSupabaseClient() as unknown as RpcClient;
-    const { error: rpcError } = await client.rpc("admin_reactivate_disciplined_player", {
-      p_competition_player_id: row.competition_player_id,
-      p_reason: reason,
-    });
-    if (rpcError) {
-      setError(rpcError.message);
-    } else {
+    try {
+      const client = getSupabaseClient() as unknown as RpcClient;
+      const { error: rpcError } = await client.rpc("admin_reactivate_disciplined_player", {
+        p_competition_player_id: row.competition_player_id,
+        p_reason: reason,
+      });
+      if (rpcError) throw new Error(rpcError.message);
       setNotice(row.player_name + " has been approved to return. Their permanent disciplinary strike count has not been reset.");
       setReasons((current) => ({ ...current, [row.competition_player_id]: "" }));
       await load();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to approve this return.");
+    } finally {
+      setBusy("");
     }
-    setBusy("");
   }
 
   return (
