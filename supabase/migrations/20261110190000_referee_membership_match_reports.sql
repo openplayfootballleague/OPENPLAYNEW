@@ -526,11 +526,12 @@ grant execute on function public.referee_get_assigned_fixtures() to authenticate
 
 create or replace function public.referee_save_match_report(
   p_fixture_id uuid,p_completed_at timestamptz,p_home_score integer,p_away_score integer,
-  p_match_summary text,p_goals jsonb,p_incidents jsonb,p_submit boolean default true
+  p_match_summary text,p_goals jsonb,p_incidents jsonb,p_submit boolean default true,
+  p_admin_override boolean default false
 )
 returns uuid
 language plpgsql security definer set search_path = ''
-as $$
+as $
 declare
   v_actor uuid:=auth.uid(); v_fixture public.fixtures; v_assignment public.fixture_referee_assignments;
   v_report public.referee_match_reports; v_report_id uuid; v_version integer;
@@ -540,7 +541,8 @@ declare
   v_home_count integer; v_away_count integer; v_is_referee boolean;
 begin
   if v_actor is null then raise exception 'Authentication required'; end if;
-  v_is_referee:=public.is_active_referee();
+  if p_admin_override and not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
+  v_is_referee:=public.is_active_referee() and not p_admin_override;
   if not v_is_referee and not public.has_platform_role() then
     raise exception 'Approved referee membership or administrator permission required';
   end if;
@@ -679,8 +681,8 @@ begin
   return v_report_id;
 end;
 $$;
-revoke all on function public.referee_save_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean) from public, anon;
-grant execute on function public.referee_save_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean) to authenticated;
+revoke all on function public.referee_save_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean,boolean) from public, anon;
+grant execute on function public.referee_save_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean,boolean) to authenticated;
 
 -- Admin fallback uses the same validation and report storage but bypasses the
 -- referee assignment/latest-gameweek/24-hour restrictions after location authorization.
@@ -694,7 +696,7 @@ as $
 begin
   if auth.uid() is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
   return public.referee_save_match_report(
-    p_fixture_id,p_completed_at,p_home_score,p_away_score,p_match_summary,p_goals,p_incidents,p_submit
+    p_fixture_id,p_completed_at,p_home_score,p_away_score,p_match_summary,p_goals,p_incidents,p_submit,true
   );
 end;
 $;
