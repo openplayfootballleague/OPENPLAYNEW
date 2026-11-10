@@ -86,7 +86,7 @@ begin
         'disciplinary_inactive',coalesce(player.disciplinary_inactive,false)
       ) order by case when tsp.role='starter' then 0 else 1 end,player_identity.display_name)
       from public.fixture_team_sheet_players tsp
-      join public.competition_player_identities identity on identity.id=tsp.competition_player_id
+      join public.competition_player_identities player_identity on player_identity.id=tsp.competition_player_id
       left join public.players player on player.competition_player_id=tsp.competition_player_id
       where tsp.team_sheet_id=v_away_sheet.id and tsp.role in ('starter','substitute')
     ),'[]'::jsonb)
