@@ -189,6 +189,12 @@ begin
   end;
   if not v_failed then raise exception 'Ordinary team member was allowed to post a captain announcement'; end if;
   perform public.send_message(v_team_conversation,'Team update from Player A','message');
+  v_failed:=false;
+  begin
+    perform public.report_message(v_message,'A sender must not be able to report their own message');
+  exception when others then v_failed:=true;
+  end;
+  if not v_failed then raise exception 'Sender was allowed to report their own message'; end if;
 
   execute 'reset role';
   execute 'set local role authenticated';
