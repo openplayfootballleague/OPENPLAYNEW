@@ -3,10 +3,13 @@ import {
   Outlet,
   Scripts,
   createRootRoute,
+  useLocation,
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { AnalyticsConsentBanner } from "../components/analytics-consent";
+import { setAnalyticsIdentity, trackAnalyticsPageView } from "../lib/analytics/posthog";
 import "../styles.css";
 
 type AccountGateStatus = "checking" | "public" | "active" | "unavailable" | "blocked";
@@ -54,8 +57,13 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  const location = useLocation();
   const [accountGate, setAccountGate] = useState<AccountGateStatus>("checking");
   const [retryCount, setRetryCount] = useState(0);
+
+  useEffect(() => {
+    trackAnalyticsPageView(location.pathname);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
@@ -115,6 +123,7 @@ function RootComponent() {
         if (active && checkSequence === 0) setAccountGate("unavailable");
         return;
       }
+      setAnalyticsIdentity(session?.user.id ?? null);
       void enforceAccountStatus(session?.user.id ?? null);
     }).catch(() => {
       if (active && checkSequence === 0) setAccountGate("unavailable");
@@ -125,6 +134,7 @@ function RootComponent() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       queueMicrotask(() => {
         if (!active || (redirectingClosedAccount && !session)) return;
+        setAnalyticsIdentity(session?.user.id ?? null);
         void enforceAccountStatus(session?.user.id ?? null);
       });
     });
@@ -187,6 +197,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
       </head>
       <body>
         {children}
+        <AnalyticsConsentBanner />
         <Scripts />
       </body>
     </html>
