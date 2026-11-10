@@ -328,6 +328,16 @@ begin
   if not exists(select 1 from public.fixtures where season_id=p_season_id and gameweek=p_gameweek and status='scheduled') then
     raise exception 'No scheduled fixtures were found in this gameweek';
   end if;
+  if exists(select 1 from public.fixtures
+    where season_id=p_season_id and gameweek=p_gameweek and status<>'scheduled') then
+    raise exception 'Every fixture in the gameweek must still be scheduled before the whole gameweek can be postponed';
+  end if;
+
+  insert into public.weather_gameweek_postponements(
+    season_id,original_gameweek,replacement_date,reason,created_by,fixture_count
+  ) select p_season_id,p_gameweek,p_replacement_date,btrim(p_reason),v_actor,count(*)::integer
+    from public.fixtures where season_id=p_season_id and gameweek=p_gameweek
+    returning id into v_postponement;
 
   for v_fixture in
     select f.*,coalesce(f.venue_id,l.location_id) as admin_location_id
@@ -438,9 +448,10 @@ begin
     and (f.status in ('completed','cancelled','in_progress')
       or exists(select 1 from public.fixture_results r where r.fixture_id=f.id));
 
-  insert into public.weather_gameweek_postponements(
-    id,season_id,original_gameweek,replacement_date,reason,created_by,fixture_count
-  ) values(v_postponement,p_season_id,p_gameweek,p_replacement_date,btrim(p_reason),v_actor,v_changed);
+  update public.weather_gameweek_postponements
+  set fixture_count=v_changed where id=v_postponement;
+  update public.seasons set ends_on=greatest(coalesce(ends_on,p_replacement_date),p_replacement_date)
+  where id=p_season_id;
 
   -- Snapshot all unplayed gameweek numbers by their earliest scheduled kickoff.
   -- A completed/cancelled gameweek is frozen and never renumbered.
@@ -470,7 +481,7 @@ begin
   where p.id=v_postponement and f.season_id=p_season_id and f.status='scheduled'
     and f.gameweek<>r.new_gameweek;
 
-  v_renumbered:=found::integer;
+  get diagnostics v_renumbered = row_count;
   v_offset:=v_old_max+1000000;
   -- Move all open fixtures out of the live unique-key range before applying
   -- the new consecutive gameweek numbers.
