@@ -161,7 +161,9 @@ begin
   select pg_get_functiondef('public.referee_get_career_summary()'::regprocedure) into v_definition;
   if position('is_active_referee' in v_definition)=0
     or position('Open Play Ambassador' in v_definition)=0
-    or position('lifetime_games' in v_definition)=0 then
+    or position('Bronze Official' in v_definition)=0
+    or position('lifetime_games' in v_definition)=0
+    or position('active_season_games' in v_definition)=0 then
     raise exception 'Referee career summary must be membership-scoped and calculate permanent milestones';
   end if;
   select pg_get_functiondef('public.referee_save_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean,boolean)'::regprocedure) into v_definition;
