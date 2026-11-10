@@ -234,6 +234,11 @@ begin
   -- Global admin can review applications and the approval creates a distinct referee membership.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  select count(*) into v_count
+  from public.admin_list_referee_applications('pending');
+  if v_count <> 2 then
+    raise exception 'Global admin did not receive the complete pending referee application queue';
+  end if;
   perform public.review_referee_application(v_application,'approved','Experience and availability verified');
   if not exists (
     select 1 from public.referee_memberships
