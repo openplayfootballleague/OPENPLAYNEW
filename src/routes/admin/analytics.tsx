@@ -169,8 +169,8 @@ function AdminAnalyticsPage() {
     ? buildAnalyticsOverview(setup, dashboard.counts, fixtures, filters)
     : null, [dashboard, fixtures, leagueId, locationId, seasonId, setup]);
   const locationComparisons = useMemo(
-    () => buildLocationComparisons(setup, { leagueId, seasonId }),
-    [leagueId, seasonId, setup],
+    () => buildLocationComparisons(setup, { locationId, leagueId, seasonId }),
+    [leagueId, locationId, seasonId, setup],
   );
   const financeTotals = useMemo(() => aggregateFinanceTotals(financeRows), [financeRows]);
 
