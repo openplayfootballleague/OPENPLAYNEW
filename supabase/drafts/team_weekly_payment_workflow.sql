@@ -581,7 +581,7 @@ begin
   where id=p_obligation_id for update;
   if not found then raise exception 'Team fixture payment obligation not found'; end if;
   if v_obligation.status not in ('due','grace_period','defaulted')
-     or (v_obligation.status in ('due','grace_period') and now()>=v_obligation.grace_ends_at) then
+     or (v_obligation.status in ('due','grace_period') and now()>v_obligation.grace_ends_at) then
     raise exception 'The payment window has closed or this obligation cannot be paid';
   end if;
   if v_obligation.stripe_checkout_session_id is distinct from p_expected_session_id then
