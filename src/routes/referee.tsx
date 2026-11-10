@@ -109,6 +109,7 @@ function RefereeHubPage() {
   const [homeScore, setHomeScore] = useState("0");
   const [awayScore, setAwayScore] = useState("0");
   const [matchSummary, setMatchSummary] = useState("");
+  const [reportReviewReason, setReportReviewReason] = useState("");
   const [goals, setGoals] = useState<GoalEntry[]>([]);
   const [incidents, setIncidents] = useState<IncidentEntry[]>([]);
 
@@ -190,12 +191,14 @@ function RefereeHubPage() {
         setHomeScore("0");
         setAwayScore("0");
         setMatchSummary("");
+        setReportReviewReason("");
         return;
       }
       setCompletedAt(data.completed_at ? toLocalDateTimeInput(data.completed_at) : "");
       setHomeScore(String(data.home_score ?? 0));
       setAwayScore(String(data.away_score ?? 0));
       setMatchSummary(data.match_summary ?? "");
+      setReportReviewReason(data.review_reason ?? "");
       setGoals((data.goals ?? []).map((goal: any) => ({
         credited_team_id: goal.credited_team_id,
         scorer_team_id: goal.scorer_team_id ?? "",
@@ -375,6 +378,7 @@ function RefereeHubPage() {
           <label className="referee-field">Assigned fixture<select value={selectedFixtureId} onChange={(event) => setSelectedFixtureId(event.target.value)}>{fixtures.map((fixture) => <option key={fixture.fixture_id} value={fixture.fixture_id}>GW{fixture.gameweek} · {fixture.home_team_name} v {fixture.away_team_name}</option>)}</select></label>
           {selectedFixture && <>
             <div className="referee-match-meta"><span>{selectedFixture.league_name} · Gameweek {selectedFixture.gameweek}</span><strong>{dateTime(selectedFixture.scheduled_at)}</strong></div>
+            {reportReviewReason && <div className="referee-status-card"><strong>Administrator feedback</strong><p>{reportReviewReason}</p><p>You can correct this report and submit it again for review.</p></div>}
             <div className="referee-sheets">
               {[{ id: selectedFixture.home_team_id, name: selectedFixture.home_team_name, players: selectedFixture.home_sheet }, { id: selectedFixture.away_team_id, name: selectedFixture.away_team_name, players: selectedFixture.away_sheet }].map((team) => <article key={team.id}><h3>{team.name}</h3>{team.players.length === 0 ? <p>Team sheet not submitted</p> : team.players.map((player) => <div className="referee-sheet-player" key={player.competition_player_id}><b>{player.squad_number ?? "—"}</b><span>{player.player_name}</span><small>{player.is_goalkeeper ? "GK" : player.role === "substitute" ? "SUB" : "START"}</small></div>)}</article>)}
             </div>
