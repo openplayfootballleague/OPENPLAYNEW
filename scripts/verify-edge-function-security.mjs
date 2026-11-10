@@ -89,6 +89,7 @@ assert.ok(teamDeadlineWorker.includes('stripeKey?.startsWith("sk_test_")'), "Tea
 assert.ok(teamDeadlineWorker.includes('.order("id").range(offset,offset+499)'), "Team payment and refund queues must be fully paginated in stable batches");
 assert.ok(teamDeadlineWorker.includes('[400,402,404,422].includes(stripeResponse.status)'), "Transient Stripe refund errors must not be recorded as definitive failures");
 assert.ok(teamDeadlineWorker.includes('result.status==="failed"||result.status==="canceled"'), "Provider-confirmed refund failures must be recorded for administrator review");
+assert.ok(teamDeadlineWorker.includes('result.payment_intent===refund.stripe_payment_intent_id') && teamDeadlineWorker.includes('Number(result.amount)===Number(refund.amount_pence)'), "Successful Stripe refunds must match the intended PaymentIntent and exact amount");
 
 const connectOnboarding = readFileSync("supabase/functions/create-referee-connect-account/index.ts", "utf8");
 assert.ok(connectOnboarding.includes("userClient.auth.getUser()"), "Connect onboarding must validate the signed-in referee");
