@@ -182,7 +182,7 @@ function AdminRefereesPage() {
   const [payoutHistoryOpen, setPayoutHistoryOpen] = useState("");
   const [payoutHistory, setPayoutHistory] = useState<Record<string,RefereePayoutTransferHistory[]>>({});
   const [payoutsLoading, setPayoutsLoading] = useState(false);
-  const [payoutStatusFilter, setPayoutStatusFilter] = useState("pending_connect");
+  const [payoutStatusFilter, setPayoutStatusFilter] = useState("all");
   const [reportableFixtures, setReportableFixtures] = useState<AdminReportableFixture[]>([]);
   const [reportableFixturesLoading, setReportableFixturesLoading] = useState(false);
   const [selectedAdminReportFixtureId, setSelectedAdminReportFixtureId] = useState("");
