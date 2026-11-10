@@ -2,9 +2,9 @@
 -- Runs only against the disposable local Supabase database created by CI.
 do $weather_postponement$
 declare
-  v_admin constant uuid:='97000000-0000-4000-8000-000000000001';
-  v_home_captain constant uuid:='97000000-0000-4000-8000-000000000002';
-  v_away_captain constant uuid:='97000000-0000-4000-8000-000000000003';
+  v_admin constant uuid:='98000000-0000-4000-8000-000000000001';
+  v_home_captain constant uuid:='98000000-0000-4000-8000-000000000002';
+  v_away_captain constant uuid:='98000000-0000-4000-8000-000000000003';
   v_home_identity uuid:=gen_random_uuid();
   v_away_identity uuid:=gen_random_uuid();
   v_location uuid;
