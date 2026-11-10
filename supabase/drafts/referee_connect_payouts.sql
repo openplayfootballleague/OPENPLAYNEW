@@ -198,8 +198,8 @@ declare
   v_attempt integer;
   v_report_id uuid;
 begin
-  if v_actor is null or not public.has_platform_role() then
-    raise exception 'Administrator permission required';
+  if v_actor is null or not public.has_finance_access() then
+    raise exception 'Finance access required';
   end if;
   if p_payout_type not in ('match_report','milestone') or p_payout_id is null then
     raise exception 'A valid referee payout type and ID are required';
@@ -281,6 +281,7 @@ set search_path = ''
 as $$
 declare
   v_expected_account text;
+  v_referee_user_id uuid;
   v_expected_amount integer;
   v_existing_transfer text;
   v_status text;
@@ -294,25 +295,19 @@ begin
 
   if p_payout_type='match_report' then
     select payout.referee_user_id,payout.referee_net_pence,payout.stripe_transfer_id,payout.status
-      into v_expected_account,v_expected_amount,v_existing_transfer,v_status
+      into v_referee_user_id,v_expected_amount,v_existing_transfer,v_status
     from public.referee_report_payouts payout
     where payout.id=p_payout_id for update;
   else
     select reward.referee_user_id,reward.amount_pence,reward.stripe_transfer_id,reward.status
-      into v_expected_account,v_expected_amount,v_existing_transfer,v_status
+      into v_referee_user_id,v_expected_amount,v_existing_transfer,v_status
     from public.referee_milestone_rewards reward
     where reward.id=p_payout_id for update;
   end if;
   if v_status is null then raise exception 'Referee payout not found'; end if;
   select stripe_account_id into v_expected_account
   from public.referee_connect_accounts
-  where referee_user_id=(
-    select case when p_payout_type='match_report' then
-      (select referee_user_id from public.referee_report_payouts where id=p_payout_id)
-    else
-      (select referee_user_id from public.referee_milestone_rewards where id=p_payout_id)
-    end
-  );
+  where referee_user_id=v_referee_user_id;
   if v_expected_account is null or v_expected_account<>p_destination_account_id then
     raise exception 'Stripe transfer destination does not match the referee connected account';
   end if;
@@ -414,8 +409,8 @@ begin
   end if;
   return query
   select payout.id,payout.report_id,payout.referee_user_id,
-    coalesce(profile.display_name,trim(concat_ws(' ',profile.first_name,profile.last_name)),'Referee'),
-    profile.email,fixture.id,fixture.gameweek,fixture.fixture_number,fixture.scheduled_at,
+    coalesce(player.full_name,'Referee'),
+    player.email,fixture.id,fixture.gameweek,fixture.fixture_number,fixture.scheduled_at,
     location.id,location.name,payout.gross_allocation_pence,payout.deductions_pence,
     payout.referee_net_pence,payout.open_play_top_up_pence,payout.status,payout.stripe_transfer_id,
     payout.failure_reason,payout.transfer_attempts,coalesce(connect.onboarding_status,'onboarding_required'),
@@ -427,7 +422,7 @@ begin
   join public.seasons season on season.id=fixture.season_id
   join public.leagues league on league.id=season.league_id
   join public.locations location on location.id=coalesce(fixture.venue_id,league.location_id)
-  left join public.profiles profile on profile.id=payout.referee_user_id
+  left join public.players player on player.user_id=payout.referee_user_id
   left join public.referee_connect_accounts connect on connect.referee_user_id=payout.referee_user_id
   where (p_status='all' or payout.status=p_status)
     and public.can_administer_location(location.id)
@@ -457,14 +452,14 @@ begin
   end if;
   return query
   select reward.id,reward.referee_user_id,
-    coalesce(profile.display_name,trim(concat_ws(' ',profile.first_name,profile.last_name)),'Referee'),
+    coalesce(player.full_name,'Referee'),
     reward.milestone_number,reward.approved_games,reward.amount_pence,reward.status,
     reward.stripe_transfer_id,reward.failure_reason,reward.transfer_attempts,
     coalesce(connect.onboarding_status,'onboarding_required'),
     coalesce(connect.transfers_enabled,false),coalesce(connect.payouts_enabled,false),
     reward.created_at,reward.transferred_at
   from public.referee_milestone_rewards reward
-  left join public.profiles profile on profile.id=reward.referee_user_id
+  left join public.players player on player.user_id=reward.referee_user_id
   left join public.referee_connect_accounts connect on connect.referee_user_id=reward.referee_user_id
   where p_status='all' or reward.status=p_status
   order by reward.created_at desc;
