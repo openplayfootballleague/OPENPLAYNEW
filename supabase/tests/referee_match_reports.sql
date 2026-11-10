@@ -35,6 +35,11 @@ begin
     raise exception 'Referee must not be represented as a platform user_roles privilege';
   end if;
 
+  select pg_get_functiondef('public.get_admin_fixture_scorer_options(uuid)'::regprocedure) into v_definition;
+  if position('competition_player_id' in v_definition)=0 or position('squad_number_snapshot' in v_definition)=0 then
+    raise exception 'Admin report completion scorer context must use permanent player identity and locked squad number';
+  end if;
+
   if not exists (
     select 1 from pg_indexes
     where schemaname='public' and indexname='fixture_referee_one_active_assignment_idx'
@@ -55,6 +60,7 @@ begin
     'admin_list_referee_applications(text)',
     'admin_list_active_referees(uuid)',
     'admin_list_referee_availability(uuid)',
+    'get_admin_fixture_scorer_options(uuid)',
     'admin_get_referee_reporting_feature()',
     'admin_set_referee_reporting_feature(boolean,text)',
     'referee_save_availability(date,time,time,uuid,text)',
