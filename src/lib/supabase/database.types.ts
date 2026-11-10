@@ -2146,6 +2146,37 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_my_referee_connect_status: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      claim_referee_payout_transfer: {
+        Args: { p_payout_type: string; p_payout_id: string }
+        Returns: Json
+      }
+      admin_list_referee_report_payouts_connect: {
+        Args: { p_status?: string | null }
+        Returns: {
+          payout_id: string; report_id: string; referee_user_id: string | null;
+          referee_name: string; referee_email: string | null; fixture_id: string;
+          gameweek: number; fixture_number: number; scheduled_at: string | null;
+          location_id: string; location_name: string; gross_allocation_pence: number;
+          deductions_pence: number; referee_net_pence: number; open_play_top_up_pence: number;
+          status: string; stripe_transfer_id: string | null; failure_reason: string | null;
+          transfer_attempts: number; connect_status: string; transfers_enabled: boolean;
+          payouts_enabled: boolean; created_at: string; transferred_at: string | null;
+        }[]
+      }
+      admin_list_referee_milestone_rewards_connect: {
+        Args: { p_status?: string | null }
+        Returns: {
+          reward_id: string; referee_user_id: string | null; referee_name: string;
+          milestone_number: number; approved_games: number; amount_pence: number;
+          status: string; stripe_transfer_id: string | null; failure_reason: string | null;
+          transfer_attempts: number; connect_status: string; transfers_enabled: boolean;
+          payouts_enabled: boolean; created_at: string; transferred_at: string | null;
+        }[]
+      }
       admin_get_approved_referee_report_correction_options: {
         Args: { p_report_id: string }
         Returns: Json
