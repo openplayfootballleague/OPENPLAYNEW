@@ -39,13 +39,20 @@ begin
   insert into public.user_roles(user_id,role,granted_by)
   values(v_admin,'admin',v_admin);
 
-  insert into public.locations(name,slug,town,region,is_active)
-  values
-    ('CI Referee Location','ci-referee-location','Bideford','North Devon',true),
-    ('CI Referee Inactive Location','ci-referee-inactive-location','Bideford','North Devon',false);
+  -- Reuse the active fixture location seeded by the earlier venue regression.
+  -- This project deliberately permits only one active first-release location.
+  select id into v_location
+  from public.locations
+  where is_active=true
+  order by created_at
+  limit 1;
+  if v_location is null then
+    raise exception 'The referee regression requires an existing active location';
+  end if;
 
-  select id into v_location from public.locations where slug='ci-referee-location';
-  select id into v_other_location from public.locations where slug='ci-referee-inactive-location';
+  insert into public.locations(name,slug,town,region,is_active)
+  values('CI Referee Inactive Location','ci-referee-inactive-location','Bideford','North Devon',false)
+  returning id into v_other_location;
 
   -- Eligible player can submit with no formal qualifications.
   execute 'set local role authenticated';
