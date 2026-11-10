@@ -75,7 +75,7 @@ begin
     end if;
   end loop;
 
-  select pg_get_functiondef('public.referee_save_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean)'::regprocedure)
+  select pg_get_functiondef('public.referee_save_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean,boolean)'::regprocedure)
     into v_definition;
   if position('interval ''24 hours''' in v_definition)=0
     or position('removed_at is null' in v_definition)=0
