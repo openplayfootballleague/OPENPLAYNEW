@@ -83,7 +83,9 @@ begin
     raise exception 'Referee report RPC must enforce assignment ownership, active gameweek and 24-hour deadline';
   end if;
   if position('fixture_team_sheet_players' in v_definition)=0
-    or position('Goalscorer must be selected from the relevant submitted team sheet' in v_definition)=0 then
+    or position('Goalscorer must be selected from the relevant submitted team sheet' in v_definition)=0
+    or position('Only an administrator may enter an unattributed goal' in v_definition)=0
+    or position('if v_is_referee and not exists' in v_definition)=0 then
     raise exception 'Goalscorers must be validated against the submitted team sheets';
   end if;
   if position('Disciplinary player must be on the relevant submitted team sheet' in v_definition)=0 then
@@ -100,6 +102,10 @@ begin
   end if;
   if position('This fixture already has a published result' in v_definition)=0 then
     raise exception 'Duplicate published results must be blocked pending audited correction';
+  end if;
+
+  if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='referee_match_report_goals' and column_name='is_unattributed') then
+    raise exception 'Admin fallback must preserve explicitly unattributed goals without inventing scorers';
   end if;
 
   if not exists (
