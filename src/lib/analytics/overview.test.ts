@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   aggregateFinanceTotals,
   buildAnalyticsOverview,
+  buildSeasonTrends,
   buildLocationComparisons,
   type AnalyticsSetup,
 } from "./overview";
@@ -45,6 +46,10 @@ describe("admin analytics aggregation", () => {
       seasons: 1,
       openSeasons: 1,
       approvedTeams: 1,
+      totalTeamApplications: 2,
+      rejectedTeamApplications: 0,
+      withdrawnTeamApplications: 0,
+      teamApprovalRate: 50,
       squadMemberships: 6,
       fixtures: 1,
       publishedResults: 1,
@@ -66,6 +71,22 @@ describe("admin analytics aggregation", () => {
   it("filters location comparisons by the selected league or season", () => {
     expect(buildLocationComparisons(setup, { leagueId: "league-b", seasonId: "" })).toHaveLength(1);
     expect(buildLocationComparisons(setup, { leagueId: "", seasonId: "season-a" })[0].locationName).toBe("Bideford");
+  });
+
+
+  it("calculates returning competition players across consecutive seasons without using names", () => {
+    const seasons = [
+      { id: "season-a", league_id: "league-a", name: "A", status: "completed", starts_on: "2026-01-01" },
+      { id: "season-b", league_id: "league-a", name: "B", status: "active", starts_on: "2026-06-01" },
+    ];
+    const trends = buildSeasonTrends(seasons, [
+      { seasonId: "season-b", stats: { season: { id: "season-b", name: "B" }, summary: { fixtures: 8, published_results: 8, goals: 30, goals_per_match: 3.75 }, teams: [{ team_id: "b1" }], players: [{ competition_player_id: "player-1", apps: 5 }, { competition_player_id: "player-2", apps: 0 }, { competition_player_id: "player-3", apps: 2 }] } },
+      { seasonId: "season-a", stats: { season: { id: "season-a", name: "A" }, summary: { fixtures: 7, published_results: 7, goals: 24, goals_per_match: 3.43 }, teams: [{ team_id: "a1" }, { team_id: "a2" }], players: [{ competition_player_id: "player-1", apps: 4 }, { competition_player_id: "player-2", apps: 3 }] } },
+    ]);
+    expect(trends).toMatchObject([
+      { seasonId: "season-a", approvedTeams: 2, playersWithAppearances: 2, returningPlayers: null, returnRate: null },
+      { seasonId: "season-b", approvedTeams: 1, playersWithAppearances: 2, returningPlayers: 1, returnRate: 50 },
+    ]);
   });
 
   it("aggregates integer-pence finance totals without converting to floating point", () => {
