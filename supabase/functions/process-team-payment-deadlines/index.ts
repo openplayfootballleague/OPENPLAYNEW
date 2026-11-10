@@ -27,7 +27,7 @@ Deno.serve(async(req)=>{
   const now=new Date();
   const nowIso=now.toISOString();
   const {data:obligations,error:loadError}=await admin.from("team_fixture_payment_obligations")
-    .select("id,status,deadline_at,grace_ends_at,stripe_checkout_session_id")
+    .select("id,status,amount_pence,currency,deadline_at,grace_ends_at,stripe_checkout_session_id")
     .in("status",["due","grace_period","admin_review","weather_cancelled"])
     .limit(500);
   if(loadError)return response({error:"Could not load team payment deadlines"},500);
@@ -59,8 +59,17 @@ Deno.serve(async(req)=>{
       const amountReceived=Number(intent.amount_received);
       const currency=String(intent.currency??"").toLowerCase();
       const metadata=intent.metadata as Record<string,unknown>|undefined;
-      if(!Number.isSafeInteger(paidAt)||amountReceived<=0||currency!=="gbp"||
-        metadata?.team_fixture_payment_obligation_id!==obligation.id)continue;
+      const expectedAmount=Number(obligation.amount_pence);
+      const expectedCurrency=String(obligation.currency??"").toLowerCase();
+      const intentAmount=Number(intent.amount);
+      const sessionAmount=Number(session.amount_total);
+      const sessionCurrency=String(session.currency??"").toLowerCase();
+      const sessionMetadata=session.metadata as Record<string,unknown>|undefined;
+      if(!Number.isSafeInteger(paidAt)||!Number.isSafeInteger(expectedAmount)||expectedAmount<=0||
+        amountReceived!==expectedAmount||intentAmount!==expectedAmount||sessionAmount!==expectedAmount||
+        currency!==expectedCurrency||sessionCurrency!==expectedCurrency||
+        metadata?.team_fixture_payment_obligation_id!==obligation.id||
+        sessionMetadata?.team_fixture_payment_obligation_id!==obligation.id)continue;
       const {error:paymentError}=await admin.rpc("record_team_fixture_payment_success",{
         p_obligation_id:obligation.id,
         p_stripe_payment_intent_id:paymentIntentId,
