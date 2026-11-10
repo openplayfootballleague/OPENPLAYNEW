@@ -268,6 +268,13 @@ begin
   if not exists(select 1 from public.players where user_id=v_home_user and disciplinary_strikes=3 and disciplinary_inactive=true) then
     raise exception 'Third straight-red strike did not make the player inactive';
   end if;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  select count(*) into v_count from public.admin_list_referee_report_payouts('pending_connect',v_location)
+    where report_id=v_report_one and gross_allocation_pence=2200 and referee_net_pence=2200 and status='pending_connect';
+  execute 'reset role';
+  if v_count<>1 then raise exception 'Location-scoped referee payout queue did not return the pending £22 obligation'; end if;
+
   if (select count(*) from public.referee_report_payouts where report_id=v_report_one and gross_allocation_pence=2200 and deductions_pence=0 and referee_net_pence=2200 and open_play_top_up_pence=0 and status='pending_connect')<>1 then
     raise exception 'Approved referee report did not create exactly one £22 payout obligation';
   end if;
