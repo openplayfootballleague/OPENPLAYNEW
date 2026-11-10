@@ -18,7 +18,7 @@ export type AnalyticsSetup = {
   fixtures: AnalyticsFixture[];
 };
 export type AnalyticsDashboardCounts = {
-  pending_player_reviews: number;
+  pending_player_reviews: number | null;
   pending_team_applications: number;
   pending_membership_requests: number;
   open_seasons: number;
@@ -34,7 +34,7 @@ export type AnalyticsOverview = {
   fixtures: number;
   publishedResults: number;
   goals: number;
-  pendingPlayerReviews: number;
+  pendingPlayerReviews: number | null;
   pendingTeamApplications: number;
   pendingMembershipRequests: number;
 };
@@ -112,7 +112,7 @@ export function buildAnalyticsOverview(
     fixtures: fixtures.length,
     publishedResults: results.length,
     goals: results.reduce((total, fixture) => total + Number(fixture.home_score ?? 0) + Number(fixture.away_score ?? 0), 0),
-    pendingPlayerReviews: Number(dashboard.pending_player_reviews ?? 0),
+    pendingPlayerReviews: dashboard.pending_player_reviews === null ? null : Number(dashboard.pending_player_reviews ?? 0),
     pendingTeamApplications: Number(dashboard.pending_team_applications ?? 0),
     pendingMembershipRequests: Number(dashboard.pending_membership_requests ?? 0),
   };
