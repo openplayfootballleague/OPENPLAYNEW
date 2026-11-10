@@ -79,6 +79,8 @@ const teamWebhook = readFileSync("supabase/functions/team-stripe-webhook/index.t
 assert.ok(teamWebhook.includes('req.headers.get("stripe-signature")') && teamWebhook.includes("verifySignature(raw"), "Team Stripe webhook must verify the raw-body signature");
 assert.ok(teamWebhook.includes("event.livemode!==false"), "Team Stripe webhook must reject live-mode events");
 assert.ok(teamWebhook.includes('rpc("record_team_fixture_payment_success"'), "Team payment state must be driven by the signed webhook");
+assert.ok(teamWebhook.includes('intent.status!=="succeeded"') && teamWebhook.includes('Number(intent.amount_received)!==obligation.amount_pence'), "Team payment webhook must verify the fully settled PaymentIntent");
+assert.ok(teamWebhook.includes('intentMetadata?.team_fixture_payment_obligation_id!==obligationId') && teamWebhook.includes('Number.isSafeInteger(paidAt)'), "Team payment webhook must verify PaymentIntent metadata and the actual charge timestamp");
 
 const teamDeadlineWorker = readFileSync("supabase/functions/process-team-payment-deadlines/index.ts", "utf8");
 assert.ok(teamDeadlineWorker.includes('req.headers.get("x-team-payment-cron-secret")'), "Team payment scheduler must validate its dedicated cron secret");
