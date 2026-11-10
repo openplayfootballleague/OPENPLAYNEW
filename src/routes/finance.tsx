@@ -8,6 +8,7 @@ type FinanceOption={season_id:string;season_name:string;team_id:string;team_name
 type FinanceEntry={id:string;season_team_id:string;team_name:string;season_id:string;season_name:string;fixture_id:string|null;gameweek:number|null;entry_type:"charge"|"payment"|"refund"|"credit"|"fine";amount_pence:number;description:string;due_at:string|null;occurred_at:string;payment_method:string|null;reference:string|null;notes:string|null;created_by:string;created_at:string;team_balance_pence:number};
 type FinanceSummary={season_id:string;season_name:string;teams_with_entries:number;charges_pence:number;payments_pence:number;refunds_pence:number;credits_pence:number;fines_pence:number;outstanding_pence:number};
 type StripePayment={payment_record_id:string;fixture_id:string|null;gameweek:number|null;scheduled_at:string|null;season_id:string;season_name:string;team_name:string;player_name:string|null;amount_pence:number;currency:string;status:string;amount_refunded_pence:number;stripe_fee_pence:number|null;net_amount_pence:number|null;paid_at:string|null;created_at:string};
+type TeamFixturePayment={obligation_id:string;fixture_id:string;season_id:string;season_name:string;season_team_id:string;team_name:string;opponent_name:string;gameweek:number;scheduled_at:string|null;amount_pence:number;deadline_at:string;grace_ends_at:string;status:string;paid_at:string|null;refund_status:string|null;strike_created_at:string|null};
 const money=(pence:number)=>new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format(pence/100);
 const dateTime=(value:string|null)=>value?new Date(value).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"}):"—";
 
@@ -19,6 +20,8 @@ function FinancePage(){
  const [entries,setEntries]=useState<FinanceEntry[]>([]);
  const [summary,setSummary]=useState<FinanceSummary[]>([]);
  const [stripePayments,setStripePayments]=useState<StripePayment[]>([]);
+ const [teamFixturePayments,setTeamFixturePayments]=useState<TeamFixturePayment[]>([]);
+ const [teamFixturePaymentsError,setTeamFixturePaymentsError]=useState("");
  const [feeSeasonId,setFeeSeasonId]=useState("");
  const [playerFee,setPlayerFee]=useState("");
  const [feeGameweek,setFeeGameweek]=useState("1");
@@ -40,14 +43,17 @@ function FinancePage(){
  const filteredOptions=useMemo(()=>options.filter(o=>!seasonFilter||o.season_id===seasonFilter),[options,seasonFilter]);
  const load=useCallback(async()=>{
   setLoading(true);setError("");
-  const [{data:optionRows,error:optionError},{data:summaryRows,error:summaryError},{data:entryRows,error:entryError},{data:stripeRows,error:stripeError}]=await Promise.all([
+  const [{data:optionRows,error:optionError},{data:summaryRows,error:summaryError},{data:entryRows,error:entryError},{data:stripeRows,error:stripeError},{data:teamPaymentRows,error:teamPaymentError}]=await Promise.all([
    getSupabaseClient().rpc("get_finance_options"),
    getSupabaseClient().rpc("get_finance_summary",{p_season_id:seasonFilter||undefined}),
    getSupabaseClient().rpc("get_finance_ledger",{p_season_id:seasonFilter||undefined,p_team_id:teamFilter||undefined}),
    getSupabaseClient().rpc("get_admin_stripe_payments",{p_season_id:seasonFilter||undefined}),
+   getSupabaseClient().rpc("get_admin_team_fixture_payment_queue",{p_season_id:seasonFilter||undefined}),
   ]);
   if(optionError||summaryError||entryError||stripeError){setError(optionError?.message??summaryError?.message??entryError?.message??stripeError?.message??"Unable to load finance records.");}
   else{setOptions((optionRows??[]) as unknown as FinanceOption[]);setSummary((summaryRows??[]) as unknown as FinanceSummary[]);setEntries((entryRows??[]) as unknown as FinanceEntry[]);setStripePayments((stripeRows??[]) as unknown as StripePayment[]);}
+  setTeamFixturePayments((teamPaymentRows??[]) as unknown as TeamFixturePayment[]);
+  setTeamFixturePaymentsError(teamPaymentError?.message??"");
   setLoading(false);
  },[seasonFilter,teamFilter]);
  useEffect(()=>{if(authStatus==="authenticated")void load();},[load,authStatus]);
@@ -113,6 +119,12 @@ function FinancePage(){
    <div className="hub-section-heading"><span className="hub-kicker">PLAYER CARD PAYMENTS · STRIPE</span><span>{stripePayments.length} records</span></div>
    {stripePayments.length===0?<p className="form-note">No Stripe player payments have been recorded yet. This list updates from verified Stripe webhook events.</p>:<div className="finance-table-wrap"><table className="finance-table"><thead><tr><th>Player / Team</th><th>Fixture</th><th>Gross</th><th>Status</th><th>Refunded</th><th>Stripe fee</th><th>Net proceeds</th><th>Paid at</th></tr></thead><tbody>{stripePayments.map(p=><tr key={p.payment_record_id}><td><strong>{p.player_name??"Player account"}</strong><small>{p.team_name} · {p.season_name}</small></td><td>{p.gameweek?"Gameweek "+p.gameweek:"Fixture"}<small>{dateTime(p.scheduled_at)}</small></td><td>{money(p.amount_pence)}</td><td><span className={"finance-type finance-"+p.status}>{p.status.replaceAll("_"," ")}</span></td><td>{money(p.amount_refunded_pence)}</td><td>{p.stripe_fee_pence===null?"—":money(p.stripe_fee_pence)}</td><td>{p.net_amount_pence===null?"—":money(p.net_amount_pence)}</td><td>{dateTime(p.paid_at)}</td></tr>)}</tbody></table></div>}
    <p className="form-note">Stripe fees and net proceeds populate from verified Stripe balance-transaction webhook events; values remain blank until reconciliation arrives. Never treat a Checkout return URL as proof of payment.</p>
+  </section>
+  <section className="finance-section">
+   <div className="hub-section-heading"><span className="hub-kicker">TEAM WEEKLY PAYMENTS</span><span>{teamFixturePayments.length} records</span></div>
+   <p className="form-note">Review team fees, 24-hour deadlines, the 12-hour grace period, strikes, cancellations and opponent refunds. Exceptions remain subject to an authorised administrator decision.</p>
+   {teamFixturePaymentsError?<p className="form-error" role="alert">Team payment queue unavailable: {teamFixturePaymentsError}</p>:teamFixturePayments.length===0?<p className="form-note">No team fixture payment obligations have been recorded for this season selection.</p>:<div className="finance-table-wrap"><table className="finance-table"><thead><tr><th>Team / Opponent</th><th>Fixture</th><th>Fee</th><th>Deadline</th><th>Status</th><th>Strike</th><th>Refund</th></tr></thead><tbody>{teamFixturePayments.map(p=><tr key={p.obligation_id}><td><strong>{p.team_name}</strong><small>v {p.opponent_name} · {p.season_name}</small></td><td>Gameweek {p.gameweek}<small>{dateTime(p.scheduled_at)}</small></td><td>{money(p.amount_pence)}</td><td>{dateTime(p.deadline_at)}<small>Grace ends {dateTime(p.grace_ends_at)}</small></td><td><span className={"finance-type finance-"+p.status}>{p.status.replaceAll("_"," ")}</span>{p.status==="admin_review"&&<small>Administrator review required</small>}</td><td>{dateTime(p.strike_created_at)}</td><td>{p.refund_status?.replaceAll("_"," ")??"—"}</td></tr>)}</tbody></table></div>}
+   <p className="form-note">This queue is read-only. It does not automatically reinstate a cancelled fixture, waive a fee or remove a team.</p>
   </section>
   <section className="finance-section">
    <div className="hub-section-heading"><span className="hub-kicker">RECORD A FINANCE ENTRY</span><span>Manual only</span></div>
