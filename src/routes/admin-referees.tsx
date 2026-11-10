@@ -197,19 +197,12 @@ function AdminRefereeWorkspace() {
       setError("Enter the completion time and select one submitted-team-sheet goalscorer for every goal.");
       return;
     }
+    const makeGoal = (id: string, teamId: string) => id === "__unattributed__"
+      ? { credited_team_id: teamId, scorer_team_id: null, scorer_competition_player_id: null, is_own_goal: false, is_unattributed: true }
+      : { credited_team_id: teamId, scorer_team_id: teamId, scorer_competition_player_id: id, is_own_goal: false, is_unattributed: false };
     const goals = [
-      ...adminEntryHomeScorers.slice(0, homeGoals).map((id) => ({
-        credited_team_id: adminEntryContext.home_team_id,
-        scorer_team_id: adminEntryContext.home_team_id,
-        scorer_competition_player_id: id,
-        is_own_goal: false,
-      })),
-      ...adminEntryAwayScorers.slice(0, awayGoals).map((id) => ({
-        credited_team_id: adminEntryContext.away_team_id,
-        scorer_team_id: adminEntryContext.away_team_id,
-        scorer_competition_player_id: id,
-        is_own_goal: false,
-      })),
+      ...adminEntryHomeScorers.slice(0, homeGoals).map((id) => makeGoal(id, adminEntryContext.home_team_id)),
+      ...adminEntryAwayScorers.slice(0, awayGoals).map((id) => makeGoal(id, adminEntryContext.away_team_id)),
     ];
     setSaving(true); setError(""); setNotice("");
     try {
@@ -306,18 +299,19 @@ function AdminRefereeWorkspace() {
     </section>
         <section className="admin-referee-panel">
       <div className="admin-referee-section-title"><span className="eyebrow">04 · REPORT COMPLETION</span><h2>Complete a missing report</h2></div>
-      <p className="admin-referee-muted">Use this for a missing or overdue report. The completed report still enters the approval queue; this action does not publish a result. Goalscorers must come from both submitted team sheets. Own-goal attribution and disciplinary incidents should be completed through the referee report workflow until the admin correction form is extended.</p>
+      <p className="admin-referee-muted">Use this for a missing or overdue report. The completed report still enters the approval queue; this action does not publish a result. Select scorers from submitted team sheets where available. If a team sheet or scorer identity is unavailable, record an explicitly unattributed goal rather than inventing a player identity. Own-goal attribution and disciplinary incidents remain outside this admin fallback form.</p>
       <form className="admin-referee-form admin-referee-report-entry" onSubmit={submitAdminCompletedReport}>
         <label>Fixture<select required value={adminEntryFixtureId} onChange={(event) => void loadAdminEntryContext(event.target.value)}><option value="">Choose missing report fixture</option>{missingReportFixtures.map((fixture) => <option key={fixture.id} value={fixture.id}>GW{fixture.gameweek} · {fixture.home_team_name} v {fixture.away_team_name}</option>)}</select></label>
         {adminEntryLoading && <p className="admin-referee-muted">Loading both submitted team sheets…</p>}
         {adminEntryContext && <>
-          {(!adminEntryContext.home_sheet_submitted || !adminEntryContext.away_sheet_submitted) ? <p className="admin-referee-warning">Both team sheets must be locked and submitted before the report can be completed.</p> : <>
+          {(!adminEntryContext.home_sheet_submitted || !adminEntryContext.away_sheet_submitted) && <p className="admin-referee-warning">One or both team sheets are unavailable. You can still complete the score, but each goal without a verifiable scorer must be marked unattributed.</p>}
+          <>
             <label>Actual match completion time<input type="datetime-local" required value={adminEntryCompletedAt} onChange={(event) => setAdminEntryCompletedAt(event.target.value)} /></label>
             <div className="admin-referee-score-fields"><label>{adminEntryContext.home_team_name} score<input type="number" min="0" max="99" required value={adminEntryHomeScore} onChange={(event) => setAdminEntryHomeScore(event.target.value)} /></label><label>{adminEntryContext.away_team_name} score<input type="number" min="0" max="99" required value={adminEntryAwayScore} onChange={(event) => setAdminEntryAwayScore(event.target.value)} /></label></div>
             <h3>{adminEntryContext.home_team_name} goalscorers</h3>
-            {Array.from({ length: Math.min(99, Math.max(0, Number(adminEntryHomeScore) || 0)) }, (_, index) => <label key={"admin-home-goal-"+index}>Home goal {index+1}<select required value={adminEntryHomeScorers[index] ?? ""} onChange={(event) => setAdminEntryHomeScorers((current) => { const next=[...current]; next[index]=event.target.value; return next; })}><option value="">Choose scorer</option>{adminEntryContext.home_players.map((player: any) => <option key={player.competition_player_id} value={player.competition_player_id}>{player.full_name}{player.is_goalkeeper ? " · GK" : ""}</option>)}</select></label>)}
+            {Array.from({ length: Math.min(99, Math.max(0, Number(adminEntryHomeScore) || 0)) }, (_, index) => <label key={"admin-home-goal-"+index}>Home goal {index+1}<select required value={adminEntryHomeScorers[index] ?? ""} onChange={(event) => setAdminEntryHomeScorers((current) => { const next=[...current]; next[index]=event.target.value; return next; })}><option value="">Choose scorer</option><option value="__unattributed__">Unattributed goal (admin entry)</option>{adminEntryContext.home_players.map((player: any) => <option key={player.competition_player_id} value={player.competition_player_id}>{player.full_name}{player.is_goalkeeper ? " · GK" : ""}</option>)}</select></label>)}
             <h3>{adminEntryContext.away_team_name} goalscorers</h3>
-            {Array.from({ length: Math.min(99, Math.max(0, Number(adminEntryAwayScore) || 0)) }, (_, index) => <label key={"admin-away-goal-"+index}>Away goal {index+1}<select required value={adminEntryAwayScorers[index] ?? ""} onChange={(event) => setAdminEntryAwayScorers((current) => { const next=[...current]; next[index]=event.target.value; return next; })}><option value="">Choose scorer</option>{adminEntryContext.away_players.map((player: any) => <option key={player.competition_player_id} value={player.competition_player_id}>{player.full_name}{player.is_goalkeeper ? " · GK" : ""}</option>)}</select></label>)}
+            {Array.from({ length: Math.min(99, Math.max(0, Number(adminEntryAwayScore) || 0)) }, (_, index) => <label key={"admin-away-goal-"+index}>Away goal {index+1}<select required value={adminEntryAwayScorers[index] ?? ""} onChange={(event) => setAdminEntryAwayScorers((current) => { const next=[...current]; next[index]=event.target.value; return next; })}><option value="">Choose scorer</option><option value="__unattributed__">Unattributed goal (admin entry)</option>{adminEntryContext.away_players.map((player: any) => <option key={player.competition_player_id} value={player.competition_player_id}>{player.full_name}{player.is_goalkeeper ? " · GK" : ""}</option>)}</select></label>)}
             <label>Match summary<textarea rows={3} value={adminEntrySummary} onChange={(event) => setAdminEntrySummary(event.target.value)} /></label>
             <button disabled={saving || adminEntryHomeScorers.slice(0,Number(adminEntryHomeScore)).some((id)=>!id) || adminEntryAwayScorers.slice(0,Number(adminEntryAwayScore)).some((id)=>!id)}>Submit admin-completed report for approval</button>
           </>}
@@ -336,7 +330,7 @@ function AdminRefereeWorkspace() {
         <div className="admin-referee-section-title"><h2>Report review</h2><button className="admin-referee-close" onClick={() => setSelectedReport(null)}>Close</button></div>
         <p><strong>{selectedReport.home_team_name} {selectedReport.home_score}–{selectedReport.away_score} {selectedReport.away_team_name}</strong></p>
         <p className="admin-referee-muted">Referee: {selectedReport.referee_name} · Submitted {dateTime(selectedReport.submitted_at)}</p>
-        <h3>Goals and score record</h3>{(selectedReport.detail?.goals ?? []).map((goal: any) => <p key={goal.id}>{goal.is_own_goal ? "Own goal" : "Goal"} · {goal.credited_team_name} · {goal.scorer_name ?? "Unattributed scorer"}</p>)}
+        <h3>Goals and score record</h3>{(selectedReport.detail?.goals ?? []).map((goal: any) => <p key={goal.id}>{goal.is_own_goal ? "Own goal" : goal.is_unattributed ? "Unattributed goal" : "Goal"} · {goal.credited_team_name} · {goal.scorer_name ?? "No player attribution"}</p>)}
         <h3>Disciplinary incidents</h3>{(selectedReport.detail?.incidents ?? []).map((incident: any) => <p key={incident.id}>{incident.card_outcome.replaceAll("_"," ")} · {incident.team_name} · {incident.player_name ?? incident.recipient_category} · £{(incident.fine_amount_pence / 100).toFixed(2)}</p>)}
         <label>Review reason<textarea value={decisionReasons[selectedReport.report_id] ?? ""} onChange={(event) => setDecisionReasons((current) => ({ ...current, [selectedReport.report_id]: event.target.value }))} placeholder="Required for return or rejection" /></label>
         <div className="admin-referee-actions"><button disabled={saving} onClick={() => void reviewReport("approve")}>Approve and publish</button><button disabled={saving} onClick={() => void reviewReport("return")}>Return for correction</button><button className="is-danger" disabled={saving} onClick={() => void reviewReport("reject")}>Reject report</button></div>
