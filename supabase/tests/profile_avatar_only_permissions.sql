@@ -47,12 +47,14 @@ begin
     from pg_policies p
     where p.schemaname = 'public'
       and p.tablename = 'profiles'
-      and p.policyname = 'profiles_update_self_or_admin'
+      and p.policyname = 'profiles_update_self'
       and p.cmd = 'UPDATE'
       and p.qual ilike '%auth.uid()%'
       and p.with_check ilike '%auth.uid()%'
+      and p.qual not ilike '%has_platform_role%'
+      and p.with_check not ilike '%has_platform_role%'
   ) then
-    raise exception 'The owner/admin row-level UPDATE policy must remain present';
+    raise exception 'The owner-only row-level UPDATE policy must remain present';
   end if;
 
   if not exists (
