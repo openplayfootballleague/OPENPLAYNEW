@@ -111,8 +111,9 @@ begin
     or position('referee_payment_entitlements' in v_definition)=0 then
     raise exception 'Admin approval must publish result, reconcile goals/fines and create one referee entitlement';
   end if;
-  if position('This fixture already has a published result' in v_definition)=0 then
-    raise exception 'Duplicate published results must be blocked pending audited correction';
+  if position('Published result score differs from referee report' in v_definition)=0
+    or position('v_existing_result.confirmed_at is not null' in v_definition)=0 then
+    raise exception 'Admin report approval must preserve matching published results and block score mismatches';
   end if;
 
   if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='referee_match_report_goals' and column_name='is_unattributed') then
