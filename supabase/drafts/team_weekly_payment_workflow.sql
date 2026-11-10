@@ -400,7 +400,14 @@ begin
   select * into v_fixture from public.fixtures where id=v_obligation.fixture_id for update;
   if not found then raise exception 'Fixture not found'; end if;
 
-  if v_obligation.status='defaulted' then
+  if v_obligation.status='defaulted' and p_paid_at<=v_obligation.grace_ends_at then
+    -- The worker may have cancelled after grace while Stripe's successful
+    -- payment event was delayed in transit. Do not misclassify a timely
+    -- provider payment as a late settlement or automatically restore play:
+    -- preserve cancellation and require an administrator to reconcile it.
+    v_status:='admin_review';
+    v_reason:='Provider confirmed payment timestamp is within grace, but the fixture was already cancelled; administrator reconciliation required';
+  elsif v_obligation.status='defaulted' then
     v_status:='paid_after_cancellation';
     v_reason:='Defaulting team settled its outstanding fee after fixture cancellation; fixture remains cancelled';
     insert into public.team_payment_strikes(
