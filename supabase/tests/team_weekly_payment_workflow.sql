@@ -20,6 +20,9 @@ declare
   v_status text;
   v_refund uuid;
   v_count integer;
+  v_attempt integer;
+  v_claimed boolean;
+  v_rejected boolean;
 begin
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
   values
@@ -88,6 +91,31 @@ begin
   if (select count(*) from public.finance_entries where fixture_id=v_fixture and entry_type='charge')<>2 then
     raise exception 'Each team must receive exactly one append-only fee charge';
   end if;
+
+  -- Stripe Checkout retries use compare-and-set attempts and never attach stale sessions.
+  execute 'set local role service_role';
+  select public.claim_team_fixture_payment_checkout_attempt(v_home_obligation,null) into v_attempt;
+  if v_attempt<>1 then raise exception 'First checkout attempt number is incorrect'; end if;
+  select public.set_team_fixture_payment_checkout_session(v_home_obligation,v_attempt,'cs_test_team_payment_001') into v_claimed;
+  if not v_claimed then raise exception 'First checkout session was not attached'; end if;
+  select public.claim_team_fixture_payment_checkout_attempt(v_home_obligation,'cs_test_team_payment_001') into v_attempt;
+  if v_attempt<>2 then raise exception 'Expired checkout retry did not increment its attempt'; end if;
+  select public.set_team_fixture_payment_checkout_session(v_home_obligation,v_attempt,'cs_test_team_payment_002') into v_claimed;
+  if not v_claimed then raise exception 'Replacement checkout session was not attached'; end if;
+  select public.clear_team_fixture_payment_checkout_session(v_home_obligation,'cs_test_team_payment_002') into v_claimed;
+  if not v_claimed then raise exception 'Expired checkout session could not be cleared'; end if;
+  execute 'reset role';
+
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  v_rejected:=false;
+  begin
+    perform (select count(*) from public.team_stripe_webhook_events);
+  exception when insufficient_privilege then
+    v_rejected:=true;
+  end;
+  if not v_rejected then raise exception 'Authenticated clients must not read the team Stripe webhook inbox'; end if;
+  execute 'reset role';
 
   -- The away team pays on time; the later weather/default workflow must refund it if its opponent defaults.
   execute 'set local role service_role';
