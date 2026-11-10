@@ -12,7 +12,7 @@ begin
     'referee_applications','referee_memberships','referee_availability',
     'fixture_referee_assignments','referee_match_reports',
     'referee_match_report_goals','referee_match_report_incidents',
-    'referee_match_report_versions','referee_payment_entitlements','platform_feature_flags'
+    'referee_match_report_versions','referee_payment_entitlements','referee_milestone_rewards','platform_feature_flags'
   ] loop
     select c.relrowsecurity into v_rls
     from pg_class c join pg_namespace n on n.oid=c.relnamespace
@@ -58,6 +58,9 @@ begin
     'referee_get_match_report(uuid)',
     'referee_get_payment_entitlements()',
     'referee_get_career_summary()',
+    'referee_get_milestone_rewards()',
+    'admin_list_referee_milestone_rewards(text,uuid)',
+    'admin_approve_referee_milestone_reward(uuid,text)',
     'admin_list_referee_applications(text)',
     'admin_list_active_referees(uuid)',
     'admin_list_referee_availability(uuid)',
@@ -165,6 +168,22 @@ begin
     or position('lifetime_games' in v_definition)=0
     or position('active_season_games' in v_definition)=0 then
     raise exception 'Referee career summary must be membership-scoped and calculate permanent milestones';
+  end if;
+  if not exists(select 1 from pg_trigger where tgname='referee_report_milestone_reward_after_approval' and not tgisinternal) then
+    raise exception 'Approved referee reports must automatically create eligible milestone reward records';
+  end if;
+  select pg_get_functiondef('public.record_referee_milestone_reward()'::regprocedure) into v_definition;
+  if position('on conflict(referee_user_id,milestone_games) do nothing' in v_definition)=0
+    or position('500' in v_definition)=0 then
+    raise exception 'Referee milestone rewards must be idempotent at 50-game thresholds through 500';
+  end if;
+  select pg_get_functiondef('public.admin_list_referee_milestone_rewards(text,uuid)'::regprocedure) into v_definition;
+  if position('can_administer_location' in v_definition)=0 then
+    raise exception 'Milestone reward queue must be location-scoped';
+  end if;
+  select pg_get_functiondef('public.admin_approve_referee_milestone_reward(uuid,text)'::regprocedure) into v_definition;
+  if position('enqueue_notification_event' in v_definition)=0 or position('length(btrim(p_reason))<5' in v_definition)=0 then
+    raise exception 'Milestone reward approval must be audited and notify the referee';
   end if;
   select pg_get_functiondef('public.referee_save_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean,boolean)'::regprocedure) into v_definition;
   if position('v_is_referee and not public.is_referee_reporting_enabled()' in v_definition)=0 then
