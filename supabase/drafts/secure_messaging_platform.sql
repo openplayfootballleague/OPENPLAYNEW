@@ -830,6 +830,9 @@ declare
   v_user uuid:=auth.uid();
   v_message public.messages;
   v_report_id uuid;
+  v_location_id uuid;
+  v_new_report boolean:=false;
+  v_recipient record;
 begin
   if v_user is null or length(btrim(coalesce(p_reason,''))) not between 5 and 1000 then
     raise exception 'Enter a report reason of at least 5 characters';
@@ -848,6 +851,27 @@ begin
   if v_report_id is null then
     select id into v_report_id from public.message_reports
     where message_id=p_message_id and reporter_id=v_user and status='open';
+  else
+    v_new_report:=true;
+  end if;
+  if v_new_report then
+    select location_id into v_location_id
+    from public.message_conversations where id=v_message.conversation_id;
+    for v_recipient in
+      select distinct ur.user_id
+      from public.user_roles ur
+      where ur.role in ('admin','super_admin','league_admin')
+        and public.message_actor_is_active(ur.user_id)
+        and (
+          ur.role in ('admin','super_admin')
+          or (v_location_id is not null and public.can_administer_location(v_location_id))
+        )
+    loop
+      perform public.enqueue_notification_event(
+        v_recipient.user_id,'message.reported',
+        jsonb_build_object('report_id',v_report_id,'message_id',p_message_id,'conversation_id',v_message.conversation_id)
+      );
+    end loop;
   end if;
   return v_report_id;
 end;
