@@ -4,6 +4,7 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { ageOnUkDate } from "../lib/player-age";
+import { useOpenPlayAnalytics } from "../components/analytics-provider";
 
 type ExistingPlayer = { full_name: string; phone: string; date_of_birth: string; registration_status: "registered" | "pending_review" | "rejected"; is_banned: boolean };
 type GuardianConsent = {
@@ -20,13 +21,17 @@ type GuardianConsent = {
 export const Route = createFileRoute("/register-player")({ component: RegisterPlayerPage });
 
 function RegisterPlayerPage() {
-  const navigate=useNavigate(); const [session,setSession]=useState<Session|null>(null); const [loading,setLoading]=useState(true);
+  const navigate=useNavigate(); const capture=useOpenPlayAnalytics(); const [session,setSession]=useState<Session|null>(null); const [loading,setLoading]=useState(true);
   const [name,setName]=useState(""); const [phone,setPhone]=useState(""); const [dob,setDob]=useState("");
   const [error,setError]=useState(""); const [message,setMessage]=useState(""); const [submitted,setSubmitted]=useState(false); const [busy,setBusy]=useState(false);
   const [existingPlayer,setExistingPlayer]=useState<ExistingPlayer|null>(null);
+  const [registrationStartedTracked,setRegistrationStartedTracked]=useState(false);
   const [guardianConsent,setGuardianConsent]=useState<GuardianConsent|null>(null);
   const [guardianName,setGuardianName]=useState("");
   const [guardianEmail,setGuardianEmail]=useState("");
+  useEffect(()=>{
+    if(!registrationStartedTracked && capture("player_registration_started",{feature:"player_registration"}))setRegistrationStartedTracked(true);
+  },[capture,registrationStartedTracked]);
   useEffect(()=>{
     const supabase=getSupabaseClient();
     let active=true;
@@ -91,10 +96,12 @@ function RegisterPlayerPage() {
       const {data:playerData,error:rpcError}=await getSupabaseClient().rpc("register_player",{p_full_name:name.trim(),p_phone:phone.trim(),p_email:session.user.email,p_date_of_birth:dob});
       if(rpcError) throw rpcError;
       if(!playerData)throw new Error("Your registration could not be confirmed. Please try again.");
+      capture("player_registration_submitted", { feature: "player_registration", outcome: "success" });
+      capture("player_profile_completed", { feature: "player_registration", outcome: "success" });
       setExistingPlayer({full_name:playerData.full_name,phone:playerData.phone,date_of_birth:playerData.date_of_birth,registration_status:playerData.registration_status,is_banned:playerData.is_banned});
       setMessage("Your player registration has been submitted. If it needs a manual identity check, it will remain pending review. Your account and player registration are separate from joining a team.");
       setSubmitted(true);
-    }catch(cause){setError(cause instanceof Error?cause.message:"Unable to submit player registration.");}
+    }catch(cause){capture("workflow_error", { feature: "player_registration", error_code: "unexpected_error", outcome: "failure" });setError(cause instanceof Error?cause.message:"Unable to submit player registration.");}
     finally{setBusy(false);}
   }
   async function resendVerification(){

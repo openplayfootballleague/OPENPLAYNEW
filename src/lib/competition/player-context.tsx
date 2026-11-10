@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getSupabaseClient } from "../supabase/client";
+import { useOpenPlayAnalytics } from "../../components/analytics-provider";
 
 export type PlayerLocationOption = {
   id: string;
@@ -56,6 +57,7 @@ export function resolvePlayerCompetitionSelection(
 }
 
 export function usePlayerCompetitionContext(): PlayerCompetitionContext {
+  const capture = useOpenPlayAnalytics();
   const [locations, setLocations] = useState<PlayerLocationOption[]>([]);
   const [seasons, setSeasons] = useState<PlayerSeasonOption[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState("");
@@ -169,16 +171,19 @@ export function usePlayerCompetitionContext(): PlayerCompetitionContext {
   }
 
   function setLocation(locationId: string) {
-    if (!locations.some((location) => location.id === locationId)) return;
+    if (!locations.some((location) => location.id === locationId) || locationId === selectedLocationId) return;
     const available = seasons.filter((season) => season.location_id === locationId);
     const nextSeason = getPreferredPlayerSeason(available)?.id ?? "";
+    capture(selectedLocationId ? "location_switched" : "location_selected", { feature: "location_selector", location_id: locationId });
+    if (nextSeason) capture(selectedSeasonId ? "season_switched" : "season_selected", { feature: "season_selector", season_id: nextSeason });
     setSelectedLocationId(locationId);
     setSelectedSeasonId(nextSeason);
     persist(locationId, nextSeason);
   }
 
   function setSeason(seasonId: string) {
-    if (!seasons.some((season) => season.id === seasonId && season.location_id === selectedLocationId)) return;
+    if (!seasons.some((season) => season.id === seasonId && season.location_id === selectedLocationId) || seasonId === selectedSeasonId) return;
+    capture(selectedSeasonId ? "season_switched" : "season_selected", { feature: "season_selector", season_id: seasonId });
     setSelectedSeasonId(seasonId);
     persist(selectedLocationId, seasonId);
   }
