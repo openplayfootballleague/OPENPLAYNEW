@@ -129,7 +129,10 @@ Deno.serve(async(req)=>{
       body:form,
     });
     const result=await stripeResponse.json().catch(()=>({})) as StripeObject;
-    if(stripeResponse.ok&&result.status==="succeeded"&&typeof result.id==="string"){
+    if(stripeResponse.ok&&result.status==="succeeded"&&typeof result.id==="string"&&
+      result.payment_intent===refund.stripe_payment_intent_id&&
+      Number(result.amount)===Number(refund.amount_pence)&&
+      String(result.currency??"").toLowerCase()==="gbp"){
       const {error}=await admin.rpc("record_team_fixture_payment_refund_result",{
         p_refund_id:refund.id,p_succeeded:true,p_stripe_refund_id:result.id,
       });
