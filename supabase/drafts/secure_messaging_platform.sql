@@ -454,7 +454,6 @@ declare
   v_message_id uuid;
   v_recent_minute integer;
   v_recent_day integer;
-  v_sender_name text;
   v_recipient record;
 begin
   if v_user is null or not public.message_actor_is_active(v_user) then
@@ -533,10 +532,6 @@ begin
   set last_read_at=now()
   where conversation_id=p_conversation_id and user_id=v_user and left_at is null;
 
-  select coalesce(nullif(p.display_name,''),pl.full_name,'Open Play member')
-    into v_sender_name
-  from public.profiles p left join public.players pl on pl.user_id=p.id
-  where p.id=v_user;
   for v_recipient in
     select cp.user_id
     from public.message_conversation_participants cp
@@ -550,8 +545,7 @@ begin
       jsonb_build_object(
         'conversation_id',p_conversation_id,
         'message_id',v_message_id,
-        'conversation_title',v_conversation.title,
-        'sender_name',coalesce(v_sender_name,'Open Play member')
+        'conversation_title',v_conversation.title
       )
     );
   end loop;
@@ -795,9 +789,6 @@ begin
   values(v_conversation_id,v_user,btrim(p_body),'announcement')
   returning id into v_message_id;
   update public.message_conversations set updated_at=now() where id=v_conversation_id;
-  select coalesce(nullif(p.display_name,''),pl.full_name,'Open Play admin')
-    into v_sender_name
-  from public.profiles p left join public.players pl on pl.user_id=p.id where p.id=v_user;
   for v_recipient in
     select cp.user_id from public.message_conversation_participants cp
     where cp.conversation_id=v_conversation_id and cp.user_id<>v_user and cp.left_at is null
@@ -805,7 +796,7 @@ begin
     perform public.enqueue_notification_event(
       v_recipient.user_id,'message.new',
       jsonb_build_object('conversation_id',v_conversation_id,'message_id',v_message_id,
-        'conversation_title',btrim(p_title),'sender_name',coalesce(v_sender_name,'Open Play admin'))
+        'conversation_title',btrim(p_title))
     );
   end loop;
   return v_conversation_id;
