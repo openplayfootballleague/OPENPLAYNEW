@@ -19,6 +19,8 @@ type Conversation = {
   participant_count: number;
   other_participant_user_id: string | null;
   other_participant_name: string | null;
+  other_participant_last_read_at: string | null;
+  read_by_count: number;
 };
 type MessageRow = {
   message_id: string;
@@ -378,6 +380,8 @@ function MessagesPage() {
                 {threadLoading ? <p className="form-note">Loading conversation…</p> : messages.map((message) => <article key={message.message_id} className={message.sender_id===userId?"messaging-message mine":"messaging-message"}>
                   <div className="messaging-message-meta"><strong>{message.sender_id===userId?"YOU":message.sender_name}</strong><time>{new Date(message.created_at).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"})}</time>{message.message_type==="announcement"&&<b>ANNOUNCEMENT</b>}</div>
                   <p>{message.body}</p>
+                  {message.sender_id===userId&&message.message_id===selected.last_message_id&&selected.kind==="direct"&&selected.other_participant_last_read_at&&new Date(selected.other_participant_last_read_at).getTime()>=new Date(message.created_at).getTime()&&<small className="messaging-read-receipt">SEEN</small>}
+                  {message.sender_id===userId&&message.message_id===selected.last_message_id&&selected.kind!=="direct"&&selected.read_by_count>0&&<small className="messaging-read-receipt">READ BY {selected.read_by_count}/{Math.max(0,selected.participant_count-1)}</small>}
                   {!message.is_hidden&&message.sender_id!==userId&&<div className="messaging-report"><button type="button" onClick={()=>{setReportingId(reportingId===message.message_id?"":message.message_id);setReportReason("");}}>REPORT</button>{reportingId===message.message_id&&<div><textarea rows={2} value={reportReason} onChange={(event)=>setReportReason(event.target.value)} placeholder="Why are you reporting this message?"/><button type="button" disabled={busy} onClick={()=>void reportMessage(message.message_id)}>SEND REPORT</button></div>}</div>}
                 </article>)}
                 {!threadLoading&&messages.length===0&&<p className="form-note">This conversation is ready. Send the first message.</p>}
