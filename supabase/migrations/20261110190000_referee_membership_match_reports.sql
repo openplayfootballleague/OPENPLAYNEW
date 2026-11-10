@@ -526,6 +526,22 @@ begin
   ) and (p_reason is null or length(btrim(p_reason))<5) then
     raise exception 'No matching referee availability. Add a reason of at least five characters to override availability.';
   end if;
+
+  -- A referee cannot cover two fixtures with the same scheduled kick-off.
+  -- Match duration is not stored consistently across competition formats, so
+  -- do not invent an overlap window; exact simultaneous kick-offs are blocked.
+  if exists(
+    select 1
+    from public.fixture_referee_assignments existing_assignment
+    join public.fixtures existing_fixture on existing_fixture.id=existing_assignment.fixture_id
+    where existing_assignment.referee_user_id=p_referee_user_id
+      and existing_assignment.removed_at is null
+      and existing_assignment.fixture_id<>p_fixture_id
+      and existing_fixture.status in ('scheduled','in_progress')
+      and existing_fixture.scheduled_at=v_fixture.scheduled_at
+  ) then
+    raise exception 'This referee is already assigned to another fixture at the same kick-off time';
+  end if;
   update public.fixture_referee_assignments
   set removed_at=now(),removed_by=v_actor,change_reason=coalesce(nullif(btrim(p_reason),''),'Reassigned by administrator')
   where fixture_id=p_fixture_id and removed_at is null;
