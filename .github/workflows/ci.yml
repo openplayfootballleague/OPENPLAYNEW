@@ -114,8 +114,11 @@ jobs:
             diff -u supabase/drafts/team_weekly_payment_workflow.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
-          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          migration_name="$(basename "$migration_file")"
+          if ! grep -qxF "$migration_name" scripts/expected-pending-migrations.txt; then
+            printf '%s\n' "$migration_name" >> scripts/expected-pending-migrations.txt
+          fi
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\n' "$migration_file"
       - name: Preserve CLI-generated team payment migration for review
         uses: actions/upload-artifact@v4
@@ -134,8 +137,11 @@ jobs:
             diff -u supabase/drafts/weather_gameweek_postponement.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
-          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          migration_name="$(basename "$migration_file")"
+          if ! grep -qxF "$migration_name" scripts/expected-pending-migrations.txt; then
+            printf '%s\n' "$migration_name" >> scripts/expected-pending-migrations.txt
+          fi
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\\n' "$migration_file"
       - name: Preserve CLI-generated weather postponement migration for review
         uses: actions/upload-artifact@v4
