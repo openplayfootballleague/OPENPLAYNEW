@@ -299,6 +299,7 @@ declare
   v_refunds integer:=0;
   v_credits integer:=0;
   v_delta interval;
+  v_captain uuid;
 begin
   if v_actor is null or not public.has_platform_role() then
     raise exception 'Administrator permission required';
@@ -487,6 +488,19 @@ begin
     jsonb_build_object('week_number',v_old_number,'scheduled_at',v_week.scheduled_at),
     jsonb_build_object('week_number',v_new_number,'scheduled_at',p_replacement_at,
       'refunded_team_payments',v_refunds,'credited_unpaid_obligations',v_credits));
+
+  for v_captain in
+    select distinct tm.user_id
+    from public.fixtures f
+    join public.team_memberships tm
+      on tm.season_team_id in (f.home_team_id,f.away_team_id)
+    where f.gameweek_id=p_gameweek_id and tm.status='active' and tm.is_captain
+  loop
+    perform public.enqueue_notification_event(v_captain,'gameweek.postponed',
+      jsonb_build_object('gameweek_id',p_gameweek_id,'old_gameweek',v_old_number,
+        'new_gameweek',v_new_number,'replacement_at',p_replacement_at,
+        'refunds_queued',v_refunds,'reason',btrim(p_reason)));
+  end loop;
 
   return jsonb_build_object('gameweek_id',p_gameweek_id,'old_week_number',v_old_number,
     'new_week_number',v_new_number,'scheduled_at',p_replacement_at,'fixture_count',v_fixture_count,
