@@ -891,7 +891,7 @@ begin
   from public.fixtures f join public.seasons s on s.id=f.season_id join public.leagues lg on lg.id=s.league_id
   where f.id=p_fixture_id;
   if v_location is null then raise exception 'Fixture not found'; end if;
-  if public.is_active_referee() and not exists(
+  if public.is_active_referee() and not public.has_platform_role() and not exists(
     select 1 from public.fixture_referee_assignments a
     where a.fixture_id=p_fixture_id and a.referee_user_id=v_actor and a.removed_at is null
   ) then raise exception 'You are not assigned to this fixture'; end if;
