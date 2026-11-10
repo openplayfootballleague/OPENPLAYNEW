@@ -104,7 +104,7 @@ begin
 
   -- Declared availability is checked server-side before an appointment is stored.
   update public.referee_applications
-  set availability=jsonb_build_array(jsonb_build_object('weekday',case when v_weekday=7 then 1 else v_weekday+1 end,'start_time','00:00','end_time','23:59'))
+  set availability=jsonb_build_array(jsonb_build_object('weekday',((v_weekday+1)%7)+1,'start_time','00:00','end_time','23:59'))
   where id=v_application;
   v_rejected:=false;
   begin
