@@ -45,7 +45,16 @@ describe("team fixture payment deadline and 12-hour grace period", () => {
       .toMatchObject({ state: "paid_after_deadline", strikeCount: 1, fixtureCancellationDue: true });
   });
 
-  it("holds an after-deadline payment for admin review instead of cancelling automatically", () => {\n    expect(assessTeamFixturePayment({ kickoffAt, assessedAt: "2026-11-20T10:00:00Z", paidAt: "2026-11-20T09:00:00Z", adminReviewHold: true }))\n      .toMatchObject({ state: "paid_after_deadline", strikeCount: 1, fixtureCancellationDue: false, adminReviewRequired: true });\n  });\n\n  it("rejects a payment timestamp later than the authoritative assessment", () => {\n    expect(() => assessTeamFixturePayment({ kickoffAt, assessedAt: "2026-11-20T08:00:00Z", paidAt: "2026-11-20T09:00:00Z" })).toThrow(RangeError);\n  });\n\n  it("rejects invalid timestamps", () => {
+  it("holds an after-deadline payment for admin review instead of cancelling automatically", () => {
+    expect(assessTeamFixturePayment({ kickoffAt, assessedAt: "2026-11-20T10:00:00Z", paidAt: "2026-11-20T09:00:00Z", adminReviewHold: true }))
+      .toMatchObject({ state: "paid_after_deadline", strikeCount: 1, fixtureCancellationDue: false, adminReviewRequired: true });
+  });
+
+  it("rejects a payment timestamp later than the authoritative assessment", () => {
+    expect(() => assessTeamFixturePayment({ kickoffAt, assessedAt: "2026-11-20T08:00:00Z", paidAt: "2026-11-20T09:00:00Z" })).toThrow(RangeError);
+  });
+
+  it("rejects invalid timestamps", () => {
     expect(() => assessTeamFixturePayment({ kickoffAt: "not-a-date", assessedAt: deadline })).toThrow(RangeError);
   });
 });
