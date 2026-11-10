@@ -63,3 +63,15 @@ verify_jwt = false
 [functions.admin-postpone-gameweek]
 # Requires an authenticated administrator; the RPC checks location permissions.
 verify_jwt = true
+
+[functions.start-referee-connect-onboarding]
+verify_jwt = true
+
+[functions.refresh-referee-connect-status]
+verify_jwt = true
+
+[functions.process-referee-payouts]
+verify_jwt = false
+
+[functions.referee-connect-webhook]
+verify_jwt = false
