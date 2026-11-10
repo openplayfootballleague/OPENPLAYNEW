@@ -18,3 +18,5 @@
 20261110133643_referee_fixture_assignments.sql
 20261110135038_referee_match_reports.sql
 20261110160000_referee_approved_report_corrections.sql
+20261110170000_team_weekly_payment_workflow.sql
+20261110180000_weather_gameweek_postponement.sql
