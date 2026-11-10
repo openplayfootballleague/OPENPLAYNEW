@@ -53,6 +53,7 @@ Deno.serve(async(req)=>{
   const metadata=object?.metadata as Record<string,unknown>|undefined;
   const obligationId=String(metadata?.team_fixture_payment_obligation_id??"");
   const sessionId=String(object?.id??"");
+  if(!obligationId)return Response.json({received:true,ignored:true});
   const supported=new Set([
     "checkout.session.completed",
     "checkout.session.async_payment_succeeded",
