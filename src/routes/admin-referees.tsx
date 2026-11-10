@@ -212,7 +212,7 @@ function AdminRefereeWorkspace() {
     <section className="admin-referee-panel">
       <div className="admin-referee-section-title"><span className="eyebrow">03 · FIXTURE ALLOCATION</span><h2>Assign an official</h2></div>
       <form className="admin-referee-form" onSubmit={assignReferee}>
-        <label>Fixture<select required value={selectedFixture} onChange={(event) => setSelectedFixture(event.target.value)}><option value="">Choose fixture</option>{openFixtures.map((fixture) => <option key={fixture.id} value={fixture.fixture_id}>GW{fixture.gameweek} · {fixture.home_team_name} v {fixture.away_team_name} · {dateTime(fixture.scheduled_at)}</option>)}</select></label>
+        <label>Fixture<select required value={selectedFixture} onChange={(event) => setSelectedFixture(event.target.value)}><option value="">Choose fixture</option>{openFixtures.map((fixture) => <option key={fixture.id} value={fixture.id}>GW{fixture.gameweek} · {fixture.home_team_name} v {fixture.away_team_name} · {dateTime(fixture.scheduled_at)}</option>)}</select></label>
         <label>Approved referee<select required value={selectedReferee} onChange={(event) => setSelectedReferee(event.target.value)}><option value="">Choose referee</option>{referees.map((referee) => <option key={referee.referee_user_id} value={referee.referee_user_id}>{referee.referee_name} · {referee.availability_slots} upcoming slots</option>)}</select></label>
         <label>Reason / scheduling note<input value={assignmentReason} onChange={(event) => setAssignmentReason(event.target.value)} placeholder="Optional note" /></label>
         <button disabled={saving || !openFixtures.length || !referees.length}>Allocate referee</button>
