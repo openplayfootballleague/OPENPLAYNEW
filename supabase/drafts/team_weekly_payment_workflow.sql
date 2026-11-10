@@ -610,7 +610,8 @@ as $$
 declare v_updated integer;
 begin
   update public.team_fixture_payment_obligations
-  set stripe_checkout_session_id=null
+  set stripe_checkout_session_id=null,
+      status=case when status='admin_review' then 'grace_period' else status end
   where id=p_obligation_id and stripe_checkout_session_id=p_session_id
     and status in ('due','grace_period','admin_review');
   get diagnostics v_updated=row_count;
