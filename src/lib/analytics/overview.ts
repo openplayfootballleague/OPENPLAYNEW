@@ -106,9 +106,10 @@ export function buildLocationComparisons(
   setup: AnalyticsSetup,
   filters: Pick<AnalyticsFilters, "leagueId" | "seasonId"> = { leagueId: "", seasonId: "" },
 ): AnalyticsLocationComparison[] {
+  const locationByLeague = new Map(setup.leagues.map((league) => [league.id, league.location_id]));
   return setup.locations.flatMap((location) => {
     const seasons = setup.seasons.filter((season) =>
-      season.location_id === location.id
+      (season.location_id ?? locationByLeague.get(season.league_id)) === location.id
       && (!filters.leagueId || season.league_id === filters.leagueId)
       && (!filters.seasonId || season.id === filters.seasonId),
     );
