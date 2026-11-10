@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { useRequiredSession } from "../lib/auth/use-required-session";
 import { getSupabaseClient } from "../lib/supabase/client";
 
@@ -131,7 +132,7 @@ function MessagesPage() {
   useEffect(() => {
     if (!selectedId) { setMessages([]); return; }
     let active = true;
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClient() as unknown as SupabaseClient<any>;
     void (async () => {
       await supabase.rpc("mark_message_conversation_read", { p_conversation_id: selectedId });
       if (!active) return;
@@ -160,7 +161,7 @@ function MessagesPage() {
 
   useEffect(() => {
     if (!userId) return;
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClient() as unknown as SupabaseClient<any>;
     const channel = supabase.channel("message-inbox-" + userId)
       .on("postgres_changes", {
         event: "INSERT",
