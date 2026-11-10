@@ -168,7 +168,7 @@ function AdminAnalyticsPage() {
 
   const dateRangeInvalid = Boolean(fromDate && toDate && fromDate > toDate);
   const filters: AnalyticsFilters = { locationId, leagueId, seasonId, fromDate, toDate };
-  const overview = useMemo(() => dashboard
+  const overview = useMemo(() => dashboard && !dateRangeInvalid
     ? buildAnalyticsOverview(setup, dashboard.counts, fixtures, filters)
     : null, [dashboard, dateRangeInvalid, fixtures, fromDate, leagueId, locationId, seasonId, setup, toDate]);
   const locationComparisons = useMemo(
