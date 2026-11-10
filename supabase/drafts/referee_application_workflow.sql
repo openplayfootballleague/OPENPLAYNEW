@@ -5,14 +5,13 @@ create table public.referee_applications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete restrict,
   status text not null default 'pending'
-    check (status in ('pending', 'approved', 'rejected', 'withdrawn')),
+    check (status in ('pending', 'approved', 'rejected')),
   experience_summary text not null
     check (length(btrim(experience_summary)) between 1 and 2000),
   qualifications text[] not null default '{}'::text[]
     check (cardinality(qualifications) <= 20),
   availability jsonb not null
-    check (jsonb_typeof(availability) = 'array'
-      and jsonb_array_length(availability) between 1 and 21),
+    check (jsonb_typeof(availability) = 'array'),
   contact_phone text not null
     check (length(btrim(contact_phone)) between 7 and 40),
   preferred_location_ids uuid[] not null
@@ -147,20 +146,21 @@ begin
   if coalesce(cardinality(p_qualifications), 0) > 20
      or exists (
        select 1
-       from unnest(coalesce(p_qualifications, '{}'::text[])) qualification
-       where length(btrim(coalesce(qualification, ''))) > 120
+       from unnest(coalesce(p_qualifications, '{}'::text[])) as q(qualification)
+       where length(btrim(coalesce(q.qualification, ''))) > 120
      ) then
     raise exception 'Qualifications must contain no more than 20 entries of 120 characters each';
   end if;
 
   select coalesce(array_agg(distinct btrim(qualification)), '{}'::text[])
     into v_qualifications
-  from unnest(coalesce(p_qualifications, '{}'::text[])) qualification
-  where length(btrim(coalesce(qualification, ''))) > 0;
+  from unnest(coalesce(p_qualifications, '{}'::text[])) as q(qualification)
+  where length(btrim(coalesce(q.qualification, ''))) > 0;
 
-  if p_availability is null
-     or jsonb_typeof(p_availability) <> 'array'
-     or jsonb_array_length(p_availability) not between 1 and 21 then
+  if p_availability is null or jsonb_typeof(p_availability) <> 'array' then
+    raise exception 'Availability must be supplied as a list of windows';
+  end if;
+  if jsonb_array_length(p_availability) not between 1 and 21 then
     raise exception 'Add between one and 21 availability windows';
   end if;
 
@@ -204,14 +204,14 @@ begin
      or cardinality(p_preferred_location_ids) not between 1 and 10
      or array_position(p_preferred_location_ids, null) is not null
      or cardinality(p_preferred_location_ids) <>
-        (select count(distinct location_id) from unnest(p_preferred_location_ids) location_id) then
+        (select count(distinct ids.location_id) from unnest(p_preferred_location_ids) as ids(location_id)) then
     raise exception 'Choose between one and ten distinct preferred locations';
   end if;
 
   select count(*) into v_location_count
-  from unnest(p_preferred_location_ids) preferred_location_id
+  from unnest(p_preferred_location_ids) as preferred(preferred_location_id)
   join public.locations location
-    on location.id = preferred_location_id
+    on location.id = preferred.preferred_location_id
    and location.is_active = true;
 
   if v_location_count <> cardinality(p_preferred_location_ids) then
@@ -281,7 +281,7 @@ begin
   if v_actor is null then
     raise exception 'Authentication required';
   end if;
-  if p_decision not in ('approved', 'rejected') then
+  if p_decision is null or p_decision not in ('approved', 'rejected') then
     raise exception 'Decision must be approved or rejected';
   end if;
   if length(btrim(coalesce(p_reason, ''))) not between 5 and 500 then
@@ -376,7 +376,7 @@ begin
   if v_actor is null then
     raise exception 'Authentication required';
   end if;
-  if p_status not in ('active', 'suspended') then
+  if p_status is null or p_status not in ('active', 'suspended') then
     raise exception 'Referee status must be active or suspended';
   end if;
   if length(btrim(coalesce(p_reason, ''))) not between 5 and 500 then
