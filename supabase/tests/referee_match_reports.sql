@@ -38,6 +38,7 @@ declare
   v_amount integer;
   v_options jsonb;
   v_corrected_events jsonb;
+  v_correction_options jsonb;
   v_corrected_version integer;
 begin
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
@@ -356,6 +357,28 @@ begin
   );
   execute 'reset role';
   if v_corrected_version<>3 then raise exception 'Approved report correction did not advance the version'; end if;
+
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  v_correction_options:=public.admin_get_approved_referee_report_correction_options(v_report_one);
+  execute 'reset role';
+  if v_correction_options->'report'->>'status'<>'approved'
+     or (v_correction_options->'report'->>'version')::integer<>3
+     or jsonb_array_length(v_correction_options->'home_players')<>1
+     or jsonb_array_length(v_correction_options->'away_players')<>1 then
+    raise exception 'Approved report correction interface did not receive the current version and both locked team-sheet player lists';
+  end if;
+
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_referee::text,true);
+  v_rejected:=false;
+  begin
+    perform public.admin_get_approved_referee_report_correction_options(v_report_one);
+  exception when others then
+    v_rejected:=sqlerrm like '%Administrator permission required%';
+  end;
+  if not v_rejected then raise exception 'A referee could read the administrator-only approved-report correction options'; end if;
+  execute 'reset role';
   if not exists(select 1 from public.referee_match_reports where id=v_report_one and status='approved' and version=3 and jsonb_array_length(disciplinary_events)=2) then
     raise exception 'Corrected report did not remain approved with its corrected events'; end if;
   if (select count(*) from public.referee_disciplinary_events where report_id=v_report_one and voided_at is null)<>2

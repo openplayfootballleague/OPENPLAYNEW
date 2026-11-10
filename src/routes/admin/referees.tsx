@@ -34,7 +34,7 @@ type RefereeMatchReport = {
   referee_name: string;
   referee_email: string | null;
   report_source: "referee" | "admin";
-  status: "submitted";
+  status: "submitted" | "rejected" | "approved" | "voided";
   version: number;
   submitted_at: string;
   scheduled_at: string;
@@ -91,7 +91,7 @@ type AdminReportOptions = {
   };
   report: null | {
     id: string;
-    status: "submitted" | "rejected";
+    status: "submitted" | "rejected" | "approved" | "voided";
     version: number;
     home_score: number;
     away_score: number;
@@ -155,6 +155,8 @@ function AdminRefereesPage() {
   const [allocationLoading, setAllocationLoading] = useState(true);
   const [allocationReason, setAllocationReason] = useState<Record<string, string>>({});
   const [reports, setReports] = useState<RefereeMatchReport[]>([]);
+  const [approvedReports, setApprovedReports] = useState<RefereeMatchReport[]>([]);
+  const [approvedReportsLoading, setApprovedReportsLoading] = useState(false);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [reportReasons, setReportReasons] = useState<Record<string, string>>({});
   const [payouts, setPayouts] = useState<RefereePayoutObligation[]>([]);
@@ -165,6 +167,7 @@ function AdminRefereesPage() {
   const [selectedAdminReportFixtureId, setSelectedAdminReportFixtureId] = useState("");
   const [adminReportOptions, setAdminReportOptions] = useState<AdminReportOptions | null>(null);
   const [adminReportOptionsLoading, setAdminReportOptionsLoading] = useState(false);
+  const [correctionMode, setCorrectionMode] = useState(false);
   const [adminReportHomeScore, setAdminReportHomeScore] = useState("0");
   const [adminReportAwayScore, setAdminReportAwayScore] = useState("0");
   const [adminReportHomeSubs, setAdminReportHomeSubs] = useState<string[]>([]);
@@ -228,6 +231,24 @@ function AdminRefereesPage() {
 
   useEffect(() => { void loadReports(); }, [loadReports]);
 
+  const loadApprovedReports = useCallback(async () => {
+    setApprovedReportsLoading(true);
+    const rpc = getSupabaseClient() as unknown as RpcClient;
+    const result = await rpc.rpc("admin_list_referee_match_reports", {
+      p_status: "approved",
+      p_location_id: null,
+    });
+    if (result.error) {
+      setError(result.error.message);
+      setApprovedReports([]);
+    } else {
+      setApprovedReports((result.data ?? []) as RefereeMatchReport[]);
+    }
+    setApprovedReportsLoading(false);
+  }, []);
+
+  useEffect(() => { void loadApprovedReports(); }, [loadApprovedReports]);
+
   const loadPayouts = useCallback(async () => {
     setPayoutsLoading(true);
     const rpc = getSupabaseClient() as unknown as RpcClient;
@@ -261,7 +282,22 @@ function AdminRefereesPage() {
 
   useEffect(() => { void loadReportableFixtures(); }, [loadReportableFixtures]);
 
+  const applyAdminReportOptions = useCallback((options: AdminReportOptions) => {
+    setAdminReportOptions(options);
+    const report = options.report;
+    setAdminReportHomeScore(String(report?.home_score ?? 0));
+    setAdminReportAwayScore(String(report?.away_score ?? 0));
+    setAdminReportHomeSubs(report?.home_substitute_appearances ?? []);
+    setAdminReportAwaySubs(report?.away_substitute_appearances ?? []);
+    setAdminReportHomeScorers(report?.home_scorers ?? []);
+    setAdminReportAwayScorers(report?.away_scorers ?? []);
+    setAdminReportDisciplinaryEvents(report?.disciplinary_events ?? []);
+    setAdminReportWriteUp(report?.match_write_up ?? "");
+    setAdminReportReason("");
+  }, []);
+
   const loadAdminReportOptions = useCallback(async (fixtureId: string) => {
+    setCorrectionMode(false);
     setAdminReportOptionsLoading(true);
     setAdminReportOptions(null);
     const rpc = getSupabaseClient() as unknown as RpcClient;
@@ -270,25 +306,33 @@ function AdminRefereesPage() {
       setError(result.error.message);
       setAdminReportOptions(null);
     } else {
-      const options = result.data as AdminReportOptions;
-      setAdminReportOptions(options);
-      const report = options.report;
-      setAdminReportHomeScore(String(report?.home_score ?? 0));
-      setAdminReportAwayScore(String(report?.away_score ?? 0));
-      setAdminReportHomeSubs(report?.home_substitute_appearances ?? []);
-      setAdminReportAwaySubs(report?.away_substitute_appearances ?? []);
-      setAdminReportHomeScorers(report?.home_scorers ?? []);
-      setAdminReportAwayScorers(report?.away_scorers ?? []);
-      setAdminReportDisciplinaryEvents(report?.disciplinary_events ?? []);
-      setAdminReportWriteUp(report?.match_write_up ?? "");
-      setAdminReportReason("");
+      applyAdminReportOptions(result.data as AdminReportOptions);
     }
     setAdminReportOptionsLoading(false);
-  }, []);
+  }, [applyAdminReportOptions]);
+
+  const loadApprovedReportCorrectionOptions = useCallback(async (reportId: string) => {
+    setCorrectionMode(true);
+    setAdminReportOptionsLoading(true);
+    setAdminReportOptions(null);
+    const rpc = getSupabaseClient() as unknown as RpcClient;
+    const result = await rpc.rpc("admin_get_approved_referee_report_correction_options", {
+      p_report_id: reportId,
+    });
+    if (result.error) {
+      setError(result.error.message);
+      setCorrectionMode(false);
+      setAdminReportOptions(null);
+    } else {
+      applyAdminReportOptions(result.data as AdminReportOptions);
+    }
+    setAdminReportOptionsLoading(false);
+  }, [applyAdminReportOptions]);
 
   useEffect(() => {
     if (selectedAdminReportFixtureId) void loadAdminReportOptions(selectedAdminReportFixtureId);
     else {
+      setCorrectionMode(false);
       setAdminReportOptions(null);
       setAdminReportDisciplinaryEvents([]);
     }
@@ -359,15 +403,16 @@ function AdminRefereesPage() {
       return;
     }
     if (adminReportReason.trim().length < 5) {
-      setError("Enter an administrator submission reason of at least five characters.");
+      setError(correctionMode
+        ? "Enter a correction reason of at least five characters."
+        : "Enter an administrator submission reason of at least five characters.");
       return;
     }
     setBusy("admin-report");
     setError("");
     setNotice("");
     const rpc = getSupabaseClient() as unknown as RpcClient;
-    const result = await rpc.rpc("admin_submit_referee_match_report", {
-      p_fixture_id: adminReportOptions.fixture.id,
+    const payload = {
       p_home_score: homeScore,
       p_away_score: awayScore,
       p_home_substitute_appearances: adminReportHomeSubs,
@@ -380,16 +425,30 @@ function AdminRefereesPage() {
       })),
       p_match_write_up: adminReportWriteUp.trim() || null,
       p_reason: adminReportReason.trim(),
-    });
+    };
+    const result = correctionMode && adminReportOptions.report?.status === "approved"
+      ? await rpc.rpc("admin_correct_approved_referee_match_report", {
+          p_report_id: adminReportOptions.report.id,
+          p_expected_version: adminReportOptions.report.version,
+          ...payload,
+        })
+      : await rpc.rpc("admin_submit_referee_match_report", {
+          p_fixture_id: adminReportOptions.fixture.id,
+          ...payload,
+        });
     setBusy("");
     if (result.error) {
       setError(result.error.message);
       return;
     }
-    setNotice("Administrator match report saved. It is now awaiting review before the result is published.");
+    const wasCorrection = correctionMode && adminReportOptions.report?.status === "approved";
+    setNotice(wasCorrection
+      ? "Approved match report corrected. The previous version and reason are retained in the audit history."
+      : "Administrator match report saved. It is now awaiting review before the result is published.");
+    setCorrectionMode(false);
     setSelectedAdminReportFixtureId("");
     setAdminReportOptions(null);
-    await Promise.all([loadReportableFixtures(), loadReports()]);
+    await Promise.all([loadReportableFixtures(), loadReports(), loadApprovedReports()]);
   }
 
   async function reviewReport(report: RefereeMatchReport, decision: "approved" | "rejected") {
@@ -415,7 +474,7 @@ function AdminRefereesPage() {
     setNotice(decision === "approved"
       ? "Match report approved. The official result, disciplinary events and team fines have been recorded."
       : "Match report returned to the referee with your review reason.");
-    await loadReports();
+    await Promise.all([loadReports(), loadApprovedReports()]);
   }
 
   async function decide(application: RefereeApplication, decision: "approved" | "rejected") {
@@ -557,11 +616,11 @@ function AdminRefereesPage() {
           <button type="button" disabled={allocationLoading} onClick={() => void loadAllocationData()}>REFRESH ALLOCATIONS</button>
         </section>
         <section className="hub-memberships">
-          <div className="hub-section-heading"><span className="hub-kicker">ADMIN MATCH REPORT ENTRY</span></div>
-          <p>Submit or amend a report for a completed fixture with both team sheets locked. The result remains unpublished until a separate administrator review approves it.</p>
-          {reportableFixturesLoading ? <p className="form-note">Loading completed fixtures…</p> : (
+          <div className="hub-section-heading"><span className="hub-kicker">{correctionMode ? "CORRECT APPROVED MATCH REPORT" : "ADMIN MATCH REPORT ENTRY"}</span></div>
+          <p>{correctionMode ? "You are amending an already approved result. Saving applies the corrected score, appearances, goalscorers and disciplinary events immediately, with a versioned audit trail." : "Submit or amend a report for a completed fixture with both team sheets locked. The result remains unpublished until a separate administrator review approves it."}</p>
+          {reportableFixturesLoading && !correctionMode ? <p className="form-note">Loading completed fixtures…</p> : (
             <div className="admin-sheet-editor admin-report-entry">
-              <label>
+              {!correctionMode && <label>
                 Completed fixture
                 <select value={selectedAdminReportFixtureId} disabled={adminReportOptionsLoading} onChange={(event) => setSelectedAdminReportFixtureId(event.target.value)}>
                   <option value="">Choose a completed fixture</option>
@@ -570,11 +629,11 @@ function AdminRefereesPage() {
                     {fixture.existing_report_status ? ` · ${fixture.existing_report_status.toUpperCase()} REPORT` : ""}
                   </option>)}
                 </select>
-              </label>
-              {reportableFixtures.length === 0 && <p className="form-note">No completed fixtures with locked team sheets need an administrator report.</p>}
+              </label>}
+              {!correctionMode && reportableFixtures.length === 0 && <p className="form-note">No completed fixtures with locked team sheets need an administrator report.</p>}
               {adminReportOptionsLoading && <p className="form-note">Loading team-sheet players…</p>}
-              {adminReportOptions && adminReportOptions.fixture.id === selectedAdminReportFixtureId && <>
-                <p className="form-note">GW {adminReportOptions.fixture.gameweek} · {adminReportOptions.fixture.home_team_name} v {adminReportOptions.fixture.away_team_name}. Starters count as appearances automatically; select substitutes who appeared before selecting goalscorers.</p>
+              {adminReportOptions && (correctionMode || adminReportOptions.fixture.id === selectedAdminReportFixtureId) && <>
+                <p className="form-note">{correctionMode ? `Correcting approved report version ${adminReportOptions.report?.version ?? "?"}. This updates the official result and disciplinary records; the previous version and your reason remain in the audit history.` : `GW ${adminReportOptions.fixture.gameweek} · ${adminReportOptions.fixture.home_team_name} v ${adminReportOptions.fixture.away_team_name}. Starters count as appearances automatically; select substitutes who appeared before selecting goalscorers.`}</p>
                 {adminReportOptions.report?.review_reason && <p className="form-note"><strong>Previous review:</strong> {adminReportOptions.report.review_reason}</p>}
                 <div className="admin-report-score-grid">
                   <label>{adminReportOptions.fixture.home_team_name} score
@@ -659,12 +718,13 @@ function AdminRefereesPage() {
                 <label>Match write-up
                   <textarea rows={3} maxLength={2000} value={adminReportWriteUp} onChange={(event) => setAdminReportWriteUp(event.target.value)} placeholder="Optional match summary…" />
                 </label>
-                <label>Administrator reason (required)
-                  <textarea rows={2} minLength={5} maxLength={500} value={adminReportReason} onChange={(event) => setAdminReportReason(event.target.value)} placeholder="Explain why this report is being submitted or amended." />
+                <label>{correctionMode ? "Correction reason (required)" : "Administrator reason (required)"}
+                  <textarea rows={2} minLength={5} maxLength={500} value={adminReportReason} onChange={(event) => setAdminReportReason(event.target.value)} placeholder={correctionMode ? "Explain the correction and why the approved result must change." : "Explain why this report is being submitted or amended."} />
                 </label>
                 <button type="button" disabled={busy === "admin-report"} onClick={() => void submitAdminMatchReport()}>
-                  {busy === "admin-report" ? "SAVING…" : adminReportOptions.report ? "SAVE ADMIN REPORT AMENDMENT" : "SUBMIT ADMIN MATCH REPORT"}
+                  {busy === "admin-report" ? "SAVING…" : correctionMode ? "SAVE APPROVED REPORT CORRECTION" : adminReportOptions.report ? "SAVE ADMIN REPORT AMENDMENT" : "SUBMIT ADMIN MATCH REPORT"}
                 </button>
+                {correctionMode && <button type="button" className="reject" disabled={busy === "admin-report"} onClick={() => {setCorrectionMode(false);setSelectedAdminReportFixtureId("");setAdminReportOptions(null);setAdminReportReason("");}}>CANCEL CORRECTION</button>}
               </>}
             </div>
           )}
@@ -699,6 +759,29 @@ function AdminRefereesPage() {
             </article>
           ))}
           <button type="button" disabled={reportsLoading} onClick={() => void loadReports()}>REFRESH MATCH REPORTS</button>
+        </section>
+        <section className="hub-memberships">
+          <div className="hub-section-heading">
+            <span className="hub-kicker">APPROVED MATCH REPORTS · CORRECTIONS</span>
+            <span className="hub-count">{approvedReports.length}</span>
+          </div>
+          <p>Approved reports can be amended only by an administrator. Corrections use optimistic version checks and retain the original report, disciplinary reversals, finance adjustments and the administrator's reason.</p>
+          {approvedReportsLoading ? <p className="form-note">Loading approved reports…</p> : approvedReports.length === 0 ? (
+            <p className="form-note">No approved referee reports are available in your permitted locations.</p>
+          ) : approvedReports.map((report) => (
+            <article className="admin-queue-row" key={report.report_id}>
+              <div>
+                <strong>GW {report.gameweek} · {report.home_team_name} {report.home_score}–{report.away_score} {report.away_team_name}</strong>
+                <span>{report.location_name} · {report.referee_name} · Version {report.version}</span>
+                <small>Report submitted · {new Date(report.submitted_at).toLocaleDateString("en-GB",{dateStyle:"medium"})}</small>
+                {report.review_reason && <small>Last review: {report.review_reason}</small>}
+              </div>
+              <button type="button" disabled={adminReportOptionsLoading || busy==="admin-report"} onClick={()=>void loadApprovedReportCorrectionOptions(report.report_id)}>
+                {adminReportOptionsLoading && correctionMode ? "LOADING…" : "OPEN CORRECTION"}
+              </button>
+            </article>
+          ))}
+          <button type="button" disabled={approvedReportsLoading} onClick={()=>void loadApprovedReports()}>REFRESH APPROVED REPORTS</button>
         </section>
         <section className="hub-memberships">
           <div className="hub-section-heading">
