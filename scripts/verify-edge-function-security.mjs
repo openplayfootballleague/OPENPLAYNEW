@@ -88,7 +88,7 @@ assert.ok(teamDeadlineWorker.includes('stripeKey?.startsWith("sk_test_")'), "Tea
 const connectOnboarding = readFileSync("supabase/functions/create-referee-connect-account/index.ts", "utf8");
 assert.ok(connectOnboarding.includes("userClient.auth.getUser()"), "Connect onboarding must validate the signed-in referee");
 assert.ok(connectOnboarding.includes('stripeKey?.startsWith("sk_test_")'), "Connect onboarding must remain test-mode only");
-assert.ok(connectOnboarding.includes('rpc("get_my_referee_connect_status")') && connectOnboarding.includes('rpc("sync_referee_connect_account")'), "Connect onboarding must require active referee membership and synchronize verified account state");
+assert.ok(connectOnboarding.includes('rpc("get_my_referee_connect_status")') && connectOnboarding.includes('rpc("sync_referee_connect_account",'), "Connect onboarding must require active referee membership and synchronize verified account state");
 assert.ok(connectOnboarding.includes("metadata[openplay_referee_user_id]"), "Connect accounts must retain the internal referee identity mapping");
 
 const refereePayout = readFileSync("supabase/functions/pay-referee-payout/index.ts", "utf8");
