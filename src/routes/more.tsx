@@ -30,6 +30,7 @@ function MorePage() {
 
   useEffect(() => {
     const supabase = getSupabaseClient();
+    const refereeRpc = supabase as unknown as { rpc: (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> };
     let active = true;
 
     async function loadAccess() {
@@ -69,7 +70,7 @@ function MorePage() {
         loading: false,
         signedIn: true,
         player: !playerError && player?.registration_status === "registered" && !player.is_banned,
-        captain: !membershipError && (memberships ?? []).some((membership) => membership.is_captain),
+        captain: !membershipError && (memberships ?? []).some((membership: { is_captain: boolean }) => membership.is_captain),
         admin: !adminResult.error && adminResult.data !== null,
         finance: !financeResult.error,
         referee: !refereeResult.error && (refereeResult.data as { membership?: { status?: string } | null } | null)?.membership?.status === "active",
