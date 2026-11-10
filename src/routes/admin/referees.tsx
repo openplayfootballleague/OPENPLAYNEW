@@ -773,7 +773,7 @@ function AdminRefereesPage() {
               <div>
                 <strong>GW {report.gameweek} · {report.home_team_name} {report.home_score}–{report.away_score} {report.away_team_name}</strong>
                 <span>{report.location_name} · {report.referee_name} · Version {report.version}</span>
-                <small>Approved report · {new Date(report.submitted_at).toLocaleDateString("en-GB",{dateStyle:"medium"})}</small>
+                <small>Report submitted · {new Date(report.submitted_at).toLocaleDateString("en-GB",{dateStyle:"medium"})}</small>
                 {report.review_reason && <small>Last review: {report.review_reason}</small>}
               </div>
               <button type="button" disabled={adminReportOptionsLoading || busy==="admin-report"} onClick={()=>void loadApprovedReportCorrectionOptions(report.report_id)}>
