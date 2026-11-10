@@ -27,6 +27,7 @@ declare
   v_unread bigint;
   v_other_read_at timestamptz;
   v_body text;
+  v_sender_name text;
   v_failed boolean;
   v_i integer;
 begin
@@ -383,10 +384,20 @@ begin
   order by created_at limit 1;
   delete from auth.users where id=v_spammer;
   select body into v_body from public.messages
-  where id=v_message and sender_id is null;
-  if v_body<>'Rate-limit test message 1' then
-    raise exception 'Account deletion did not detach message identity while preserving thread history';
+  where id=v_message and sender_id is null and is_hidden=true;
+  if v_body<>'[Message removed after account erasure]' then
+    raise exception 'Account erasure did not redact message content and detach sender identity';
   end if;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_captain::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_captain::text,'role','authenticated')::text,true);
+  select sender_name,body into v_sender_name,v_body
+  from public.get_message_history(v_direct,50,null)
+  where message_id=v_message;
+  if v_sender_name<>'Former member' or v_body<>'[Message removed after account erasure]' then
+    raise exception 'Erased account identity or message content remained visible in conversation history';
+  end if;
+  execute 'reset role';
 
   if not exists (
     select 1 from pg_publication_tables
