@@ -613,8 +613,8 @@ begin
   insert into public.message_conversation_participants(conversation_id,user_id)
   values(v_conversation_id,v_user)
   on conflict do nothing;
-  insert into public.message_conversation_participants(conversation_id,user_id)
-  select v_conversation_id,ur.user_id
+  insert into public.message_conversation_participants(conversation_id,user_id,last_read_at)
+  select v_conversation_id,ur.user_id,now()-interval '1 microsecond'
   from public.user_roles ur
   where ur.role in ('admin','super_admin','league_admin','finance_admin')
     and public.message_actor_is_active(ur.user_id)
@@ -701,8 +701,8 @@ begin
   )
   returning id into v_conversation_id;
 
-  insert into public.message_conversation_participants(conversation_id,user_id)
-  select v_conversation_id,pr.id
+  insert into public.message_conversation_participants(conversation_id,user_id,last_read_at)
+  select v_conversation_id,pr.id,now()-interval '1 microsecond'
   from public.profiles pr
   where public.message_actor_is_active(pr.id)
     and (
