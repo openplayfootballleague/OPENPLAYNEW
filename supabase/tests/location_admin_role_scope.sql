@@ -190,7 +190,7 @@ begin
   if not v_denied then raise exception 'Captain unexpectedly accessed admin setup'; end if;
   execute 'reset role';
 
-  -- Location admin: direct table RLS is not a shortcut around scoped RPCs.
+  -- Location admin: direct reads remain scoped to assigned locations; private identity data and cross-location rows stay hidden.
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000004',true);
   perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000004"}',true);
@@ -207,8 +207,10 @@ begin
   if v_count <> 0 then raise exception 'Location admin can directly read player identity records'; end if;
   select count(*) into v_count from public.user_roles where user_id='00000000-0000-4000-8000-000000000005';
   if v_count <> 0 then raise exception 'Location admin can directly read another administrator role'; end if;
-  select count(*) into v_count from public.team_memberships where season_team_id in ('00000000-0000-4000-8000-000000000050','00000000-0000-4000-8000-000000000052');
-  if v_count <> 0 then raise exception 'Location admin can directly read team memberships'; end if;
+  select count(*) into v_count from public.team_memberships where season_team_id='00000000-0000-4000-8000-000000000050';
+  if v_count <> 4 then raise exception 'Location admin cannot read all memberships within its assigned location'; end if;
+  select count(*) into v_count from public.team_memberships where season_team_id='00000000-0000-4000-8000-000000000052';
+  if v_count <> 0 then raise exception 'Location admin can directly read memberships outside its assigned location'; end if;
   v_setup := public.get_admin_competition_setup();
   if jsonb_array_length(v_setup->'locations') <> 1 or v_setup->'locations'->0->>'id' <> '00000000-0000-4000-8000-000000000010' then
     raise exception 'Scoped admin setup did not return only the assigned location';
