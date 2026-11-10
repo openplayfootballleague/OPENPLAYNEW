@@ -145,6 +145,7 @@ begin
   end if;
 
   v_status:=case
+    when nullif(btrim(coalesce(p_disabled_reason,'')),'') is not null then 'restricted'
     when coalesce(p_details_submitted,false)
       and coalesce(p_transfers_enabled,false)
       and coalesce(p_payouts_enabled,false) then 'enabled'
