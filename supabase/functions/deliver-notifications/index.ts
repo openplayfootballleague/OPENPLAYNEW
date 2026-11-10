@@ -88,6 +88,11 @@ function renderMessage(event: EventRow): RenderedMessage {
         subject: "Open Play – you have a new message",
         text: "You have a new private message in Open Play. Sign in to read and reply securely.",
       };
+    case "message.reported":
+      return {
+        subject: "Open Play – a message report needs review",
+        text: "A member has reported a message. Sign in to the Open Play admin workspace to review it.",
+      };
     default:
       throw new PermanentDeliveryError(`Unsupported notification template: ${event.event_type}`);
   }
