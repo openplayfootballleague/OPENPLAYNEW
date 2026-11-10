@@ -108,6 +108,9 @@ const adminReferees = readFileSync("src/routes/admin/referees.tsx", "utf8");
 const reportReview = adminReferees.slice(adminReferees.indexOf("async function reviewReport"), adminReferees.indexOf("async function decide("));
 assert.ok(reportReview.includes('functions.invoke("pay-referee-payout"'), "Approving a referee match report must immediately invoke the referee transfer workflow");
 assert.ok(reportReview.includes('report_id:report.report_id'), "The approval trigger must identify the report, not trust a browser-supplied payout amount or destination");
+assert.ok(refereeConnectSql.includes("onboarding_status<>'enabled' or (details_submitted and transfers_enabled)"), "Transfer readiness must not depend on bank-payout enablement");
+assert.ok(reportClaim.includes("not v_account.transfers_enabled then"), "Match transfers must require the transfers capability");
+assert.ok(!reportClaim.includes("not v_account.payouts_enabled"), "Bank-payout enablement must not block connected-balance transfers");
 
 const refereeConnectWebhook = readFileSync("supabase/functions/referee-connect-webhook/index.ts", "utf8");
 assert.ok(refereeConnectWebhook.includes('req.headers.get("stripe-signature")') && refereeConnectWebhook.includes("verifyStripeSignature(rawBody,signature,secret)"), "Connect webhook must verify the raw-body Stripe signature");
