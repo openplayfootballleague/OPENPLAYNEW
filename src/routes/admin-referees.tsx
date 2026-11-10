@@ -59,6 +59,8 @@ function AdminRefereeWorkspace() {
   const [decisionReasons, setDecisionReasons] = useState<Record<string, string>>({});
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [refereeFeatureEnabled, setRefereeFeatureEnabled] = useState(false);
+  const [refereeFeatureReason, setRefereeFeatureReason] = useState("");
   const [adminEntryFixtureId, setAdminEntryFixtureId] = useState("");
   const [adminEntryContext, setAdminEntryContext] = useState<any>(null);
   const [adminEntryCompletedAt, setAdminEntryCompletedAt] = useState("");
@@ -87,6 +89,16 @@ function AdminRefereeWorkspace() {
     }
     const globalAdmin = (roleRows ?? []).some((row: { role: string }) => ["admin","super_admin"].includes(row.role));
     setIsGlobalAdmin(globalAdmin);
+    if (globalAdmin) {
+      const { data: featureRows, error: featureError } = await supabase.rpc("admin_get_referee_reporting_feature");
+      if (featureError) {
+        setError(featureError.message);
+        setLoading(false);
+        return;
+      }
+      setRefereeFeatureEnabled(Boolean(featureRows?.[0]?.enabled));
+      setRefereeFeatureReason(featureRows?.[0]?.reason ?? "");
+    }
     const nextLocations = (setupRows?.locations ?? []) as LocationOption[];
     setLocations(nextLocations);
     const fixtureResult = globalAdmin || selectedLocation
@@ -125,6 +137,22 @@ function AdminRefereeWorkspace() {
     if (authStatus === "unauthenticated") void navigate({ to: "/sign-in", replace: true });
     if (authStatus === "authenticated") void loadWorkspace();
   }, [authStatus, selectedLocation]);
+
+  async function toggleRefereeReportingFeature() {
+    const reason = refereeFeatureReason.trim();
+    if (reason.length < 5) { setError("Enter a reason of at least five characters for changing the referee feature flag."); return; }
+    setSaving(true); setError(""); setNotice("");
+    try {
+      const { data, error: actionError } = await supabase.rpc("admin_set_referee_reporting_feature", {
+        p_enabled: !refereeFeatureEnabled, p_reason: reason,
+      });
+      if (actionError) throw actionError;
+      setRefereeFeatureEnabled(Boolean(data?.enabled));
+      setNotice(data?.enabled ? "Referee reporting is now enabled." : "Referee reporting is now disabled. Existing records remain preserved.");
+      await loadWorkspace();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to update referee feature flag."); }
+    finally { setSaving(false); }
+  }
 
   async function reviewApplication(application: Application, decision: "approved" | "rejected") {
     const reason = decisionReasons[application.application_id]?.trim() ?? "";
@@ -269,6 +297,13 @@ function AdminRefereeWorkspace() {
     <section className="admin-referee-panel">
       <label>Location context<select value={selectedLocation} onChange={(event) => { setSelectedLocation(event.target.value); setSelectedFixture(""); setSelectedReferee(""); }}><option value="">{isGlobalAdmin ? "All locations" : "Choose a location"}</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name} · {location.town}</option>)}</select></label>
     </section>
+        {isGlobalAdmin && <section className="admin-referee-panel admin-referee-feature-flag">
+      <div className="admin-referee-section-title"><span className="eyebrow">GLOBAL RELEASE CONTROL</span><h2>Referee reporting <b>{refereeFeatureEnabled ? "ON" : "OFF"}</b></h2></div>
+      <p className="admin-referee-muted">This global switch controls referee applications, availability, referee fixture access and referee report submission. Disabling it preserves memberships, assignments, reports and payment history. Administrators can still review and complete existing reports.</p>
+      <label>Reason for changing this setting<input value={refereeFeatureReason} onChange={(event) => setRefereeFeatureReason(event.target.value)} placeholder="Required audit reason (minimum five characters)" /></label>
+      <div className="admin-referee-actions"><button disabled={saving || refereeFeatureReason.trim().length < 5} onClick={() => void toggleRefereeReportingFeature()}>{refereeFeatureEnabled ? "Disable referee reporting" : "Enable referee reporting"}</button></div>
+    </section>}
+
     <section className="admin-referee-panel">
       <div className="admin-referee-section-title"><span className="eyebrow">01 · APPLICATIONS</span><h2>Membership review <b>{applications.length}</b></h2></div>
       {applications.length === 0 ? <p className="admin-referee-muted">No pending referee applications in this location scope.</p> : applications.map((application) => <article className="admin-referee-card" key={application.application_id}>
