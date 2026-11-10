@@ -103,6 +103,7 @@ create table public.referee_report_payouts (
   deductions_pence integer not null default 0 check (deductions_pence >= 0),
   referee_net_pence integer not null default 2200 check (referee_net_pence >= 2000),
   open_play_top_up_pence integer not null default 0 check (open_play_top_up_pence >= 0),
+  constraint referee_report_payout_net_reconciliation check (referee_net_pence = gross_allocation_pence - deductions_pence + open_play_top_up_pence),
   status text not null default 'pending_connect'
     check (status in ('pending_connect','transferred','failed','cancelled')),
   stripe_transfer_id text unique,
