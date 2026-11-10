@@ -190,10 +190,18 @@ begin
   if not v_failed then raise exception 'Ordinary team member was allowed to post a captain announcement'; end if;
   perform public.send_message(v_team_conversation,'Team update from Player A','message');
 
+  execute 'reset role';
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_player_b::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_b::text,'role','authenticated')::text,true);
   v_report:=public.report_message(v_message,'This message is being reported for review');
   v_message_two:=public.report_message(v_message,'This duplicate report should resolve to the same open report');
   if v_report<>v_message_two then raise exception 'Duplicate open reports were not deduplicated'; end if;
 
+  execute 'reset role';
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_player_a::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_a::text,'role','authenticated')::text,true);
   perform public.block_message_user(v_player_b);
   select count(*) into v_count from public.get_my_blocked_message_users()
   where user_id=v_player_b;
