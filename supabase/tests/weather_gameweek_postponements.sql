@@ -98,6 +98,26 @@ begin
     v_away_old_obligation,'pi_ci_weather_away_001',v_deadline-interval '1 minute');
   execute 'reset role';
 
+  -- Captains may create their own payment obligations but must not enumerate or
+  -- postpone a whole gameweek through the administrator-only API.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_home_captain::text,true);
+  begin
+    perform count(*) from public.get_admin_postponable_gameweeks(v_season);
+    raise exception 'A team captain was able to enumerate admin-postponable gameweeks';
+  exception when others then
+    if position('Administrator permission required' in sqlerrm)=0 then raise; end if;
+  end;
+  begin
+    perform public.admin_postpone_gameweek(
+      v_week_four_id,v_replacement,'Weather cancellation: captain must be denied'
+    );
+    raise exception 'A team captain was able to postpone a gameweek';
+  exception when others then
+    if position('Administrator permission required' in sqlerrm)=0 then raise; end if;
+  end;
+  execute 'reset role';
+
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
   select count(*) into v_admin_weeks
