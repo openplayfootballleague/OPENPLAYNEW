@@ -109,3 +109,4 @@ const adminPostpone = readFileSync("supabase/functions/admin-postpone-gameweek/i
 assert.ok(adminPostpone.includes('userClient.auth.getUser(token)'), "Gameweek postponement must validate the signed-in administrator");
 assert.ok(adminPostpone.includes('rpc("admin_postpone_gameweek"'), "Gameweek postponement must use the location-scoped database workflow");
 assert.ok(adminPostpone.includes('stripeKey?.startsWith("sk_test_")'), "Gameweek postponement refunds must remain test-mode only");
+assert.ok(adminPostpone.includes('intent.status!=="succeeded"') && adminPostpone.includes('Number(session.amount_total)!==obligation.amount_pence'), "Completed Checkout reconciliation must verify the settled PaymentIntent and Checkout amount");
