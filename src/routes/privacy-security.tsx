@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getSupabaseClient } from "../lib/supabase/client";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   isGlobalPrivacyControlEnabled,
@@ -16,6 +17,27 @@ function PrivacySecurityPage() {
   const [consent, setConsent] = useState<AnalyticsConsent>("unset");
   const [globalPrivacyControl, setGlobalPrivacyControl] = useState(false);
   const [message, setMessage] = useState("");
+  const [signedIn, setSignedIn] = useState(false);
+  const [sessionsBusy, setSessionsBusy] = useState(false);
+  const [sessionsMessage, setSessionsMessage] = useState("");
+  const [sessionsError, setSessionsError] = useState("");
+
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    let alive = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (alive) setSignedIn(Boolean(data.session));
+    }).catch(() => {
+      if (alive) setSignedIn(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (alive) setSignedIn(Boolean(session));
+    });
+    return () => {
+      alive = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     const refresh = () => {
@@ -38,6 +60,23 @@ function PrivacySecurityPage() {
           ? "Your optional analytics preference is saved on this device. Analytics only run when the deployment privacy settings have been verified."
           : "Optional analytics are turned off on this device.",
     );
+  }
+
+  async function signOutOtherDevices() {
+    if (!signedIn || sessionsBusy) return;
+    if (!window.confirm("Sign out of all other Open Play sessions? This device will remain signed in.")) return;
+    setSessionsBusy(true);
+    setSessionsMessage("");
+    setSessionsError("");
+    try {
+      const { error } = await getSupabaseClient().auth.signOut({ scope: "others" });
+      if (error) throw error;
+      setSessionsMessage("Other active sessions have been signed out. This device remains signed in.");
+    } catch (cause) {
+      setSessionsError(cause instanceof Error ? cause.message : "Unable to sign out other sessions. Please try again.");
+    } finally {
+      setSessionsBusy(false);
+    }
   }
 
   const status = globalPrivacyControl
@@ -68,6 +107,19 @@ function PrivacySecurityPage() {
             </div>
           )}
           {message && <p className="form-success" role="status">{message}</p>}
+        </section>
+        <section className="account-security-section">
+          <h2>Active sessions</h2>
+          <p>Sign out of other devices if you no longer recognise a session. This does not sign out the device you are using now. A per-device session list and individual revocation controls are not yet available.</p>
+          {signedIn ? (
+            <button className="auth-text-button" type="button" onClick={() => void signOutOtherDevices()} disabled={sessionsBusy}>
+              {sessionsBusy ? "SIGNING OUT OTHER DEVICES…" : "SIGN OUT OTHER DEVICES"}
+            </button>
+          ) : (
+            <Link className="auth-switch" to="/sign-in">Sign in to manage active sessions</Link>
+          )}
+          {sessionsMessage && <p className="form-success" role="status">{sessionsMessage}</p>}
+          {sessionsError && <p className="form-error" role="alert">{sessionsError}</p>}
         </section>
         <Link className="auth-switch" to="/player">Back to Player Hub</Link>
         <Link className="auth-switch" to="/">Back to Open Play</Link>
