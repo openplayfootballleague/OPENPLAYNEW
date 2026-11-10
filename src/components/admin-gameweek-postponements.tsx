@@ -1,4 +1,4 @@
-import { useCallback,useEffect,useState } from "react";
+import { useCallback,useEffect,useState,type FormEvent } from "react";
 import { getSupabaseClient } from "../lib/supabase/client";
 
 type PostponableGameweek={
@@ -37,7 +37,7 @@ export function AdminGameweekPostponements(){
   },[]);
   useEffect(()=>{void load();},[load]);
   const selected=weeks.find(week=>week.gameweek_id===selectedId);
-  async function postpone(event:React.FormEvent<HTMLFormElement>){
+  async function postpone(event:FormEvent<HTMLFormElement>){
     event.preventDefault();
     if(!selectedId||!replacementAt||reason.trim().length<5)return;
     setBusy(true);setError("");setNotice("");
