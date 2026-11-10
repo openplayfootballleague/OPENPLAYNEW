@@ -14,7 +14,7 @@ type SeasonStats = {
   players: Array<{ competition_player_id: string; full_name: string; apps: number; goals: number }>;
 };
 type FinanceOption = { season_id: string; season_name: string; team_id: string; team_name: string; league_name: string; season_status: string };
-type Tab = "overview" | "usage" | "registrations" | "competition" | "locations" | "finance" | "reports";
+type Tab = "overview" | "usage" | "growth" | "registrations" | "engagement" | "features" | "locations" | "competition" | "business" | "reports";
 
 const money = (pence: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
 const csvCell = (value: string | number) => '"' + String(value).replaceAll('"', '""') + '"';
@@ -240,11 +240,14 @@ function AdminAnalyticsPage() {
   const tabs: Array<{ id: Tab; label: string }> = [
     { id: "overview", label: "Overview" },
     { id: "usage", label: "App usage" },
-    { id: "registrations", label: "Registrations" },
-    { id: "competition", label: "Competition" },
+    { id: "growth", label: "User growth" },
+    { id: "registrations", label: "Registration" },
+    { id: "engagement", label: "Engagement" },
+    { id: "features", label: "Feature performance" },
     { id: "locations", label: "Locations" },
-    { id: "finance", label: "Finance" },
-    { id: "reports", label: "Reports" },
+    { id: "competition", label: "Competition" },
+    { id: "business", label: "Business" },
+    { id: "reports", label: "Reports & exports" },
   ];
 
   if (authStatus !== "authenticated" || loading && !contextReady) {
@@ -307,7 +310,7 @@ function AdminAnalyticsPage() {
           </div>
           <p className="form-note">Only fixtures marked completed with a published score contribute to result and goal totals.</p>
         </div>
-      </> : tab === "usage" ? <div className="analytics-state"><h2>Product usage analytics</h2><p>PostHog browser consent controls are being integrated, but production ingestion remains disabled until project privacy settings, trusted server-side capture and the privacy review are signed off.</p><p className="analytics-state-label">No user-activity figures are being fabricated or inferred from page loads.</p></div> : tab === "registrations" ? <>
+      </> : tab === "usage" ? <div className="analytics-state"><h2>App usage</h2><p>Page views, sessions, device/browser distribution and navigation trends will appear after consented analytics ingestion is approved and enabled.</p><p className="analytics-state-label">No user-activity figures are being fabricated or inferred from page loads.</p></div> : tab === "growth" ? <div className="analytics-state"><h2>User growth</h2><p>Daily, weekly and monthly account growth, first-time/returning activity and cohort trends are not yet reportable. The current workspace deliberately does not infer account creation from player-registration queues.</p><p className="analytics-state-label">Account-growth reporting requires a scoped aggregate source and verified event history.</p></div> : tab === "registrations" ? <>
         <div className="analytics-stat-grid">
           <article><span>Pending player reviews</span><strong>{overview.pendingPlayerReviews}</strong></article>
           <article><span>Pending team applications</span><strong>{overview.pendingTeamApplications}</strong></article>
@@ -315,7 +318,7 @@ function AdminAnalyticsPage() {
           <article><span>Approved teams</span><strong>{overview.approvedTeams}</strong></article>
         </div>
         <p className="form-note">These are current workflow queues, not conversion rates. Signup-to-registration conversion requires a complete, consented event history and is not reported yet.</p>
-      </> : tab === "competition" ? <>
+      </> : tab === "engagement" ? <div className="analytics-state"><h2>Engagement &amp; retention</h2><p>Meaningful repeat visits, active-user cohorts and 1/7/30-day retention are not available until the consented event history has sufficient coverage.</p><p className="analytics-state-label">An open tab or a page render is not counted as engagement.</p></div> : tab === "features" ? <div className="analytics-state"><h2>Feature performance</h2><p>Feature adoption and repeat interactions will be reported for Player Hub, Match Centre, teams, fixtures, results, registration, team management, gallery and announcements.</p><p className="analytics-state-label">Event coverage is being expanded; incomplete feature history is not displayed as zero.</p></div> : tab === "competition" ? <>
         {!seasonId ? <p className="form-note">Choose a season above to load its verified competition statistics.</p> : seasonError ? <p className="form-error" role="alert">{seasonError}</p> : !seasonStats ? <p className="form-note">Loading season statistics…</p> : <>
           <h2>{seasonStats.season.name} · {seasonStats.season.status}</h2>
           <div className="analytics-stat-grid">
@@ -333,9 +336,9 @@ function AdminAnalyticsPage() {
         <h2>Location comparison</h2>
         <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.publishedResults}</td><td>{row.goals}</td></tr>)}</tbody></table></div>
         <p className="form-note">Location rows are limited to the locations returned by your administrator-scoped setup RPC. Squad memberships count current approved-team memberships, not unique people across multiple seasons.</p>
-      </> : tab === "finance" ? <>
+      </> : tab === "business" ? <>
         {!financeAccess ? <div className="analytics-state"><h2>Finance reporting restricted</h2><p>{financeError || "This section is available to authorised finance administrators."}</p><Link className="admin-inline-action" to="/finance">OPEN FINANCE LEDGER ↗</Link></div> : financeError ? <p className="form-error" role="alert">{financeError}</p> : <>
-          <h2>Finance ledger summary</h2>
+          <h2>Business performance · verified ledger</h2>
           <div className="analytics-stat-grid">
             <article><span>Charges</span><strong>{money(financeTotals.chargesPence)}</strong></article>
             <article><span>Payments</span><strong>{money(financeTotals.paymentsPence)}</strong></article>
@@ -344,7 +347,7 @@ function AdminAnalyticsPage() {
             <article><span>Outstanding</span><strong>{money(financeTotals.outstandingPence)}</strong></article>
             <article><span>Finance seasons</span><strong>{new Set(financeOptions.map((option) => option.season_id)).size}</strong></article>
           </div>
-          <p className="form-note">This is a ledger summary, not a profit statement. It excludes operating costs and does not treat Stripe transfers or payouts as revenue.</p>
+          <p className="form-note">This is a verified ledger summary, not a profit statement. It excludes operating costs, sponsorship records and unrecorded costs; Stripe transfers or referee payouts are not treated as revenue.</p>
         </>}
       </> : <>
         <h2>Reports &amp; exports</h2>
