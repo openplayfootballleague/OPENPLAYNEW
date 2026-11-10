@@ -531,7 +531,7 @@ create or replace function public.referee_save_match_report(
 )
 returns uuid
 language plpgsql security definer set search_path = ''
-as $
+as $$
 declare
   v_actor uuid:=auth.uid(); v_fixture public.fixtures; v_assignment public.fixture_referee_assignments;
   v_report public.referee_match_reports; v_report_id uuid; v_version integer;
@@ -692,14 +692,14 @@ create or replace function public.admin_save_referee_match_report(
 )
 returns uuid
 language plpgsql security definer set search_path = ''
-as $
+as $$
 begin
   if auth.uid() is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
   return public.referee_save_match_report(
     p_fixture_id,p_completed_at,p_home_score,p_away_score,p_match_summary,p_goals,p_incidents,p_submit,true
   );
 end;
-$;
+$$;
 revoke all on function public.admin_save_referee_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean) from public, anon;
 grant execute on function public.admin_save_referee_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean) to authenticated;
 
