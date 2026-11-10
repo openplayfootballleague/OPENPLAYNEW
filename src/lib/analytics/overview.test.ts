@@ -38,12 +38,13 @@ describe("admin analytics aggregation", () => {
       pending_team_applications: 1,
       pending_membership_requests: 3,
       open_seasons: 1,
-    }, [setup.fixtures[0]], { locationId: "loc-a", leagueId: "league-a", seasonId: "season-a" });
+    }, [{ seasonId: "season-a", stats: { season: { id: "season-a", name: "A" }, summary: { fixtures: 1, published_results: 1, goals: 5, goals_per_match: 5 }, teams: [{ team_id: "team-a" }], players: [{ competition_player_id: "p1", apps: 1 }] } }], { locationId: "loc-a", leagueId: "league-a", seasonId: "season-a" });
 
     expect(result).toMatchObject({
       locations: 1,
       leagues: 1,
       seasons: 1,
+      verifiedSeasons: 1,
       openSeasons: 1,
       approvedTeams: 1,
       totalTeamApplications: 2,
@@ -61,7 +62,10 @@ describe("admin analytics aggregation", () => {
   });
 
   it("compares only locations visible in the scoped admin setup", () => {
-    const result = buildLocationComparisons(setup);
+    const result = buildLocationComparisons(setup, { leagueId: "", seasonId: "" }, [
+      { seasonId: "season-a", stats: { season: { id: "season-a", name: "A" }, summary: { fixtures: 1, published_results: 1, goals: 5, goals_per_match: 5 }, teams: [{ team_id: "team-a" }], players: [] } },
+      { seasonId: "season-b", stats: { season: { id: "season-b", name: "B" }, summary: { fixtures: 1, published_results: 0, goals: 0, goals_per_match: 0 }, teams: [{ team_id: "team-b" }], players: [] } },
+    ]);
     expect(result).toEqual([
       { locationId: "loc-a", locationName: "Bideford", seasons: 1, approvedTeams: 1, squadMemberships: 6, fixtures: 1, publishedResults: 1, goals: 5 },
       { locationId: "loc-b", locationName: "Barnstaple", seasons: 1, approvedTeams: 1, squadMemberships: 5, fixtures: 1, publishedResults: 0, goals: 0 },
