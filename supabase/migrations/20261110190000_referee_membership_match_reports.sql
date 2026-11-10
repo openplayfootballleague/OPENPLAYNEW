@@ -6,6 +6,8 @@
 create table public.referee_milestone_rewards (
   id uuid primary key default gen_random_uuid(),
   referee_user_id uuid not null references auth.users(id) on delete restrict,
+  milestone_report_id uuid not null references public.referee_match_reports(id) on delete restrict,
+  location_id uuid not null references public.locations(id) on delete restrict,
   milestone_games integer not null check (milestone_games in (50,100,150,200,250,300,350,400,450,500)),
   reward_amount_pence integer not null default 5000 check (reward_amount_pence=5000),
   status text not null default 'pending_approval' check (status in ('pending_approval','approved_pending_payment','paid','cancelled')),
@@ -256,7 +258,7 @@ create or replace function public.record_referee_milestone_reward()
 returns trigger
 language plpgsql security definer set search_path = ''
 as $milestone$
-declare v_games integer;
+declare v_games integer; v_location_id uuid;
 begin
   if new.status='approved' and old.status is distinct from 'approved'
     and new.assigned_referee_user_id is not null then
@@ -264,8 +266,12 @@ begin
     from public.referee_match_reports r
     where r.assigned_referee_user_id=new.assigned_referee_user_id and r.status='approved';
     if v_games in (50,100,150,200,250,300,350,400,450,500) then
-      insert into public.referee_milestone_rewards(referee_user_id,milestone_games,reward_amount_pence,status)
-      values(new.assigned_referee_user_id,v_games,5000,'pending_approval')
+      select lg.location_id into v_location_id
+      from public.fixtures f join public.seasons se on se.id=f.season_id
+      join public.leagues lg on lg.id=se.league_id where f.id=new.fixture_id;
+      insert into public.referee_milestone_rewards(
+        referee_user_id,milestone_report_id,location_id,milestone_games,reward_amount_pence,status
+      ) values(new.assigned_referee_user_id,new.id,v_location_id,v_games,5000,'pending_approval')
       on conflict(referee_user_id,milestone_games) do nothing;
     end if;
   end if;
@@ -1281,7 +1287,7 @@ create or replace function public.admin_list_referee_milestone_rewards(
   p_status text default 'pending_approval',p_location_id uuid default null
 )
 returns table(
-  reward_id uuid,referee_user_id uuid,referee_name text,milestone_games integer,
+  reward_id uuid,referee_user_id uuid,referee_name text,location_name text,milestone_games integer,
   reward_amount_pence integer,status text,created_at timestamptz,approved_at timestamptz,review_reason text
 )
 language plpgsql stable security definer set search_path = ''
@@ -1296,19 +1302,13 @@ begin
   end if;
   return query
   select r.id,r.referee_user_id,coalesce(pr.display_name,nullif(btrim(pr.first_name||' '||pr.last_name),''),'Referee'),
-    r.milestone_games,r.reward_amount_pence,r.status,r.created_at,r.approved_at,r.review_reason
+    l.name,r.milestone_games,r.reward_amount_pence,r.status,r.created_at,r.approved_at,r.review_reason
   from public.referee_milestone_rewards r
   join public.profiles pr on pr.id=r.referee_user_id
+  join public.locations l on l.id=r.location_id
   where (p_status='all' or r.status=p_status)
-    and exists(
-      select 1 from public.referee_match_reports mr
-      join public.fixtures f on f.id=mr.fixture_id
-      join public.seasons se on se.id=f.season_id
-      join public.leagues lg on lg.id=se.league_id
-      where mr.assigned_referee_user_id=r.referee_user_id and mr.status='approved'
-        and (p_location_id is null or lg.location_id=p_location_id)
-        and public.can_administer_location(lg.location_id)
-    )
+    and (p_location_id is null or r.location_id=p_location_id)
+    and public.can_administer_location(r.location_id)
   order by r.milestone_games,r.created_at;
 end;
 $reward_queue$;
@@ -1326,14 +1326,9 @@ begin
   select * into v_reward from public.referee_milestone_rewards where id=p_reward_id for update;
   if not found then raise exception 'Milestone reward not found'; end if;
   if v_reward.status<>'pending_approval' then raise exception 'This milestone reward has already been reviewed'; end if;
-  if not public.has_global_admin_role() and not exists(
-    select 1 from public.referee_match_reports mr
-    join public.fixtures f on f.id=mr.fixture_id
-    join public.seasons se on se.id=f.season_id
-    join public.leagues lg on lg.id=se.league_id
-    where mr.assigned_referee_user_id=v_reward.referee_user_id and mr.status='approved'
-      and public.can_administer_location(lg.location_id)
-  ) then raise exception 'You are not assigned to a location with this referee history'; end if;
+  if not public.can_administer_location(v_reward.location_id) then
+    raise exception 'You are not assigned to the location where this milestone was earned';
+  end if;
   update public.referee_milestone_rewards
   set status='approved_pending_payment',approved_by=v_actor,approved_at=now(),review_reason=btrim(p_reason),updated_at=now()
   where id=p_reward_id returning * into v_reward;
