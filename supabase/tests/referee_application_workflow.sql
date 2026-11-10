@@ -38,8 +38,7 @@ begin
   insert into public.locations(name,slug,town,region,is_active)
   values
     ('CI Referee Location','ci-referee-location','Barnstaple','North Devon',true),
-    ('CI Referee Inactive Location','ci-referee-inactive-location','Bideford','North Devon',false)
-  returning id into v_location;
+    ('CI Referee Inactive Location','ci-referee-inactive-location','Bideford','North Devon',false);
 
   select id into v_location from public.locations where slug='ci-referee-location';
   select id into v_other_location from public.locations where slug='ci-referee-inactive-location';
@@ -265,7 +264,7 @@ begin
 
   if (select count(*) from public.audit_log
       where entity_type='referee_application'
-        and entity_id in (v_application::text,v_other_application::text)) <> 3 then
+        and entity_id in (v_application::text,v_other_application::text)) <> 4 then
     raise exception 'Referee application submission and review actions were not fully audited';
   end if;
   if (select count(*) from public.audit_log
