@@ -388,6 +388,12 @@ begin
   insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,after_data)
   values(v_actor,'referee.application.'||p_decision,'referee_application',v_app.id::text,btrim(p_reason),
     jsonb_build_object('user_id',v_app.user_id,'status',p_decision,'preferred_location_ids',v_app.preferred_location_ids));
+  perform public.enqueue_notification_event(v_app.user_id,'referee_application_reviewed',jsonb_build_object(
+    'application_id',v_app.id::text,'status',p_decision,'reason',btrim(p_reason),
+    'title',case when p_decision='approved' then 'Referee application approved' else 'Referee application update' end,
+    'message',case when p_decision='approved' then 'Your Open Play referee membership is approved. You can now access the Referee Hub when reporting is enabled.'
+      else 'Your referee application was not approved. Review the administrator feedback in your application.' end,
+    'changed_at',now()::text,'url','/referee'));
   return v_app;
 end;
 $$;
@@ -443,7 +449,7 @@ create or replace function public.admin_assign_referee(
 returns uuid
 language plpgsql security definer set search_path = ''
 as $$
-declare v_actor uuid:=auth.uid(); v_location uuid; v_assignment_id uuid;
+declare v_actor uuid:=auth.uid(); v_location uuid; v_assignment_id uuid; v_previous_referees uuid[]; v_fixture record; v_old_referee uuid;
 begin
   if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
   if p_reason is not null and length(btrim(p_reason))<5 then raise exception 'Enter a reason of at least 5 characters'; end if;
@@ -455,6 +461,12 @@ begin
   if not exists(select 1 from public.referee_memberships rm where rm.user_id=p_referee_user_id and rm.status='active') then
     raise exception 'Only an approved active referee can be assigned';
   end if;
+  select coalesce(array_agg(referee_user_id),array[]::uuid[]) into v_previous_referees
+  from public.fixture_referee_assignments where fixture_id=p_fixture_id and removed_at is null;
+  select f.scheduled_at,f.gameweek,ht.name as home_team_name,at.name as away_team_name
+    into v_fixture
+  from public.fixtures f join public.season_teams ht on ht.id=f.home_team_id
+  join public.season_teams at on at.id=f.away_team_id where f.id=p_fixture_id;
   update public.fixture_referee_assignments
   set removed_at=now(),removed_by=v_actor,change_reason=coalesce(nullif(btrim(p_reason),''),'Reassigned by administrator')
   where fixture_id=p_fixture_id and removed_at is null;
@@ -464,6 +476,18 @@ begin
   values(v_actor,'referee.fixture.assigned','fixture_referee_assignment',v_assignment_id::text,
     coalesce(nullif(btrim(p_reason),''),'Referee assigned'),
     jsonb_build_object('fixture_id',p_fixture_id,'referee_user_id',p_referee_user_id));
+  foreach v_old_referee in array v_previous_referees loop
+    if v_old_referee<>p_referee_user_id then
+      perform public.enqueue_notification_event(v_old_referee,'referee_assignment_removed',jsonb_build_object(
+        'fixture_id',p_fixture_id::text,'scheduled_at',v_fixture.scheduled_at::text,
+        'title','Referee assignment changed','message','Your assignment for '||v_fixture.home_team_name||' v '||v_fixture.away_team_name||' has been removed.',
+        'changed_at',now()::text,'url','/referee'));
+    end if;
+  end loop;
+  perform public.enqueue_notification_event(p_referee_user_id,'referee_assignment_created',jsonb_build_object(
+    'fixture_id',p_fixture_id::text,'scheduled_at',v_fixture.scheduled_at::text,
+    'title','New referee assignment','message','You have been assigned to Gameweek '||v_fixture.gameweek||': '||v_fixture.home_team_name||' v '||v_fixture.away_team_name||'.',
+    'changed_at',now()::text,'url','/referee'));
   return v_assignment_id;
 end;
 $$;
@@ -474,15 +498,19 @@ create or replace function public.admin_remove_referee_assignment(p_assignment_i
 returns boolean
 language plpgsql security definer set search_path = ''
 as $$
-declare v_actor uuid:=auth.uid(); v_fixture_id uuid; v_location uuid;
+declare v_actor uuid:=auth.uid(); v_fixture_id uuid; v_location uuid; v_referee_user_id uuid; v_fixture record;
 begin
   if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
   if p_reason is null or length(btrim(p_reason))<5 then raise exception 'Enter a reason of at least 5 characters'; end if;
-  select a.fixture_id,l.location_id into v_fixture_id,v_location
+  select a.fixture_id,l.location_id,a.referee_user_id,
+    f.scheduled_at,f.gameweek,ht.name as home_team_name,at.name as away_team_name
+    into v_fixture_id,v_location,v_referee_user_id,v_fixture
   from public.fixture_referee_assignments a
   join public.fixtures f on f.id=a.fixture_id
   join public.seasons s on s.id=f.season_id
   join public.leagues l on l.id=s.league_id
+  join public.season_teams ht on ht.id=f.home_team_id
+  join public.season_teams at on at.id=f.away_team_id
   where a.id=p_assignment_id and a.removed_at is null for update of a;
   if not found then raise exception 'Active referee assignment not found'; end if;
   if not public.can_administer_location(v_location) then raise exception 'You are not assigned to this location'; end if;
@@ -491,6 +519,10 @@ begin
   insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,after_data)
   values(v_actor,'referee.fixture.assignment_removed','fixture_referee_assignment',p_assignment_id::text,btrim(p_reason),
     jsonb_build_object('fixture_id',v_fixture_id));
+  perform public.enqueue_notification_event(v_referee_user_id,'referee_assignment_removed',jsonb_build_object(
+    'fixture_id',v_fixture_id::text,'scheduled_at',v_fixture.scheduled_at::text,
+    'title','Referee assignment removed','message','Your assignment for '||v_fixture.home_team_name||' v '||v_fixture.away_team_name||' has been removed. Reason: '||btrim(p_reason),
+    'changed_at',now()::text,'url','/referee'));
   return true;
 end;
 $$;
@@ -932,6 +964,14 @@ begin
   insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
   values(v_actor,'referee.report.'||p_decision,'referee_match_report',p_report_id::text,
     nullif(btrim(p_reason),''),v_before,jsonb_build_object('status',v_report.status,'home_score',v_report.home_score,'away_score',v_report.away_score));
+  if v_report.assigned_referee_user_id is not null then
+    perform public.enqueue_notification_event(v_report.assigned_referee_user_id,'referee_report_reviewed',jsonb_build_object(
+      'fixture_id',v_report.fixture_id::text,'report_id',p_report_id::text,'status',v_report.status,
+      'title',case when p_decision='approve' then 'Match report approved' when p_decision='return' then 'Match report returned for correction' else 'Match report rejected' end,
+      'message',case when p_decision='approve' then 'Your match report has been approved and the official result has been published.'
+        else 'Administrator feedback: '||btrim(p_reason)||'. You can open the Referee Hub to correct and resubmit the report.' end,
+      'changed_at',now()::text,'url','/referee'));
+  end if;
   return v_report;
 end;
 $$;
