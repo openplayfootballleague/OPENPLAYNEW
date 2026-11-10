@@ -2,6 +2,17 @@
 -- Forward-only migration. Referee is deliberately NOT a user_roles value:
 -- user_roles grants platform administration privileges.
 
+create table public.platform_feature_flags (
+  feature_key text primary key check (feature_key in ('referee_reporting')),
+  enabled boolean not null default false,
+  updated_by uuid references auth.users(id) on delete set null,
+  updated_at timestamptz not null default now(),
+  reason text not null check (length(btrim(reason)) >= 5)
+);
+insert into public.platform_feature_flags(feature_key,enabled,reason)
+values('referee_reporting',false,'Disabled pending referee workflow acceptance')
+on conflict(feature_key) do nothing;
+
 create table public.referee_applications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete restrict,
@@ -215,13 +226,53 @@ begin
     'referee_applications','referee_memberships','referee_availability',
     'fixture_referee_assignments','referee_match_reports',
     'referee_match_report_goals','referee_match_report_incidents',
-    'referee_match_report_versions','referee_payment_entitlements'
+    'referee_match_report_versions','referee_payment_entitlements','platform_feature_flags'
   ] loop
     execute format('alter table public.%I enable row level security', v_table);
     execute format('revoke all on public.%I from public, anon, authenticated', v_table);
   end loop;
 end;
 $$;
+
+create or replace function public.is_referee_reporting_enabled()
+returns boolean
+language sql stable security definer set search_path = ''
+as $feature$
+  select coalesce((select enabled from public.platform_feature_flags where feature_key='referee_reporting'),false);
+$feature$;
+revoke all on function public.is_referee_reporting_enabled() from public,anon,authenticated;
+
+create or replace function public.admin_get_referee_reporting_feature()
+returns table(enabled boolean,updated_at timestamptz,updated_by uuid,reason text)
+language plpgsql stable security definer set search_path = ''
+as $feature_admin$
+begin
+  if auth.uid() is null or not public.has_global_admin_role() then raise exception 'Global administrator permission required'; end if;
+  return query select f.enabled,f.updated_at,f.updated_by,f.reason
+  from public.platform_feature_flags f where f.feature_key='referee_reporting';
+end;
+$feature_admin$;
+revoke all on function public.admin_get_referee_reporting_feature() from public,anon;
+grant execute on function public.admin_get_referee_reporting_feature() to authenticated;
+
+create or replace function public.admin_set_referee_reporting_feature(p_enabled boolean,p_reason text)
+returns public.platform_feature_flags
+language plpgsql security definer set search_path = ''
+as $feature_set$
+declare v_actor uuid:=auth.uid(); v_flag public.platform_feature_flags;
+begin
+  if v_actor is null or not public.has_global_admin_role() then raise exception 'Global administrator permission required'; end if;
+  if p_reason is null or length(btrim(p_reason))<5 then raise exception 'Enter a reason of at least 5 characters'; end if;
+  update public.platform_feature_flags set enabled=p_enabled,updated_by=v_actor,updated_at=now(),reason=btrim(p_reason)
+  where feature_key='referee_reporting' returning * into v_flag;
+  insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
+  values(v_actor,'platform.feature.referee_reporting.changed','platform_feature_flag','referee_reporting',
+    btrim(p_reason),jsonb_build_object('enabled',not p_enabled),jsonb_build_object('enabled',p_enabled));
+  return v_flag;
+end;
+$feature_set$;
+revoke all on function public.admin_set_referee_reporting_feature(boolean,text) from public,anon;
+grant execute on function public.admin_set_referee_reporting_feature(boolean,text) to authenticated;
 
 create or replace function public.is_active_referee()
 returns boolean
@@ -248,6 +299,7 @@ as $$
 declare v_actor uuid := auth.uid(); v_id uuid;
 begin
   if v_actor is null then raise exception 'Authentication required'; end if;
+  if not public.is_referee_reporting_enabled() then raise exception 'Referee applications are currently closed'; end if;
   if public.is_active_referee() then raise exception 'You already have approved referee access'; end if;
   if p_experience_summary is null or length(btrim(p_experience_summary)) not between 10 and 3000 then
     raise exception 'Provide at least 10 characters describing your refereeing experience';
@@ -350,6 +402,7 @@ as $$
 declare v_actor uuid:=auth.uid(); v_id uuid;
 begin
   if v_actor is null or not public.is_active_referee() then raise exception 'Approved referee membership required'; end if;
+  if not public.is_referee_reporting_enabled() then raise exception 'Referee reporting is currently disabled'; end if;
   if p_available_on < current_date then raise exception 'Availability cannot be entered for a past date'; end if;
   if p_ends_at <= p_starts_at then raise exception 'Availability end time must be after its start time'; end if;
   if not exists(select 1 from public.locations l where l.id=p_location_id and l.is_active is true) then
@@ -372,6 +425,7 @@ language plpgsql stable security definer set search_path = ''
 as $$
 begin
   if auth.uid() is null or not public.is_active_referee() then raise exception 'Approved referee membership required'; end if;
+  if not public.is_referee_reporting_enabled() then raise exception 'Referee reporting is currently disabled'; end if;
   return query
   select a.id,a.available_on,a.starts_at,a.ends_at,a.location_id,l.name,a.note
   from public.referee_availability a join public.locations l on l.id=a.location_id
@@ -550,6 +604,7 @@ begin
   if v_actor is null then raise exception 'Authentication required'; end if;
   if p_admin_override and not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
   v_is_referee:=public.is_active_referee() and not p_admin_override;
+  if v_is_referee and not public.is_referee_reporting_enabled() then raise exception 'Referee reporting is currently disabled'; end if;
   if not v_is_referee and not public.has_platform_role() then
     raise exception 'Approved referee membership or administrator permission required';
   end if;
@@ -858,14 +913,14 @@ grant execute on function public.admin_review_referee_match_report(uuid,text,tex
 create or replace function public.referee_get_my_status()
 returns table(
   application_id uuid,application_status text,application_created_at timestamptz,
-  application_review_reason text,membership_status text,membership_approved_at timestamptz
+  application_review_reason text,membership_status text,membership_approved_at timestamptz,reporting_enabled boolean
 )
 language plpgsql stable security definer set search_path = ''
 as $status$
 begin
   if auth.uid() is null then raise exception 'Authentication required'; end if;
   return query
-  select a.id,a.status,a.created_at,a.review_reason,rm.status,rm.approved_at
+  select a.id,a.status,a.created_at,a.review_reason,rm.status,rm.approved_at,public.is_referee_reporting_enabled()
   from (select auth.uid() as user_id) actor
   left join lateral (
     select ra.* from public.referee_applications ra
