@@ -747,6 +747,55 @@ $$;
 revoke all on function public.admin_create_message_broadcast(text,text,text,uuid) from public,anon;
 grant execute on function public.admin_create_message_broadcast(text,text,text,uuid) to authenticated;
 
+create or replace function public.admin_get_message_target_options()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path=''
+as $
+declare
+  v_user uuid:=auth.uid();
+  v_global boolean;
+begin
+  if v_user is null or not public.has_platform_role() then
+    raise exception 'Administrator permission required';
+  end if;
+  select exists(select 1 from public.user_roles ur where ur.user_id=v_user and ur.role in ('admin','super_admin'))
+    into v_global;
+  return jsonb_build_object(
+    'locations',coalesce((
+      select jsonb_agg(jsonb_build_object('id',l.id,'name',l.name,'town',l.town) order by l.name)
+      from public.locations l
+      where l.is_active and (v_global or public.can_administer_location(l.id))
+    ),'[]'::jsonb),
+    'seasons',coalesce((
+      select jsonb_agg(jsonb_build_object('id',s.id,'name',s.name,'league_name',l.name,'location_name',loc.name) order by loc.name,l.name,s.created_at desc)
+      from public.seasons s
+      join public.leagues l on l.id=s.league_id
+      join public.locations loc on loc.id=l.location_id
+      where v_global or public.can_administer_location(loc.id)
+    ),'[]'::jsonb),
+    'teams',coalesce((
+      select jsonb_agg(jsonb_build_object('id',st.id,'name',st.name,'season_name',s.name,'location_name',loc.name) order by loc.name,s.name,st.name)
+      from public.season_teams st
+      join public.seasons s on s.id=st.season_id
+      join public.leagues l on l.id=s.league_id
+      join public.locations loc on loc.id=l.location_id
+      where v_global or public.can_administer_location(loc.id)
+    ),'[]'::jsonb),
+    'players',case when v_global then coalesce((
+      select jsonb_agg(jsonb_build_object('user_id',pl.user_id,'full_name',pl.full_name) order by pl.full_name)
+      from public.players pl
+      where pl.registration_status='registered' and pl.is_banned=false
+        and public.message_actor_is_active(pl.user_id)
+    ),'[]'::jsonb) else '[]'::jsonb end
+  );
+end;
+$;
+revoke all on function public.admin_get_message_target_options() from public,anon;
+grant execute on function public.admin_get_message_target_options() to authenticated;
+
 create or replace function public.report_message(p_message_id uuid,p_reason text)
 returns uuid
 language plpgsql
