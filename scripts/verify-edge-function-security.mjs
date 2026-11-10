@@ -22,6 +22,7 @@ for (const [name, expected] of [
   ["create-team-fixture-checkout", true],
   ["team-stripe-webhook", false],
   ["process-team-payment-deadlines", false],
+  ["admin-postpone-gameweek", true],
 ]) {
   verifyJwtSetting(name, expected);
 }
@@ -81,5 +82,11 @@ const teamDeadlineWorker = readFileSync("supabase/functions/process-team-payment
 assert.ok(teamDeadlineWorker.includes('req.headers.get("x-team-payment-cron-secret")'), "Team payment scheduler must validate its dedicated cron secret");
 assert.ok(teamDeadlineWorker.includes('Idempotency-Key') && teamDeadlineWorker.includes("openplay-team-refund-"), "Team refunds must be idempotent at the provider");
 assert.ok(teamDeadlineWorker.includes('stripeKey?.startsWith("sk_test_")'), "Team payment scheduler must remain test-mode only");
+
+
+const adminPostponement = readFileSync("supabase/functions/admin-postpone-gameweek/index.ts", "utf8");
+assert.ok(adminPostponement.includes('userClient.auth.getUser(token)'), "Gameweek postponement must validate the signed-in administrator");
+assert.ok(adminPostponement.includes('rpc("get_admin_postponable_gameweeks"') && adminPostponement.includes('rpc("admin_postpone_gameweek"'), "Gameweek postponement must use the permission-scoped listing and audited RPC");
+assert.ok(adminPostponement.includes('stripeKey?.startsWith("sk_test_")'), "Weather refund reconciliation must remain test-mode only");
 
 console.log("Edge Function security configuration and Phase 1 workflow boundary assertions passed.");
