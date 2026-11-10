@@ -556,7 +556,7 @@ function AdminRefereesPage() {
         setNotice("Match report approved and result published. The automatic referee transfer could not be confirmed ("+
           (transferData?.error??transferError.message)+"). Check the payout queue before any retry.");
       }else if(transferData?.status==="processing"){
-        setNotice("Match report approved and result published. Stripe created the referee transfer; signed webhook reconciliation is still pending. Do not retry.");
+        setNotice("Match report approved and result published. The referee transfer is still processing and must be reconciled before any retry. Do not retry yet.");
       }else if(transferData?.success===true&&transferData?.status==="transferred"){
         setNotice("Match report approved and result published. The referee's approved payment transfer was confirmed by Stripe.");
       }else{
