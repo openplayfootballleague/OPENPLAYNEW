@@ -155,8 +155,7 @@ begin
     (v_opponent_b_st,v_opponent_b_captain,'active',true),
     (v_opponent_c_st,v_opponent_c_captain,'active',true),
     (v_opponent_d_st,v_opponent_d_captain,'active',true),
-    (v_e_st,v_captain_e,'active',true),
-    (v_f_st,v_captain_e,'active',false);
+    (v_e_st,v_captain_e,'active',true);
 
   select id into v_player_membership from public.team_memberships
   where season_team_id=v_source_st and user_id=v_player;
@@ -362,6 +361,9 @@ begin
   into v_request_two;
   perform set_config('request.jwt.claim.sub',v_captain_e::text,true);
   perform public.resolve_player_transfer_request(v_request_two,'approved','Destination captain approved');
+
+  -- Team F is deliberately left without a seeded membership; it is only a second destination
+  -- for the pending-join guard below, so reusing Captain E would violate the one-club rule.
 
   -- Ordinary first-time join requests are also single-destination within a league.
   perform set_config('request.jwt.claim.sub',v_player_three::text,true);
