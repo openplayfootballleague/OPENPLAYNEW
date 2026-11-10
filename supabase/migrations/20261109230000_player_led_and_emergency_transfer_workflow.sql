@@ -1134,7 +1134,7 @@ begin
     v_location:=v_league_location;
   end if;
 
-  if v_location is not null and not exists(select 1 from public.locations where id=v_location) then
+  if v_location is not null and not exists(select 1 from public.locations where public.locations.id=v_location) then
     raise exception 'Selected location was not found';
   end if;
 
