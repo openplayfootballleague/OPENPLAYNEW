@@ -100,12 +100,12 @@ export function CaptainTeamPayments({fixtures}:{fixtures:PaymentFixture[]}){
         </div>
         {payment?<>
           <div className="captain-team-payment-status"><span>{statusLabel(payment.status)}</span><strong>{money(payment.amount_pence)}</strong></div>
-          <p className="form-note">Team strikes this season: {seasonStrikes} / 3{seasonStrikes>=3?" · administrator review required":""}</p>
           {deadline&&<p className="form-note">Payment deadline: {dateTime(deadline)}</p>}
           {payment.status==="due"&&deadline&&<p className="payment-countdown">Time until deadline: {countdown(deadline,now)}</p>}
           {payment.status==="grace_period"&&graceEnd&&<p className="payment-countdown">Grace period ends in: {countdown(graceEnd,now)}</p>}
           {payment.paid_at&&<p className="form-note">Paid: {dateTime(payment.paid_at)}</p>}
         </>:<p className="form-note">Create your team's payment from the configured weekly team fee.</p>}
+        <p className="form-note">Team strikes this season: {seasonStrikes} / 3{seasonStrikes>=3?" · administrator review required":""}</p>
         {payable&&fixture.scheduled_at&&<button type="button" className="button captain-team-pay-button" disabled={busyId===fixture.fixture_id} onClick={()=>void pay(fixture)}>
           {busyId===fixture.fixture_id?"PREPARING CHECKOUT…":actionLabel} <span>↗</span>
         </button>}
