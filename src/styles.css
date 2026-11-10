@@ -1347,3 +1347,5 @@ a { color: inherit; text-decoration: none; }
 .messaging-load-older:disabled { opacity:.55; cursor:wait; }
 
 .messaging-read-receipt { display:block; margin-top:7px; color:#8a4b2e; font-size:8px; font-weight:850; letter-spacing:.08em; text-align:right; }
+
+.more-message-unread { display:inline-grid; place-items:center; min-width:18px; height:18px; margin-left:6px; padding:0 4px; border-radius:50%; background:#e96831; color:#fffefa; font-size:9px; font-weight:900; }

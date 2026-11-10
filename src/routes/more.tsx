@@ -27,10 +27,12 @@ export const Route = createFileRoute("/more")({ component: MorePage });
 
 function MorePage() {
   const [access, setAccess] = useState<MoreAccess>(initialAccess);
+  const [messageUnreadCount, setMessageUnreadCount] = useState(0);
 
   useEffect(() => {
     const supabase = getSupabaseClient();
     const refereeRpc = supabase as unknown as { rpc: (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> };
+    const messageRpc = refereeRpc;
     let active = true;
 
     async function loadAccess() {
@@ -40,6 +42,7 @@ function MorePage() {
 
       if (!session) {
         setAccess({ ...initialAccess, loading: false });
+    setMessageUnreadCount(0);
         return;
       }
 
@@ -49,6 +52,7 @@ function MorePage() {
         adminResult,
         financeResult,
         refereeResult,
+        messageInboxResult,
       ] = await Promise.all([
         supabase
           .from("players")
@@ -63,9 +67,12 @@ function MorePage() {
         supabase.rpc("get_admin_context_preference"),
         supabase.rpc("get_finance_options"),
         refereeRpc.rpc("get_my_referee_portal_state"),
+        messageRpc.rpc("get_my_message_conversations", { p_limit: 100 }),
       ]);
 
       if (!active) return;
+      const unreadRows = !messageInboxResult.error ? (messageInboxResult.data as { unread_count?: number }[] | null) ?? [] : [];
+      setMessageUnreadCount(unreadRows.reduce((total, row) => total + Number(row.unread_count ?? 0), 0));
       setAccess({
         loading: false,
         signedIn: true,
@@ -118,7 +125,7 @@ function MorePage() {
         ) : hasPrivateWorkspace ? (
           <section className="hub-memberships">
             <div className="hub-section-heading"><span className="hub-kicker">YOUR OPEN PLAY</span></div>
-            <Link className="admin-inline-action" to="/messages">MESSAGES &amp; SUPPORT <span aria-hidden="true">↗</span></Link>
+            <Link className="admin-inline-action" to="/messages">MESSAGES &amp; SUPPORT {messageUnreadCount > 0 && <span className="more-message-unread">{messageUnreadCount > 99 ? "99+" : messageUnreadCount}</span>} <span aria-hidden="true">↗</span></Link>
             {access.player && <Link className="admin-inline-action" to="/player">PLAYER HUB <span aria-hidden="true">↗</span></Link>}
             {access.captain && <Link className="admin-inline-action" to="/captain">CAPTAIN HUB <span aria-hidden="true">↗</span></Link>}
             {access.admin && <Link className="admin-inline-action" to="/admin">ADMIN DASHBOARD <span aria-hidden="true">↗</span></Link>}
