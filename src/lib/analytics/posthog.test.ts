@@ -13,6 +13,7 @@ describe("optional PostHog analytics consent", () => {
     values.clear();
     vi.stubEnv("VITE_POSTHOG_KEY", "test-project-key");
     vi.stubEnv("VITE_POSTHOG_HOST", "https://eu.i.posthog.com");
+    vi.stubEnv("VITE_POSTHOG_CONSENT_ENABLED", "true");
     vi.stubGlobal("window", {
       localStorage: storage,
       dispatchEvent: vi.fn(),
@@ -31,6 +32,14 @@ describe("optional PostHog analytics consent", () => {
     analytics.trackAnalyticsPageView("/match-centre");
     analytics.setAnalyticsIdentity("auth-user-1");
 
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("keeps capture disabled when the release feature flag is off", async () => {
+    vi.stubEnv("VITE_POSTHOG_CONSENT_ENABLED", "false");
+    values.set("openplay.analytics-consent.v1", "granted");
+    const analytics = await import("./posthog");
+    analytics.trackAnalyticsPageView("/match-centre");
     expect(fetch).not.toHaveBeenCalled();
   });
 
