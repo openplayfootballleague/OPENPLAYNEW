@@ -248,12 +248,14 @@ function RefereePage() {
                   <>
                     <p className="form-note" role="status">
                       {connectStatus.onboarding_status === "enabled"
-                        ? "Verified · Transfers and bank payouts are enabled."
+                        ? connectStatus.payouts_enabled
+                          ? "Verified · Open Play transfers and Stripe bank payouts are enabled."
+                          : "Verified · Open Play can transfer match fees to your Stripe balance. Bank payouts are not enabled yet."
                         : connectStatus.onboarding_status === "verification_pending"
-                          ? "Details submitted · Stripe verification is still in progress."
+                          ? "Details submitted · Stripe is still reviewing your transfer eligibility."
                           : connectStatus.onboarding_status === "restricted"
-                            ? "Restricted · Stripe requires further action before payouts can be enabled."
-                            : "Not connected · Complete Stripe Express onboarding to receive payouts."}
+                            ? "Restricted · Stripe requires further action before Open Play transfers can be made."
+                            : "Not connected · Complete Stripe Express onboarding to receive match-fee transfers."}
                     </p>
                     {connectStatus.disabled_reason && <p className="form-note">Stripe requirement: {connectStatus.disabled_reason}</p>}
                     {(connectStatus.requirements_due?.currently_due?.length ?? 0) > 0 && (
