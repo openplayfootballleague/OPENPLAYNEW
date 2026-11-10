@@ -45,8 +45,8 @@ Deno.serve(async(req)=>{
     return json({error:"Gameweek, replacement date and reason are required"},400,headers);
   }
   const replacementAt=new Date(input.replacement_at);
-  if(!Number.isFinite(replacementAt.getTime())||replacementAt.getTime()<=Date.now()){
-    return json({error:"Choose a replacement date and time in the future"},400,headers);
+  if(!Number.isFinite(replacementAt.getTime())||replacementAt.getTime()<=Date.now()+36*60*60*1000){
+    return json({error:"Choose a replacement kickoff at least 36 hours in the future"},400,headers);
   }
   if(input.reason.trim().length<5||input.reason.trim().length>500){
     return json({error:"Enter a reason between 5 and 500 characters"},400,headers);

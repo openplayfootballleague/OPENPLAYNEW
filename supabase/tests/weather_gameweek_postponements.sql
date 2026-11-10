@@ -102,6 +102,15 @@ begin
   from public.get_admin_postponable_gameweeks(v_season);
   if v_admin_weeks<>2 then raise exception 'Admin gameweek list should exclude the partially completed round'; end if;
 
+  begin
+    perform public.admin_postpone_gameweek(
+      v_week_four_id,now()+interval '35 hours','Weather cancellation: replacement too soon'
+    );
+    raise exception 'A replacement kickoff inside the 36-hour safety window was accepted';
+  exception when others then
+    if position('36 hours' in sqlerrm)=0 then raise; end if;
+  end;
+
   select public.admin_postpone_gameweek(v_week_four_id,v_replacement,'Weather cancellation: unsafe pitch conditions')
     into v_result;
   select public.admin_postpone_gameweek(v_week_four_id,v_replacement,'Weather cancellation: unsafe pitch conditions')

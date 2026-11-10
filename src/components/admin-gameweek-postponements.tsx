@@ -56,7 +56,7 @@ export function AdminGameweekPostponements(){
   }
   return <section className="admin-queue admin-gameweek-postponements">
     <div className="hub-section-heading"><span className="hub-kicker">WEATHER &amp; GAMEWEEK POSTPONEMENTS</span><span>{weeks.length} eligible gameweeks</span></div>
-    <p className="form-note">Use this for a weather-cancelled gameweek. All teams that have paid are queued for a full Stripe refund. Unpaid old-cycle charges are credited, and fresh team payment deadlines are created for the replacement date. Gameweek numbers are recalculated chronologically.</p>
+    <p className="form-note">Use this for a weather-cancelled gameweek. The replacement kickoff must be at least 36 hours away. All teams that have paid are queued for a full Stripe refund. Unpaid old-cycle charges are credited, and fresh team payment deadlines are created for the replacement date. Gameweek numbers are recalculated chronologically.</p>
     {error&&<p className="form-error" role="alert">{error}</p>}
     {notice&&<p className="form-success" role="status">{notice}</p>}
     {loading?<p className="form-note">Loading eligible gameweeks…</p>:weeks.length===0?<p className="form-note">No wholly unplayed gameweeks are currently available to postpone.</p>:
@@ -67,7 +67,7 @@ export function AdminGameweekPostponements(){
           </option>)}
         </select></label>
         {selected&&<p className="form-note">{selected.fixture_count} fixtures · {selected.paid_team_count} team payments received · Original date {selected.scheduled_at?new Date(selected.scheduled_at).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"}):"Not set"}</p>}
-        <label>Replacement date and kick-off time<input required type="datetime-local" min={localDateTimeValue(new Date(Date.now()+60*60*1000))} value={replacementAt} onChange={event=>setReplacementAt(event.target.value)}/></label>
+        <label>Replacement date and kick-off time<input required type="datetime-local" min={localDateTimeValue(new Date(Date.now()+36*60*60*1000))} value={replacementAt} onChange={event=>setReplacementAt(event.target.value)}/></label>
         <label>Reason<textarea required minLength={5} maxLength={500} rows={3} value={reason} onChange={event=>setReason(event.target.value)} placeholder="e.g. Unsafe pitch conditions following heavy rain"/></label>
         <label className="admin-gameweek-confirm"><input type="checkbox" checked={confirmed} onChange={event=>setConfirmed(event.target.checked)}/> I confirm this postpones every fixture in the selected gameweek, refunds paid team fees and creates new payment deadlines.</label>
         <button type="submit" disabled={busy||!selectedId||!replacementAt||reason.trim().length<5||!confirmed}>

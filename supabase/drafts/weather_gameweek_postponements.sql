@@ -319,8 +319,8 @@ begin
   if v_actor is null or not public.has_platform_role() then
     raise exception 'Administrator permission required';
   end if;
-  if p_replacement_at is null or p_replacement_at<=now() then
-    raise exception 'Choose a replacement date and time in the future';
+  if p_replacement_at is null or p_replacement_at<=now()+interval '36 hours' then
+    raise exception 'Replacement kickoff must be at least 36 hours in the future so the 24-hour payment deadline and 12-hour grace period can operate';
   end if;
   if p_reason is null or length(btrim(p_reason)) not between 5 and 500 then
     raise exception 'Enter a reason between 5 and 500 characters';
