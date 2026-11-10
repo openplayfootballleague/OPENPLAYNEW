@@ -60,7 +60,7 @@ create table public.messages (
   created_at timestamptz not null default now(),
   constraint message_hidden_state_check check (
     (is_hidden=false and hidden_by is null and hidden_at is null and hidden_reason is null)
-    or (is_hidden=true and hidden_by is not null and hidden_at is not null and length(btrim(coalesce(hidden_reason,'')))>=5)
+    or (is_hidden=true and hidden_at is not null and length(btrim(coalesce(hidden_reason,'')))>=5)
   )
 );
 create index messages_conversation_created_idx
@@ -93,7 +93,7 @@ create table public.message_reports (
   created_at timestamptz not null default now(),
   constraint message_report_resolution_state_check check (
     (status='open' and resolved_by is null and resolved_at is null and resolution_action is null)
-    or (status<>'open' and resolved_by is not null and resolved_at is not null and resolution_action is not null)
+    or (status<>'open' and resolved_at is not null and resolution_action is not null)
   )
 );
 create unique index message_reports_one_open_per_reporter_idx
