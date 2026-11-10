@@ -86,6 +86,9 @@ const teamDeadlineWorker = readFileSync("supabase/functions/process-team-payment
 assert.ok(teamDeadlineWorker.includes('req.headers.get("x-team-payment-cron-secret")'), "Team payment scheduler must validate its dedicated cron secret");
 assert.ok(teamDeadlineWorker.includes('Idempotency-Key') && teamDeadlineWorker.includes("openplay-team-refund-"), "Team refunds must be idempotent at the provider");
 assert.ok(teamDeadlineWorker.includes('stripeKey?.startsWith("sk_test_")'), "Team payment scheduler must remain test-mode only");
+assert.ok(teamDeadlineWorker.includes('.order("id").range(offset,offset+499)'), "Team payment and refund queues must be fully paginated in stable batches");
+assert.ok(teamDeadlineWorker.includes('[400,402,404,422].includes(stripeResponse.status)'), "Transient Stripe refund errors must not be recorded as definitive failures");
+assert.ok(teamDeadlineWorker.includes('result.status==="failed"||result.status==="canceled"'), "Provider-confirmed refund failures must be recorded for administrator review");
 
 const connectOnboarding = readFileSync("supabase/functions/create-referee-connect-account/index.ts", "utf8");
 assert.ok(connectOnboarding.includes("userClient.auth.getUser()"), "Connect onboarding must validate the signed-in referee");
