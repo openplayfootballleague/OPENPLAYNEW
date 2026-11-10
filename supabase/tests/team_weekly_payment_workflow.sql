@@ -28,6 +28,16 @@ declare
   v_claimed boolean;
   v_rejected boolean;
 begin
+  -- A timely Stripe event arriving after the deadline worker has already
+  -- cancelled the fixture must be escalated, not recorded as a late payment.
+  if position('v_obligation.status=''defaulted'' and p_paid_at<=v_obligation.grace_ends_at' in pg_get_functiondef(
+    'public.record_team_fixture_payment_success(uuid,text,timestamp with time zone)'::regprocedure
+  ))=0 or position('v_status:=''admin_review''' in pg_get_functiondef(
+    'public.record_team_fixture_payment_success(uuid,text,timestamp with time zone)'::regprocedure
+  ))=0 then
+    raise exception 'Delayed timely payments after cancellation must require admin reconciliation';
+  end if;
+
   -- Opponent refunds must never select a superseded obligation cycle.
   if position('order by payment_cycle desc' in pg_get_functiondef(
     'public.process_team_fixture_payment_deadlines(timestamptz)'::regprocedure
