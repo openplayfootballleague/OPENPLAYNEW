@@ -3,12 +3,18 @@ name: Analytics browser acceptance
 on:
   pull_request:
     paths:
+      - ".env.example"
+      - "package.json"
+      - "package-lock.json"
       - "src/components/analytics-provider.tsx"
       - "src/lib/analytics/**"
+      - "src/routes/__root.tsx"
+      - "src/routes/more.tsx"
       - "src/routes/privacy-security.tsx"
-      - "playwright.config.ts"
+      - "playwright.analytics.config.ts"
       - "vite.analytics-e2e.config.ts"
-      - "tests/e2e/**"
+      - "tests/e2e/analytics-consent.spec.ts"
+      - ".github/workflows/analytics-browser-acceptance.yml"
   workflow_dispatch:
 
 permissions:
@@ -33,4 +39,4 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Run consent and network acceptance tests
-        run: npx playwright test --config=playwright.config.ts
+        run: npx playwright test --config=playwright.analytics.config.ts

@@ -1,5 +1,5 @@
 import { useEffect,useState } from "react";
-import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
+import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 import { PlayerCompetitionSelector, usePlayerCompetitionContext } from "../lib/competition/player-context";
 import { Link,createFileRoute } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
@@ -35,5 +35,5 @@ function TeamsPage(){
   {error&&<p className="form-error" role="alert">{error}</p>}
   {loading?<p className="form-note">Loading teams…</p>:!competition.selectedSeasonId?<section className="hub-empty"><h2>No public season available yet.</h2><p>Published teams will appear here when a location and season are active.</p><Link className="button" to="/join">JOIN OPEN PLAY <span>↗</span></Link></section>:teams.length===0?<section className="hub-empty"><h2>No teams published yet.</h2><p>Approved teams will appear here when a public season is active.</p><Link className="button" to="/join">JOIN OPEN PLAY <span>↗</span></Link></section>:<section className="hub-memberships"><div className="hub-section-heading"><span className="hub-kicker">{selectedSeason?.name??"CURRENT SEASON"}</span><span>{teams.length} teams</span></div>{teams.map(team=><article className="directory-team" key={team.id}><span className="team-colour-mark" style={{background:team.primary_colour??"#e96831"}}/><div><strong>{team.name}</strong><span>{team.secondary_colour?`Primary ${team.primary_colour??"not set"} · Secondary ${team.secondary_colour}`:"Open Play team"}</span></div></article>)}</section>}
   <Link className="auth-switch" to="/match-centre">View match centre</Link><Link className="auth-switch" to="/">Back to Open Play</Link>
- </section><PlayerBottomNavigation/></main>;
+ </section><RefereeBottomNavigation /></main>;
 }

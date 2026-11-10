@@ -55,6 +55,20 @@ function SignInPage() {
     } finally { setBusy(false); }
   }
 
+  async function requestReactivation() {
+    setBusy(true); setError(""); setMessage("");
+    try {
+      if (!email.trim()) throw new Error("Enter your account email address first.");
+      const { data, error: requestError } = await getSupabaseClient().functions.invoke("player-account-retention", {
+        body: { action: "request-reactivation", email: email.trim() },
+      });
+      if (requestError) throw requestError;
+      setMessage(data?.message ?? "If an eligible closed account exists for that email address, a reactivation link will be sent.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Unable to request account reactivation. Please try again.");
+    } finally { setBusy(false); }
+  }
+
   async function resetPassword() {
     setBusy(true); setError(""); setMessage("");
     try {
@@ -77,6 +91,8 @@ function SignInPage() {
     </form>
     <button className="auth-text-button" type="button" onClick={resetPassword} disabled={busy}>Forgot your password?</button>
     <button className="auth-text-button" type="button" onClick={resendVerification} disabled={busy}>Resend verification email</button>
+    <button className="auth-text-button" type="button" onClick={requestReactivation} disabled={busy}>Reactivate a closed account</button>
+    <p className="auth-switch">If your account was closed after 12 months of inactivity, request a secure reactivation link. You can reactivate within the following 12-month archive period.</p>
     <p className="auth-switch">New to Open Play? <Link to="/sign-up">Create an account</Link></p><p className="auth-switch"><Link to="/finance">Finance team access</Link></p>
   </section><PlayerBottomNavigation /></main>;
 }

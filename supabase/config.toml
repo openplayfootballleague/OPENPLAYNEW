@@ -1,0 +1,73 @@
+# Local Supabase configuration for Open Play New.
+# This project configuration contains no credentials and is safe to commit.
+project_id = "openplaynew"
+
+[auth]
+enable_signup = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["http://127.0.0.1:3000", "http://localhost:3000"]
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+secure_password_change = true
+
+
+[db]
+major_version = 17
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[db.seed]
+enabled = false
+
+[functions.guardian-consent]
+# The function validates authenticated requests itself; guardian links are public, single-use tokens.
+verify_jwt = false
+
+[functions.player-account-retention]
+# Public reactivation requests and single-use links are validated by the function.
+# The daily inactivity worker requires ACCOUNT_RETENTION_CRON_SECRET.
+verify_jwt = false
+
+[functions.deliver-notifications]
+# Protected by the Supabase JWT gateway; manual dispatch is global-admin-only.
+verify_jwt = true
+
+[functions.create-player-checkout]
+# Player checkout requires a valid signed-in user session.
+verify_jwt = true
+
+[functions.public-gallery]
+# Public read-only endpoint; it returns only published items at active locations.
+verify_jwt = false
+
+[functions.stripe-webhook]
+# Stripe authenticates requests with the verified stripe-signature header.
+verify_jwt = false
+
+[functions.create-referee-connect-account]
+# Authenticated active referees create or refresh their Express onboarding link.
+verify_jwt = true
+
+[functions.pay-referee-payout]
+# Finance administrators initiate test-mode transfers through the scoped payout RPC.
+verify_jwt = true
+
+[functions.referee-connect-webhook]
+# Stripe authenticates Connect events with the verified stripe-signature header.
+verify_jwt = false
+
+[functions.create-team-fixture-checkout]
+# Captains must authenticate; the RPC re-checks active captain membership.
+verify_jwt = true
+
+[functions.team-stripe-webhook]
+# Stripe authenticates the request with the dedicated team webhook signature.
+verify_jwt = false
+
+[functions.process-team-payment-deadlines]
+# Protected by TEAM_PAYMENT_CRON_SECRET; handles deadlines and idempotent refunds.
+verify_jwt = false
