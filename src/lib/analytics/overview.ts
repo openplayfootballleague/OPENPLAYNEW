@@ -104,12 +104,15 @@ export function buildLocationComparisons(
   setup: AnalyticsSetup,
   filters: Pick<AnalyticsFilters, "leagueId" | "seasonId"> = { leagueId: "", seasonId: "" },
 ): AnalyticsLocationComparison[] {
-  return setup.locations.map((location) => {
+  return setup.locations.flatMap((location) => {
     const seasons = setup.seasons.filter((season) =>
       season.location_id === location.id
       && (!filters.leagueId || season.league_id === filters.leagueId)
       && (!filters.seasonId || season.id === filters.seasonId),
     );
+    // A location outside the selected league/season is not a zero-performance
+    // location; exclude it from this comparison rather than implying it had no activity.
+    if (seasons.length === 0) return [];
     const seasonIds = new Set(seasons.map((season) => season.id));
     const teams = setup.season_teams.filter((team) =>
       seasonIds.has(team.season_id) && team.registration_status === "approved",
@@ -125,7 +128,7 @@ export function buildLocationComparisons(
       fixtures: fixtures.length,
       publishedResults: results.length,
       goals: results.reduce((total, fixture) => total + Number(fixture.home_score ?? 0) + Number(fixture.away_score ?? 0), 0),
-    };
+    }];
   });
 }
 
