@@ -86,6 +86,7 @@ Deno.serve(async(req)=>{
             p_payout_type:payoutType,p_payout_id:payoutId,
             p_failure_reason:"Stripe reported that the referee transfer was reversed",
             p_transfer_reversed:true,
+            p_stripe_transfer_id:object.id,
           });
           if(error)throw new Error(error.message);
         }
