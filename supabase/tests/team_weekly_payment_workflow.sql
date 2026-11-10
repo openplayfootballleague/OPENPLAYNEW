@@ -63,9 +63,9 @@ begin
 
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_home_captain::text,true);
-  select obligation_id,deadline_at,grace_ends_at
+  select payment.obligation_id,payment.deadline_at,payment.grace_ends_at
     into v_home_obligation,v_deadline,v_grace_ends
-  from public.create_team_fixture_payment_obligation(v_fixture,v_home_season_team);
+  from public.create_team_fixture_payment_obligation(v_fixture,v_home_season_team) payment;
   -- A duplicate captain retry must return the same obligation and never duplicate the charge.
   if (select count(*) from public.create_team_fixture_payment_obligation(v_fixture,v_home_season_team))<>1 then
     raise exception 'Idempotent home obligation retry did not return one row';
