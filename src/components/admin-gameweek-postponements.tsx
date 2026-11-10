@@ -20,6 +20,7 @@ export function AdminGameweekPostponements(){
   const [selectedId,setSelectedId]=useState("");
   const [replacementAt,setReplacementAt]=useState("");
   const [reason,setReason]=useState("");
+  const [confirmed,setConfirmed]=useState(false);
   const [loading,setLoading]=useState(true);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState("");
@@ -48,7 +49,7 @@ export function AdminGameweekPostponements(){
       const result=(data as {result?:{old_week_number:number;new_week_number:number;refunds_queued:number;unpaid_cycles_credited:number}}|null)?.result;
       if(!result)throw new Error("The postponement service did not confirm the change.");
       setNotice(`Gameweek ${result.old_week_number} is now Gameweek ${result.new_week_number}. ${result.refunds_queued} paid team fees queued for refund; ${result.unpaid_cycles_credited} unpaid fees credited.`);
-      setReplacementAt("");setReason("");
+      setReplacementAt("");setReason("");setConfirmed(false);
       await load();
     }catch(cause){setError(cause instanceof Error?cause.message:"Unable to postpone this gameweek.");}
     finally{setBusy(false);}
@@ -68,7 +69,8 @@ export function AdminGameweekPostponements(){
         {selected&&<p className="form-note">{selected.fixture_count} fixtures · {selected.paid_team_count} team payments received · Original date {selected.scheduled_at?new Date(selected.scheduled_at).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"}):"Not set"}</p>}
         <label>Replacement date and kick-off time<input required type="datetime-local" min={localDateTimeValue(new Date(Date.now()+60*60*1000))} value={replacementAt} onChange={event=>setReplacementAt(event.target.value)}/></label>
         <label>Reason<textarea required minLength={5} maxLength={500} rows={3} value={reason} onChange={event=>setReason(event.target.value)} placeholder="e.g. Unsafe pitch conditions following heavy rain"/></label>
-        <button type="submit" disabled={busy||!selectedId||!replacementAt||reason.trim().length<5}>
+        <label className="admin-gameweek-confirm"><input type="checkbox" checked={confirmed} onChange={event=>setConfirmed(event.target.checked)}/> I confirm this postpones every fixture in the selected gameweek, refunds paid team fees and creates new payment deadlines.</label>
+        <button type="submit" disabled={busy||!selectedId||!replacementAt||reason.trim().length<5||!confirmed}>
           {busy?"RECONCILING PAYMENTS…":"POSTPONE GAMEWEEK"}
         </button>
       </form>
