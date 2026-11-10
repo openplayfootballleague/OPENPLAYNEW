@@ -59,6 +59,8 @@ begin
   ) last_incident on true
   where p.disciplinary_inactive is true
     and p.competition_player_id is not null
+    and p.user_id is not null
+    and p.is_banned is not true
   order by p.disciplinary_strikes desc, last_incident.created_at desc;
 end;
 $$;
@@ -95,6 +97,9 @@ begin
   end if;
   if v_player.disciplinary_inactive is not true then
     raise exception 'This player is not awaiting disciplinary return approval';
+  end if;
+  if v_player.user_id is null or v_player.is_banned is true then
+    raise exception 'This player account is no longer eligible for disciplinary return approval';
   end if;
 
   select exists (
