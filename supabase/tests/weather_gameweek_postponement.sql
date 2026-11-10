@@ -69,16 +69,17 @@ begin
   values(v_completed_fixture,1,0,now()-interval '6 days',v_admin);
 
   insert into public.fixtures(season_id,gameweek,fixture_number,home_team_id,away_team_id,venue_id,scheduled_at,status)
-  values
-    (v_season,2,1,v_home_season_team,v_away_season_team,v_location,
-      (now() at time zone 'Europe/London')::date+2+time '20:00' at time zone 'Europe/London','scheduled'),
-    (v_season,3,1,v_home_season_team,v_away_season_team,v_location,
-      (now() at time zone 'Europe/London')::date+9+time '20:00' at time zone 'Europe/London','scheduled'),
-    (v_season,4,1,v_home_season_team,v_away_season_team,v_location,
-      (now() at time zone 'Europe/London')::date+16+time '20:00' at time zone 'Europe/London','scheduled')
+  values(v_season,2,1,v_home_season_team,v_away_season_team,v_location,
+    (((now() at time zone 'Europe/London')::date+2)+time '20:00') at time zone 'Europe/London','scheduled')
   returning id into v_weather_fixture;
-  select id into v_next_fixture from public.fixtures where season_id=v_season and gameweek=3;
-  select id into v_last_fixture from public.fixtures where season_id=v_season and gameweek=4;
+  insert into public.fixtures(season_id,gameweek,fixture_number,home_team_id,away_team_id,venue_id,scheduled_at,status)
+  values(v_season,3,1,v_home_season_team,v_away_season_team,v_location,
+    (((now() at time zone 'Europe/London')::date+9)+time '20:00') at time zone 'Europe/London','scheduled')
+  returning id into v_next_fixture;
+  insert into public.fixtures(season_id,gameweek,fixture_number,home_team_id,away_team_id,venue_id,scheduled_at,status)
+  values(v_season,4,1,v_home_season_team,v_away_season_team,v_location,
+    (((now() at time zone 'Europe/London')::date+16)+time '20:00') at time zone 'Europe/London','scheduled')
+  returning id into v_last_fixture;
 
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_home_captain::text,true);
