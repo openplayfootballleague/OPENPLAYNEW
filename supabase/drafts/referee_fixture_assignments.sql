@@ -54,7 +54,7 @@ declare
   v_application public.referee_applications;
 begin
   if v_actor is null then raise exception 'Authentication required'; end if;
-  if p_assignment_role not in ('lead','assistant') then
+  if p_assignment_role is null or p_assignment_role not in ('lead','assistant') then
     raise exception 'Assignment role must be lead or assistant';
   end if;
 
