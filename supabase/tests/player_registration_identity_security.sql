@@ -41,7 +41,7 @@ begin
   from pg_catalog.pg_policies
   where schemaname='public'
     and tablename='player_registration_reviews'
-    and policyname='player_registration_reviews_admin_only';
+    and policyname='player_registration_reviews_global_admin_only';
 
   if not found
      or v_policy.cmd <> 'SELECT'
