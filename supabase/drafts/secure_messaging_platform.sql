@@ -793,7 +793,7 @@ language plpgsql
 stable
 security definer
 set search_path=''
-as $
+as $$
 declare
   v_user uuid:=auth.uid();
   v_global boolean;
@@ -832,7 +832,7 @@ begin
     ),'[]'::jsonb) else '[]'::jsonb end
   );
 end;
-$;
+$$;
 revoke all on function public.admin_get_message_target_options() from public,anon;
 grant execute on function public.admin_get_message_target_options() to authenticated;
 
@@ -927,13 +927,13 @@ returns void
 language plpgsql
 security definer
 set search_path=''
-as $
+as $$
 begin
   if auth.uid() is null then raise exception 'Authentication required'; end if;
   delete from public.message_user_blocks
   where blocker_id=auth.uid() and blocked_user_id=p_blocked_user_id;
 end;
-$;
+$$;
 revoke all on function public.unblock_message_user(uuid) from public,anon;
 grant execute on function public.unblock_message_user(uuid) to authenticated;
 
@@ -943,7 +943,7 @@ language plpgsql
 stable
 security definer
 set search_path=''
-as $
+as $$
 begin
   if auth.uid() is null then raise exception 'Authentication required'; end if;
   return query
@@ -956,7 +956,7 @@ begin
   where b.blocker_id=auth.uid()
   order by b.created_at desc;
 end;
-$;
+$$;
 revoke all on function public.get_my_blocked_message_users() from public,anon;
 grant execute on function public.get_my_blocked_message_users() to authenticated;
 
