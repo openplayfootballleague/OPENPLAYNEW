@@ -25,6 +25,7 @@ type ReportQueueItem = {
   referee_name: string; status: string; home_score: number; away_score: number;
   submitted_at: string | null; match_summary: string | null;
 };
+type DisciplinarySuspension = { competition_player_id: string; player_name: string; straight_red_strikes: number; last_straight_red_at: string | null; last_fixture_id: string | null; last_gameweek: number | null; last_team_name: string | null };
 type FixtureOption = {
   id: string; gameweek: number; scheduled_at: string | null;
   home_team_name: string; away_team_name: string; location_id: string; location_name: string;
@@ -52,6 +53,7 @@ function AdminRefereeWorkspace() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [reports, setReports] = useState<ReportQueueItem[]>([]);
   const [existingReportFixtureIds, setExistingReportFixtureIds] = useState<string[]>([]);
+  const [disciplinarySuspensions, setDisciplinarySuspensions] = useState<DisciplinarySuspension[]>([]);
   const [fixtures, setFixtures] = useState<FixtureOption[]>([]);
   const [selectedFixture, setSelectedFixture] = useState("");
   const [selectedReferee, setSelectedReferee] = useState("");
@@ -111,14 +113,15 @@ function AdminRefereeWorkspace() {
       setLoading(false);
       return;
     }
-    const [applicationResult, refereeResult, availabilityResult, assignmentResult, reportResult] = await Promise.all([
+    const [applicationResult, refereeResult, availabilityResult, assignmentResult, reportResult, suspensionResult] = await Promise.all([
       supabase.rpc("admin_list_referee_applications", { p_status: "pending" }),
       supabase.rpc("admin_list_active_referees", { p_location_id: selectedLocation || undefined }),
       supabase.rpc("admin_list_referee_availability", { p_location_id: selectedLocation || undefined }),
       supabase.rpc("admin_list_referee_assignments", { p_location_id: selectedLocation || undefined }),
       supabase.rpc("admin_list_referee_report_queue", { p_status: "all", p_location_id: selectedLocation || undefined }),
+      supabase.rpc("admin_list_disciplinary_suspensions", { p_location_id: selectedLocation || undefined }),
     ]);
-    const failure = applicationResult.error ?? refereeResult.error ?? availabilityResult.error ?? assignmentResult.error ?? reportResult.error;
+    const failure = applicationResult.error ?? refereeResult.error ?? availabilityResult.error ?? assignmentResult.error ?? reportResult.error ?? suspensionResult.error;
     if (failure) setError(failure.message);
     else {
       setApplications((applicationResult.data ?? []) as Application[]);
@@ -128,6 +131,7 @@ function AdminRefereeWorkspace() {
       const allReportRows = (reportResult.data ?? []) as ReportQueueItem[];
       setReports(allReportRows.filter((report) => report.status === "submitted"));
       setExistingReportFixtureIds(allReportRows.filter((report) => ["submitted","approved"].includes(report.status)).map((report) => report.fixture_id));
+      setDisciplinarySuspensions((suspensionResult.data ?? []) as DisciplinarySuspension[]);
       setFixtures((fixtureResult.data ?? []) as FixtureOption[]);
       if (!selectedFixture && fixtureResult.data?.length) setSelectedFixture(fixtureResult.data[0].id);
       if (!refereeResult.data?.some((referee: RefereeOption) => referee.referee_user_id === selectedReferee)) setSelectedReferee(refereeResult.data?.[0]?.referee_user_id ?? "");
