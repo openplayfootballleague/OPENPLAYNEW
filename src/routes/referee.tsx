@@ -59,6 +59,7 @@ type RefereeCareerSummary = {
   transferred_to_connected_balance_pence: number;
   paid_out_to_bank_pence: number;
 };
+type RefereeMilestoneReward = { reward_id: string; milestone_games: number; reward_amount_pence: number; status: string; approved_at: string | null; paid_at: string | null; review_reason: string | null; created_at: string };
 type RefereePayment = {
   report_id: string;
   fixture_id: string;
@@ -107,6 +108,7 @@ function RefereeHubPage() {
   const [availability, setAvailability] = useState<RefereeAvailability[]>([]);
   const [payments, setPayments] = useState<RefereePayment[]>([]);
   const [careerSummary, setCareerSummary] = useState<RefereeCareerSummary | null>(null);
+  const [milestoneRewards, setMilestoneRewards] = useState<RefereeMilestoneReward[]>([]);
   const [activeTab, setActiveTab] = useState<"Home" | "Match Centre" | "Teams" | "Matchday" | "More">("Home");
   const [selectedFixtureId, setSelectedFixtureId] = useState("");
   const [applicationExperience, setApplicationExperience] = useState("");
@@ -159,20 +161,22 @@ function RefereeHubPage() {
     const availableLocations = (locationRows ?? []) as RefereeLocation[];
     setLocations(availableLocations);
     if (currentStatus?.membership_status === "active") {
-      const [{ data: fixtureRows, error: fixtureError }, { data: availabilityRows, error: availabilityError }, { data: paymentRows, error: paymentError }, { data: careerRows, error: careerError }] = await Promise.all([
+      const [{ data: fixtureRows, error: fixtureError }, { data: availabilityRows, error: availabilityError }, { data: paymentRows, error: paymentError }, { data: careerRows, error: careerError }, { data: rewardRows, error: rewardError }] = await Promise.all([
         supabase.rpc("referee_get_assigned_fixtures"),
         supabase.rpc("referee_get_availability"),
         supabase.rpc("referee_get_payment_entitlements"),
         supabase.rpc("referee_get_career_summary"),
+        supabase.rpc("referee_get_milestone_rewards"),
       ]);
-      if (fixtureError || availabilityError || paymentError || careerError) {
-        setError(fixtureError?.message ?? availabilityError?.message ?? paymentError?.message ?? careerError?.message ?? "Unable to load referee matchday data.");
+      if (fixtureError || availabilityError || paymentError || careerError || rewardError) {
+        setError(fixtureError?.message ?? availabilityError?.message ?? paymentError?.message ?? careerError?.message ?? rewardError?.message ?? "Unable to load referee matchday data.");
       } else {
         const nextFixtures = (fixtureRows ?? []) as RefereeFixture[];
         setFixtures(nextFixtures);
         setAvailability((availabilityRows ?? []) as RefereeAvailability[]);
         setPayments((paymentRows ?? []) as RefereePayment[]);
         setCareerSummary((careerRows?.[0] ?? null) as RefereeCareerSummary | null);
+        setMilestoneRewards((rewardRows ?? []) as RefereeMilestoneReward[]);
         setSelectedFixtureId((current) => nextFixtures.some((fixture) => fixture.fixture_id === current) ? current : nextFixtures[0]?.fixture_id ?? "");
       }
     }
@@ -445,7 +449,10 @@ function RefereeHubPage() {
             <article><span>Transferred to Stripe balance</span><strong>{money(Number(careerSummary?.transferred_to_connected_balance_pence ?? 0))}</strong></article>
             <article><span>Paid out to bank</span><strong>{money(Number(careerSummary?.paid_out_to_bank_pence ?? 0))}</strong></article>
           </div>
-          {payments.length === 0 ? <p className="referee-muted">No approved report allocations yet.</p> : payments.map((payment) => <article className="referee-payment-row" key={payment.report_id}><div><strong>Gameweek {payment.gameweek}</strong><span>{payment.status.replaceAll("_"," ")}</span></div><div><b>{payment.net_entitlement_pence === null ? "Fee reconciliation pending" : money(payment.net_entitlement_pence)}</b><small>£22 gross · £20 minimum net</small></div></article>)}</section>
+          {payments.length === 0 ? <p className="referee-muted">No approved report allocations yet.</p> : payments.map((payment) => <article className="referee-payment-row" key={payment.report_id}><div><strong>Gameweek {payment.gameweek}</strong><span>{payment.status.replaceAll("_"," ")}</span></div><div><b>{payment.net_entitlement_pence === null ? "Fee reconciliation pending" : money(payment.net_entitlement_pence)}</b><small>£22 gross · £20 minimum net</small></div></article>)}
+          <h3>Career milestone rewards</h3>
+          {milestoneRewards.length === 0 ? <p className="referee-muted">No milestone rewards unlocked yet. The first reward unlocks at 50 approved games.</p> : milestoneRewards.map((reward) => <article className="referee-payment-row" key={reward.reward_id}><div><strong>{reward.milestone_games}-game milestone</strong><span>{reward.status.replaceAll("_"," ")}</span></div><div><b>{money(reward.reward_amount_pence)}</b><small>{reward.paid_at ? `Paid ${dateTime(reward.paid_at)}` : reward.approved_at ? `Approved ${dateTime(reward.approved_at)} · awaiting payment` : "Awaiting administrator confirmation"}</small></div></article>)}
+        </section>
       </section>}
     </section>
     <nav className="referee-bottom-nav" aria-label="Referee navigation">
