@@ -51,6 +51,17 @@ function AdminAnalyticsPage() {
     if (authStatus === "unauthenticated") void navigate({ to: "/sign-in", replace: true });
   }, [authStatus, navigate]);
 
+  const trendSeasonDefinitions = useMemo(() => {
+    const locationByLeague = new Map(setup.leagues.map((league) => [league.id, league.location_id]));
+    return setup.seasons
+      .filter((season) => {
+        const seasonLocationId = season.location_id ?? locationByLeague.get(season.league_id);
+        return (!locationId || seasonLocationId === locationId) && (!leagueId || season.league_id === leagueId);
+      })
+      .sort((a, b) => (a.starts_on ?? "").localeCompare(b.starts_on ?? ""))
+      .slice(-6);
+  }, [leagueId, locationId, setup]);
+
   useEffect(() => {
     if (authStatus !== "authenticated") return;
     let alive = true;
@@ -127,14 +138,7 @@ function AdminAnalyticsPage() {
       setDashboard(dashboardResult.data as Dashboard);
       setFixtures((fixtureResult.data ?? []) as Fixture[]);
 
-      const locationByLeague = new Map(setup.leagues.map((league) => [league.id, league.location_id]));
-      const trendSeasons = setup.seasons
-        .filter((season) => {
-          const seasonLocationId = season.location_id ?? locationByLeague.get(season.league_id);
-          return (!locationId || seasonLocationId === locationId) && (!leagueId || season.league_id === leagueId);
-        })
-        .sort((a, b) => (a.starts_on ?? "").localeCompare(b.starts_on ?? ""))
-        .slice(-6);
+      const trendSeasons = trendSeasonDefinitions;
       const requestedSeasonIds = [...new Set([
         ...trendSeasons.map((season) => season.id),
         ...(seasonId ? [seasonId] : []),
@@ -143,9 +147,10 @@ function AdminAnalyticsPage() {
         const { data, error: statsRpcError } = await getSupabaseClient().rpc("get_admin_season_statistics", { p_season_id: requestedSeasonId });
         return { seasonId: requestedSeasonId, data: data as SeasonStats | null, error: statsRpcError };
       }));
+      const trendSeasonIds = new Set(trendSeasonDefinitions.map((season) => season.id));
       const successfulTrends: SeasonStatsSnapshot[] = trendResults
-        .filter((result): result is { seasonId: string; data: SeasonStats; error: null } => !result.error && Boolean(result.data))
-        .map((result) => ({ seasonId: result.seasonId, stats: result.data }));
+        .filter((result) => !result.error && Boolean(result.data) && trendSeasonIds.has(result.seasonId))
+        .map((result) => ({ seasonId: result.seasonId, stats: result.data as SeasonStats }));
       setSeasonTrendSnapshots(successfulTrends);
       const failedTrendCount = trendResults.filter((result) => result.error).length;
       setSeasonTrendError(failedTrendCount > 0 ? "Some season trend data could not be loaded; the comparison may be partial." : "");
@@ -192,7 +197,7 @@ function AdminAnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }, [authStatus, contextReady, leagueId, locationId, seasonId, setup]);
+  }, [authStatus, contextReady, leagueId, locationId, seasonId, trendSeasonDefinitions]);
 
   useEffect(() => {
     if (contextReady) void loadContextData();
@@ -208,11 +213,8 @@ function AdminAnalyticsPage() {
   );
   const financeTotals = useMemo(() => aggregateFinanceTotals(financeRows), [financeRows]);
   const seasonTrends = useMemo(
-    () => buildSeasonTrends(setup.seasons.filter((season) => {
-      const seasonLocationId = season.location_id ?? setup.leagues.find((league) => league.id === season.league_id)?.location_id;
-      return (!locationId || seasonLocationId === locationId) && (!leagueId || season.league_id === leagueId);
-    }).slice(-6).concat(seasonId && !setup.seasons.slice(-6).some((season) => season.id === seasonId) ? setup.seasons.filter((season) => season.id === seasonId) : []), seasonTrendSnapshots),
-    [leagueId, locationId, seasonId, seasonTrendSnapshots, setup],
+    () => buildSeasonTrends(trendSeasonDefinitions, seasonTrendSnapshots),
+    [seasonTrendDefinitions, seasonTrendSnapshots],
   );
   const latestTrend = seasonTrends[seasonTrends.length - 1] ?? null;
 
