@@ -116,6 +116,8 @@ export function setAnalyticsIdentity(userId: string | null): void {
   }
 
   if (activeUserId === userId) return;
+  // Never reuse an anonymous identifier when the authenticated account changes.
+  if (activeUserId && activeUserId !== userId) rotateAnonymousId();
   const previousAnonymousId = getAnonymousId();
   activeUserId = userId;
   void capture("$identify", userId, {
