@@ -92,6 +92,10 @@ Deno.serve(async(req)=>{
       if(error)return json({error:"Expired checkout could not be reconciled"},500,headers);
       continue;
     }
+    const sessionMetadata=session.metadata as Record<string,unknown>|undefined;
+    if(sessionMetadata?.team_fixture_payment_obligation_id!==obligation.id){
+      return json({error:"Stripe Checkout metadata does not match the payment record"},409,headers);
+    }
     if(session.status==="complete"&&session.payment_status==="paid"){
       const paymentIntentId=typeof session.payment_intent==="string"?session.payment_intent:"";
       if(!paymentIntentId)return json({error:"Completed checkout has no PaymentIntent; gameweek was not changed"},409,headers);
