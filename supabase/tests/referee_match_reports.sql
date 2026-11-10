@@ -16,6 +16,7 @@ declare
   v_application uuid;
   v_fixture_one uuid;
   v_fixture_two uuid;
+  v_fixture_three uuid;
   v_assignment public.referee_fixture_assignments;
   v_referee_identity constant uuid:='95000000-0000-4000-8000-000000000005';
   v_home_identity constant uuid:='95000000-0000-4000-8000-000000000006';
@@ -24,6 +25,8 @@ declare
   v_away_sheet_one uuid;
   v_home_sheet_two uuid;
   v_away_sheet_two uuid;
+  v_home_sheet_three uuid;
+  v_away_sheet_three uuid;
   v_report_one uuid;
   v_report_two uuid;
   v_future_one timestamptz;
@@ -247,14 +250,28 @@ begin
     raise exception 'Administrative report incorrectly generated a referee payout';
   end if;
 
-  -- A player made inactive by the third strike cannot be added to another team sheet.
+  -- Create a future fixture for the disciplinary guard test. The prior fixtures
+  -- are completed, so their team sheets are correctly locked against amendments.
+  insert into public.fixtures(season_id,gameweek,fixture_number,home_team_id,away_team_id,venue_id,scheduled_at,status)
+  values(v_season,993,1,v_home_season_team,v_away_season_team,v_location,now()+interval '6 days','scheduled')
+  returning id into v_fixture_three;
+  insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)
+  values(v_fixture_three,v_home_season_team,v_admin,true) returning id into v_home_sheet_three;
+  insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)
+  values(v_fixture_three,v_away_season_team,v_admin,true) returning id into v_away_sheet_three;
+
+  -- The disciplinary trigger must reject an inactive player even on a future
+  -- sheet. Use the trusted service-role claim to isolate this trigger from the
+  -- separate captain/next-fixture authorization trigger.
+  perform set_config('request.jwt.claim.role','service_role',true);
   v_rejected:=false;
   begin
     insert into public.fixture_team_sheet_players(team_sheet_id,user_id,competition_player_id,role,is_goalkeeper,did_appear)
-    values(v_away_sheet_two,v_home_user,v_home_identity,'substitute',false,false);
+    values(v_home_sheet_three,v_home_user,v_home_identity,'substitute',false,false);
   exception when others then
     v_rejected:=sqlerrm like '%disciplinary strikes%';
   end;
+  perform set_config('request.jwt.claim.role','authenticated',true);
   if not v_rejected then raise exception 'The disciplinary team-sheet guard did not block the inactive player'; end if;
 
   -- Reactivation is audited and does not erase the permanent strike record.
