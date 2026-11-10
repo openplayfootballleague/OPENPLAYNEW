@@ -211,6 +211,27 @@ jobs:
             supabase/migrations/*_referee_approved_report_corrections.sql
           if-no-files-found: error
           retention-days: 1
+      - name: Generate secure messaging migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_secure_messaging_platform.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new secure_messaging_platform < supabase/drafts/secure_messaging_platform.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_secure_messaging_platform.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/secure_messaging_platform.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\\n' "$migration_file"
+      - name: Preserve CLI-generated secure messaging migration for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: secure-messaging-migration
+          path: supabase/migrations/*_secure_messaging_platform.sql
+          if-no-files-found: error
+          retention-days: 1
       - name: Verify unique migration versions before replay
         shell: bash
         run: |
@@ -342,6 +363,11 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/captain_next_required_fixture_integration_regression.sql
+
+      - name: Verify secure messaging permissions, team lifecycle, read receipts and moderation
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/secure_messaging_platform.sql
 
       - name: Verify Auth signup, email confirmation and password recovery
         shell: bash
