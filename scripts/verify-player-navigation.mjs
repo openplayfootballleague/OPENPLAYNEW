@@ -20,6 +20,7 @@ assert.ok(more.includes('access.player && <Link') && more.includes('to="/player"
 assert.ok(more.includes('access.captain && <Link') && more.includes('to="/captain"'), "Captain Hub must only appear for an active captain");
 assert.ok(more.includes('access.admin && <Link') && more.includes('to="/admin"'), "Admin Dashboard must only appear after the admin access check");
 assert.ok(more.includes('access.finance && <Link') && more.includes('to="/finance"'), "Finance Workspace must only appear after the finance access check");
+assert.ok(more.includes('access.referee && <Link') && more.includes('to="/referee"') && more.includes('referee_get_my_status') && more.includes('reporting_enabled === true'), "Referee Hub must only appear for an approved referee membership");
 assert.ok(more.includes('get_admin_context_preference') && more.includes('get_finance_options'), "More page must resolve protected workspace access from server-authorized RPCs");
 assert.ok(more.includes('Your account has basic-view access'), "Viewer accounts must receive the restricted basic-view explanation");
 assert.ok(readFileSync("src/routes/index.tsx", "utf8").includes("<PlayerBottomNavigation />"), "Public home must render the bottom navigation");
