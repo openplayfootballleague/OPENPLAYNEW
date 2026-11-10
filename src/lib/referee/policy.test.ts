@@ -110,3 +110,59 @@ describe("Open Play Phase 1 finance and discipline policy", () => {
     expect(getRefereeMilestone(500).nextMilestoneGames).toBeNull();
   });
 });
+
+
+describe("Open Play referee report workflow", () => {
+  it("closes initial referee reports 24 hours after the latest fixture", async () => {
+    const { assessRefereeReportSubmission } = await import("./policy");
+    const latestFixtureAt = "2026-11-10T20:00:00.000Z";
+    expect(assessRefereeReportSubmission({
+      actor: "assigned_referee",
+      status: "not_started",
+      latestFixtureAt,
+      assessedAt: "2026-11-11T20:00:00.000Z",
+    })).toMatchObject({ allowed: true, reason: "within_deadline" });
+    expect(assessRefereeReportSubmission({
+      actor: "assigned_referee",
+      status: "submitted",
+      latestFixtureAt,
+      assessedAt: "2026-11-11T20:00:00.001Z",
+    })).toMatchObject({ allowed: false, reason: "deadline_passed" });
+  });
+
+  it("allows admin takeover and rejected-report resubmission after the deadline", async () => {
+    const { assessRefereeReportSubmission } = await import("./policy");
+    const common = {
+      latestFixtureAt: "2026-11-10T20:00:00.000Z",
+      assessedAt: "2026-11-15T20:00:00.000Z",
+    };
+    expect(assessRefereeReportSubmission({
+      ...common,
+      actor: "admin",
+      status: "not_started",
+    })).toMatchObject({ allowed: true, reason: "admin_takeover" });
+    expect(assessRefereeReportSubmission({
+      ...common,
+      actor: "assigned_referee",
+      status: "rejected",
+    })).toMatchObject({ allowed: true, reason: "rejected_resubmission" });
+  });
+
+  it("prevents referee resubmission from changing an approved report", async () => {
+    const { assessRefereeReportSubmission } = await import("./policy");
+    expect(assessRefereeReportSubmission({
+      actor: "assigned_referee",
+      status: "approved",
+      latestFixtureAt: "2026-11-10T20:00:00.000Z",
+      assessedAt: "2026-11-10T21:00:00.000Z",
+    })).toMatchObject({ allowed: false, reason: "already_approved" });
+  });
+
+  it("assigns the agreed lifetime milestone titles and exactly five referee tabs", async () => {
+    const { getRefereeMilestoneTitle, REFEREE_NAVIGATION_TABS } = await import("./policy");
+    expect(getRefereeMilestoneTitle(49)).toBeNull();
+    expect(getRefereeMilestoneTitle(50)).toBe("Bronze Official");
+    expect(getRefereeMilestoneTitle(500)).toBe("Open Play Ambassador");
+    expect(REFEREE_NAVIGATION_TABS).toEqual(["Home", "Match Centre", "Teams", "Matchday", "More"]);
+  });
+});
