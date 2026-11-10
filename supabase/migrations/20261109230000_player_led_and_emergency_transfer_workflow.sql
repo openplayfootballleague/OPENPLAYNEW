@@ -1138,6 +1138,8 @@ begin
     raise exception 'Selected location was not found';
   end if;
 
+  perform public.assert_admin_location_context(v_location);
+
   return query
   select r.id,r.user_id,p.full_name,r.source_membership_id,
     coalesce(src.name,'Unattached'),dst.id,dst.name,se.name,l.name,
