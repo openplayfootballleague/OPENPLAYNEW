@@ -61,7 +61,7 @@ function MorePage() {
           .eq("status", "active"),
         supabase.rpc("get_admin_context_preference"),
         supabase.rpc("get_finance_options"),
-        supabase.from("referee_memberships").select("status").eq("user_id", session.user.id).eq("status", "active"),
+        refereeRpc.rpc("get_my_referee_portal_state"),
       ]);
 
       if (!active) return;
@@ -72,7 +72,7 @@ function MorePage() {
         captain: !membershipError && (memberships ?? []).some((membership) => membership.is_captain),
         admin: !adminResult.error && adminResult.data !== null,
         finance: !financeResult.error,
-        referee: !refereeResult.error && (refereeResult.data ?? []).length > 0,
+        referee: !refereeResult.error && (refereeResult.data as { membership?: { status?: string } | null } | null)?.membership?.status === "active",
       });
     }
 
