@@ -1,6 +1,6 @@
 # PostHog consent and environment setup
 
-Open Play uses the existing EU Cloud PostHog project only after a person explicitly opts in.
+Open Play uses the existing EU Cloud PostHog project only after a person explicitly opts in and the owner-controlled release flag is enabled. The feature flag is off by default so code deployment alone cannot start analytics.
 
 ## Required environment values
 
@@ -8,6 +8,7 @@ Set these as public build-time variables in the application build environment (C
 
 - `VITE_POSTHOG_KEY`: the project's public PostHog project API key.
 - `VITE_POSTHOG_HOST`: `https://eu.i.posthog.com` for the retained EU Cloud project.
+- `VITE_POSTHOG_CONSENT_ENABLED`: leave unset or `false` until the owner-approved privacy, safeguarding and legal release gates are complete; set to `true` only when the consent experience is approved for the intended age groups.
 
 The project API key is designed for browser capture and is not a secret. Never put a personal API key or a server-side management key in a `VITE_*` variable.
 
