@@ -542,10 +542,31 @@ function AdminRefereesPage() {
       setError(result.error.message);
       return;
     }
-    setNotice(decision === "approved"
-      ? "Match report approved. The official result, disciplinary events and team fines have been recorded."
-      : "Match report returned to the referee with your review reason.");
-    await Promise.all([loadReports(), loadApprovedReports()]);
+    if(decision==="approved"){
+      // Trigger the report's one-time Stripe transfer immediately after the
+      // approval transaction succeeds. The payout claim is locked/idempotent;
+      // ambiguous Stripe outcomes stay processing for webhook reconciliation.
+      const supabase=getSupabaseClient() as unknown as {
+        functions:{invoke(name:string,options?:Record<string,unknown>):Promise<{data:any;error:{message:string}|null}>};
+      };
+      const {data:transferData,error:transferError}=await supabase.functions.invoke("pay-referee-payout",{
+        body:{payout_type:"match_report",report_id:report.report_id},
+      });
+      if(transferError){
+        setNotice("Match report approved and result published. The automatic referee transfer could not be confirmed ("+
+          (transferData?.error??transferError.message)+"). Check the payout queue before any retry.");
+      }else if(transferData?.status==="processing"){
+        setNotice("Match report approved and result published. Stripe created the referee transfer; signed webhook reconciliation is still pending. Do not retry.");
+      }else if(transferData?.success===true&&transferData?.status==="transferred"){
+        setNotice("Match report approved and result published. The referee's £22 payment transfer was confirmed by Stripe.");
+      }else{
+        setNotice("Match report approved and result published. The referee payment requires attention: "+
+          (transferData?.error??"Stripe did not confirm a transfer.")+" Check Connect readiness and the payout queue.");
+      }
+    }else{
+      setNotice("Match report returned to the referee with your review reason.");
+    }
+    await Promise.all([loadReports(),loadApprovedReports(),loadPayouts()]);
   }
 
   async function decide(application: RefereeApplication, decision: "approved" | "rejected") {
