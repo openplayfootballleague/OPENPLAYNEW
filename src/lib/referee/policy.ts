@@ -181,7 +181,7 @@ export function getRefereeMilestone(approvedGames: number): {
   if (!Number.isSafeInteger(approvedGames) || approvedGames < 0) {
     throw new RangeError("Approved game count must be a non-negative integer");
   }
-  const completedMilestones = Math.floor(approvedGames / REFEREE_MILESTONE_INTERVAL);
+  const completedMilestones = Math.min(10, Math.floor(approvedGames / REFEREE_MILESTONE_INTERVAL));
   const nextMilestoneGames = completedMilestones >= 10 ? null : (completedMilestones + 1) * REFEREE_MILESTONE_INTERVAL;
   const progressGames = nextMilestoneGames === null ? 0 : approvedGames % REFEREE_MILESTONE_INTERVAL;
   return {
