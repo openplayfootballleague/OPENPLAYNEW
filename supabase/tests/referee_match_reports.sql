@@ -138,6 +138,10 @@ begin
   if position('enqueue_notification_event' in v_definition)=0 then
     raise exception 'Referee assignment changes must queue notifications for affected officials';
   end if;
+  if position('referee_availability' in v_definition)=0 or position('Europe/London' in v_definition)=0
+    or position('No matching referee availability' in v_definition)=0 then
+    raise exception 'Referee assignment must respect availability or require an audited override reason';
+  end if;
   select pg_get_functiondef('public.admin_remove_referee_assignment(uuid,text)'::regprocedure) into v_definition;
   if position('enqueue_notification_event' in v_definition)=0 then
     raise exception 'Referee assignment removal must queue a notification';
