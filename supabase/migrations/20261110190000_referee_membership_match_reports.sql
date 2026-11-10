@@ -839,6 +839,112 @@ $$;
 revoke all on function public.admin_review_referee_match_report(uuid,text,text) from public, anon;
 grant execute on function public.admin_review_referee_match_report(uuid,text,text) to authenticated;
 
+
+create or replace function public.referee_get_my_status()
+returns table(
+  application_id uuid,application_status text,application_created_at timestamptz,
+  application_review_reason text,membership_status text,membership_approved_at timestamptz
+)
+language plpgsql stable security definer set search_path = ''
+as $status$
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  return query
+  select a.id,a.status,a.created_at,a.review_reason,rm.status,rm.approved_at
+  from (select auth.uid() as user_id) actor
+  left join lateral (
+    select ra.* from public.referee_applications ra
+    where ra.user_id=actor.user_id order by ra.created_at desc limit 1
+  ) a on true
+  left join public.referee_memberships rm on rm.user_id=actor.user_id;
+end;
+$status$;
+revoke all on function public.referee_get_my_status() from public,anon;
+grant execute on function public.referee_get_my_status() to authenticated;
+
+create or replace function public.referee_get_active_locations()
+returns table(location_id uuid,location_name text,town text,region text)
+language plpgsql stable security definer set search_path = ''
+as $locations$
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  return query
+  select l.id,l.name,l.town,l.region
+  from public.locations l where l.is_active is true order by l.name;
+end;
+$locations$;
+revoke all on function public.referee_get_active_locations() from public,anon;
+grant execute on function public.referee_get_active_locations() to authenticated;
+
+create or replace function public.referee_get_match_report(p_fixture_id uuid)
+returns jsonb
+language plpgsql stable security definer set search_path = ''
+as $report$
+declare
+  v_actor uuid:=auth.uid(); v_location uuid; v_report public.referee_match_reports;
+begin
+  if v_actor is null then raise exception 'Authentication required'; end if;
+  if not public.is_active_referee() and not public.has_platform_role() then
+    raise exception 'Approved referee membership or administrator permission required';
+  end if;
+  select lg.location_id into v_location
+  from public.fixtures f join public.seasons s on s.id=f.season_id join public.leagues lg on lg.id=s.league_id
+  where f.id=p_fixture_id;
+  if v_location is null then raise exception 'Fixture not found'; end if;
+  if public.is_active_referee() and not exists(
+    select 1 from public.fixture_referee_assignments a
+    where a.fixture_id=p_fixture_id and a.referee_user_id=v_actor and a.removed_at is null
+  ) then raise exception 'You are not assigned to this fixture'; end if;
+  if public.has_platform_role() and not public.can_administer_location(v_location) then
+    raise exception 'You are not assigned to this location';
+  end if;
+  select * into v_report from public.referee_match_reports r where r.fixture_id=p_fixture_id;
+  if not found then return null; end if;
+  return jsonb_build_object(
+    'report_id',v_report.id,'status',v_report.status,'home_score',v_report.home_score,
+    'away_score',v_report.away_score,'completed_at',v_report.completed_at,
+    'match_summary',v_report.match_summary,'version',v_report.version,
+    'review_reason',v_report.review_reason,
+    'goals',(select coalesce(jsonb_agg(jsonb_build_object(
+      'id',g.id,'credited_team_id',g.credited_team_id,'scorer_team_id',g.scorer_team_id,
+      'scorer_competition_player_id',g.scorer_competition_player_id,'is_own_goal',g.is_own_goal
+    ) order by g.created_at),'[]'::jsonb) from public.referee_match_report_goals g where g.report_id=v_report.id),
+    'incidents',(select coalesce(jsonb_agg(jsonb_build_object(
+      'id',i.id,'team_id',i.team_id,'recipient_category',i.recipient_category,
+      'competition_player_id',i.competition_player_id,'squad_number_snapshot',i.squad_number_snapshot,
+      'card_outcome',i.card_outcome,'fine_amount_pence',i.fine_amount_pence
+    ) order by i.created_at),'[]'::jsonb) from public.referee_match_report_incidents i where i.report_id=v_report.id)
+  );
+end;
+$report$;
+revoke all on function public.referee_get_match_report(uuid) from public,anon;
+grant execute on function public.referee_get_match_report(uuid) to authenticated;
+
+create or replace function public.referee_get_payment_entitlements()
+returns table(
+  report_id uuid,fixture_id uuid,gameweek integer,gross_allocation_pence integer,
+  minimum_net_pence integer,actual_deductions_pence integer,platform_top_up_pence integer,
+  net_entitlement_pence integer,status text,created_at timestamptz
+)
+language plpgsql stable security definer set search_path = ''
+as $payments$
+begin
+  if auth.uid() is null or not exists(
+    select 1 from public.referee_memberships rm where rm.user_id=auth.uid()
+  ) then raise exception 'Referee membership required'; end if;
+  return query
+  select e.report_id,r.fixture_id,f.gameweek,e.gross_allocation_pence,e.minimum_net_pence,
+    e.actual_deductions_pence,e.platform_top_up_pence,e.net_entitlement_pence,e.status,e.created_at
+  from public.referee_payment_entitlements e
+  join public.referee_match_reports r on r.id=e.report_id
+  join public.fixtures f on f.id=r.fixture_id
+  where e.referee_user_id=auth.uid()
+  order by e.created_at desc;
+end;
+$payments$;
+revoke all on function public.referee_get_payment_entitlements() from public,anon;
+grant execute on function public.referee_get_payment_entitlements() to authenticated;
+
 comment on table public.referee_applications is
   'Referee applications are separate from platform user_roles; approval is required before referee membership and portal access.';
 comment on table public.fixture_referee_assignments is
