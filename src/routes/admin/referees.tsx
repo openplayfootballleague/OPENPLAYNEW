@@ -106,8 +106,33 @@ type AdminReportOptions = {
   home_players: AdminReportPlayer[];
   away_players: AdminReportPlayer[];
 };
+type RefereePayoutObligation = {
+  payout_id: string;
+  report_id: string;
+  referee_user_id: string | null;
+  referee_name: string;
+  referee_email: string | null;
+  fixture_id: string;
+  gameweek: number;
+  fixture_number: number;
+  scheduled_at: string;
+  location_id: string;
+  location_name: string;
+  gross_allocation_pence: number;
+  deductions_pence: number;
+  referee_net_pence: number;
+  open_play_top_up_pence: number;
+  status: "pending_connect" | "transferred" | "failed" | "cancelled";
+  stripe_transfer_id: string | null;
+  created_at: string;
+  transferred_at: string | null;
+};
 
 const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const formatPence = (value: number) => new Intl.NumberFormat("en-GB", {
+  style: "currency",
+  currency: "GBP",
+}).format(value / 100);
 
 export const Route = createFileRoute("/admin/referees")({ component: AdminRefereesPage });
 
@@ -132,6 +157,9 @@ function AdminRefereesPage() {
   const [reports, setReports] = useState<RefereeMatchReport[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [reportReasons, setReportReasons] = useState<Record<string, string>>({});
+  const [payouts, setPayouts] = useState<RefereePayoutObligation[]>([]);
+  const [payoutsLoading, setPayoutsLoading] = useState(false);
+  const [payoutStatusFilter, setPayoutStatusFilter] = useState("pending_connect");
   const [reportableFixtures, setReportableFixtures] = useState<AdminReportableFixture[]>([]);
   const [reportableFixturesLoading, setReportableFixturesLoading] = useState(false);
   const [selectedAdminReportFixtureId, setSelectedAdminReportFixtureId] = useState("");
@@ -199,6 +227,24 @@ function AdminRefereesPage() {
   }, []);
 
   useEffect(() => { void loadReports(); }, [loadReports]);
+
+  const loadPayouts = useCallback(async () => {
+    setPayoutsLoading(true);
+    const rpc = getSupabaseClient() as unknown as RpcClient;
+    const result = await rpc.rpc("admin_list_referee_report_payouts", {
+      p_status: payoutStatusFilter,
+      p_location_id: null,
+    });
+    if (result.error) {
+      setError(result.error.message);
+      setPayouts([]);
+    } else {
+      setPayouts((result.data ?? []) as RefereePayoutObligation[]);
+    }
+    setPayoutsLoading(false);
+  }, [payoutStatusFilter]);
+
+  useEffect(() => { void loadPayouts(); }, [loadPayouts]);
 
   const loadReportableFixtures = useCallback(async () => {
     setReportableFixturesLoading(true);
@@ -652,6 +698,35 @@ function AdminRefereesPage() {
             </article>
           ))}
           <button type="button" disabled={reportsLoading} onClick={() => void loadReports()}>REFRESH MATCH REPORTS</button>
+        </section>
+        <section className="hub-memberships">
+          <div className="hub-section-heading">
+            <span className="hub-kicker">REFEREE PAYOUT OBLIGATIONS</span>
+            <select aria-label="Filter referee payouts" value={payoutStatusFilter} onChange={(event) => setPayoutStatusFilter(event.target.value)}>
+              <option value="pending_connect">Pending Connect</option>
+              <option value="transferred">Transferred</option>
+              <option value="failed">Failed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="all">All statuses</option>
+            </select>
+          </div>
+          <p>Read-only location-scoped payout records created by approved referee reports. A pending obligation is not a payment; transfer status must only change after Stripe Connect confirmation and webhook reconciliation.</p>
+          {payoutsLoading ? <p className="form-note">Loading referee payout obligations…</p> : payouts.length === 0 ? (
+            <p className="form-note">No referee payout obligations match this status for your permitted locations.</p>
+          ) : payouts.map((payout) => (
+            <article className="admin-queue-row" key={payout.payout_id}>
+              <div>
+                <strong>{payout.referee_name} · {payout.status.replaceAll("_", " ").toUpperCase()}</strong>
+                <span>{payout.referee_email ?? "Referee account no longer available"}</span>
+                <small>{payout.location_name} · GW {payout.gameweek} · Fixture {payout.fixture_number}</small>
+                <small>{new Date(payout.scheduled_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })} · Created {new Date(payout.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</small>
+                <small>Gross {formatPence(payout.gross_allocation_pence)} · Deductions {formatPence(payout.deductions_pence)} · Referee net {formatPence(payout.referee_net_pence)} · Open Play top-up {formatPence(payout.open_play_top_up_pence)}</small>
+                {payout.stripe_transfer_id && <small>Stripe transfer reference: {payout.stripe_transfer_id}</small>}
+                {payout.transferred_at && <small>Transfer confirmed {new Date(payout.transferred_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</small>}
+              </div>
+            </article>
+          ))}
+          <button type="button" disabled={payoutsLoading} onClick={() => void loadPayouts()}>REFRESH PAYOUT OBLIGATIONS</button>
         </section>
         <Link className="auth-switch" to="/admin">Back to Admin Dashboard</Link>
       </section>
