@@ -283,30 +283,50 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  v_request record;
+  v_expired_id uuid;
+  v_expired_user_id uuid;
 begin
   if new.is_locked is distinct from true then
     return new;
   end if;
 
-  with expired as (
+  -- Take the same player/league advisory lock as transfer creation and approval
+  -- before updating request rows. This gives sheet submission and approval a
+  -- deterministic first-commit-wins ordering without a row-lock inversion.
+  for v_request in
+    select r.id,r.user_id,r.league_id
+    from public.player_transfer_requests r
+    where r.status='pending'
+      and r.is_emergency=true
+      and r.target_fixture_id=new.fixture_id
+      and r.destination_season_team_id=new.season_team_id
+    order by r.user_id,r.league_id,r.id
+  loop
+    perform pg_catalog.pg_advisory_xact_lock(
+      pg_catalog.hashtextextended(v_request.user_id::text || ':' || v_request.league_id::text,0)
+    );
+
     update public.player_transfer_requests r
     set status='cancelled',
         resolved_at=now(),
         resolved_by=auth.uid(),
         resolution_reason='Destination club submitted its matchday team sheet; emergency request expired',
         updated_at=now()
-    where r.status='pending'
-      and r.is_emergency=true
-      and r.target_fixture_id=new.fixture_id
-      and r.destination_season_team_id=new.season_team_id
-    returning r.id,r.user_id
-  )
-  insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,after_data)
-  select auth.uid(),'player.transfer.expired_after_sheet_submission',
-    'player_transfer_request',expired.id::text,
-    'Destination club submitted its matchday team sheet',
-    jsonb_build_object('user_id',expired.user_id,'fixture_id',new.fixture_id,'season_team_id',new.season_team_id)
-  from expired;
+    where r.id=v_request.id and r.status='pending'
+    returning r.id,r.user_id into v_expired_id,v_expired_user_id;
+
+    if found then
+      insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,after_data)
+      values(
+        auth.uid(),'player.transfer.expired_after_sheet_submission',
+        'player_transfer_request',v_expired_id::text,
+        'Destination club submitted its matchday team sheet',
+        jsonb_build_object('user_id',v_expired_user_id,'fixture_id',new.fixture_id,'season_team_id',new.season_team_id)
+      );
+    end if;
+  end loop;
 
   return new;
 end;
