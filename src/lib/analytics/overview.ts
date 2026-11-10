@@ -119,7 +119,7 @@ export function buildLocationComparisons(
     );
     const fixtures = setup.fixtures.filter((fixture) => seasonIds.has(fixture.season_id));
     const results = fixtures.filter(isPublishedResult);
-    return {
+    return [{
       locationId: location.id,
       locationName: location.name,
       seasons: seasons.length,
