@@ -847,7 +847,7 @@ function AdminRefereesPage() {
               <option value="all">All statuses</option>
             </select>
           </div>
-          <p>Read-only location-scoped payout records created by approved referee match reports. Milestone rewards are tracked separately and are not included in this view. A pending obligation is not a payment; transfer status must only change after Stripe Connect confirmation and webhook reconciliation.</p>
+          <p>Location-scoped referee match payments. Transfers are test-mode only. A payout can be sent only when Stripe confirms the referee account has both transfers and bank payouts enabled; failed transfers can be retried, while processing transfers must be reconciled before another attempt.</p>
           {payoutsLoading ? <p className="form-note">Loading referee payout obligations…</p> : payouts.length === 0 ? (
             <p className="form-note">No referee payout obligations match this status for your permitted locations.</p>
           ) : payouts.map((payout) => (
@@ -859,11 +859,44 @@ function AdminRefereesPage() {
                 <small>{new Date(payout.scheduled_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })} · Created {new Date(payout.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</small>
                 <small>Gross {formatPence(payout.gross_allocation_pence)} · Deductions {formatPence(payout.deductions_pence)} · Referee net {formatPence(payout.referee_net_pence)} · Open Play top-up {formatPence(payout.open_play_top_up_pence)}</small>
                 {payout.stripe_transfer_id && <small>Stripe transfer reference: {payout.stripe_transfer_id}</small>}
+                <small>Connect: {payout.connect_status.replaceAll("_"," ")} · Transfers {payout.transfers_enabled ? "enabled" : "disabled"} · Bank payouts {payout.payouts_enabled ? "enabled" : "disabled"} · Attempts {payout.transfer_attempts}</small>
+                {payout.failure_reason && <small>Last transfer failure: {payout.failure_reason}</small>}
+                {payout.status==="processing" && <small>Transfer processing — do not retry until Stripe reconciliation completes.</small>}
                 {payout.transferred_at && <small>Transfer confirmed {new Date(payout.transferred_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</small>}
+                {(payout.status==="pending_connect"||payout.status==="failed")&&payout.connect_status==="enabled"&&payout.transfers_enabled&&payout.payouts_enabled&&(
+                  <button type="button" disabled={busy===`referee-payout:${payout.payout_id}`} onClick={()=>void sendRefereePayout("match_report",payout.payout_id)}>
+                    {busy===`referee-payout:${payout.payout_id}`?"SENDING…":payout.status==="failed"?"RETRY REFEREE TRANSFER":"SEND REFEREE PAYMENT"}
+                  </button>
+                )}
               </div>
             </article>
           ))}
           <button type="button" disabled={payoutsLoading} onClick={() => void loadPayouts()}>REFRESH PAYOUT OBLIGATIONS</button>
+        </section>
+        <section className="hub-memberships">
+          <div className="hub-section-heading"><span className="hub-kicker">REFEREE MILESTONE REWARDS · CONNECT</span><span className="hub-count">{milestoneRewards.length}</span></div>
+          <p>Milestone rewards are separate £50 transfers for each approved 50-game milestone. The same verified Stripe Connect account and transfer safeguards apply.</p>
+          {milestoneRewardsLoading ? <p className="form-note">Loading milestone rewards…</p> : milestoneRewards.length===0 ? (
+            <p className="form-note">No referee milestone rewards are currently recorded.</p>
+          ) : milestoneRewards.map((reward)=>(
+            <article className="admin-queue-row" key={reward.reward_id}>
+              <div>
+                <strong>{reward.referee_name} · {formatPence(reward.amount_pence)} · Milestone {reward.milestone_number}</strong>
+                <span>{reward.approved_games} approved games · {reward.status.replaceAll("_"," ").toUpperCase()}</span>
+                <small>Connect: {reward.connect_status.replaceAll("_"," ")} · Transfers {reward.transfers_enabled?"enabled":"disabled"} · Bank payouts {reward.payouts_enabled?"enabled":"disabled"} · Attempts {reward.transfer_attempts}</small>
+                {reward.failure_reason&&<small>Last transfer failure: {reward.failure_reason}</small>}
+                {reward.stripe_transfer_id&&<small>Stripe transfer reference: {reward.stripe_transfer_id}</small>}
+                {reward.transferred_at&&<small>Transfer confirmed {new Date(reward.transferred_at).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"})}</small>}
+                {reward.status==="processing"&&<small>Transfer processing — do not retry until Stripe reconciliation completes.</small>}
+                {(reward.status==="pending_connect"||reward.status==="failed")&&reward.connect_status==="enabled"&&reward.transfers_enabled&&reward.payouts_enabled&&(
+                  <button type="button" disabled={busy===`referee-payout:${reward.reward_id}`} onClick={()=>void sendRefereePayout("milestone",reward.reward_id)}>
+                    {busy===`referee-payout:${reward.reward_id}`?"SENDING…":reward.status==="failed"?"RETRY MILESTONE TRANSFER":"SEND MILESTONE REWARD"}
+                  </button>
+                )}
+              </div>
+            </article>
+          ))}
+          <button type="button" disabled={milestoneRewardsLoading} onClick={()=>void loadMilestoneRewards()}>REFRESH MILESTONE REWARDS</button>
         </section>
         <Link className="auth-switch" to="/admin">Back to Admin Dashboard</Link>
       </section>
