@@ -195,6 +195,9 @@ begin
   if v_report<>v_message_two then raise exception 'Duplicate open reports were not deduplicated'; end if;
 
   perform public.block_message_user(v_player_b);
+  select count(*) into v_count from public.get_my_blocked_message_users()
+  where user_id=v_player_b;
+  if v_count<>1 then raise exception 'Blocked-member list did not include the blocked player'; end if;
   execute 'reset role';
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_player_b::text,true);
@@ -243,6 +246,9 @@ begin
   perform set_config('request.jwt.claim.sub',v_player_a::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_a::text,'role','authenticated')::text,true);
   perform public.unblock_message_user(v_player_b);
+  select count(*) into v_count from public.get_my_blocked_message_users()
+  where user_id=v_player_b;
+  if v_count<>0 then raise exception 'Unblocking did not remove the member from the block list'; end if;
   execute 'reset role';
 
   -- Leaving a team revokes access to its group history immediately.
