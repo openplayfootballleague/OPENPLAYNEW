@@ -37,7 +37,7 @@ describe("admin analytics aggregation", () => {
       pending_team_applications: 1,
       pending_membership_requests: 3,
       open_seasons: 1,
-    }, [setup.fixtures[0]], { locationId: "loc-a", leagueId: "league-a", seasonId: "season-a" });
+    }, [setup.fixtures[0]], { locationId: "loc-a", leagueId: "league-a", seasonId: "season-a", fromDate: "", toDate: "" });
 
     expect(result).toMatchObject({
       locations: 1,
