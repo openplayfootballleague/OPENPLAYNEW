@@ -111,6 +111,9 @@ assert.ok(reportReview.includes('report_id:report.report_id'), "The approval tri
 assert.ok(refereeConnectSql.includes("onboarding_status<>'enabled' or (details_submitted and transfers_enabled)"), "Transfer readiness must not depend on bank-payout enablement");
 assert.ok(reportClaim.includes("not v_account.transfers_enabled then"), "Match transfers must require the transfers capability");
 assert.ok(!reportClaim.includes("not v_account.payouts_enabled"), "Bank-payout enablement must not block connected-balance transfers");
+assert.ok(adminReferees.includes("payout.transfers_enabled") && !adminReferees.includes('payout.transfers_enabled&&payout.payouts_enabled'), "Match-report send/retry controls must not require bank-payout enablement");
+assert.ok(adminReferees.includes("reward.transfers_enabled") && !adminReferees.includes('reward.transfers_enabled&&reward.payouts_enabled'), "Milestone transfer controls must not require bank-payout enablement");
+assert.ok(adminReferees.includes("bank-payout enablement is separate"), "Admin payout guidance must distinguish connected-balance transfers from later bank payouts");
 
 const refereeConnectWebhook = readFileSync("supabase/functions/referee-connect-webhook/index.ts", "utf8");
 assert.ok(refereeConnectWebhook.includes('req.headers.get("stripe-signature")') && refereeConnectWebhook.includes("verifyStripeSignature(rawBody,signature,secret)"), "Connect webhook must verify the raw-body Stripe signature");
