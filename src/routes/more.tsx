@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
+import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 import { getSupabaseClient } from "../lib/supabase/client";
 
 type MoreAccess = {
@@ -134,7 +134,7 @@ function MorePage() {
         </section>
         <Link className="auth-switch" to="/">Back to Open Play home</Link>
       </section>
-      <PlayerBottomNavigation />
+      <RefereeBottomNavigation />
     </main>
   );
 }
