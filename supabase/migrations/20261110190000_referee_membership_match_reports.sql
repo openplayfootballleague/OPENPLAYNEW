@@ -311,6 +311,7 @@ as $feature_set$
 declare v_actor uuid:=auth.uid(); v_flag public.platform_feature_flags; v_before boolean;
 begin
   if v_actor is null or not public.has_global_admin_role() then raise exception 'Global administrator permission required'; end if;
+  if p_enabled is null then raise exception 'A referee reporting enabled/disabled value is required'; end if;
   if p_reason is null or length(btrim(p_reason))<5 then raise exception 'Enter a reason of at least 5 characters'; end if;
   select enabled into v_before from public.platform_feature_flags where feature_key='referee_reporting' for update;
   update public.platform_feature_flags set enabled=p_enabled,updated_by=v_actor,updated_at=now(),reason=btrim(p_reason)
