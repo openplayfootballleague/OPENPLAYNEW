@@ -132,13 +132,16 @@ create table public.referee_match_report_goals (
   scorer_team_id uuid references public.season_teams(id) on delete restrict,
   scorer_competition_player_id uuid references public.competition_player_identities(id) on delete restrict,
   is_own_goal boolean not null default false,
+  is_unattributed boolean not null default false,
   created_at timestamptz not null default now(),
   constraint referee_report_goal_identity_check check (
-    (is_own_goal is true)
-    or (scorer_team_id is not null and scorer_competition_player_id is not null and scorer_team_id = credited_team_id)
+    (is_unattributed is true and is_own_goal is false and scorer_team_id is null and scorer_competition_player_id is null)
+    or (is_own_goal is true)
+    or (is_own_goal is false and is_unattributed is false
+      and scorer_team_id is not null and scorer_competition_player_id is not null and scorer_team_id = credited_team_id)
   ),
   constraint referee_report_own_goal_team_check check (
-    is_own_goal is false or scorer_team_id is null or scorer_team_id <> credited_team_id
+    is_own_goal is false or (is_unattributed is false and (scorer_team_id is null or scorer_team_id <> credited_team_id))
   )
 );
 create index referee_report_goals_report_idx on public.referee_match_report_goals(report_id);
@@ -540,7 +543,7 @@ declare
   v_actor uuid:=auth.uid(); v_fixture public.fixtures; v_assignment public.fixture_referee_assignments;
   v_report public.referee_match_reports; v_report_id uuid; v_version integer;
   v_goal jsonb; v_incident jsonb; v_credited_team uuid; v_scorer_team uuid;
-  v_competition_player uuid; v_recipient text; v_card text; v_team uuid; v_fine integer;
+  v_competition_player uuid; v_recipient text; v_card text; v_team uuid; v_fine integer; v_unattributed boolean;
   v_role public.lineup_role; v_squad_number smallint;
   v_home_count integer; v_away_count integer; v_is_referee boolean;
 begin
@@ -572,7 +575,7 @@ begin
     select * into v_assignment from public.fixture_referee_assignments a
     where a.fixture_id=p_fixture_id and a.removed_at is null for update;
   end if;
-  if not exists (
+  if v_is_referee and not exists (
     select 1 from public.fixture_team_sheets sh
     where sh.fixture_id=p_fixture_id and sh.season_team_id in (v_fixture.home_team_id,v_fixture.away_team_id)
       and sh.is_locked is true and sh.submitted_at is not null
@@ -610,8 +613,16 @@ begin
     v_credited_team:=nullif(v_goal->>'credited_team_id','')::uuid;
     v_scorer_team:=nullif(v_goal->>'scorer_team_id','')::uuid;
     v_competition_player:=nullif(v_goal->>'scorer_competition_player_id','')::uuid;
+    v_unattributed:=coalesce((v_goal->>'is_unattributed')::boolean,false);
     if v_credited_team not in (v_fixture.home_team_id,v_fixture.away_team_id) then raise exception 'Goal credited to a team outside this fixture'; end if;
-    if coalesce((v_goal->>'is_own_goal')::boolean,false) then
+    if v_unattributed then
+      if not p_admin_override then raise exception 'Only an administrator may enter an unattributed goal'; end if;
+      if coalesce((v_goal->>'is_own_goal')::boolean,false) or v_scorer_team is not null or v_competition_player is not null then
+        raise exception 'An unattributed goal cannot include a scorer or own-goal identity';
+      end if;
+      insert into public.referee_match_report_goals(report_id,credited_team_id,is_own_goal,is_unattributed)
+      values(v_report_id,v_credited_team,false,true);
+    elsif coalesce((v_goal->>'is_own_goal')::boolean,false) then
       if v_scorer_team is not null and v_scorer_team not in (v_fixture.home_team_id,v_fixture.away_team_id) then raise exception 'Own-goal player team is outside this fixture'; end if;
       if v_scorer_team=v_credited_team then raise exception 'An own goal must be credited to the opposing team'; end if;
       if v_competition_player is not null then
@@ -621,8 +632,8 @@ begin
             and tsp.competition_player_id=v_competition_player
         ) then raise exception 'Own-goal identity must belong to the opposing submitted team sheet'; end if;
       end if;
-      insert into public.referee_match_report_goals(report_id,credited_team_id,scorer_team_id,scorer_competition_player_id,is_own_goal)
-      values(v_report_id,v_credited_team,nullif(v_scorer_team,v_credited_team),v_competition_player,true);
+      insert into public.referee_match_report_goals(report_id,credited_team_id,scorer_team_id,scorer_competition_player_id,is_own_goal,is_unattributed)
+      values(v_report_id,v_credited_team,nullif(v_scorer_team,v_credited_team),v_competition_player,true,false);
     else
       if v_scorer_team is distinct from v_credited_team or v_competition_player is null then
         raise exception 'A normal goal requires a scorer from the team receiving the goal credit';
@@ -632,8 +643,8 @@ begin
         where sh.fixture_id=p_fixture_id and sh.season_team_id=v_scorer_team and sh.is_locked
           and tsp.competition_player_id=v_competition_player
       ) then raise exception 'Goalscorer must be selected from the relevant submitted team sheet'; end if;
-      insert into public.referee_match_report_goals(report_id,credited_team_id,scorer_team_id,scorer_competition_player_id,is_own_goal)
-      values(v_report_id,v_credited_team,v_scorer_team,v_competition_player,false);
+      insert into public.referee_match_report_goals(report_id,credited_team_id,scorer_team_id,scorer_competition_player_id,is_own_goal,is_unattributed)
+      values(v_report_id,v_credited_team,v_scorer_team,v_competition_player,false,false);
     end if;
   end loop;
 
@@ -795,7 +806,7 @@ begin
 
     for v_goal in
       select g.* from public.referee_match_report_goals g
-      where g.report_id=p_report_id and g.is_own_goal is false
+      where g.report_id=p_report_id and g.is_own_goal is false and g.is_unattributed is false
     loop
       select tsp.user_id into v_user_id
       from public.fixture_team_sheets sh
@@ -911,7 +922,7 @@ begin
     'review_reason',v_report.review_reason,
     'goals',(select coalesce(jsonb_agg(jsonb_build_object(
       'id',g.id,'credited_team_id',g.credited_team_id,'scorer_team_id',g.scorer_team_id,
-      'scorer_competition_player_id',g.scorer_competition_player_id,'is_own_goal',g.is_own_goal,
+      'scorer_competition_player_id',g.scorer_competition_player_id,'is_own_goal',g.is_own_goal,'is_unattributed',g.is_unattributed,
       'credited_team_name',credited.name,'scorer_name',cpi.display_name
     ) order by g.created_at),'[]'::jsonb)
     from public.referee_match_report_goals g
