@@ -70,21 +70,21 @@ begin
     ),
     'home_players',coalesce((
       select jsonb_agg(jsonb_build_object(
-        'competition_player_id',tsp.competition_player_id,'full_name',identity.display_name,
+        'competition_player_id',tsp.competition_player_id,'full_name',player_identity.display_name,
         'role',tsp.role,'is_goalkeeper',tsp.is_goalkeeper,
         'disciplinary_inactive',coalesce(player.disciplinary_inactive,false)
-      ) order by case when tsp.role='starter' then 0 else 1 end,identity.display_name)
+      ) order by case when tsp.role='starter' then 0 else 1 end,player_identity.display_name)
       from public.fixture_team_sheet_players tsp
-      join public.competition_player_identities identity on identity.id=tsp.competition_player_id
+      join public.competition_player_identities player_identity on player_identity.id=tsp.competition_player_id
       left join public.players player on player.competition_player_id=tsp.competition_player_id
       where tsp.team_sheet_id=v_home_sheet.id and tsp.role in ('starter','substitute')
     ),'[]'::jsonb),
     'away_players',coalesce((
       select jsonb_agg(jsonb_build_object(
-        'competition_player_id',tsp.competition_player_id,'full_name',identity.display_name,
+        'competition_player_id',tsp.competition_player_id,'full_name',player_identity.display_name,
         'role',tsp.role,'is_goalkeeper',tsp.is_goalkeeper,
         'disciplinary_inactive',coalesce(player.disciplinary_inactive,false)
-      ) order by case when tsp.role='starter' then 0 else 1 end,identity.display_name)
+      ) order by case when tsp.role='starter' then 0 else 1 end,player_identity.display_name)
       from public.fixture_team_sheet_players tsp
       join public.competition_player_identities identity on identity.id=tsp.competition_player_id
       left join public.players player on player.competition_player_id=tsp.competition_player_id
