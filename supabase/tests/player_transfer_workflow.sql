@@ -192,6 +192,14 @@ begin
   values(v_fixture_d,v_d_st,v_captain_d,now(),true)
   returning id into v_sheet_d;
 
+  -- Both sides of each fixture count as having an outstanding team sheet.
+  -- Mark the three opponents as submitted so only clubs B and C remain eligible.
+  insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,submitted_at,is_locked)
+  values
+    (v_fixture_b,v_opponent_b_st,v_opponent_b_captain,now(),true),
+    (v_fixture_c,v_opponent_c_st,v_opponent_c_captain,now(),true),
+    (v_fixture_d,v_opponent_d_st,v_opponent_d_captain,now(),true);
+
   -- A still-attached player cannot request a transfer.
   perform set_config('request.jwt.claim.sub',v_player::text,true);
   begin
