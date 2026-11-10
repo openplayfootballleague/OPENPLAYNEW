@@ -78,7 +78,6 @@ export const Route = createFileRoute("/referee")({ component: RefereeHubPage });
 function RefereeHubPage() {
   const navigate = useNavigate();
   const supabase = getSupabaseClient() as any;
-  const [userId, setUserId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -125,7 +124,6 @@ function RefereeHubPage() {
       await navigate({ to: "/sign-in", replace: true });
       return;
     }
-    setUserId(sessionData.session.user.id);
     const [{ data: statusRows, error: statusError }, { data: locationRows, error: locationError }] = await Promise.all([
       supabase.rpc("referee_get_my_status"),
       supabase.rpc("referee_get_active_locations"),
@@ -205,7 +203,7 @@ function RefereeHubPage() {
       })));
     }
     void loadReport();
-  }, [selectedFixtureId, fixtures.length]);
+  }, [selectedFixtureId, fixtures]);
 
   async function submitApplication(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
