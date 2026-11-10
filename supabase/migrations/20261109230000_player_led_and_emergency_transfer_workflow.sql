@@ -1129,8 +1129,7 @@ begin
 end;
 $$;
 
-revoke all on function public.admin_get_transfer_requests(text) from public,anon;
-grant execute on function public.admin_get_transfer_requests(text) to authenticated;
+revoke all on function public.admin_get_transfer_requests(text) from public,anon,authenticated;
 
 create or replace function public.admin_get_transfer_requests_contextual(
   p_status text default 'pending',
