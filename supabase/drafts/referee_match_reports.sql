@@ -687,6 +687,7 @@ begin
       'home_scorers',to_jsonb(v_report.home_scorers),'away_scorers',to_jsonb(v_report.away_scorers),
       'home_substitute_appearances',to_jsonb(v_report.home_substitute_appearances),
       'away_substitute_appearances',to_jsonb(v_report.away_substitute_appearances),
+      'disciplinary_events',v_report.disciplinary_events,
       'match_write_up',v_report.match_write_up,'review_reason',v_report.review_reason
     ) end,
     'home_players',coalesce((
