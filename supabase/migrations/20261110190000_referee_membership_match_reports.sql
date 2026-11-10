@@ -1088,6 +1088,68 @@ $referee_availability$;
 revoke all on function public.admin_list_referee_availability(uuid) from public,anon;
 grant execute on function public.admin_list_referee_availability(uuid) to authenticated;
 
+
+-- Extend the existing admin scorer context to return permanent competition
+-- identity IDs and the locked squad-number snapshot used by referee reports.
+create or replace function public.get_admin_fixture_scorer_options(p_fixture_id uuid)
+returns jsonb
+language plpgsql stable security definer set search_path = ''
+as $scorer_options$
+declare
+  v_actor uuid:=auth.uid(); v_fixture public.fixtures;
+  v_home_sheet public.fixture_team_sheets; v_away_sheet public.fixture_team_sheets;
+begin
+  if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
+  if not public.can_administer_location((
+    select lg.location_id from public.fixtures f
+    join public.seasons se on se.id=f.season_id
+    join public.leagues lg on lg.id=se.league_id
+    where f.id=p_fixture_id
+  )) then raise exception 'You are not assigned to this location'; end if;
+  select * into v_fixture from public.fixtures where id=p_fixture_id;
+  if not found then raise exception 'Fixture not found'; end if;
+  select * into v_home_sheet from public.fixture_team_sheets
+  where fixture_id=p_fixture_id and season_team_id=v_fixture.home_team_id and is_locked=true;
+  select * into v_away_sheet from public.fixture_team_sheets
+  where fixture_id=p_fixture_id and season_team_id=v_fixture.away_team_id and is_locked=true;
+  return jsonb_build_object(
+    'fixture_id',p_fixture_id,
+    'home_team_id',v_fixture.home_team_id,
+    'home_team_name',(select name from public.season_teams where id=v_fixture.home_team_id),
+    'away_team_id',v_fixture.away_team_id,
+    'away_team_name',(select name from public.season_teams where id=v_fixture.away_team_id),
+    'home_sheet_submitted',v_home_sheet.id is not null,
+    'away_sheet_submitted',v_away_sheet.id is not null,
+    'home_players',coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'competition_player_id',tsp.competition_player_id,
+        'full_name',cpi.display_name,
+        'role',tsp.role,
+        'squad_number',tsp.squad_number_snapshot,
+        'is_goalkeeper',tsp.is_goalkeeper
+      ) order by case when tsp.role='starter' then 0 else 1 end,cpi.display_name)
+      from public.fixture_team_sheet_players tsp
+      join public.competition_player_identities cpi on cpi.id=tsp.competition_player_id
+      where tsp.team_sheet_id=v_home_sheet.id
+    ),'[]'::jsonb),
+    'away_players',coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'competition_player_id',tsp.competition_player_id,
+        'full_name',cpi.display_name,
+        'role',tsp.role,
+        'squad_number',tsp.squad_number_snapshot,
+        'is_goalkeeper',tsp.is_goalkeeper
+      ) order by case when tsp.role='starter' then 0 else 1 end,cpi.display_name)
+      from public.fixture_team_sheet_players tsp
+      join public.competition_player_identities cpi on cpi.id=tsp.competition_player_id
+      where tsp.team_sheet_id=v_away_sheet.id
+    ),'[]'::jsonb)
+  );
+end;
+$scorer_options$;
+revoke all on function public.get_admin_fixture_scorer_options(uuid) from public,anon;
+grant execute on function public.get_admin_fixture_scorer_options(uuid) to authenticated;
+
 comment on table public.referee_applications is
   'Referee applications are separate from platform user_roles; approval is required before referee membership and portal access.';
 comment on table public.fixture_referee_assignments is
