@@ -308,7 +308,7 @@ function AdminRefereesPage() {
     });
     setBusy("");
     if(transferError){
-      setError(transferError.message);
+      setError(data?.error ?? transferError.message);
       await Promise.all([loadPayouts(),loadMilestoneRewards()]);
       return;
     }
@@ -841,6 +841,7 @@ function AdminRefereesPage() {
             <span className="hub-kicker">MATCH REPORT PAYOUT OBLIGATIONS</span>
             <select aria-label="Filter referee payouts" value={payoutStatusFilter} onChange={(event) => setPayoutStatusFilter(event.target.value)}>
               <option value="pending_connect">Pending Connect</option>
+              <option value="processing">Processing</option>
               <option value="transferred">Transferred</option>
               <option value="failed">Failed</option>
               <option value="cancelled">Cancelled</option>
