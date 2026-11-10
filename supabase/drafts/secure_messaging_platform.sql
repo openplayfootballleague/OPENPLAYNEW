@@ -86,6 +86,9 @@ begin
   update public.message_conversations
   set title='Former member support request'
   where created_by=old.id and kind='support';
+  update public.message_reports
+  set reason='[Report removed after account erasure]'
+  where reporter_id=old.id;
   return old;
 end;
 $;
