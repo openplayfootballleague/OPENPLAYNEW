@@ -175,8 +175,9 @@ function RefereeHubPage() {
       setMatchSummary("");
       return;
     }
+    const fixtureForReport = selectedFixture;
     async function loadReport() {
-      const { data, error: reportError } = await supabase.rpc("referee_get_match_report", { p_fixture_id: selectedFixture.fixture_id });
+      const { data, error: reportError } = await supabase.rpc("referee_get_match_report", { p_fixture_id: fixtureForReport.fixture_id });
       if (reportError) {
         setError(reportError.message);
         return;
