@@ -330,6 +330,15 @@ begin
   if v_location_id is null or not public.can_administer_location(v_location_id) then
     raise exception 'You are not assigned to this gameweek location';
   end if;
+  if exists(
+    select 1 from public.fixtures f
+    join public.seasons s on s.id=f.season_id
+    join public.leagues l on l.id=s.league_id
+    where f.gameweek_id=p_gameweek_id
+      and not public.can_administer_location(coalesce(f.venue_id,l.location_id))
+  ) then
+    raise exception 'You are not assigned to every location in this gameweek';
+  end if;
   if v_week.scheduled_at is null then raise exception 'Gameweek has no original scheduled date'; end if;
   select * into v_existing_history from public.gameweek_postponement_history
   where gameweek_id=p_gameweek_id and new_scheduled_at=p_replacement_at limit 1;
