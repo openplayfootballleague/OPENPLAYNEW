@@ -181,6 +181,20 @@ begin
 
   if exists (
     select 1
+    from public.team_memberships pending_membership
+    join public.season_teams pending_team on pending_team.id=pending_membership.season_team_id
+    join public.seasons pending_season on pending_season.id=pending_team.season_id
+    where pending_membership.user_id=new.user_id
+      and pending_membership.status='pending'
+      and pending_season.league_id=v_league_id
+      and pending_team.team_id is distinct from v_club_id
+      and pending_membership.id is distinct from new.id
+  ) then
+    raise exception 'Resolve pending team requests to other clubs before activating this membership';
+  end if;
+
+  if exists (
+    select 1
     from public.player_transfer_requests r
     where r.user_id=new.user_id
       and r.league_id=v_league_id
