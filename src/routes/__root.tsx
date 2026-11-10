@@ -66,6 +66,7 @@ function RootComponent() {
     const refreshAnalyticsIdentity = () => {
       void supabase.auth.getSession().then(({ data: { session } }) => {
         setAnalyticsIdentity(session?.user.id ?? null);
+        trackAnalyticsPageView(window.location.pathname);
       }).catch(() => setAnalyticsIdentity(null));
     };
     window.addEventListener("openplay:analytics-consent", refreshAnalyticsIdentity);
