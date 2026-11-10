@@ -1,12 +1,12 @@
 -- Non-recursive global-admin predicate for policies on user_roles itself.
 create or replace function public.has_global_admin_role()
 returns boolean language sql stable security definer set search_path=''
-as $
+as $$
   select exists (
     select 1 from public.user_roles ur
     where ur.user_id=(select auth.uid()) and ur.role in ('admin','super_admin')
   );
-$;
+$$;
 revoke all on function public.has_global_admin_role() from public,anon;
 grant execute on function public.has_global_admin_role() to authenticated;
 -- Remove the implicit platform-wide access granted by has_platform_role()
