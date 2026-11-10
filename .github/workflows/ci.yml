@@ -93,6 +93,17 @@ jobs:
           fi
           test -n "$migration_file"
           printf '%s\\n' "$migration_file"
+      - name: Generate approved referee report correction migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_corrections.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new referee_approved_report_corrections < supabase/drafts/referee_approved_report_corrections.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_corrections.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_approved_report_corrections.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\\n' "$migration_file"
       - name: Preserve CLI-generated referee migrations for review
         uses: actions/upload-artifact@v4
         with:
@@ -101,6 +112,7 @@ jobs:
             supabase/migrations/*_referee_application_workflow.sql
             supabase/migrations/*_referee_fixture_assignments.sql
             supabase/migrations/*_referee_match_reports.sql
+            supabase/migrations/*_referee_approved_report_corrections.sql
           if-no-files-found: error
           retention-days: 1
       - name: Replay every migration against a clean local database
@@ -165,7 +177,7 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_fixture_assignments.sql
-      - name: Verify referee reports, deadline, approval, discipline and finance
+      - name: Verify approved referee report correction, discipline reversal and finance credits
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_match_reports.sql
