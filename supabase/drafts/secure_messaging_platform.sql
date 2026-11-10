@@ -814,6 +814,9 @@ begin
   if not found or not public.can_access_message_conversation(v_message.conversation_id) then
     raise exception 'Message not found or access denied';
   end if;
+  if v_message.sender_id=v_user then
+    raise exception 'You cannot report your own message';
+  end if;
   insert into public.message_reports(message_id,conversation_id,reporter_id,reported_user_id,reason)
   values(p_message_id,v_message.conversation_id,v_user,v_message.sender_id,btrim(p_reason))
   on conflict(message_id,reporter_id) where status='open' and message_id is not null do nothing
