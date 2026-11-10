@@ -220,6 +220,9 @@ begin
   if p_payout_type is null or p_payout_type not in ('match_report','milestone') or p_payout_id is null then
     raise exception 'A valid referee payout type and ID are required';
   end if;
+  if p_payout_type='milestone' and not public.has_platform_role() then
+    raise exception 'Global administrator permission required for referee milestone rewards';
+  end if;
 
   if p_payout_type='match_report' then
     select payout.* into v_report_payout
@@ -518,8 +521,12 @@ as $
 declare
   v_location_id uuid;
 begin
-  if auth.uid() is null or not public.has_finance_access() then
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  if p_payout_type='match_report' and not public.has_finance_access() then
     raise exception 'Finance access required';
+  end if;
+  if p_payout_type='milestone' and not public.has_platform_role() then
+    raise exception 'Global administrator permission required for referee milestone history';
   end if;
   if p_payout_type is null or p_payout_type not in ('match_report','milestone') or p_payout_id is null then
     raise exception 'A valid referee payout is required';
@@ -564,8 +571,8 @@ security definer
 set search_path = ''
 as $$
 begin
-  if auth.uid() is null or not public.has_finance_access() then
-    raise exception 'Finance access required';
+  if auth.uid() is null or not public.has_platform_role() then
+    raise exception 'Global administrator permission required for referee milestone rewards';
   end if;
   return query
   select reward.id,reward.referee_user_id,
