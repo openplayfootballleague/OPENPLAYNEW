@@ -278,6 +278,22 @@ function AdminRefereeWorkspace() {
     finally { setReportLoading(false); }
   }
 
+  async function approveDisciplinaryReturn(suspension: DisciplinarySuspension) {
+    const reason = decisionReasons[suspension.competition_player_id]?.trim() ?? "";
+    if (reason.length < 5) { setError("Enter a reason of at least five characters before approving player return."); return; }
+    setSaving(true); setError(""); setNotice("");
+    try {
+      const { error: actionError } = await supabase.rpc("admin_review_player_disciplinary_return", {
+        p_competition_player_id: suspension.competition_player_id, p_reason: reason,
+      });
+      if (actionError) throw actionError;
+      setNotice("Player return approved. Their permanent straight-red strike history remains on record.");
+      setDecisionReasons((current) => ({ ...current, [suspension.competition_player_id]: "" }));
+      await loadWorkspace();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to approve player return."); }
+    finally { setSaving(false); }
+  }
+
   async function reviewReport(decision: "approve" | "return" | "reject") {
     if (!selectedReport) return;
     const reason = decisionReasons[selectedReport.report_id]?.trim() ?? "";
@@ -341,8 +357,18 @@ function AdminRefereeWorkspace() {
         <div className="admin-referee-actions"><button className="is-danger" disabled={saving} onClick={() => void removeAssignment(assignment)}>Remove assignment</button></div>
       </article>)}
     </section>
-        <section className="admin-referee-panel">
-      <div className="admin-referee-section-title"><span className="eyebrow">04 · REPORT COMPLETION</span><h2>Complete or replace a report</h2></div>
+            <section className="admin-referee-panel">
+      <div className="admin-referee-section-title"><span className="eyebrow">04 · DISCIPLINARY REVIEW</span><h2>Players awaiting return approval <b>{disciplinarySuspensions.length}</b></h2></div>
+      {disciplinarySuspensions.length === 0 ? <p className="admin-referee-muted">No players are currently awaiting disciplinary return approval in this location scope.</p> : disciplinarySuspensions.map((suspension) => <article className="admin-referee-card" key={suspension.competition_player_id}>
+        <h3>{suspension.player_name}</h3><p>{suspension.straight_red_strikes} career straight-red strikes · Last incident: {suspension.last_team_name ?? "Team record"} · GW{suspension.last_gameweek ?? "—"}</p>
+        <p className="admin-referee-muted">{dateTime(suspension.last_straight_red_at)}</p>
+        <label>Return decision reason<textarea value={decisionReasons[suspension.competition_player_id] ?? ""} onChange={(event) => setDecisionReasons((current) => ({ ...current, [suspension.competition_player_id]: event.target.value }))} placeholder="Required audit reason (minimum five characters)" /></label>
+        <div className="admin-referee-actions"><button disabled={saving} onClick={() => void approveDisciplinaryReturn(suspension)}>Approve return to play</button></div>
+      </article>)}
+    </section>
+
+    <section className="admin-referee-panel">
+      <div className="admin-referee-section-title"><span className="eyebrow">05 · REPORT COMPLETION</span><h2>Complete or replace a report</h2></div>
       <p className="admin-referee-muted">Use this for a missing, returned or rejected report. The completed report still enters the approval queue; this action does not publish a result. Select scorers from submitted team sheets where available. If a team sheet or scorer identity is unavailable, record an explicitly unattributed goal rather than inventing a player identity. Own-goal attribution and disciplinary incidents remain outside this admin fallback form.</p>
       <form className="admin-referee-form admin-referee-report-entry" onSubmit={submitAdminCompletedReport}>
         <label>Fixture<select required value={adminEntryFixtureId} onChange={(event) => void loadAdminEntryContext(event.target.value)}><option value="">Choose missing / returned / rejected fixture</option>{missingReportFixtures.map((fixture) => <option key={fixture.id} value={fixture.id}>GW{fixture.gameweek} · {fixture.home_team_name} v {fixture.away_team_name}</option>)}</select></label>
@@ -362,7 +388,7 @@ function AdminRefereeWorkspace() {
     </section>
 
     <section className="admin-referee-panel">
-      <div className="admin-referee-section-title"><span className="eyebrow">05 · REPORT APPROVAL</span><h2>Submitted reports <b>{reports.length}</b></h2></div>
+      <div className="admin-referee-section-title"><span className="eyebrow">06 · REPORT APPROVAL</span><h2>Submitted reports <b>{reports.length}</b></h2></div>
       {reports.length === 0 ? <p className="admin-referee-muted">No match reports awaiting approval.</p> : reports.map((report) => <article className="admin-referee-card" key={report.report_id}>
         <h3>{report.home_team_name} {report.home_score}–{report.away_score} {report.away_team_name}</h3><p>GW{report.gameweek} · {dateTime(report.scheduled_at)} · Official: {report.referee_name}</p>
         {report.match_summary && <p>{report.match_summary}</p>}
