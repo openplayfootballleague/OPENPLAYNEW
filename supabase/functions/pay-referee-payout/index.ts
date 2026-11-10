@@ -95,7 +95,7 @@ Deno.serve(async(req)=>{
       return json({
         error:"Stripe created the transfer, but database confirmation is pending. Do not retry this payout.",
         transfer_id:transfer.id,status:"processing",
-      },503,headers);
+      },200,headers);
     }
     return json({success:true,payout_type:payoutType,payout_id:payoutId,transfer_id:transfer.id,status:"transferred"},200,headers);
   }catch(error){
@@ -105,9 +105,12 @@ Deno.serve(async(req)=>{
         p_payout_type:payoutType,p_payout_id:payoutId,p_failure_reason:reason,p_transfer_reversed:false,
       });
     }
-    return json({
-      error:reason,
-      ...(transferCreated&&createdTransfer?.id?{transfer_id:createdTransfer.id,status:"processing"}:{}),
-    },transferCreated||!canMarkFailed?503:402,headers);
+    if(transferCreated||!canMarkFailed){
+      return json({
+        success:false,error:reason,status:"processing",
+        ...(createdTransfer?.id?{transfer_id:createdTransfer.id}:{}),
+      },200,headers);
+    }
+    return json({error:reason},402,headers);
   }
 });
