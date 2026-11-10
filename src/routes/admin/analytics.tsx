@@ -213,7 +213,7 @@ function AdminAnalyticsPage() {
       ["Fixtures in context", overview.fixtures],
       ["Published results", overview.publishedResults],
       ["Goals in published results", overview.goals],
-      ["Pending player reviews", overview.pendingPlayerReviews],
+      ["Pending player reviews", overview.pendingPlayerReviews === null ? "Restricted" : overview.pendingPlayerReviews],
       ["Pending team applications", overview.pendingTeamApplications],
       ["Pending join requests", overview.pendingMembershipRequests],
     ];
@@ -300,7 +300,7 @@ function AdminAnalyticsPage() {
           <article><span>Open seasons</span><strong>{overview.openSeasons}</strong></article>
         </div>
         <div className="analytics-section"><h2>Needs attention</h2><div className="analytics-stat-grid analytics-stat-grid-compact">
-          <article><span>Player reviews</span><strong>{overview.pendingPlayerReviews}</strong></article>
+          <article><span>Player reviews</span><strong>{overview.pendingPlayerReviews === null ? "Restricted" : overview.pendingPlayerReviews}</strong></article>
           <article><span>Team applications</span><strong>{overview.pendingTeamApplications}</strong></article>
           <article><span>Join requests</span><strong>{overview.pendingMembershipRequests}</strong></article>
         </div><Link className="admin-inline-action" to="/admin">OPEN ADMIN QUEUES ↗</Link></div>
@@ -316,7 +316,7 @@ function AdminAnalyticsPage() {
         </div>
       </> : tab === "usage" ? <div className="analytics-state"><h2>App usage</h2><p>Page views, sessions, device/browser distribution and navigation trends will appear after consented analytics ingestion is approved and enabled.</p><p className="analytics-state-label">No user-activity figures are being fabricated or inferred from page loads.</p></div> : tab === "growth" ? <div className="analytics-state"><h2>User growth</h2><p>Daily, weekly and monthly account growth, first-time/returning activity and cohort trends are not yet reportable. The current workspace deliberately does not infer account creation from player-registration queues.</p><p className="analytics-state-label">Account-growth reporting requires a scoped aggregate source and verified event history.</p></div> : tab === "registrations" ? <>
         <div className="analytics-stat-grid">
-          <article><span>Pending player reviews</span><strong>{overview.pendingPlayerReviews}</strong></article>
+          <article><span>Pending player reviews</span><strong>{overview.pendingPlayerReviews === null ? "Restricted" : overview.pendingPlayerReviews}</strong></article>
           <article><span>Pending team applications</span><strong>{overview.pendingTeamApplications}</strong></article>
           <article><span>Pending join requests</span><strong>{overview.pendingMembershipRequests}</strong></article>
           <article><span>Approved teams</span><strong>{overview.approvedTeams}</strong></article>
@@ -366,7 +366,7 @@ function AdminAnalyticsPage() {
       {overview && <div className="analytics-print-metrics">
         <p>Approved teams: {overview.approvedTeams} · Squad memberships: {overview.squadMemberships}</p>
         <p>Fixtures: {overview.fixtures} · Published results: {overview.publishedResults} · Goals: {overview.goals}</p>
-        <p>Open seasons: {overview.openSeasons} · Pending player reviews: {overview.pendingPlayerReviews} · Pending team applications: {overview.pendingTeamApplications} · Pending join requests: {overview.pendingMembershipRequests}</p>
+        <p>Open seasons: {overview.openSeasons} · Pending player reviews: {overview.pendingPlayerReviews === null ? "Restricted" : overview.pendingPlayerReviews} · Pending team applications: {overview.pendingTeamApplications} · Pending join requests: {overview.pendingMembershipRequests}</p>
       </div>}
       <h3>Location comparison</h3>
       <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.publishedResults}</td><td>{row.goals}</td></tr>)}</tbody></table></div>
