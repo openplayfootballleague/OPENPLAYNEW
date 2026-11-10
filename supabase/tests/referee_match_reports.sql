@@ -226,6 +226,10 @@ begin
   select count(*) into v_count from public.admin_list_referee_match_reports('submitted',v_location);
   if v_count<>2 then raise exception 'Administrator report queue did not include both submitted reports'; end if;
 
+  -- The match is now complete. Admin result publication may update the locked
+  -- appearance rows only after the fixture has entered its completed state.
+  update public.fixtures set status='completed' where id in (v_fixture_one,v_fixture_two);
+
   -- Approval creates the official result, permanent cards, team fines and one £22 payout obligation.
   perform public.admin_review_referee_match_report(v_report_one,'approved','Report and card details verified');
   if not exists(
