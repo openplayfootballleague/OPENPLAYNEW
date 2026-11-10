@@ -12,7 +12,7 @@ begin
     'referee_applications','referee_memberships','referee_availability',
     'fixture_referee_assignments','referee_match_reports',
     'referee_match_report_goals','referee_match_report_incidents',
-    'referee_match_report_versions','referee_payment_entitlements'
+    'referee_match_report_versions','referee_payment_entitlements','platform_feature_flags'
   ] loop
     select c.relrowsecurity into v_rls
     from pg_class c join pg_namespace n on n.oid=c.relnamespace
@@ -55,6 +55,8 @@ begin
     'admin_list_referee_applications(text)',
     'admin_list_active_referees(uuid)',
     'admin_list_referee_availability(uuid)',
+    'admin_get_referee_reporting_feature()',
+    'admin_set_referee_reporting_feature(boolean,text)',
     'referee_save_availability(date,time,time,uuid,text)',
     'referee_get_assigned_fixtures()',
     'referee_save_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean,boolean)',
@@ -106,6 +108,21 @@ begin
 
   if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='referee_match_report_goals' and column_name='is_unattributed') then
     raise exception 'Admin fallback must preserve explicitly unattributed goals without inventing scorers';
+  end if;
+  if (select enabled from public.platform_feature_flags where feature_key='referee_reporting') is distinct from false then
+    raise exception 'Referee reporting must default to disabled until global administrator acceptance';
+  end if;
+  select pg_get_functiondef('public.admin_set_referee_reporting_feature(boolean,text)'::regprocedure) into v_definition;
+  if position('has_global_admin_role' in v_definition)=0
+    or position('length(btrim(p_reason))<5' in v_definition)=0 then
+    raise exception 'Only global administrators may change the referee reporting feature flag with a reason';
+  end if;
+  if not exists(select 1 from information_schema.columns where table_schema='public'
+    and table_name='referee_get_my_status' and column_name='reporting_enabled') then
+    -- The RPC return column is checked through its function definition below because it is not a table.
+    if position('reporting_enabled' in pg_get_function_result('public.referee_get_my_status()'::regprocedure))=0 then
+      raise exception 'Referee status RPC must return the feature-enabled state';
+    end if;
   end if;
 
   if not exists (
