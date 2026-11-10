@@ -25,6 +25,7 @@ type ReportQueueItem = {
   referee_name: string; status: string; home_score: number; away_score: number;
   submitted_at: string | null; match_summary: string | null;
 };
+type MilestoneReward = { reward_id: string; referee_user_id: string; referee_name: string; milestone_games: number; reward_amount_pence: number; status: string; created_at: string; approved_at: string | null; review_reason: string | null };
 type DisciplinarySuspension = { competition_player_id: string; player_name: string; straight_red_strikes: number; last_straight_red_at: string | null; last_fixture_id: string | null; last_gameweek: number | null; last_team_name: string | null };
 type FixtureOption = {
   id: string; gameweek: number; scheduled_at: string | null;
@@ -54,6 +55,7 @@ function AdminRefereeWorkspace() {
   const [reports, setReports] = useState<ReportQueueItem[]>([]);
   const [existingReportFixtureIds, setExistingReportFixtureIds] = useState<string[]>([]);
   const [disciplinarySuspensions, setDisciplinarySuspensions] = useState<DisciplinarySuspension[]>([]);
+  const [milestoneRewards, setMilestoneRewards] = useState<MilestoneReward[]>([]);
   const [fixtures, setFixtures] = useState<FixtureOption[]>([]);
   const [selectedFixture, setSelectedFixture] = useState("");
   const [selectedReferee, setSelectedReferee] = useState("");
@@ -114,15 +116,16 @@ function AdminRefereeWorkspace() {
       setLoading(false);
       return;
     }
-    const [applicationResult, refereeResult, availabilityResult, assignmentResult, reportResult, suspensionResult] = await Promise.all([
+    const [applicationResult, refereeResult, availabilityResult, assignmentResult, reportResult, suspensionResult, rewardResult] = await Promise.all([
       supabase.rpc("admin_list_referee_applications", { p_status: "pending" }),
       supabase.rpc("admin_list_active_referees", { p_location_id: selectedLocation || undefined }),
       supabase.rpc("admin_list_referee_availability", { p_location_id: selectedLocation || undefined }),
       supabase.rpc("admin_list_referee_assignments", { p_location_id: selectedLocation || undefined }),
       supabase.rpc("admin_list_referee_report_queue", { p_status: "all", p_location_id: selectedLocation || undefined }),
       supabase.rpc("admin_list_disciplinary_suspensions", { p_location_id: selectedLocation || undefined }),
+      supabase.rpc("admin_list_referee_milestone_rewards", { p_status: "pending_approval", p_location_id: selectedLocation || undefined }),
     ]);
-    const failure = applicationResult.error ?? refereeResult.error ?? availabilityResult.error ?? assignmentResult.error ?? reportResult.error ?? suspensionResult.error;
+    const failure = applicationResult.error ?? refereeResult.error ?? availabilityResult.error ?? assignmentResult.error ?? reportResult.error ?? suspensionResult.error ?? rewardResult.error;
     if (failure) setError(failure.message);
     else {
       setApplications((applicationResult.data ?? []) as Application[]);
@@ -133,6 +136,7 @@ function AdminRefereeWorkspace() {
       setReports(allReportRows.filter((report) => report.status === "submitted"));
       setExistingReportFixtureIds(allReportRows.filter((report) => ["submitted","approved"].includes(report.status)).map((report) => report.fixture_id));
       setDisciplinarySuspensions((suspensionResult.data ?? []) as DisciplinarySuspension[]);
+      setMilestoneRewards((rewardResult.data ?? []) as MilestoneReward[]);
       setFixtures((fixtureResult.data ?? []) as FixtureOption[]);
       if (!selectedFixture && fixtureResult.data?.length) setSelectedFixture(fixtureResult.data[0].id);
       if (!refereeResult.data?.some((referee: RefereeOption) => referee.referee_user_id === selectedReferee)) setSelectedReferee(refereeResult.data?.[0]?.referee_user_id ?? "");
@@ -279,6 +283,22 @@ function AdminRefereeWorkspace() {
     finally { setReportLoading(false); }
   }
 
+  async function approveMilestoneReward(reward: MilestoneReward) {
+    const reason = decisionReasons[reward.reward_id]?.trim() ?? "";
+    if (reason.length < 5) { setError("Enter a reason of at least five characters before approving a milestone reward."); return; }
+    setSaving(true); setError(""); setNotice("");
+    try {
+      const { error: actionError } = await supabase.rpc("admin_approve_referee_milestone_reward", {
+        p_reward_id: reward.reward_id, p_reason: reason,
+      });
+      if (actionError) throw actionError;
+      setNotice("£50 milestone reward approved and recorded as awaiting payment. No money has been transferred.");
+      setDecisionReasons((current) => ({ ...current, [reward.reward_id]: "" }));
+      await loadWorkspace();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to approve milestone reward."); }
+    finally { setSaving(false); }
+  }
+
   async function approveDisciplinaryReturn(suspension: DisciplinarySuspension) {
     const reason = decisionReasons[suspension.competition_player_id]?.trim() ?? "";
     if (reason.length < 5) { setError("Enter a reason of at least five characters before approving player return."); return; }
@@ -358,8 +378,18 @@ function AdminRefereeWorkspace() {
         <div className="admin-referee-actions"><button className="is-danger" disabled={saving} onClick={() => void removeAssignment(assignment)}>Remove assignment</button></div>
       </article>)}
     </section>
-            <section className="admin-referee-panel">
-      <div className="admin-referee-section-title"><span className="eyebrow">04 · DISCIPLINARY REVIEW</span><h2>Players awaiting return approval <b>{disciplinarySuspensions.length}</b></h2></div>
+                <section className="admin-referee-panel">
+      <div className="admin-referee-section-title"><span className="eyebrow">04 · CAREER REWARDS</span><h2>Milestone rewards awaiting approval <b>{milestoneRewards.length}</b></h2></div>
+      {milestoneRewards.length === 0 ? <p className="admin-referee-muted">No referee milestone rewards are awaiting approval in this location scope.</p> : milestoneRewards.map((reward) => <article className="admin-referee-card" key={reward.reward_id}>
+        <h3>{reward.referee_name}</h3><p>{reward.milestone_games} approved games · £{(reward.reward_amount_pence / 100).toFixed(2)} reward</p>
+        <p className="admin-referee-muted">Unlocked {dateTime(reward.created_at)} · Approval records the reward; it does not initiate payment.</p>
+        <label>Approval reason<textarea value={decisionReasons[reward.reward_id] ?? ""} onChange={(event) => setDecisionReasons((current) => ({ ...current, [reward.reward_id]: event.target.value }))} placeholder="Required audit reason (minimum five characters)" /></label>
+        <div className="admin-referee-actions"><button disabled={saving} onClick={() => void approveMilestoneReward(reward)}>Approve £50 reward</button></div>
+      </article>)}
+    </section>
+
+    <section className="admin-referee-panel">
+      <div className="admin-referee-section-title"><span className="eyebrow">05 · DISCIPLINARY REVIEW</span><h2>Players awaiting return approval <b>{disciplinarySuspensions.length}</b></h2></div>
       {disciplinarySuspensions.length === 0 ? <p className="admin-referee-muted">No players are currently awaiting disciplinary return approval in this location scope.</p> : disciplinarySuspensions.map((suspension) => <article className="admin-referee-card" key={suspension.competition_player_id}>
         <h3>{suspension.player_name}</h3><p>{suspension.straight_red_strikes} career straight-red strikes · Last incident: {suspension.last_team_name ?? "Team record"} · GW{suspension.last_gameweek ?? "—"}</p>
         <p className="admin-referee-muted">{dateTime(suspension.last_straight_red_at)}</p>
@@ -369,7 +399,7 @@ function AdminRefereeWorkspace() {
     </section>
 
     <section className="admin-referee-panel">
-      <div className="admin-referee-section-title"><span className="eyebrow">05 · REPORT COMPLETION</span><h2>Complete or replace a report</h2></div>
+      <div className="admin-referee-section-title"><span className="eyebrow">06 · REPORT COMPLETION</span><h2>Complete or replace a report</h2></div>
       <p className="admin-referee-muted">Use this for a missing, returned or rejected report. The completed report still enters the approval queue; this action does not publish a result. Select scorers from submitted team sheets where available. If a team sheet or scorer identity is unavailable, record an explicitly unattributed goal rather than inventing a player identity. Own-goal attribution and disciplinary incidents remain outside this admin fallback form.</p>
       <form className="admin-referee-form admin-referee-report-entry" onSubmit={submitAdminCompletedReport}>
         <label>Fixture<select required value={adminEntryFixtureId} onChange={(event) => void loadAdminEntryContext(event.target.value)}><option value="">Choose missing / returned / rejected fixture</option>{missingReportFixtures.map((fixture) => <option key={fixture.id} value={fixture.id}>GW{fixture.gameweek} · {fixture.home_team_name} v {fixture.away_team_name}</option>)}</select></label>
@@ -389,7 +419,7 @@ function AdminRefereeWorkspace() {
     </section>
 
     <section className="admin-referee-panel">
-      <div className="admin-referee-section-title"><span className="eyebrow">06 · REPORT APPROVAL</span><h2>Submitted reports <b>{reports.length}</b></h2></div>
+      <div className="admin-referee-section-title"><span className="eyebrow">07 · REPORT APPROVAL</span><h2>Submitted reports <b>{reports.length}</b></h2></div>
       {reports.length === 0 ? <p className="admin-referee-muted">No match reports awaiting approval.</p> : reports.map((report) => <article className="admin-referee-card" key={report.report_id}>
         <h3>{report.home_team_name} {report.home_score}–{report.away_score} {report.away_team_name}</h3><p>GW{report.gameweek} · {dateTime(report.scheduled_at)} · Official: {report.referee_name}</p>
         {report.match_summary && <p>{report.match_summary}</p>}
