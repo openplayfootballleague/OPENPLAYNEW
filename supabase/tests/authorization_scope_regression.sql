@@ -15,9 +15,8 @@ declare
   ));
 begin
   -- Membership resolution: captains may act for their own team and assigned
-  -- location administrators may act within their location. The current transfer
-  -- model enforces one club per player per league (including across seasons),
-  -- with row/advisory locks, eligibility checks and an audit write.
+  -- location administrators may act within their location. The current league-wide transfer model retains the row lock, player/season eligibility checks,
+  -- one-club-per-league invariant and audit write.
   if pg_catalog.strpos(v_membership,
        'if not public.is_active_team_captain(v_membership.season_team_id)') = 0
      or pg_catalog.strpos(v_membership, 'and not public.can_administer_location(v_location_id)') = 0
