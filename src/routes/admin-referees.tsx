@@ -61,6 +61,7 @@ function AdminRefereeWorkspace() {
   const [reportLoading, setReportLoading] = useState(false);
   const [refereeFeatureEnabled, setRefereeFeatureEnabled] = useState(false);
   const [refereeFeatureReason, setRefereeFeatureReason] = useState("");
+  const [refereeFeatureLastReason, setRefereeFeatureLastReason] = useState("");
   const [adminEntryFixtureId, setAdminEntryFixtureId] = useState("");
   const [adminEntryContext, setAdminEntryContext] = useState<any>(null);
   const [adminEntryCompletedAt, setAdminEntryCompletedAt] = useState("");
@@ -97,7 +98,8 @@ function AdminRefereeWorkspace() {
         return;
       }
       setRefereeFeatureEnabled(Boolean(featureRows?.[0]?.enabled));
-      setRefereeFeatureReason(featureRows?.[0]?.reason ?? "");
+      setRefereeFeatureLastReason(featureRows?.[0]?.reason ?? "");
+      setRefereeFeatureReason("");
     }
     const nextLocations = (setupRows?.locations ?? []) as LocationOption[];
     setLocations(nextLocations);
@@ -299,7 +301,7 @@ function AdminRefereeWorkspace() {
     </section>
         {isGlobalAdmin && <section className="admin-referee-panel admin-referee-feature-flag">
       <div className="admin-referee-section-title"><span className="eyebrow">GLOBAL RELEASE CONTROL</span><h2>Referee reporting <b>{refereeFeatureEnabled ? "ON" : "OFF"}</b></h2></div>
-      <p className="admin-referee-muted">This global switch controls referee applications, availability, referee fixture access and referee report submission. Disabling it preserves memberships, assignments, reports and payment history. Administrators can still review and complete existing reports.</p>
+      <p className="admin-referee-muted">This global switch controls referee applications, availability, referee fixture access and referee report submission. Disabling it preserves memberships, assignments, reports and payment history. Administrators can still review and complete existing reports.</p><p className="admin-referee-muted">Last recorded reason: {refereeFeatureLastReason || "No previous change reason recorded."}</p>
       <label>Reason for changing this setting<input value={refereeFeatureReason} onChange={(event) => setRefereeFeatureReason(event.target.value)} placeholder="Required audit reason (minimum five characters)" /></label>
       <div className="admin-referee-actions"><button disabled={saving || refereeFeatureReason.trim().length < 5} onClick={() => void toggleRefereeReportingFeature()}>{refereeFeatureEnabled ? "Disable referee reporting" : "Enable referee reporting"}</button></div>
     </section>}
