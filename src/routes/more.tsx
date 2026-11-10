@@ -73,7 +73,7 @@ function MorePage() {
         captain: !membershipError && (memberships ?? []).some((membership) => membership.is_captain),
         admin: !adminResult.error && adminResult.data !== null,
         finance: !financeResult.error,
-        referee: !refereeResult.error && refereeResult.data?.[0]?.membership_status === "active",
+        referee: !refereeResult.error && refereeResult.data?.[0]?.reporting_enabled === true && refereeResult.data?.[0]?.membership_status === "active",
       });
     }
 
