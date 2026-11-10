@@ -680,7 +680,6 @@ declare
   v_message_id uuid;
   v_recipient_count integer;
   v_recent_broadcasts integer;
-  v_sender_name text;
   v_recipient record;
 begin
   if v_user is null or not public.has_platform_role() then
