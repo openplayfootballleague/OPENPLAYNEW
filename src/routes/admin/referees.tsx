@@ -91,7 +91,7 @@ type AdminReportOptions = {
   };
   report: null | {
     id: string;
-    status: "submitted" | "rejected";
+    status: "submitted" | "rejected" | "approved" | "voided";
     version: number;
     home_score: number;
     away_score: number;
@@ -155,6 +155,8 @@ function AdminRefereesPage() {
   const [allocationLoading, setAllocationLoading] = useState(true);
   const [allocationReason, setAllocationReason] = useState<Record<string, string>>({});
   const [reports, setReports] = useState<RefereeMatchReport[]>([]);
+  const [approvedReports, setApprovedReports] = useState<RefereeMatchReport[]>([]);
+  const [approvedReportsLoading, setApprovedReportsLoading] = useState(false);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [reportReasons, setReportReasons] = useState<Record<string, string>>({});
   const [payouts, setPayouts] = useState<RefereePayoutObligation[]>([]);
@@ -165,6 +167,7 @@ function AdminRefereesPage() {
   const [selectedAdminReportFixtureId, setSelectedAdminReportFixtureId] = useState("");
   const [adminReportOptions, setAdminReportOptions] = useState<AdminReportOptions | null>(null);
   const [adminReportOptionsLoading, setAdminReportOptionsLoading] = useState(false);
+  const [correctionMode, setCorrectionMode] = useState(false);
   const [adminReportHomeScore, setAdminReportHomeScore] = useState("0");
   const [adminReportAwayScore, setAdminReportAwayScore] = useState("0");
   const [adminReportHomeSubs, setAdminReportHomeSubs] = useState<string[]>([]);
@@ -228,6 +231,24 @@ function AdminRefereesPage() {
 
   useEffect(() => { void loadReports(); }, [loadReports]);
 
+  const loadApprovedReports = useCallback(async () => {
+    setApprovedReportsLoading(true);
+    const rpc = getSupabaseClient() as unknown as RpcClient;
+    const result = await rpc.rpc("admin_list_referee_match_reports", {
+      p_status: "approved",
+      p_location_id: null,
+    });
+    if (result.error) {
+      setError(result.error.message);
+      setApprovedReports([]);
+    } else {
+      setApprovedReports((result.data ?? []) as RefereeMatchReport[]);
+    }
+    setApprovedReportsLoading(false);
+  }, []);
+
+  useEffect(() => { void loadApprovedReports(); }, [loadApprovedReports]);
+
   const loadPayouts = useCallback(async () => {
     setPayoutsLoading(true);
     const rpc = getSupabaseClient() as unknown as RpcClient;
@@ -261,7 +282,22 @@ function AdminRefereesPage() {
 
   useEffect(() => { void loadReportableFixtures(); }, [loadReportableFixtures]);
 
+  const applyAdminReportOptions = useCallback((options: AdminReportOptions) => {
+    setAdminReportOptions(options);
+    const report = options.report;
+    setAdminReportHomeScore(String(report?.home_score ?? 0));
+    setAdminReportAwayScore(String(report?.away_score ?? 0));
+    setAdminReportHomeSubs(report?.home_substitute_appearances ?? []);
+    setAdminReportAwaySubs(report?.away_substitute_appearances ?? []);
+    setAdminReportHomeScorers(report?.home_scorers ?? []);
+    setAdminReportAwayScorers(report?.away_scorers ?? []);
+    setAdminReportDisciplinaryEvents(report?.disciplinary_events ?? []);
+    setAdminReportWriteUp(report?.match_write_up ?? "");
+    setAdminReportReason("");
+  }, []);
+
   const loadAdminReportOptions = useCallback(async (fixtureId: string) => {
+    setCorrectionMode(false);
     setAdminReportOptionsLoading(true);
     setAdminReportOptions(null);
     const rpc = getSupabaseClient() as unknown as RpcClient;
@@ -270,21 +306,28 @@ function AdminRefereesPage() {
       setError(result.error.message);
       setAdminReportOptions(null);
     } else {
-      const options = result.data as AdminReportOptions;
-      setAdminReportOptions(options);
-      const report = options.report;
-      setAdminReportHomeScore(String(report?.home_score ?? 0));
-      setAdminReportAwayScore(String(report?.away_score ?? 0));
-      setAdminReportHomeSubs(report?.home_substitute_appearances ?? []);
-      setAdminReportAwaySubs(report?.away_substitute_appearances ?? []);
-      setAdminReportHomeScorers(report?.home_scorers ?? []);
-      setAdminReportAwayScorers(report?.away_scorers ?? []);
-      setAdminReportDisciplinaryEvents(report?.disciplinary_events ?? []);
-      setAdminReportWriteUp(report?.match_write_up ?? "");
-      setAdminReportReason("");
+      applyAdminReportOptions(result.data as AdminReportOptions);
     }
     setAdminReportOptionsLoading(false);
-  }, []);
+  }, [applyAdminReportOptions]);
+
+  const loadApprovedReportCorrectionOptions = useCallback(async (reportId: string) => {
+    setCorrectionMode(true);
+    setAdminReportOptionsLoading(true);
+    setAdminReportOptions(null);
+    const rpc = getSupabaseClient() as unknown as RpcClient;
+    const result = await rpc.rpc("admin_get_approved_referee_report_correction_options", {
+      p_report_id: reportId,
+    });
+    if (result.error) {
+      setError(result.error.message);
+      setCorrectionMode(false);
+      setAdminReportOptions(null);
+    } else {
+      applyAdminReportOptions(result.data as AdminReportOptions);
+    }
+    setAdminReportOptionsLoading(false);
+  }, [applyAdminReportOptions]);
 
   useEffect(() => {
     if (selectedAdminReportFixtureId) void loadAdminReportOptions(selectedAdminReportFixtureId);
