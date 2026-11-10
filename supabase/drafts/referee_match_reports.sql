@@ -38,10 +38,7 @@ create table public.referee_match_reports (
     or (status = 'approved' and reviewed_at is not null and reviewed_by is not null and approved_at is not null and approved_by is not null)
     or (status = 'voided' and reviewed_at is not null and reviewed_by is not null)
   ),
-  constraint referee_match_report_referee_source check (
-    (report_source = 'referee' and referee_user_id is not null)
-    or (report_source = 'admin' and referee_user_id is null)
-  )
+  constraint referee_match_report_source_valid check (report_source in ('referee','admin'))
 );
 create index referee_match_reports_status_submitted_idx
   on public.referee_match_reports(status, submitted_at desc);
@@ -90,7 +87,7 @@ create table public.referee_disciplinary_events (
   ),
   constraint referee_disciplinary_event_void_pair check (
     (voided_at is null and voided_by is null and void_reason is null)
-    or (voided_at is not null and voided_by is not null and length(btrim(coalesce(void_reason,''))) >= 5)
+    or (voided_at is not null and length(btrim(coalesce(void_reason,''))) >= 5)
   ),
   unique(report_id, event_index)
 );
@@ -101,7 +98,7 @@ create index referee_disciplinary_events_identity_idx
 create table public.referee_report_payouts (
   id uuid primary key default gen_random_uuid(),
   report_id uuid not null unique references public.referee_match_reports(id) on delete restrict,
-  referee_user_id uuid not null references auth.users(id) on delete restrict,
+  referee_user_id uuid references auth.users(id) on delete set null,
   amount_pence integer not null default 2200 check (amount_pence = 2200),
   status text not null default 'pending_connect'
     check (status in ('pending_connect','transferred','failed','cancelled')),
@@ -115,7 +112,7 @@ create index referee_report_payouts_referee_status_idx
 
 create table public.referee_milestone_rewards (
   id uuid primary key default gen_random_uuid(),
-  referee_user_id uuid not null references auth.users(id) on delete restrict,
+  referee_user_id uuid references auth.users(id) on delete set null,
   milestone_number integer not null check (milestone_number between 1 and 10),
   approved_games integer not null check (approved_games = milestone_number * 50),
   amount_pence integer not null default 5000 check (amount_pence = 5000),
