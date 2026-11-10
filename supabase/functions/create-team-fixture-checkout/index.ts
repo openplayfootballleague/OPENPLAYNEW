@@ -55,7 +55,7 @@ Deno.serve(async(req)=>{
   if(["paid","late_paid","paid_after_cancellation","refund_pending","refunded"].includes(record.status)){
     return json({already_paid:true,message:"This team's fixture fee has already been paid."},200,headers);
   }
-  if(!["due","grace_period"].includes(record.status)||Date.now()>=new Date(record.grace_ends_at).getTime()){
+  if(!["due","grace_period","defaulted"].includes(record.status)||(record.status!=="defaulted"&&Date.now()>=new Date(record.grace_ends_at).getTime())){
     return json({error:"The payment window has closed. Contact an administrator."},409,headers);
   }
 
