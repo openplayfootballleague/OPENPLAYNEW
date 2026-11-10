@@ -22,9 +22,11 @@
 
 ## Current implementation boundary
 
-The existing Stripe Connect implementation provides onboarding, account readiness, payout records and transfer/reconciliation foundations. The current finance-controlled payout flow is **not yet the final agreed operating model**: the approval-to-immediate-transfer trigger, automatic retry/reconciliation policy and corresponding end-to-end acceptance tests must be completed before this policy can be marked implemented.
+The current branch now invokes the test-mode transfer workflow immediately after an administrator approves a referee match report. The Edge Function resolves the payout obligation from the approved report, then uses the authenticated administrator's location-scoped database claim. The £50 milestone workflow remains separate and requires a global finance administrator.
 
-Do not describe the immediate-transfer requirement as live or complete until the trigger and its tests are merged and verified.
+The transfer/reconciliation foundations use attempt-specific Stripe idempotency keys and signed webhook confirmation. Ambiguous outcomes remain processing and must be reconciled before retry. A referee without an eligible connected account cannot receive a transfer; the entitlement remains visible for later action.
+
+This is a branch implementation, **not a verified release**. CI, clean migration replay, Stripe test-mode event simulation and browser/device acceptance must pass before it can be marked complete. No live-mode transfer or hosted deployment has been performed.
 
 ## Required Supabase Edge Function secrets
 
