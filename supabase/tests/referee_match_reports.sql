@@ -132,6 +132,16 @@ begin
     v_rejected:=true;
   end;
   if not v_rejected then raise exception 'Referee could read report records directly instead of through the scoped RPC'; end if;
+  v_rejected:=false;
+  begin
+    perform public.admin_submit_referee_match_report(
+      v_fixture_one,1,0,'{}'::uuid[],'{}'::uuid[],array[v_home_identity],'{}'::uuid[],v_events,
+      'Unauthorized admin report attempt','Not allowed'
+    );
+  exception when others then
+    v_rejected:=sqlerrm like '%Administrator permission required%';
+  end;
+  if not v_rejected then raise exception 'Referee was able to use the administrator report override'; end if;
   execute 'reset role';
 
   -- Administrator rejection preserves the report and returns it to the referee.
