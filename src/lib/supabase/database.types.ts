@@ -2146,6 +2146,31 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_postpone_gameweek_weather: {
+        Args: {
+          p_gameweek: number
+          p_reason: string
+          p_replacement_date: string
+          p_season_id: string
+        }
+        Returns: Json
+      }
+      get_admin_weather_postponements: {
+        Args: { p_season_id?: string | null }
+        Returns: {
+          created_at: string
+          fixture_count: number
+          original_gameweek: number
+          postponement_id: string
+          reason: string
+          refunds_completed: number
+          refunds_failed: number
+          refunds_pending: number
+          replacement_date: string
+          season_id: string
+          season_name: string
+        }[]
+      }
       admin_set_fixture_status: {
         Args: {
           p_fixture_id: string
