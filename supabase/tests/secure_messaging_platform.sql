@@ -181,6 +181,17 @@ begin
     select 1 from public.message_conversation_participants
     where conversation_id=v_support and user_id=v_admin and left_at is null
   ) then raise exception 'Private support thread did not include an administrator'; end if;
+  execute 'reset role';
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_admin::text,'role','authenticated')::text,true);
+  select unread_count into v_unread from public.get_my_message_conversations(50)
+  where conversation_id=v_support;
+  if coalesce(v_unread,0)<>1 then raise exception 'New private support message was not marked unread for the admin'; end if;
+  execute 'reset role';
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_player_a::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_a::text,'role','authenticated')::text,true);
 
   v_failed:=false;
   begin
@@ -251,6 +262,17 @@ begin
     select 1 from public.message_conversation_participants
     where conversation_id=v_broadcast and user_id=v_admin
   ) then raise exception 'Broadcast creator was not enrolled in the broadcast conversation'; end if;
+  execute 'reset role';
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_player_a::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_a::text,'role','authenticated')::text,true);
+  select unread_count into v_unread from public.get_my_message_conversations(50)
+  where conversation_id=v_broadcast;
+  if coalesce(v_unread,0)<>1 then raise exception 'New admin broadcast was not marked unread for its recipients'; end if;
+  execute 'reset role';
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_admin::text,'role','authenticated')::text,true);
   if not exists (
     select 1 from public.notification_events
     where user_id=v_player_a and channel='in_app' and event_type='message.new'
