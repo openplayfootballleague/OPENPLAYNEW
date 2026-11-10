@@ -2779,6 +2779,42 @@ export type Database = {
         Args: { p_gameweek_id: string; p_replacement_at: string; p_reason: string }
         Returns: Json
       }
+      get_referee_connect_status: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_referee_payout_history: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          payout_kind: string
+          payout_id: string
+          amount_pence: number
+          status: string
+          created_at: string
+          transferred_at: string
+          failure_reason: string
+        }[]
+      }
+      get_admin_referee_payout_queue: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          payout_kind: string
+          payout_id: string
+          referee_user_id: string
+          referee_name: string
+          amount_pence: number
+          status: string
+          created_at: string
+          failure_reason: string
+          attempt_count: number
+          connected: boolean
+          payouts_enabled: boolean
+        }[]
+      }
+      admin_retry_referee_payout: {
+        Args: { p_payout_kind: string; p_payout_id: string; p_reason: string }
+        Returns: undefined
+      }
       get_captain_team_fixture_payments: {
         Args: never
         Returns: {
