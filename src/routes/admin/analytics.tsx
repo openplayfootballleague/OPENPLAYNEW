@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRequiredSession } from "../../lib/auth/use-required-session";
-import { aggregateFinanceTotals, buildAnalyticsOverview, buildLocationComparisons, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup, type FinanceSummaryRow } from "../../lib/analytics/overview";
+import { aggregateFinanceTotals, buildAnalyticsOverview, buildLocationComparisons, buildSeasonTrends, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup, type FinanceSummaryRow, type SeasonStatsSnapshot } from "../../lib/analytics/overview";
 import { getSupabaseClient } from "../../lib/supabase/client";
 
 type ContextPreference = { location_id: string | null; league_id: string | null; season_id: string | null; is_global_admin: boolean };
@@ -38,6 +38,8 @@ function AdminAnalyticsPage() {
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [seasonStats, setSeasonStats] = useState<SeasonStats | null>(null);
   const [seasonError, setSeasonError] = useState("");
+  const [seasonTrendSnapshots, setSeasonTrendSnapshots] = useState<SeasonStatsSnapshot[]>([]);
+  const [seasonTrendError, setSeasonTrendError] = useState("");
   const [financeAccess, setFinanceAccess] = useState(false);
   const [financeError, setFinanceError] = useState("");
   const [financeOptions, setFinanceOptions] = useState<FinanceOption[]>([]);
@@ -125,15 +127,35 @@ function AdminAnalyticsPage() {
       setDashboard(dashboardResult.data as Dashboard);
       setFixtures((fixtureResult.data ?? []) as Fixture[]);
 
-      if (seasonId) {
-        const { data, error: statsRpcError } = await getSupabaseClient().rpc("get_admin_season_statistics", { p_season_id: seasonId });
-        if (statsRpcError) {
-          setSeasonStats(null);
-          setSeasonError(statsRpcError.message);
-        } else {
-          setSeasonStats(data as SeasonStats);
-          setSeasonError("");
-        }
+      const locationByLeague = new Map(setup.leagues.map((league) => [league.id, league.location_id]));
+      const trendSeasons = setup.seasons
+        .filter((season) => {
+          const seasonLocationId = season.location_id ?? locationByLeague.get(season.league_id);
+          return (!locationId || seasonLocationId === locationId) && (!leagueId || season.league_id === leagueId);
+        })
+        .sort((a, b) => (a.starts_on ?? "").localeCompare(b.starts_on ?? ""))
+        .slice(-6);
+      const requestedSeasonIds = [...new Set([
+        ...trendSeasons.map((season) => season.id),
+        ...(seasonId ? [seasonId] : []),
+      ])];
+      const trendResults = await Promise.all(requestedSeasonIds.map(async (requestedSeasonId) => {
+        const { data, error: statsRpcError } = await getSupabaseClient().rpc("get_admin_season_statistics", { p_season_id: requestedSeasonId });
+        return { seasonId: requestedSeasonId, data: data as SeasonStats | null, error: statsRpcError };
+      }));
+      const successfulTrends: SeasonStatsSnapshot[] = trendResults
+        .filter((result): result is { seasonId: string; data: SeasonStats; error: null } => !result.error && Boolean(result.data))
+        .map((result) => ({ seasonId: result.seasonId, stats: result.data }));
+      setSeasonTrendSnapshots(successfulTrends);
+      const failedTrendCount = trendResults.filter((result) => result.error).length;
+      setSeasonTrendError(failedTrendCount > 0 ? "Some season trend data could not be loaded; the comparison may be partial." : "");
+      const selectedSeasonResult = trendResults.find((result) => result.seasonId === seasonId);
+      if (seasonId && selectedSeasonResult?.data && !selectedSeasonResult.error) {
+        setSeasonStats(selectedSeasonResult.data);
+        setSeasonError("");
+      } else if (seasonId) {
+        setSeasonStats(null);
+        setSeasonError(selectedSeasonResult?.error?.message ?? "Selected season statistics are unavailable.");
       } else {
         setSeasonStats(null);
         setSeasonError("");
@@ -170,7 +192,7 @@ function AdminAnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  }, [authStatus, contextReady, leagueId, locationId, seasonId]);
+  }, [authStatus, contextReady, leagueId, locationId, seasonId, setup]);
 
   useEffect(() => {
     if (contextReady) void loadContextData();
@@ -185,6 +207,15 @@ function AdminAnalyticsPage() {
     [leagueId, seasonId, setup],
   );
   const financeTotals = useMemo(() => aggregateFinanceTotals(financeRows), [financeRows]);
+  const seasonTrends = useMemo(
+    () => buildSeasonTrends(setup.seasons.filter((season) => {
+      const seasonLocationId = season.location_id ?? setup.leagues.find((league) => league.id === season.league_id)?.location_id;
+      return (!locationId || seasonLocationId === locationId) && (!leagueId || season.league_id === leagueId);
+    }).slice(-6).concat(seasonId && !setup.seasons.slice(-6).some((season) => season.id === seasonId) ? setup.seasons.filter((season) => season.id === seasonId) : []), seasonTrendSnapshots),
+    [leagueId, locationId, seasonId, seasonTrendSnapshots, setup],
+  );
+  const latestTrend = seasonTrends[seasonTrends.length - 1] ?? null;
+
 
   async function saveContext(nextLocation: string, nextLeague: string, nextSeason: string) {
     setContextSaving(true);
@@ -294,7 +325,7 @@ function AdminAnalyticsPage() {
           }).map((season) => <option key={season.id} value={season.id}>{season.name} · {season.status}</option>)}
         </select></label>
       </div>
-      <p className="form-note">The selected location, league and season define this report. Results are refreshed from the database; no manually edited statistics are used.</p>
+      <p className="form-note">Location and league scope all sections. The season filter scopes season detail and finance; Growth and Engagement compare the latest six seasons in the selected location and league. Results are refreshed from permission-checked database records.</p>
     </section>
     <div className="analytics-toolbar"><span>{refreshedAt ? `Last refreshed ${refreshedAt.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}` : "Waiting for data"}</span><button type="button" className="admin-inline-action" onClick={() => void loadContextData()} disabled={loading || contextSaving}>{loading ? "REFRESHING…" : "REFRESH"}</button></div>
     <nav className="analytics-tab-list" role="tablist" aria-label="Analytics reports">
@@ -325,15 +356,42 @@ function AdminAnalyticsPage() {
           </div>
           <p className="form-note">Only fixtures marked completed with a published score contribute to result and goal totals.</p>
         </div>
-      </> : tab === "usage" ? <div className="analytics-state"><h2>App usage</h2><p>Page views, sessions, device/browser distribution and navigation trends will appear after consented analytics ingestion is approved and enabled.</p><p className="analytics-state-label">No user-activity figures are being fabricated or inferred from page loads.</p></div> : tab === "growth" ? <div className="analytics-state"><h2>User growth</h2><p>Daily, weekly and monthly account growth, first-time/returning activity and cohort trends are not yet reportable. The current workspace deliberately does not infer account creation from player-registration queues.</p><p className="analytics-state-label">Account-growth reporting requires a scoped aggregate source and verified event history.</p></div> : tab === "registrations" ? <>
+      </> : tab === "usage" ? <div className="analytics-state"><h2>App usage</h2><p>Page views, sessions, device/browser distribution and navigation trends will appear after consented analytics ingestion is approved and enabled.</p><p className="analytics-state-label">No user-activity figures are being fabricated or inferred from page loads.</p></div> : tab === "growth" ? <>
+        <h2>Competition participation growth</h2>
+        {seasonTrendError && <p className="form-note" role="status">{seasonTrendError}</p>}
+        {seasonTrends.length === 0 ? <p className="form-note">No season statistics are available for this location and league yet.</p> : <>
+          <div className="analytics-table-wrap"><table><thead><tr><th>Season</th><th>Approved teams</th><th>Players with appearances</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{seasonTrends.map((trend) => <tr key={trend.seasonId}><td>{trend.seasonName}</td><td>{trend.approvedTeams}</td><td>{trend.playersWithAppearances}</td><td>{trend.fixtures}</td><td>{trend.publishedResults}</td><td>{trend.goals}</td></tr>)}</tbody></table></div>
+          <div className="analytics-bars">{seasonTrends.map((trend) => {
+            const max = Math.max(1, ...seasonTrends.map((item) => item.playersWithAppearances));
+            return <div className="analytics-bar-row" key={trend.seasonId}><span>{trend.seasonName}</span><div className="analytics-bar-track"><span style={{ width: `${trend.playersWithAppearances / max * 100}%` }}/></div><strong>{trend.playersWithAppearances}</strong></div>;
+          })}</div>
+        </>}
+        <p className="form-note">These are competition players with an approved appearance, not total account signups or app users. Only the latest six seasons in the selected location and league are included.</p>
+      </> : tab === "registrations" ? <>
         <div className="analytics-stat-grid">
           <article><span>Pending player reviews</span><strong>{overview.pendingPlayerReviews}</strong></article>
           <article><span>Pending team applications</span><strong>{overview.pendingTeamApplications}</strong></article>
           <article><span>Pending join requests</span><strong>{overview.pendingMembershipRequests}</strong></article>
           <article><span>Approved teams</span><strong>{overview.approvedTeams}</strong></article>
+          <article><span>Total team applications</span><strong>{overview.totalTeamApplications}</strong></article>
+          <article><span>Rejected applications</span><strong>{overview.rejectedTeamApplications}</strong></article>
+          <article><span>Withdrawn applications</span><strong>{overview.withdrawnTeamApplications}</strong></article>
+          <article><span>Current team approval rate</span><strong>{overview.teamApprovalRate === null ? "—" : `${overview.teamApprovalRate.toFixed(1)}%`}</strong></article>
         </div>
-        <p className="form-note">These are current workflow queues, not conversion rates. Signup-to-registration conversion requires a complete, consented event history and is not reported yet.</p>
-      </> : tab === "engagement" ? <div className="analytics-state"><h2>Engagement &amp; retention</h2><p>Meaningful repeat visits, active-user cohorts and 1/7/30-day retention are not available until the consented event history has sufficient coverage.</p><p className="analytics-state-label">An open tab or a page render is not counted as engagement.</p></div> : tab === "features" ? <div className="analytics-state"><h2>Feature performance</h2><p>Feature adoption and repeat interactions will be reported for Player Hub, Match Centre, teams, fixtures, results, registration, team management, gallery and announcements.</p><p className="analytics-state-label">Event coverage is being expanded; incomplete feature history is not displayed as zero.</p></div> : tab === "competition" ? <>
+        <p className="form-note">Team approval rate is calculated from the current status of team applications in this context. It is not a time-based signup conversion rate; player-account conversion and historical application outcomes need additional scoped history.</p>
+      </> : tab === "engagement" ? <>
+        <h2>Competition engagement &amp; return rate</h2>
+        {seasonTrendError && <p className="form-note" role="status">{seasonTrendError}</p>}
+        {seasonTrends.length === 0 ? <p className="form-note">No verified appearance history is available for this context yet.</p> : <>
+          <div className="analytics-stat-grid">
+            <article><span>Latest season players</span><strong>{latestTrend?.playersWithAppearances ?? 0}</strong></article>
+            <article><span>Returning players</span><strong>{latestTrend?.returningPlayers ?? "—"}</strong></article>
+            <article><span>Competition return rate</span><strong>{latestTrend?.returnRate === null || latestTrend?.returnRate === undefined ? "—" : `${latestTrend.returnRate.toFixed(1)}%`}</strong></article>
+          </div>
+          <div className="analytics-table-wrap"><table><thead><tr><th>Season</th><th>Players with appearances</th><th>Returning from previous season</th><th>Return rate</th><th>Published results</th></tr></thead><tbody>{seasonTrends.map((trend) => <tr key={trend.seasonId}><td>{trend.seasonName}</td><td>{trend.playersWithAppearances}</td><td>{trend.returningPlayers ?? "—"}</td><td>{trend.returnRate === null ? "—" : `${trend.returnRate.toFixed(1)}%`}</td><td>{trend.publishedResults}</td></tr>)}</tbody></table></div>
+        </>}
+        <p className="form-note">Return rate is the share of players with an appearance in the previous season who also appeared in the next season, using permanent competition identity. It measures competition participation, not app logins or daily active users.</p>
+      </> : tab === "features" ? <div className="analytics-state"><h2>Feature performance</h2><p>Feature adoption and repeat interactions will be reported for Player Hub, Match Centre, teams, fixtures, results, registration, team management, gallery and announcements.</p><p className="analytics-state-label">Event coverage is being expanded; incomplete feature history is not displayed as zero.</p></div> : tab === "competition" ? <>
         {!seasonId ? <p className="form-note">Choose a season above to load its verified competition statistics.</p> : seasonError ? <p className="form-error" role="alert">{seasonError}</p> : !seasonStats ? <p className="form-note">Loading season statistics…</p> : <>
           <h2>{seasonStats.season.name} · {seasonStats.season.status}</h2>
           <div className="analytics-stat-grid">
