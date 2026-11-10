@@ -14,6 +14,7 @@ declare
   v_opponent_c_captain uuid:=gen_random_uuid();
   v_opponent_d_captain uuid:=gen_random_uuid();
   v_captain_e uuid:=gen_random_uuid();
+  v_captain_f uuid:=gen_random_uuid();
   v_location uuid;
   v_league uuid;
   v_season uuid;
@@ -80,7 +81,8 @@ begin
     (v_opponent_b_captain,'authenticated','authenticated','ci-transfer-opponent-b@openplay.invalid','','{}'::jsonb,now(),now(),now()),
     (v_opponent_c_captain,'authenticated','authenticated','ci-transfer-opponent-c@openplay.invalid','','{}'::jsonb,now(),now(),now()),
     (v_opponent_d_captain,'authenticated','authenticated','ci-transfer-opponent-d@openplay.invalid','','{}'::jsonb,now(),now(),now()),
-    (v_captain_e,'authenticated','authenticated','ci-transfer-captain-e@openplay.invalid','','{}'::jsonb,now(),now(),now());
+    (v_captain_e,'authenticated','authenticated','ci-transfer-captain-e@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    (v_captain_f,'authenticated','authenticated','ci-transfer-captain-f@openplay.invalid','','{}'::jsonb,now(),now(),now());
 
   insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status,is_genuine)
   values
@@ -94,7 +96,8 @@ begin
     (v_opponent_b_captain,'Transfer Opponent B Captain','+447700910007','ci-transfer-opponent-b@openplay.invalid',date '1990-01-07','registered',true),
     (v_opponent_c_captain,'Transfer Opponent C Captain','+447700910008','ci-transfer-opponent-c@openplay.invalid',date '1990-01-08','registered',true),
     (v_opponent_d_captain,'Transfer Opponent D Captain','+447700910009','ci-transfer-opponent-d@openplay.invalid',date '1990-01-09','registered',true),
-    (v_captain_e,'Transfer Captain E','+447700910010','ci-transfer-captain-e@openplay.invalid',date '1990-01-10','registered',true);
+    (v_captain_e,'Transfer Captain E','+447700910010','ci-transfer-captain-e@openplay.invalid',date '1990-01-10','registered',true),
+    (v_captain_f,'Transfer Captain F','+447700910012','ci-transfer-captain-f@openplay.invalid',date '1990-01-12','registered',true);
 
   insert into public.locations(name,slug,town)
   values('Transfer Workflow Test Location','transfer-workflow-test','Bideford')
@@ -120,7 +123,7 @@ begin
   insert into public.teams(created_by) values(v_opponent_c_captain) returning id into v_opponent_c;
   insert into public.teams(created_by) values(v_opponent_d_captain) returning id into v_opponent_d;
   insert into public.teams(created_by) values(v_captain_e) returning id into v_team_e;
-  insert into public.teams(created_by) values(v_captain_e) returning id into v_team_f;
+  insert into public.teams(created_by) values(v_captain_f) returning id into v_team_f;
 
   insert into public.season_teams(team_id,season_id,name,slug,registration_status,approved_by)
   values
@@ -132,7 +135,7 @@ begin
     (v_opponent_c,v_season,'Transfer Opponent C','transfer-opponent-c','approved',v_opponent_c_captain),
     (v_opponent_d,v_season,'Transfer Opponent D','transfer-opponent-d','approved',v_opponent_d_captain),
     (v_team_e,v_season_two,'Transfer Season Two Club E','transfer-season-two-e','approved',v_captain_e),
-    (v_team_f,v_season_two,'Transfer Season Two Club F','transfer-season-two-f','approved',v_captain_e);
+    (v_team_f,v_season_two,'Transfer Season Two Club F','transfer-season-two-f','approved',v_captain_f);
 
   select id into v_source_st from public.season_teams where team_id=v_source_team and season_id=v_season;
   select id into v_b_st from public.season_teams where team_id=v_team_b and season_id=v_season;
@@ -156,7 +159,7 @@ begin
     (v_opponent_c_st,v_opponent_c_captain,'active',true),
     (v_opponent_d_st,v_opponent_d_captain,'active',true),
     (v_e_st,v_captain_e,'active',true),
-    (v_f_st,v_captain_e,'active',false);
+    (v_f_st,v_captain_f,'active',true);
 
   select id into v_player_membership from public.team_memberships
   where season_team_id=v_source_st and user_id=v_player;
