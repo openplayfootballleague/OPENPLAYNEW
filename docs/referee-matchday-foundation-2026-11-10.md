@@ -12,7 +12,7 @@
 - Fixed fine amounts are enforced in the database: £5 yellow, £15 second-yellow/red total and £30 straight red.
 - Report versions are retained. Admin review can approve, return or reject a submitted report. Approval posts a single team fine ledger entry per incident and creates the referee entitlement.
 - Approval publishes the fixture result, reconciles active goalscorer records, posts team fine ledger entries, records straight-red strikes against permanent competition identities and creates one £22 gross referee entitlement with a £20 minimum net guarantee.
-- Three straight-red strikes mark a competition identity inactive pending administrator return approval. The team-sheet database guard blocks future scheduled team-sheet selection until the reasoned admin return decision.
+- Three straight-red strikes mark a competition identity inactive pending administrator return approval. The database guard blocks new inserts/edits that would place the identity on a future scheduled team sheet. A player already present on a previously locked future sheet still needs an audited admin sheet amendment; automatic retroactive sheet rewriting is not implemented.
 - Referee tables have RLS enabled and direct client table grants revoked. Access is through role- and assignment-checked RPCs.
 
 ## UI delivered in this branch
