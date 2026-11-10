@@ -26,6 +26,7 @@ declare
   v_deadline timestamptz;
   v_replacement timestamptz:=now()+interval '10 days';
   v_result jsonb;
+  v_retry_result jsonb;
   v_admin_weeks integer;
 begin
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
@@ -102,7 +103,17 @@ begin
 
   select public.admin_postpone_gameweek(v_week_four_id,v_replacement,'Weather cancellation: unsafe pitch conditions')
     into v_result;
+  select public.admin_postpone_gameweek(v_week_four_id,v_replacement,'Weather cancellation: unsafe pitch conditions')
+    into v_retry_result;
   execute 'reset role';
+
+  if coalesce(v_retry_result->>'already_applied','false')<>'true' then
+    raise exception 'A duplicate postponement request was not treated idempotently';
+  end if;
+  if (select max(payment_cycle) from public.team_fixture_payment_obligations
+      where fixture_id=v_week_four_fixture)<>2 then
+    raise exception 'Duplicate postponement created an extra payment cycle';
+  end if;
 
   if (select gameweek from public.fixtures where id=v_week_one_fixture)<>1 then
     raise exception 'Completed historical gameweek number was changed';
