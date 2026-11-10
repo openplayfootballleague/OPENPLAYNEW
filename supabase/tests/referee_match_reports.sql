@@ -90,6 +90,9 @@ begin
     or position('latest active gameweek' in v_definition)=0 then
     raise exception 'Referee report RPC must enforce assignment ownership, active gameweek and 24-hour deadline';
   end if;
+  if position('v_report.status not in (''draft'',''returned'',''rejected'')' in v_definition)=0 then
+    raise exception 'Rejected reports must remain correctable and resubmittable by the assigned referee';
+  end if;
   if position('fixture_team_sheet_players' in v_definition)=0
     or position('Goalscorer must be selected from the relevant submitted team sheet' in v_definition)=0
     or position('Only an administrator may enter an unattributed goal' in v_definition)=0
