@@ -309,8 +309,8 @@ declare
   v_assignment record;
   v_week record;
 begin
-  if v_actor is null or not public.has_platform_role() then
-    raise exception 'Administrator permission required';
+  if v_actor is null then
+    raise exception 'Authentication required';
   end if;
   if p_gameweek is null or p_gameweek<1 then raise exception 'Choose a valid gameweek'; end if;
   if p_replacement_date is null or p_replacement_date <=
@@ -537,8 +537,8 @@ security definer
 set search_path = ''
 as $$
 begin
-  if auth.uid() is null or not public.has_platform_role() then
-    raise exception 'Administrator permission required';
+  if auth.uid() is null then
+    raise exception 'Authentication required';
   end if;
   return query
   select p.id,p.season_id,s.name,p.original_gameweek,p.replacement_date,p.reason,
@@ -557,7 +557,16 @@ begin
       where wf.postponement_id=p.id and r.status='failed')
   from public.weather_gameweek_postponements p
   join public.seasons s on s.id=p.season_id
-  where p_season_id is null or p.season_id=p_season_id
+  where (p_season_id is null or p.season_id=p_season_id)
+    and exists(
+      select 1
+      from public.weather_postponement_fixtures wf
+      join public.fixtures fixture on fixture.id=wf.fixture_id
+      join public.seasons season on season.id=fixture.season_id
+      join public.leagues league on league.id=season.league_id
+      where wf.postponement_id=p.id
+        and public.can_administer_location(coalesce(fixture.venue_id,league.location_id))
+    )
   order by p.created_at desc;
 end;
 $$;
