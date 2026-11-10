@@ -27,6 +27,7 @@ export type AnalyticsOverview = {
   locations: number;
   leagues: number;
   seasons: number;
+  verifiedSeasons: number;
   openSeasons: number;
   approvedTeams: number;
   totalTeamApplications: number;
@@ -104,19 +105,27 @@ function isPublishedResult(fixture: AnalyticsFixture): boolean {
 export function buildAnalyticsOverview(
   setup: AnalyticsSetup,
   dashboard: AnalyticsDashboardCounts,
-  contextualFixtures: AnalyticsFixture[],
+  verifiedStats: SeasonStatsSnapshot[],
   filters: AnalyticsFilters,
 ): AnalyticsOverview {
   const locationByLeague = new Map(setup.leagues.map((league) => [league.id, league.location_id]));
-  const seasons = setup.seasons.filter((season) => matchesFilters(season, filters, locationByLeague));
-  const seasonIds = new Set(seasons.map((season) => season.id));
-  const teamApplications = setup.season_teams.filter((team) => seasonIds.has(team.season_id));
+  const availableSeasons = setup.seasons.filter((season) => matchesFilters(season, filters, locationByLeague));
+  const availableSeasonIds = new Set(availableSeasons.map((season) => season.id));
+  const scopedStats = verifiedStats.filter((snapshot) => availableSeasonIds.has(snapshot.seasonId));
+  const verifiedSeasonIds = new Set(scopedStats.map((snapshot) => snapshot.seasonId));
+  const teamApplications = setup.season_teams.filter((team) => verifiedSeasonIds.has(team.season_id));
   const teams = teamApplications.filter((team) => team.registration_status === "approved");
-  const results = contextualFixtures.filter(isPublishedResult);
+  const summary = scopedStats.reduce((total, snapshot) => ({
+    fixtures: total.fixtures + Number(snapshot.stats.summary.fixtures ?? 0),
+    publishedResults: total.publishedResults + Number(snapshot.stats.summary.published_results ?? 0),
+    goals: total.goals + Number(snapshot.stats.summary.goals ?? 0),
+  }), { fixtures: 0, publishedResults: 0, goals: 0 });
+
   return {
     locations: filters.locationId ? 1 : setup.locations.length,
     leagues: setup.leagues.filter((league) => (!filters.locationId || league.location_id === filters.locationId) && (!filters.leagueId || league.id === filters.leagueId)).length,
-    seasons: seasons.length,
+    seasons: availableSeasons.length,
+    verifiedSeasons: scopedStats.length,
     openSeasons: Number(dashboard.open_seasons ?? 0),
     approvedTeams: teams.length,
     totalTeamApplications: teamApplications.length,
@@ -124,9 +133,9 @@ export function buildAnalyticsOverview(
     withdrawnTeamApplications: teamApplications.filter((team) => team.registration_status === "withdrawn").length,
     teamApprovalRate: teamApplications.length > 0 ? (teams.length / teamApplications.length) * 100 : null,
     squadMemberships: teams.reduce((total, team) => total + Math.max(0, Number(team.member_count) || 0), 0),
-    fixtures: contextualFixtures.length,
-    publishedResults: results.length,
-    goals: results.reduce((total, fixture) => total + Number(fixture.home_score ?? 0) + Number(fixture.away_score ?? 0), 0),
+    fixtures: summary.fixtures,
+    publishedResults: summary.publishedResults,
+    goals: summary.goals,
     pendingPlayerReviews: Number(dashboard.pending_player_reviews ?? 0),
     pendingTeamApplications: Number(dashboard.pending_team_applications ?? 0),
     pendingMembershipRequests: Number(dashboard.pending_membership_requests ?? 0),
@@ -136,33 +145,33 @@ export function buildAnalyticsOverview(
 export function buildLocationComparisons(
   setup: AnalyticsSetup,
   filters: Pick<AnalyticsFilters, "leagueId" | "seasonId"> = { leagueId: "", seasonId: "" },
+  verifiedStats: SeasonStatsSnapshot[] = [],
 ): AnalyticsLocationComparison[] {
   const locationByLeague = new Map(setup.leagues.map((league) => [league.id, league.location_id]));
-  return setup.locations.flatMap((location) => {
+  const statsBySeason = new Map(verifiedStats.map((snapshot) => [snapshot.seasonId, snapshot.stats]));
+  return setup.locations.map((location) => {
     const seasons = setup.seasons.filter((season) =>
       (season.location_id ?? locationByLeague.get(season.league_id)) === location.id
       && (!filters.leagueId || season.league_id === filters.leagueId)
       && (!filters.seasonId || season.id === filters.seasonId),
     );
-    // A location outside the selected league/season is not a zero-performance
-    // location; exclude it from this comparison rather than implying it had no activity.
-    if (seasons.length === 0) return [];
-    const seasonIds = new Set(seasons.map((season) => season.id));
+    const snapshots = seasons
+      .map((season) => statsBySeason.get(season.id))
+      .filter((stats): stats is SeasonStatsSnapshot["stats"] => Boolean(stats));
+    const seasonIds = new Set(seasons.filter((season) => statsBySeason.has(season.id)).map((season) => season.id));
     const teams = setup.season_teams.filter((team) =>
       seasonIds.has(team.season_id) && team.registration_status === "approved",
     );
-    const fixtures = setup.fixtures.filter((fixture) => seasonIds.has(fixture.season_id));
-    const results = fixtures.filter(isPublishedResult);
-    return [{
+    return {
       locationId: location.id,
       locationName: location.name,
-      seasons: seasons.length,
+      seasons: snapshots.length,
       approvedTeams: teams.length,
       squadMemberships: teams.reduce((total, team) => total + Math.max(0, Number(team.member_count) || 0), 0),
-      fixtures: fixtures.length,
-      publishedResults: results.length,
-      goals: results.reduce((total, fixture) => total + Number(fixture.home_score ?? 0) + Number(fixture.away_score ?? 0), 0),
-    }];
+      fixtures: snapshots.reduce((total, stats) => total + Number(stats.summary.fixtures ?? 0), 0),
+      publishedResults: snapshots.reduce((total, stats) => total + Number(stats.summary.published_results ?? 0), 0),
+      goals: snapshots.reduce((total, stats) => total + Number(stats.summary.goals ?? 0), 0),
+    };
   });
 }
 
