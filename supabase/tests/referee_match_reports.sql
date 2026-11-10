@@ -235,9 +235,9 @@ begin
     insert into public.fixture_team_sheet_players(team_sheet_id,user_id,competition_player_id,role,is_goalkeeper,did_appear)
     values(v_away_sheet_two,v_home_user,v_home_identity,'substitute',false,false);
   exception when others then
-    v_rejected:=true;
+    v_rejected:=sqlerrm like '%disciplinary strikes%';
   end;
-  if not v_rejected then raise exception 'A disciplinarily inactive player was added to a team sheet'; end if;
+  if not v_rejected then raise exception 'The disciplinary team-sheet guard did not block the inactive player'; end if;
 
   -- Reactivation is audited and does not erase the permanent strike record.
   perform public.admin_reactivate_disciplined_player(v_home_identity,'Administrator reviewed and approved reactivation');
