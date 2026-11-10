@@ -525,6 +525,9 @@ declare
   v_user uuid:=auth.uid();
   v_key text;
   v_conversation_id uuid;
+  v_shared_team_id uuid;
+  v_season_id uuid;
+  v_location_id uuid;
 begin
   if v_user is null or p_recipient_user_id is null or p_recipient_user_id=v_user then
     raise exception 'Choose another eligible Open Play member';
@@ -533,12 +536,18 @@ begin
      or not public.message_actor_is_active(p_recipient_user_id) then
     raise exception 'Both accounts must be active Open Play members';
   end if;
-  if not exists (
-    select 1 from public.team_memberships a
-    join public.team_memberships b on b.season_team_id=a.season_team_id
-    where a.user_id=v_user and a.status='active'
-      and b.user_id=p_recipient_user_id and b.status='active'
-  ) then
+  select st.id,s.id,l.location_id
+    into v_shared_team_id,v_season_id,v_location_id
+  from public.team_memberships a
+  join public.team_memberships b on b.season_team_id=a.season_team_id
+  join public.season_teams st on st.id=a.season_team_id
+  join public.seasons s on s.id=st.season_id
+  join public.leagues l on l.id=s.league_id
+  where a.user_id=v_user and a.status='active'
+    and b.user_id=p_recipient_user_id and b.status='active'
+  order by a.joined_at desc nulls last
+  limit 1;
+  if v_shared_team_id is null then
     raise exception 'Direct messages are limited to members of the same active team';
   end if;
   if exists (
@@ -549,8 +558,8 @@ begin
     raise exception 'This member is unavailable for direct messaging';
   end if;
   v_key:=least(v_user::text,p_recipient_user_id::text)||':'||greatest(v_user::text,p_recipient_user_id::text);
-  insert into public.message_conversations(kind,title,created_by,direct_pair_key)
-  values('direct','Direct conversation',v_user,v_key)
+  insert into public.message_conversations(kind,title,created_by,location_id,season_id,direct_pair_key)
+  values('direct','Direct conversation',v_user,v_location_id,v_season_id,v_key)
   on conflict(direct_pair_key) where kind='direct' and closed_at is null do nothing;
   select id into v_conversation_id from public.message_conversations
   where kind='direct' and direct_pair_key=v_key and closed_at is null;
