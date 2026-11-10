@@ -558,7 +558,7 @@ function AdminRefereesPage() {
       }else if(transferData?.status==="processing"){
         setNotice("Match report approved and result published. Stripe created the referee transfer; signed webhook reconciliation is still pending. Do not retry.");
       }else if(transferData?.success===true&&transferData?.status==="transferred"){
-        setNotice("Match report approved and result published. The referee's £22 payment transfer was confirmed by Stripe.");
+        setNotice("Match report approved and result published. The referee's approved payment transfer was confirmed by Stripe.");
       }else{
         setNotice("Match report approved and result published. The referee payment requires attention: "+
           (transferData?.error??"Stripe did not confirm a transfer.")+" Check Connect readiness and the payout queue.");
