@@ -383,7 +383,7 @@ begin
 
   begin
     insert into public.team_memberships(season_team_id,user_id,status,is_captain)
-    values(v_c_st,v_player_two,'active',false);
+    values(v_c_st,v_player_three,'active',false);
     raise exception 'A second active club in the same league was incorrectly allowed across seasons';
   exception when others then
     get stacked diagnostics v_error=message_text;
