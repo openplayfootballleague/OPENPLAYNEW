@@ -172,6 +172,10 @@ begin
   if not exists(select 1 from pg_trigger where tgname='referee_report_milestone_reward_after_approval' and not tgisinternal) then
     raise exception 'Approved referee reports must automatically create eligible milestone reward records';
   end if;
+  if not exists(select 1 from information_schema.columns where table_schema='public' and table_name='referee_milestone_rewards' and column_name='milestone_report_id')
+    or not exists(select 1 from information_schema.columns where table_schema='public' and table_name='referee_milestone_rewards' and column_name='location_id') then
+    raise exception 'Milestone reward must retain the qualifying report and location';
+  end if;
   select pg_get_functiondef('public.record_referee_milestone_reward()'::regprocedure) into v_definition;
   if position('on conflict(referee_user_id,milestone_games) do nothing' in v_definition)=0
     or position('500' in v_definition)=0 then
