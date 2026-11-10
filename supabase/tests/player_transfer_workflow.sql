@@ -166,17 +166,17 @@ begin
   select id into v_player_two_membership from public.team_memberships
   where season_team_id=v_source_st and user_id=v_player_two;
 
-  insert into public.fixtures(season_id,home_team_id,away_team_id,gameweek,status,scheduled_at)
+  insert into public.fixtures(season_id,home_team_id,away_team_id,gameweek,fixture_number,status,scheduled_at)
   values
-    (v_season,v_b_st,v_opponent_b_st,1,'scheduled',now()+interval '12 hours')
+    (v_season,v_b_st,v_opponent_b_st,1,1,'scheduled',now()+interval '12 hours')
   returning id into v_fixture_b;
-  insert into public.fixtures(season_id,home_team_id,away_team_id,gameweek,status,scheduled_at)
+  insert into public.fixtures(season_id,home_team_id,away_team_id,gameweek,fixture_number,status,scheduled_at)
   values
-    (v_season,v_c_st,v_opponent_c_st,1,'scheduled',now()+interval '12 hours')
+    (v_season,v_c_st,v_opponent_c_st,1,2,'scheduled',now()+interval '12 hours')
   returning id into v_fixture_c;
-  insert into public.fixtures(season_id,home_team_id,away_team_id,gameweek,status,scheduled_at)
+  insert into public.fixtures(season_id,home_team_id,away_team_id,gameweek,fixture_number,status,scheduled_at)
   values
-    (v_season,v_d_st,v_opponent_d_st,1,'scheduled',now()+interval '12 hours')
+    (v_season,v_d_st,v_opponent_d_st,1,3,'scheduled',now()+interval '12 hours')
   returning id into v_fixture_d;
 
   -- A draft can be saved and edited before kickoff without excluding the club
