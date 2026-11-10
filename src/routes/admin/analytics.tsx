@@ -231,6 +231,7 @@ function AdminAnalyticsPage() {
         ["Ledger charges (pence)", financeTotals.chargesPence],
         ["Ledger payments (pence)", financeTotals.paymentsPence],
         ["Ledger refunds (pence)", financeTotals.refundsPence],
+        ["Ledger credits (pence)", financeTotals.creditsPence],
         ["Ledger fines (pence)", financeTotals.finesPence],
         ["Outstanding ledger balance (pence)", financeTotals.outstandingPence],
       );
@@ -357,6 +358,7 @@ function AdminAnalyticsPage() {
             <article><span>Charges</span><strong>{money(financeTotals.chargesPence)}</strong></article>
             <article><span>Payments</span><strong>{money(financeTotals.paymentsPence)}</strong></article>
             <article><span>Refunds</span><strong>{money(financeTotals.refundsPence)}</strong></article>
+            <article><span>Credits</span><strong>{money(financeTotals.creditsPence)}</strong></article>
             <article><span>Fines</span><strong>{money(financeTotals.finesPence)}</strong></article>
             <article><span>Outstanding</span><strong>{money(financeTotals.outstandingPence)}</strong></article>
             <article><span>Finance seasons</span><strong>{new Set(financeOptions.map((option) => option.season_id)).size}</strong></article>
@@ -380,7 +382,7 @@ function AdminAnalyticsPage() {
       </div>}
       <h3>Location comparison</h3>
       <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.publishedResults}</td><td>{row.goals}</td></tr>)}</tbody></table></div>
-      {financeAccess && !financeError && <p>Ledger charges: {money(financeTotals.chargesPence)} · Payments: {money(financeTotals.paymentsPence)} · Refunds: {money(financeTotals.refundsPence)} · Fines: {money(financeTotals.finesPence)} · Outstanding: {money(financeTotals.outstandingPence)}</p>}
+      {financeAccess && !financeError && <p>Ledger charges: {money(financeTotals.chargesPence)} · Payments: {money(financeTotals.paymentsPence)} · Refunds: {money(financeTotals.refundsPence)} · Credits: {money(financeTotals.creditsPence)} · Fines: {money(financeTotals.finesPence)} · Outstanding: {money(financeTotals.outstandingPence)}</p>}
       <p>Generated {new Date().toLocaleString("en-GB")}. Aggregate operational data only; no player personal details included.</p>
     </section>
     <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs. Reporting window: selected season or all seasons in the accessible context. Date-range cohort reporting and consented app-usage metrics remain gated on the analytics release review.</p>
