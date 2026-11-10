@@ -1,6 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json"}});
+const allowedOrigin=Deno.env.get("APP_ORIGIN")??"";
+const corsHeaders={"Access-Control-Allow-Origin":allowedOrigin,"Access-Control-Allow-Headers":"authorization, apikey, content-type, x-client-info","Access-Control-Allow-Methods":"POST, OPTIONS","Vary":"Origin"};
+const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json",...corsHeaders}});
 async function stripeRequest(key:string,path:string,method="GET",body?:URLSearchParams,idempotencyKey?:string){
   const headers:Record<string,string>={Authorization:`Bearer ${key}`};
   if(body)headers["Content-Type"]="application/x-www-form-urlencoded";
@@ -10,9 +12,10 @@ async function stripeRequest(key:string,path:string,method="GET",body?:URLSearch
   return {ok:response.ok,status:response.status,data:data as Record<string,unknown>};
 }
 Deno.serve(async(req)=>{
+  if(req.method==="OPTIONS")return new Response("ok",{headers:corsHeaders});
   if(req.method!=="POST")return json({error:"Method not allowed"},405);
   const origin=req.headers.get("origin");
-  const appOrigin=Deno.env.get("APP_ORIGIN")??"";
+  const appOrigin=allowedOrigin;
   if(origin&&origin!==appOrigin)return json({error:"Origin not allowed"},403);
   const stripeKey=Deno.env.get("STRIPE_SECRET_KEY");
   const supabaseUrl=Deno.env.get("SUPABASE_URL");
