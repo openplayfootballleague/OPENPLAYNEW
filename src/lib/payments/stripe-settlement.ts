@@ -5,6 +5,7 @@ export type PaymentSettlementRecord = {
   stripe_checkout_session_id: string | null;
   stripe_payment_intent_id: string | null;
   checkout_attempt: number;
+  amount_refunded_pence?: number;
 };
 
 type StripeObject = Record<string, unknown>;
@@ -51,6 +52,19 @@ export function validateChargeSettlement(record: PaymentSettlementRecord, object
   return { ok: true };
 }
 
+export function validateRefundSettlement(record: PaymentSettlementRecord, object: StripeObject): SettlementValidation {
+  const refunded = object.amount_refunded;
+  const total = object.amount;
+  const currentRefunded = record.amount_refunded_pence ?? 0;
+  if (!Number.isSafeInteger(refunded) || !Number.isSafeInteger(total) ||
+    Number(refunded) < 0 || Number(total) !== record.amount_pence || Number(refunded) > Number(total)) {
+    return { ok: false, reason: "Refund amount mismatch; held for finance review" };
+  }
+  if (Number(refunded) < currentRefunded) {
+    return { ok: false, reason: "Older cumulative refund event ignored", stale: true };
+  }
+  return { ok: true };
+}
 export function isRefundedPaymentStatus(status: string): boolean {
   return status === "refunded" || status === "partially_refunded";
 }

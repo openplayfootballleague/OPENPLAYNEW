@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkoutAttemptFromIntentMetadata, classifyCheckoutWithoutSession, classifyExistingCheckoutSession, isFinalizedPaymentStatus, isRefundedPaymentStatus, nextCheckoutAttempt, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, type PaymentSettlementRecord } from "./stripe-settlement";
+import { checkoutAttemptFromIntentMetadata, classifyCheckoutWithoutSession, classifyExistingCheckoutSession, isFinalizedPaymentStatus, isRefundedPaymentStatus, nextCheckoutAttempt, paymentRecordIdFromIntentMetadata, validateChargeSettlement, validateCheckoutSettlement, validateRefundSettlement, type PaymentSettlementRecord } from "./stripe-settlement";
 
 const record: PaymentSettlementRecord = {
   id: "payment-1",
@@ -209,5 +209,19 @@ describe("Stripe finalized payment state", () => {
     expect(isFinalizedPaymentStatus("processing")).toBe(false);
     expect(isFinalizedPaymentStatus("failed")).toBe(false);
     expect(isFinalizedPaymentStatus("cancelled")).toBe(false);
+  });
+});
+
+describe("Stripe cumulative refund ordering", () => {
+  const refundedRecord: PaymentSettlementRecord = { ...record, amount_refunded_pence: 100 };
+  it("accepts a cumulative refund that advances the recorded amount", () => {
+    expect(validateRefundSettlement(refundedRecord, { amount: 350, amount_refunded: 200 })).toEqual({ ok: true });
+  });
+  it("ignores an older refund snapshot that would reduce the recorded amount", () => {
+    expect(validateRefundSettlement(refundedRecord, { amount: 350, amount_refunded: 50 })).toMatchObject({ ok: false, stale: true });
+  });
+  it("rejects refund snapshots that exceed or mismatch the original charge", () => {
+    expect(validateRefundSettlement(refundedRecord, { amount: 350, amount_refunded: 351 }).ok).toBe(false);
+    expect(validateRefundSettlement(refundedRecord, { amount: 351, amount_refunded: 200 }).ok).toBe(false);
   });
 });

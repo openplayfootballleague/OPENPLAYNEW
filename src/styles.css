@@ -18,7 +18,7 @@
 html { scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; }
 a { color: inherit; text-decoration: none; }
-.site-shell { overflow: hidden; background: var(--paper); color: var(--ink); }
+.site-shell { overflow: hidden; padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); background: var(--paper); color: var(--ink); }
 .site-header {
   height: 82px; padding: 0 clamp(22px, 5vw, 76px); display: flex;
   align-items: center; justify-content: space-between; gap: 28px;
@@ -307,6 +307,13 @@ a { color: inherit; text-decoration: none; }
 .hub-transfer-panel form > label { display: grid; gap: 6px; color: #55564f; font-size: 10px; font-weight: 750; }
 .hub-transfer-panel select,.hub-transfer-panel textarea { box-sizing: border-box; width: 100%; min-height: 40px; padding: 10px; border: 1px solid #cfcec5; background: #fffefa; color: #171c18; font: inherit; font-size: 11px; }
 .hub-transfer-panel form .button { justify-self: start; margin-top: 3px; }
+.transfer-destination-options { display:grid; gap:8px; margin:12px 0; }
+.transfer-destination-options label { display:flex; align-items:flex-start; gap:10px; padding:11px 12px; border:1px solid #cfcec5; background:#f5f4ee; cursor:pointer; }
+.transfer-destination-options label > span { display:grid; gap:4px; color:#171c18; font-size:11px; font-weight:800; }
+.transfer-destination-options label small { color:#77786f; font-size:9px; font-weight:500; }
+.transfer-destination-options input { margin-top:2px; accent-color:#e96831; }
+.player-facing .captain-request textarea { width:100%; min-height:54px; padding:9px; border:1px solid #cfcec5; background:#fff; color:#171c18; font:inherit; font-size:11px; resize:vertical; }
+.player-facing .captain-request label { display:grid; gap:5px; color:#686960; font-size:9px; font-weight:800; text-transform:uppercase; }
 .player-transfer-history { display: grid; gap: 8px; margin-top: 14px; }
 .player-transfer-history > strong { color: #171c18; font-size: 9px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
 .player-transfer-history article { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid #d8d7ce; }
@@ -1205,4 +1212,50 @@ a { color: inherit; text-decoration: none; }
   .join-request-list { padding: 16px; }
   .join-request-item-top { flex-direction: column; }
   .join-request-status { max-width: none; }
+}
+
+/* Administrator referee report entry controls */
+.admin-report-entry > label { display:grid; gap:7px; margin-top:12px; color:#55564f; font-size:10px; font-weight:750; }
+.admin-report-entry select[multiple] { min-height:108px; padding:8px; }
+.admin-report-score-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:12px; }
+.admin-report-score-grid label { display:grid; gap:6px; color:#55564f; font-size:10px; font-weight:750; }
+@media(max-width:520px) { .admin-report-score-grid { grid-template-columns:1fr; } }
+
+/* Captain weekly team payment workspace */
+.captain-team-payments { margin-top: 22px; }
+.captain-team-payment {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 15px;
+  border: 1px solid #deded7;
+  border-radius: 10px;
+  background: #f7f7f3;
+}
+.captain-team-payment-heading,
+.captain-team-payment-status {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.captain-team-payment-heading strong { color: #1c1e1a; font-size: .9rem; }
+.captain-team-payment-heading span,
+.captain-team-payment .form-note { color: #6a6b63; font-size: .76rem; line-height: 1.5; }
+.captain-team-payment-status { align-items: center; }
+.captain-team-payment-status span {
+  display: inline-flex;
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: #e9e9e4;
+  color: #42443e;
+  font-size: .7rem;
+  font-weight: 800;
+}
+.captain-team-payment-status strong { color: #1d1f1a; font-size: 1.1rem; }
+.payment-countdown { margin: 0; color: #b44c18; font-size: .8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.captain-team-pay-button { width: 100%; }
+@media(max-width:520px) {
+  .captain-team-payment-heading { flex-direction: column; }
+  .captain-team-payment-status { align-items: flex-start; flex-direction: column; }
 }

@@ -1,19 +1,33 @@
-# Phase 1 — Foundation and setup
+# Phase 1 — Account and player-registration foundation
 
 ## Scope
-- [x] Confirm the dedicated GitHub repository: openplayfootballleague/OPENPLAYNEW.
-- [x] Establish the TanStack Start + React + TypeScript application skeleton.
-- [x] Configure the Vite and Cloudflare Workers integration.
-- [x] Add environment-variable guidance and secret-handling rules.
-- [x] Add product and engineering guardrails for future contributors.
-- [x] Add the first responsive public homepage direction.
-- [ ] Add the official Open Play logo asset supplied by the owner.
-- [x] Generate and commit the dependency lockfile through the first successful CI run.
-- [x] Run dependency installation, type-check and production build in GitHub Actions.
-- [ ] Verify a Cloudflare Workers dry-run without deploying publicly.
+- [x] Dedicated TanStack Start + React + TypeScript application and Cloudflare Worker build.
+- [x] Supabase Auth account creation, email verification, sign-in, sign-out and password recovery/reset routes.
+- [x] Account creation remains separate from player registration and role assignment.
+- [x] Mandatory player registration fields: full name, phone, Auth email and date of birth.
+- [x] Email confirmation and Auth-email matching enforced by the server-side registration RPC.
+- [x] Permanent player identity, one registration per Auth user, advisory-lock serialization and audit event.
+- [x] Automatic approval below the two-of-three identity threshold; manual review at two or more metrics against the same candidate.
+- [x] Pending/rejected registration states and global-admin-only identity-review evidence.
+- [x] Player Hub access only for approved, non-banned registered players or active captains; banned players are routed to the restricted registration-status screen.
+- [x] Implemented the approved age/access policy: under-16s cannot register as players; ages 16–17 require verified parent/legal-guardian consent and a separate global-admin review. SQL lifecycle tests and registration UI safeguards pass; manual staging acceptance remains open.
+- [x] Implemented the approved ban policy: revoke active participation, preserve history, transfer captaincy by current-season appearances then full registered name, and require fresh registration/approval after unban. SQL regression coverage passes.
+- [x] Implemented canonical E.164 phone normalisation and matching regression coverage; equivalent UK/international formats and collision handling pass.
+- [ ] Complete privacy notice, children's-data safeguards and the proposed retention schedule review before launch.
+- [x] Player picture upload is the only direct profile self-service edit; storage ownership and database column grants enforce it.
+- [x] Verify authenticated signup, confirmation-email delivery, verified sign-in, separate player registration, duplicate-registration rejection, password recovery/update and sign-out with disposable local Auth identities (CI run `42519046139`).
+- [ ] Verify the exact original 1619 × 971 OP asset is integrated (the current smaller PNG is not provenance-verified).
+- [ ] Complete browser and real-device accessibility/responsive acceptance. Automated route guards and navigation assertions are not a substitute for manual mobile/iPad testing.
+- [ ] Complete secure first super-admin bootstrap using an owner-approved identity.
 
-## Current limitations
-The new Supabase project is not yet visible to the connected Supabase account, so no database, Auth, Storage or secret configuration has been created against a backend. The homepage currently uses clearly provisional presentation content and does not claim to provide live league data or working account actions.
+## Database release
+- [x] Reconcile all 99 applied migration versions to canonical source files and Git blob SHAs.
+- [x] Consolidate outstanding forward-only corrections into one release migration.
+- [x] Clean local Supabase replay and all SQL authorization/identity regression tests passed in CI.
+- [x] Apply the reviewed consolidated migration to the dedicated Open Play New Supabase project; hosted ledger records version `20261108194831`.
+
+## Policy decisions
+The approved product, player and data policies are recorded in [docs/open-play-policies.md](open-play-policies.md). Documentation does not count as implementation or legal approval; the outstanding policy implementation and review gates below must be completed and verified.
 
 ## Completion criteria
-Phase 1 is complete only when the repository installs reproducibly, type-checks, builds successfully, and passes a Cloudflare dry-run. The official logo asset must be added before the public brand mark is considered final.
+Phase 1 is complete only when the account and player-registration lifecycle is fully implemented, the consolidated database release has passed clean replay and role-matrix tests, hosted schema is verified at the intended project, and the remaining real-browser/device, canonical-logo and owner-approved bootstrap gates have been completed. Implemented, verified and released remain separate states.
