@@ -4,7 +4,7 @@
 do $$
 declare
   v_definition text;
-  v_old_feature text := E'  if not public.has_platform_role() and not public.is_active_team_captain(v_membership.season_team_id) then\n    raise exception ''Captain permission required'';\n  end if;';
+  v_old_feature text := E'  if not public.has_platform_role()\n     and not public.is_active_team_captain(v_membership.season_team_id) then\n    raise exception ''Captain permission required'';\n  end if;';
   v_old_integration text := 'if not public.can_administer_location((select l.location_id from public.team_memberships tm join public.season_teams st on st.id=tm.season_team_id join public.seasons s on s.id=st.season_id join public.leagues l on l.id=s.league_id where tm.id=p_membership_id)) then raise exception ''You are not assigned to this location''; end if;';
   v_new text := 'if not public.can_administer_location((select l.location_id from public.team_memberships tm join public.season_teams st on st.id=tm.season_team_id join public.seasons s on s.id=st.season_id join public.leagues l on l.id=s.league_id where tm.id=p_membership_id)) and not public.is_active_team_captain(v_membership.season_team_id) then raise exception ''You are not assigned to this location''; end if;';
 begin
