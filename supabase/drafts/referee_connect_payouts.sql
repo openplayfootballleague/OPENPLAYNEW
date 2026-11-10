@@ -143,10 +143,7 @@ begin
      or length(btrim(p_stripe_account_id))<5 then
     raise exception 'A referee and verified Stripe connected account are required';
   end if;
-  if not exists(select 1 from public.referee_memberships
-    where user_id=p_referee_user_id and status='active') then
-    raise exception 'The referee must have an active membership';
-  end if;
+  -- Stripe account state must continue syncing even if a referee later leaves the active roster.
   if p_requirements_due is null or jsonb_typeof(p_requirements_due)<>'object' then
     raise exception 'Stripe requirements must be a JSON object';
   end if;
