@@ -26,10 +26,16 @@ for (const path of appliedPaths) readFileSync(join(root, path));
 
 if (!existsSync(expectedPendingFile)) throw new Error("Expected pending migration list is missing");
 const expectedPending = readFileSync(expectedPendingFile, "utf8")
-  .split(/\r?\n/).map((name) => name.trim()).filter(Boolean);
-if (new Set(expectedPending).size !== expectedPending.length ||
-    expectedPending.some((name) => !/^\d{14}_.+\.sql$/.test(name))) {
-  throw new Error("Expected pending migration list contains duplicates or invalid filenames");
+  .replace(/^\uFEFF/, "")
+  .split(/\r?\n/)
+  .map((name) => name.replace(/^\uFEFF/, "").trim())
+  .filter(Boolean);
+const duplicatePending = expectedPending.filter((name, index) => expectedPending.indexOf(name) !== index);
+const invalidPending = expectedPending.filter((name) => !/^\d{14}_[A-Za-z0-9._-]+\.sql$/.test(name));
+if (duplicatePending.length || invalidPending.length) {
+  throw new Error(
+    `Expected pending migration list is invalid. Duplicates: ${duplicatePending.join(", ") || "none"}. Invalid filenames: ${invalidPending.join(", ") || "none"}.`,
+  );
 }
 
 const allMigrations = readdirSync(migrationDirectory)

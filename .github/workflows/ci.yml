@@ -39,7 +39,7 @@ jobs:
         with:
           deno-version: v2.x
       - name: Type-check Supabase Edge Functions
-        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts supabase/functions/player-account-retention/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts supabase/functions/player-account-retention/index.ts supabase/functions/create-team-fixture-checkout/index.ts supabase/functions/team-stripe-webhook/index.ts supabase/functions/process-team-payment-deadlines/index.ts
       - name: Run domain tests
         run: npm test
       - name: Type-check and build
@@ -81,7 +81,7 @@ jobs:
             diff -u supabase/drafts/referee_fixture_assignments.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\\n' "$migration_file"
+          printf '%s\n' "$migration_file"
       - name: Generate referee match report migration using the pinned Supabase CLI
         run: |
           migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_match_reports.sql' -print -quit)"
@@ -92,7 +92,64 @@ jobs:
             diff -u supabase/drafts/referee_match_reports.sql "$migration_file"
           fi
           test -n "$migration_file"
+          printf '%s\n' "$migration_file"
+      - name: Generate approved referee report correction migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_corrections.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new referee_approved_report_corrections < supabase/drafts/referee_approved_report_corrections.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_corrections.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_approved_report_corrections.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\n' "$migration_file"
+      - name: Generate team weekly payment migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_team_weekly_payment_workflow.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new team_weekly_payment_workflow < supabase/drafts/team_weekly_payment_workflow.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_team_weekly_payment_workflow.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/team_weekly_payment_workflow.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          migration_name="$(basename "$migration_file")"
+          if ! grep -qxF "$migration_name" scripts/expected-pending-migrations.txt; then
+            printf '%s\n' "$migration_name" >> scripts/expected-pending-migrations.txt
+          fi
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
+      - name: Preserve CLI-generated team payment migration for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-weekly-payment-migration
+          path: supabase/migrations/*_team_weekly_payment_workflow.sql
+          if-no-files-found: error
+          retention-days: 1
+      - name: Generate weather gameweek postponement migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponement.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new weather_gameweek_postponement < supabase/drafts/weather_gameweek_postponement.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponement.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/weather_gameweek_postponement.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          migration_name="$(basename "$migration_file")"
+          if ! grep -qxF "$migration_name" scripts/expected-pending-migrations.txt; then
+            printf '%s\n' "$migration_name" >> scripts/expected-pending-migrations.txt
+          fi
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\\n' "$migration_file"
+      - name: Preserve CLI-generated weather postponement migration for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: weather-gameweek-postponement-migration
+          path: supabase/migrations/*_weather_gameweek_postponement.sql
+          if-no-files-found: error
+          retention-days: 1
       - name: Preserve CLI-generated referee migrations for review
         uses: actions/upload-artifact@v4
         with:
@@ -101,6 +158,7 @@ jobs:
             supabase/migrations/*_referee_application_workflow.sql
             supabase/migrations/*_referee_fixture_assignments.sql
             supabase/migrations/*_referee_match_reports.sql
+            supabase/migrations/*_referee_approved_report_corrections.sql
           if-no-files-found: error
           retention-days: 1
       - name: Replay every migration against a clean local database
@@ -165,10 +223,20 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_fixture_assignments.sql
-      - name: Verify referee reports, deadline, approval, discipline and finance
+      - name: Verify approved referee report correction, discipline reversal and finance credits
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_match_reports.sql
+
+      - name: Verify team weekly payment deadlines, strikes, cancellation and refund ledger
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/team_weekly_payment_workflow.sql
+
+      - name: Verify whole-gameweek weather postponements, refunds and chronological renumbering
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/weather_gameweek_postponement.sql
 
       - name: Verify age tiers and guardian consent lifecycle
         env:
@@ -202,3 +270,42 @@ jobs:
       - name: Stop local Supabase database
         if: always()
         run: supabase stop --no-backup
+
+  browser-acceptance:
+    name: Chromium responsive and PWA acceptance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked application dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install isolated Playwright test runner
+        run: npm install --no-save --package-lock=false @playwright/test@1.55.0
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Use the browser runner's supported local workerd compatibility date
+        run: |
+          node -e "const fs=require('node:fs');const config=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8'));config.compatibility_date='2026-09-18';fs.writeFileSync('wrangler.jsonc',JSON.stringify(config,null,2)+'\\n');"
+      - name: Build production application with isolated Supabase test endpoint
+        env:
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_PUBLISHABLE_KEY: playwright-public-test-key
+        run: npm run build
+      - name: Run responsive route, manifest and offline PWA acceptance
+        env:
+          CI: "true"
+        run: npx playwright test --config=playwright.config.ts
+      - name: Upload browser traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openplay-browser-acceptance-traces
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

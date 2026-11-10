@@ -19,6 +19,9 @@ for (const [name, expected] of [
   ["stripe-webhook", false],
   ["deliver-notifications", true],
   ["create-player-checkout", true],
+  ["create-team-fixture-checkout", true],
+  ["team-stripe-webhook", false],
+  ["process-team-payment-deadlines", false],
 ]) {
   verifyJwtSetting(name, expected);
 }
@@ -61,5 +64,22 @@ assert.ok(!checkout.includes("lovable.app"), "Open Play New must not fall back t
 
 const captainHub = readFileSync("src/routes/captain.tsx", "utf8");
 assert.ok(captainHub.includes("fixtures[0].fixture_id") && captainHub.includes("!fixtures.some(f=>f.fixture_id===selectedFixture)"), "Captains Hub must preselect the earliest scheduled fixture and restore its saved or submitted sheet");
+
+
+const teamCheckout = readFileSync("supabase/functions/create-team-fixture-checkout/index.ts", "utf8");
+assert.ok(teamCheckout.includes('userClient.auth.getUser(token)'), "Team checkout must validate the signed-in captain");
+assert.ok(teamCheckout.includes('rpc("create_team_fixture_payment_obligation"'), "Team checkout must obtain the fee and obligation from the database");
+assert.ok(teamCheckout.includes('Idempotency-Key') && teamCheckout.includes("openplay-team-fixture-"), "Team checkout must use an idempotency key per obligation attempt");
+assert.ok(teamCheckout.includes('stripeKey?.startsWith("sk_test_")'), "Team checkout must remain test-mode only");
+
+const teamWebhook = readFileSync("supabase/functions/team-stripe-webhook/index.ts", "utf8");
+assert.ok(teamWebhook.includes('req.headers.get("stripe-signature")') && teamWebhook.includes("verifySignature(raw"), "Team Stripe webhook must verify the raw-body signature");
+assert.ok(teamWebhook.includes("event.livemode!==false"), "Team Stripe webhook must reject live-mode events");
+assert.ok(teamWebhook.includes('rpc("record_team_fixture_payment_success"'), "Team payment state must be driven by the signed webhook");
+
+const teamDeadlineWorker = readFileSync("supabase/functions/process-team-payment-deadlines/index.ts", "utf8");
+assert.ok(teamDeadlineWorker.includes('req.headers.get("x-team-payment-cron-secret")'), "Team payment scheduler must validate its dedicated cron secret");
+assert.ok(teamDeadlineWorker.includes('Idempotency-Key') && teamDeadlineWorker.includes("openplay-team-refund-"), "Team refunds must be idempotent at the provider");
+assert.ok(teamDeadlineWorker.includes('stripeKey?.startsWith("sk_test_")'), "Team payment scheduler must remain test-mode only");
 
 console.log("Edge Function security configuration and Phase 1 workflow boundary assertions passed.");
