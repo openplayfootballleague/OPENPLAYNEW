@@ -405,7 +405,7 @@ begin
         season_team_id,fixture_id,entry_type,amount_pence,description,reference,created_by
       ) values(v_old_payment.season_team_id,v_old_payment.fixture_id,'credit',
         v_old_payment.amount_pence,'Weather postponement credit for previous payment cycle',
-        'gameweek-postponement:'||p_gameweek_id::text,v_old_payment.created_by)
+        'gameweek-postponement:'||p_gameweek_id::text||':'||v_old_payment.id::text,v_old_payment.created_by)
       returning * into v_credit;
       update public.team_fixture_payment_obligations
       set status='cancelled',finance_cancellation_credit_entry_id=v_credit.id
