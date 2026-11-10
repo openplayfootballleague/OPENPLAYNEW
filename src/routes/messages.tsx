@@ -143,7 +143,7 @@ function MessagesPage() {
     })();
     const channel = supabase.channel("message-thread-" + selectedId)
       .on("postgres_changes", {
-        event: "INSERT",
+        event: "*",
         schema: "public",
         table: "messages",
         filter: "conversation_id=eq." + selectedId,
@@ -166,7 +166,7 @@ function MessagesPage() {
     const supabase = getSupabaseClient() as unknown as SupabaseClient<any>;
     const channel = supabase.channel("message-inbox-" + userId)
       .on("postgres_changes", {
-        event: "INSERT",
+        event: "*",
         schema: "public",
         table: "message_conversation_participants",
         filter: "user_id=eq." + userId,
