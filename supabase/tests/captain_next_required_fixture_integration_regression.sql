@@ -48,10 +48,12 @@ begin
   select pg_get_functiondef(
     'public.admin_amend_team_sheet(uuid,uuid[],uuid[],uuid,text)'::regprocedure
   ) into v_admin_amendment;
-  if position('v_fixture.status <> ''completed''' in lower(v_admin_amendment)) = 0
-     or position('length(btrim(p_reason)) < 5' in lower(v_admin_amendment)) = 0
-     or position('fixture.team_sheet.admin_amended' in lower(v_admin_amendment)) = 0
-     or position('assert_admin_location_context' in lower(v_admin_amendment)) = 0 then
+  -- Normalize catalog formatting so the assertions test policy, not whitespace.
+  v_admin_amendment := regexp_replace(lower(v_admin_amendment), E'\\s+', '', 'g');
+  if position('v_fixture.status<>''completed''' in v_admin_amendment) = 0
+     or position('length(btrim(p_reason))<5' in v_admin_amendment) = 0
+     or position('fixture.team_sheet.admin_amended' in v_admin_amendment) = 0
+     or position('assert_admin_location_context' in v_admin_amendment) = 0 then
     raise exception 'Admin amendment is missing completed-fixture, reason, audit, or location-scope safeguards';
   end if;
 
