@@ -53,6 +53,8 @@ function renderMessage(event: EventRow): RenderedMessage {
       return { subject: "Open Play – player eligibility suspended", text: `Your Open Play player account has been suspended from future team sheets. Reason: ${p.reason ?? "Contact Open Play for details."} Contact Open Play if you believe this is incorrect.` };
     case "player.unbanned":
       return { subject: "Open Play – player eligibility restored", text: "Your Open Play player account is no longer suspended and can be considered for future team sheets." };
+    case "player.guardian_consent.captain_review_required":
+      return { subject: "Open Play – captain reassignment required", text: `A parent or legal guardian has withdrawn consent for a 16- or 17-year-old player. Their active team memberships and captaincy have been suspended. Review the affected team(s) and assign replacement captains. Player reference: ${p.player_user_id ?? "not available"}.` };
     case "player.transfer_approved":
       return { subject: "Open Play – transfer approved", text: `Your move from ${p.source_team_name ?? "your previous team"} to ${p.team_name ?? "your new team"} has been approved.` };
     case "player.transfer_rejected":
@@ -71,6 +73,16 @@ function renderMessage(event: EventRow): RenderedMessage {
       return { subject: `Open Play – result: ${home} ${score} ${away}`, text: `Full-time result – ${gameweek}: ${home} ${score} ${away}.` };
     case "fixture.result_corrected":
       return { subject: `Open Play – corrected result: ${home} ${score} ${away}`, text: `The result has been corrected – ${gameweek}: ${home} ${score} ${away}.` };
+    case "referee.report.rejected":
+      return {
+        subject: `Open Play – match report needs an update (Gameweek ${p.gameweek ?? "fixture"})`,
+        text: `Your match report for ${home} v ${away} has been returned for correction. Submitted score: ${score}. Administrator feedback: ${p.review_reason ?? "Please contact Open Play for details."} Please update and resubmit your report in the referee workspace.`,
+      };
+    case "referee.report.approved":
+      return {
+        subject: `Open Play – match report approved (Gameweek ${p.gameweek ?? "fixture"})`,
+        text: `Your match report for ${home} v ${away} has been approved. Official score: ${score}. Administrator note: ${p.review_reason ?? "No additional note."} Thank you for officiating.`,
+      };
     default:
       throw new PermanentDeliveryError(`Unsupported notification template: ${event.event_type}`);
   }
@@ -144,8 +156,8 @@ Deno.serve(async (req: Request) => {
       global: { headers: { Authorization: `Bearer ${token}` } },
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const { error: adminError } = await userClient.rpc("admin_get_notification_dispatch_status");
-    if (adminError) return jsonResponse({ error: "Administrator permission required" }, 403);
+    const { data: isGlobalAdmin, error: adminError } = await userClient.rpc("has_global_admin_role");
+    if (adminError || isGlobalAdmin !== true) return jsonResponse({ error: "Global administrator permission required" }, 403);
   }
 
   const resendKey = Deno.env.get("RESEND_API_KEY");

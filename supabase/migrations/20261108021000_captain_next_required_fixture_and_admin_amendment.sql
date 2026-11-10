@@ -96,6 +96,12 @@ declare
   v_team_id uuid;
   v_fixture_status public.fixture_status;
 begin
+  -- Trusted service-role erasure jobs may detach the submitter account link
+  -- from historical sheets. Ordinary clients still need captain permission.
+  if coalesce(pg_catalog.current_setting('request.jwt.claim.role', true), '') = 'service_role' then
+    return new;
+  end if;
+
   if auth.uid() is null then
     raise exception 'Authentication required';
   end if;
@@ -108,7 +114,10 @@ begin
     v_team_id := new.season_team_id;
   end if;
 
-  if public.has_platform_role() then
+  -- A location administrator who is also the active team captain keeps the
+  -- captain workflow. Non-captain administrators must use the audited
+  -- post-match amendment RPC instead of writing sheet rows directly.
+  if public.has_platform_role() and not public.is_active_team_captain(v_team_id) then
     raise exception 'Administrators must amend submitted sheets through admin_amend_team_sheet';
   end if;
 
@@ -155,6 +164,15 @@ declare
   v_status public.fixture_status;
   v_locked boolean;
 begin
+  -- Trusted service-role erasure jobs must be able to detach account-linked
+  -- child rows while preserving the immutable competition identity. This
+  -- bypass is limited to the service-role JWT; ordinary clients still require
+  -- an authenticated captain or an authorised administrator.
+  if coalesce(pg_catalog.current_setting('request.jwt.claim.role', true), '') = 'service_role' then
+    if tg_op = 'DELETE' then return old; end if;
+    return new;
+  end if;
+
   if auth.uid() is null then raise exception 'Authentication required'; end if;
   v_sheet_id := case when tg_op = 'DELETE' then old.team_sheet_id else new.team_sheet_id end;
 
@@ -168,11 +186,16 @@ begin
   if not found then raise exception 'Team sheet not found'; end if;
 
   if public.has_platform_role() then
-    if not v_locked or v_status <> 'completed' then
+    -- Administrators may use the post-match amendment RPC for completed,
+    -- locked sheets. An administrator who is also the active team captain
+    -- can still use the captain workflow for the next scheduled fixture.
+    if v_locked and v_status = 'completed' then
+      if tg_op = 'DELETE' then return old; end if;
+      return new;
+    end if;
+    if not public.is_active_team_captain(v_team_id) then
       raise exception 'Administrators may amend only locked sheets for completed fixtures';
     end if;
-    if tg_op = 'DELETE' then return old; end if;
-    return new;
   end if;
 
   if not public.is_active_team_captain(v_team_id) then
@@ -192,6 +215,11 @@ drop trigger if exists fixture_team_sheet_players_next_fixture_guard on public.f
 create trigger fixture_team_sheet_players_next_fixture_guard
 before insert or update or delete on public.fixture_team_sheet_players
 for each row execute function public.enforce_team_sheet_player_amendment();
+
+-- Trigger execution does not require client EXECUTE privileges. Keep these
+-- SECURITY DEFINER trigger functions unavailable as direct PostgREST RPCs.
+revoke all on function public.enforce_captain_next_fixture_team_sheet() from public, anon, authenticated;
+revoke all on function public.enforce_team_sheet_player_amendment() from public, anon, authenticated;
 
 -- Captain reads are restricted to the same next-required scheduled fixture.
 create or replace function public.get_captain_team_sheet(p_fixture_id uuid)
@@ -348,3 +376,11 @@ revoke all on function public.get_captain_team_sheet(uuid) from public, anon;
 grant execute on function public.get_captain_team_sheet(uuid) to authenticated;
 revoke all on function public.admin_amend_team_sheet(uuid, uuid[], uuid[], uuid, text) from public, anon;
 grant execute on function public.admin_amend_team_sheet(uuid, uuid[], uuid[], uuid, text) to authenticated;
+
+-- Captains and administrators must use the protected RPCs for every sheet
+-- write. Keep SELECT access governed by RLS, but remove direct client DML so
+-- callers cannot bypass the next-fixture and audited-amendment boundaries.
+revoke insert, update, delete on table
+  public.fixture_team_sheets,
+  public.fixture_team_sheet_players
+from public, anon, authenticated;

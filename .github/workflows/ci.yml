@@ -2,11 +2,18 @@ name: Build verification
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+# Every push creates a PR check; serialize the local Supabase database replay
+# so concurrent attempts cannot contend for the same Docker host ports.
+concurrency:
+  group: openplay-phase1-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -21,15 +28,323 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
+      - name: Verify canonical migration source manifest
+        run: npm run verify:migration-sources
+      - name: Verify Edge Function security configuration
+        run: node scripts/verify-edge-function-security.mjs
+      - name: Verify player navigation specification
+        run: node scripts/verify-player-navigation.mjs
       - name: Set up Deno
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
       - name: Type-check Supabase Edge Functions
-        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts supabase/functions/player-account-retention/index.ts supabase/functions/create-referee-connect-account/index.ts supabase/functions/pay-referee-payout/index.ts supabase/functions/referee-connect-webhook/index.ts supabase/functions/create-team-fixture-checkout/index.ts supabase/functions/team-stripe-webhook/index.ts supabase/functions/process-team-payment-deadlines/index.ts
       - name: Run domain tests
         run: npm test
       - name: Type-check and build
         run: npm run build
       - name: Validate Cloudflare Worker bundle (dry run only)
         run: npx wrangler deploy --dry-run
+
+  database-replay:
+    name: Clean Supabase migration replay and security assertions
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: 2.84.2
+      - name: Start isolated local Supabase database
+        run: supabase start -x studio,edge-runtime,logflare,vector
+      - name: Generate referee application migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_application_workflow.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new referee_application_workflow < supabase/drafts/referee_application_workflow.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_application_workflow.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_application_workflow.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\n' "$migration_file"
+      - name: Generate referee fixture assignment migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_fixture_assignments.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new referee_fixture_assignments < supabase/drafts/referee_fixture_assignments.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_fixture_assignments.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_fixture_assignments.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\n' "$migration_file"
+      - name: Generate referee match report migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_match_reports.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new referee_match_reports < supabase/drafts/referee_match_reports.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_match_reports.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_match_reports.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\n' "$migration_file"
+      - name: Generate approved referee report correction migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_corrections.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new referee_approved_report_corrections < supabase/drafts/referee_approved_report_corrections.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_corrections.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_approved_report_corrections.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\n' "$migration_file"
+      - name: Generate team weekly payment migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_team_weekly_payment_workflow.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new team_weekly_payment_workflow < supabase/drafts/team_weekly_payment_workflow.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_team_weekly_payment_workflow.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/team_weekly_payment_workflow.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
+      - name: Preserve CLI-generated team payment migration for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-weekly-payment-migration
+          path: supabase/migrations/*_team_weekly_payment_workflow.sql
+          if-no-files-found: error
+          retention-days: 1
+      - name: Generate weather gameweek postponement migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponement.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new weather_gameweek_postponement < supabase/drafts/weather_gameweek_postponement.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponement.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/weather_gameweek_postponement.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\\n' "$migration_file"
+      - name: Preserve CLI-generated weather postponement migration for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: weather-gameweek-postponement-migration
+          path: supabase/migrations/*_weather_gameweek_postponement.sql
+          if-no-files-found: error
+          retention-days: 1
+      - name: Generate approved referee report correction options migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_correction_options.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new referee_approved_report_correction_options < supabase/drafts/referee_approved_report_correction_options.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_correction_options.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_approved_report_correction_options.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\\n' "$migration_file"
+      - name: Preserve CLI-generated approved report correction options migration
+        uses: actions/upload-artifact@v4
+        with:
+          name: referee-approved-report-correction-options-migration
+          path: supabase/migrations/*_referee_approved_report_correction_options.sql
+          if-no-files-found: error
+          retention-days: 1
+      - name: Generate referee Connect payout migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_connect_payouts.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new referee_connect_payouts < supabase/drafts/referee_connect_payouts.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_connect_payouts.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_connect_payouts.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\\n' "$migration_file"
+      - name: Preserve CLI-generated referee Connect migration
+        uses: actions/upload-artifact@v4
+        with:
+          name: referee-connect-payouts-migration
+          path: supabase/migrations/*_referee_connect_payouts.sql
+          if-no-files-found: error
+          retention-days: 1
+      - name: Preserve CLI-generated referee migrations for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: referee-phase1-migrations
+          path: |
+            supabase/migrations/*_referee_application_workflow.sql
+            supabase/migrations/*_referee_fixture_assignments.sql
+            supabase/migrations/*_referee_match_reports.sql
+            supabase/migrations/*_referee_approved_report_corrections.sql
+          if-no-files-found: error
+          retention-days: 1
+      - name: Replay every migration against a clean local database
+        run: supabase db reset --local --no-seed
+      - name: Verify pending migrations after the applied hosted baseline
+        run: node scripts/verify-hosted-migration-order.mjs
+      - name: Set up Node.js for Auth lifecycle integration
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install locked dependencies for Auth lifecycle integration
+        run: npm ci --no-audit --no-fund
+      - name: Install PostgreSQL client for multi-statement role tests
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      - name: Verify player self-service profile permission assertions
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/profile_self_service_permissions.sql
+      - name: Verify player, captain and admin RLS role boundaries
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/location_admin_role_scope.sql
+      - name: Verify database security assertions
+        run: node scripts/verify-security-assertions.mjs
+      - name: Verify membership, location and finance authorization regressions
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/authorization_scope_regression.sql
+      - name: Verify finance ledger balance semantics
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/finance_balance_semantics.sql
+      - name: Verify Open Play points-only league ranking rules
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/league_points_tie_ranking.sql
+      - name: Verify player season statistics across club transfers
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/player_transfer_statistics.sql
+      - name: Verify player-led transfers and matchday emergency window
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/player_transfer_workflow.sql
+      - name: Verify fixture venue location boundaries
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/fixture_venue_location_scope.sql
+      - name: Verify player identity matching and review-data access boundaries
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/player_registration_identity_security.sql
+      - name: Verify phone canonicalisation and player ban safeguards
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/registration_safeguards.sql
+      - name: Verify referee application, approval, RLS and membership lifecycle
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_application_workflow.sql
+      - name: Verify referee fixture allocation, availability, authorization and cancellation
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_fixture_assignments.sql
+      - name: Verify approved referee report correction, discipline reversal and finance credits
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_match_reports.sql
+
+      - name: Verify Stripe Connect referee onboarding and payout transfers
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_connect_payouts.sql
+
+      - name: Verify team weekly payment deadlines, strikes, cancellation and refund ledger
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/team_weekly_payment_workflow.sql
+
+      - name: Verify whole-gameweek weather postponements, refunds and chronological renumbering
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/weather_gameweek_postponement.sql
+
+      - name: Verify age tiers and guardian consent lifecycle
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/age_tier_guardian_consent.sql
+
+      - name: Verify player account retention and reactivation lifecycle
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/player_account_retention.sql
+
+      - name: Verify global-admin player retention holds
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/player_retention_holds.sql
+
+      - name: Verify permanent competition identities and safe player erasure
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/competition_identity_erasure.sql
+      - name: Verify captain next-required fixture and post-match amendment guards
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/captain_next_required_fixture_regression.sql
+
+      - name: Verify Auth signup, email confirmation and password recovery
+        shell: bash
+        run: |
+          eval "$(supabase status --output env)"
+          SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" MAILPIT_URL="http://127.0.0.1:54324" node scripts/test-auth-lifecycle.mjs
+      - name: Stop local Supabase database
+        if: always()
+        run: supabase stop --no-backup
+
+  browser-acceptance:
+    name: Chromium responsive and PWA acceptance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked application dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install isolated Playwright test runner
+        run: npm install --no-save --package-lock=false @playwright/test@1.55.0
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Use the browser runner's supported local workerd compatibility date
+        run: |
+          node -e "const fs=require('node:fs');const config=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8'));config.compatibility_date='2026-09-18';fs.writeFileSync('wrangler.jsonc',JSON.stringify(config,null,2)+'\\n');"
+      - name: Build production application with isolated Supabase test endpoint
+        env:
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_PUBLISHABLE_KEY: playwright-public-test-key
+        run: npm run build
+      - name: Run responsive route, manifest and offline PWA acceptance
+        env:
+          CI: "true"
+        run: npx playwright test --config=playwright.config.ts
+      - name: Upload browser traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openplay-browser-acceptance-traces
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

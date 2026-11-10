@@ -25,6 +25,11 @@ function ResetPasswordPage() {
       setSession(data.session);
       setEmail(data.session?.user.email ?? "");
       setLoading(false);
+    }).catch(() => {
+      if (active) {
+        setSession(null);
+        setLoading(false);
+      }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, next) => {
       if (active) setSession(next);
