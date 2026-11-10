@@ -32,6 +32,8 @@ type MessageRow = {
 };
 type Recipient = { user_id: string; display_name: string; shared_team_name: string };
 type BlockedUser = { user_id: string; display_name: string; blocked_at: string };
+type MessagingRpcClient = { rpc: (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> };
+const messagingRpc = () => getSupabaseClient() as unknown as MessagingRpcClient;
 
 export const Route = createFileRoute("/messages")({ component: MessagesPage });
 
@@ -62,7 +64,7 @@ function MessagesPage() {
   const [reportReason, setReportReason] = useState("");
 
   const loadConversations = useCallback(async () => {
-    const { data, error: rpcError } = await getSupabaseClient().rpc("get_my_message_conversations", { p_limit: 100 });
+    const { data, error: rpcError } = await messagingRpc().rpc("get_my_message_conversations", { p_limit: 100 });
     if (rpcError) throw rpcError;
     const rows = (data ?? []) as Conversation[];
     setConversations(rows);
