@@ -544,7 +544,7 @@ begin
     end if;
   end loop;
   perform public.enqueue_notification_event(p_referee_user_id,'referee_assignment_created',jsonb_build_object(
-    'fixture_id',p_fixture_id::text,'scheduled_at',v_fixture.scheduled_at::text,
+    'fixture_id',p_fixture_id::text,'fixture_time',v_fixture.scheduled_at::text,
     'title','New referee assignment','message','You have been assigned to Gameweek '||v_fixture.gameweek||': '||v_fixture.home_team_name||' v '||v_fixture.away_team_name||'.',
     'changed_at',now()::text,'url','/referee'));
   return v_assignment_id;
