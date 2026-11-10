@@ -18,14 +18,14 @@
 ## UI delivered in this branch
 
 - Referee application and approved-member Hub route at `/referee`, including the five-tab navigation, assigned match centre, both team sheets, score/goals/cards form, draft/submission controls, availability and entitlement history.
-- Admin referee workspace at `/admin-referees`, linked from the main admin navigation, including application decisions, location-scoped availability, fixture allocation/reassignment/removal and report review.
+- Admin referee workspace at `/admin-referees`, linked from the main admin navigation, including application decisions, location-scoped availability, fixture allocation/reassignment/removal, missing-report completion and report review. Admin-completed reports enter the approval queue and do not publish automatically.
 
 ## Deliberately not claimed complete
 
 - The new referee and admin routes are implemented but still require browser/device and role-based manual acceptance.
 - Allocation/assignment notifications are not yet dispatched.
 - Admin report correction, unpublish and soft-delete reconciliation are not yet implemented.
-- Own goals are recorded in the report, but are not attributed to player goal statistics until the owner-confirmed own-goal attribution rule is decided.
+- Own goals and explicitly unattributed admin-entered goals are recorded for score reconciliation but are not attributed to player goal statistics until the owner-confirmed attribution rule is decided.
 - Appearance tracking remains unchanged; the owner decision between submitted team sheet and actual participation remains open.
 - Referee payment entitlements are created on approval, but Stripe Connect onboarding, transfer, payout, fee reconciliation and portal balances are not yet wired.
 - The global referee-reporting feature toggle is not yet connected.
