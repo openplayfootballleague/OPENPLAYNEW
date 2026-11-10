@@ -34,7 +34,7 @@ type RefereeMatchReport = {
   referee_name: string;
   referee_email: string | null;
   report_source: "referee" | "admin";
-  status: "submitted";
+  status: "submitted" | "rejected" | "approved" | "voided";
   version: number;
   submitted_at: string;
   scheduled_at: string;
@@ -474,7 +474,7 @@ function AdminRefereesPage() {
     setNotice(decision === "approved"
       ? "Match report approved. The official result, disciplinary events and team fines have been recorded."
       : "Match report returned to the referee with your review reason.");
-    await loadReports();
+    await Promise.all([loadReports(), loadApprovedReports()]);
   }
 
   async function decide(application: RefereeApplication, decision: "approved" | "rejected") {
@@ -632,8 +632,8 @@ function AdminRefereesPage() {
               </label>
               {reportableFixtures.length === 0 && <p className="form-note">No completed fixtures with locked team sheets need an administrator report.</p>}
               {adminReportOptionsLoading && <p className="form-note">Loading team-sheet players…</p>}
-              {adminReportOptions && adminReportOptions.fixture.id === selectedAdminReportFixtureId && <>
-                <p className="form-note">GW {adminReportOptions.fixture.gameweek} · {adminReportOptions.fixture.home_team_name} v {adminReportOptions.fixture.away_team_name}. Starters count as appearances automatically; select substitutes who appeared before selecting goalscorers.</p>
+              {adminReportOptions && (correctionMode || adminReportOptions.fixture.id === selectedAdminReportFixtureId) && <>
+                <p className="form-note">{correctionMode ? `Correcting approved report version ${adminReportOptions.report?.version ?? "?"}. This updates the official result and disciplinary records; the previous version and your reason remain in the audit history.` : `GW ${adminReportOptions.fixture.gameweek} · ${adminReportOptions.fixture.home_team_name} v ${adminReportOptions.fixture.away_team_name}. Starters count as appearances automatically; select substitutes who appeared before selecting goalscorers.`}</p>
                 {adminReportOptions.report?.review_reason && <p className="form-note"><strong>Previous review:</strong> {adminReportOptions.report.review_reason}</p>}
                 <div className="admin-report-score-grid">
                   <label>{adminReportOptions.fixture.home_team_name} score
@@ -758,6 +758,29 @@ function AdminRefereesPage() {
             </article>
           ))}
           <button type="button" disabled={reportsLoading} onClick={() => void loadReports()}>REFRESH MATCH REPORTS</button>
+        </section>
+        <section className="hub-memberships">
+          <div className="hub-section-heading">
+            <span className="hub-kicker">APPROVED MATCH REPORTS · CORRECTIONS</span>
+            <span className="hub-count">{approvedReports.length}</span>
+          </div>
+          <p>Approved reports can be amended only by an administrator. Corrections use optimistic version checks and retain the original report, disciplinary reversals, finance adjustments and the administrator's reason.</p>
+          {approvedReportsLoading ? <p className="form-note">Loading approved reports…</p> : approvedReports.length === 0 ? (
+            <p className="form-note">No approved referee reports are available in your permitted locations.</p>
+          ) : approvedReports.map((report) => (
+            <article className="admin-queue-row" key={report.report_id}>
+              <div>
+                <strong>GW {report.gameweek} · {report.home_team_name} {report.home_score}–{report.away_score} {report.away_team_name}</strong>
+                <span>{report.location_name} · {report.referee_name} · Version {report.version}</span>
+                <small>Approved report · {new Date(report.submitted_at).toLocaleDateString("en-GB",{dateStyle:"medium"})}</small>
+                {report.review_reason && <small>Last review: {report.review_reason}</small>}
+              </div>
+              <button type="button" disabled={adminReportOptionsLoading || busy==="admin-report"} onClick={()=>void loadApprovedReportCorrectionOptions(report.report_id)}>
+                {adminReportOptionsLoading && correctionMode ? "LOADING…" : "OPEN CORRECTION"}
+              </button>
+            </article>
+          ))}
+          <button type="button" disabled={approvedReportsLoading} onClick={()=>void loadApprovedReports()}>REFRESH APPROVED REPORTS</button>
         </section>
         <section className="hub-memberships">
           <div className="hub-section-heading">
