@@ -859,6 +859,22 @@ begin
       -- The referee report adds the missing official report/fines/entitlement without
       -- silently replacing a result already published through the admin workflow.
       update public.fixtures set status='completed',updated_at=now() where id=v_fixture.id;
+      if not exists(select 1 from public.fixture_goal_records where fixture_id=v_fixture.id and voided_at is null) then
+        for v_goal in
+          select g.* from public.referee_match_report_goals g
+          where g.report_id=p_report_id and g.is_own_goal is false and g.is_unattributed is false
+        loop
+          select tsp.user_id into v_user_id
+          from public.fixture_team_sheets sh
+          join public.fixture_team_sheet_players tsp on tsp.team_sheet_id=sh.id
+          where sh.fixture_id=v_fixture.id and sh.season_team_id=v_goal.credited_team_id
+            and tsp.competition_player_id=v_goal.scorer_competition_player_id
+          limit 1;
+          insert into public.fixture_goal_records(
+            fixture_id,season_team_id,scorer_user_id,competition_player_id,created_by
+          ) values(v_fixture.id,v_goal.credited_team_id,v_user_id,v_goal.scorer_competition_player_id,v_actor);
+        end loop;
+      end if;
     else
       insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
       values(v_fixture.id,v_report.home_score,v_report.away_score,now(),v_actor)
