@@ -517,7 +517,7 @@ language plpgsql
 stable
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_location_id uuid;
 begin
