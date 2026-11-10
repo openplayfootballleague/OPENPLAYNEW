@@ -82,7 +82,7 @@ stable
 security definer
 set search_path = ''
 as $$
-declare v_user uuid:=auth.uid(); v_account public.referee_stripe_connect_accounts;
+declare v_user uuid:=auth.uid(); v_account public.referee_stripe_connect_accounts; v_connected boolean:=false;
 begin
   if v_user is null then raise exception 'Authentication required'; end if;
   if not exists(select 1 from public.referee_memberships m where m.user_id=v_user and m.status='active') then
@@ -90,8 +90,9 @@ begin
   end if;
   select * into v_account from public.referee_stripe_connect_accounts
   where referee_user_id=v_user;
+  v_connected:=found;
   return jsonb_build_object(
-    'connected',found,
+    'connected',v_connected,
     'details_submitted',coalesce(v_account.details_submitted,false),
     'charges_enabled',coalesce(v_account.charges_enabled,false),
     'payouts_enabled',coalesce(v_account.payouts_enabled,false),
@@ -188,7 +189,7 @@ begin
   if p_stripe_account_id is null or p_stripe_account_id !~ '^acct_[A-Za-z0-9]+$' then
     raise exception 'Invalid Stripe Connect account ID';
   end if;
-  insert into public.referee_stripe_connect_accounts(
+  insert into public.referee_stripe_connect_accounts as existing_account(
     referee_user_id,stripe_account_id,details_submitted,charges_enabled,payouts_enabled,
     requirements_currently_due,requirements_past_due,disabled_reason,onboarding_completed_at,last_synced_at
   ) values(
@@ -206,7 +207,7 @@ begin
     requirements_past_due=excluded.requirements_past_due,
     disabled_reason=excluded.disabled_reason,
     onboarding_completed_at=case when excluded.details_submitted
-      then coalesce(public.referee_stripe_connect_accounts.onboarding_completed_at,now()) else null end,
+      then coalesce(existing_account.onboarding_completed_at,now()) else null end,
     last_synced_at=now(),updated_at=now();
 end;
 $$;
