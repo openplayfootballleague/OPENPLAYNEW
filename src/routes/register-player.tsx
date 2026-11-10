@@ -25,9 +25,13 @@ function RegisterPlayerPage() {
   const [name,setName]=useState(""); const [phone,setPhone]=useState(""); const [dob,setDob]=useState("");
   const [error,setError]=useState(""); const [message,setMessage]=useState(""); const [submitted,setSubmitted]=useState(false); const [busy,setBusy]=useState(false);
   const [existingPlayer,setExistingPlayer]=useState<ExistingPlayer|null>(null);
+  const [registrationStartedTracked,setRegistrationStartedTracked]=useState(false);
   const [guardianConsent,setGuardianConsent]=useState<GuardianConsent|null>(null);
   const [guardianName,setGuardianName]=useState("");
   const [guardianEmail,setGuardianEmail]=useState("");
+  useEffect(()=>{
+    if(!registrationStartedTracked && capture("player_registration_started",{feature:"player_registration"}))setRegistrationStartedTracked(true);
+  },[capture,registrationStartedTracked]);
   useEffect(()=>{
     const supabase=getSupabaseClient();
     let active=true;
@@ -93,6 +97,7 @@ function RegisterPlayerPage() {
       if(rpcError) throw rpcError;
       if(!playerData)throw new Error("Your registration could not be confirmed. Please try again.");
       capture("player_registration_submitted", { feature: "player_registration", outcome: "success" });
+      capture("player_profile_completed", { feature: "player_registration", outcome: "success" });
       setExistingPlayer({full_name:playerData.full_name,phone:playerData.phone,date_of_birth:playerData.date_of_birth,registration_status:playerData.registration_status,is_banned:playerData.is_banned});
       setMessage("Your player registration has been submitted. If it needs a manual identity check, it will remain pending review. Your account and player registration are separate from joining a team.");
       setSubmitted(true);
