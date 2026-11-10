@@ -28,7 +28,7 @@ Deno.serve(async(req)=>{
   const nowIso=now.toISOString();
   const {data:obligations,error:loadError}=await admin.from("team_fixture_payment_obligations")
     .select("id,status,grace_ends_at,stripe_checkout_session_id")
-    .in("status",["due","grace_period"])
+    .in("status",["due","grace_period","admin_review"])
     .lte("deadline_at",nowIso)
     .limit(500);
   if(loadError)return response({error:"Could not load team payment deadlines"},500);
@@ -118,7 +118,7 @@ Deno.serve(async(req)=>{
       refundsPending++;
     }else if(!stripeResponse.ok&&stripeResponse.status>=400&&stripeResponse.status<500){
       await admin.rpc("record_team_fixture_payment_refund_result",{
-        p_refund_id:refund.id,p_succeeded:false,p_failure_reason:String(result.error?.message??"Stripe rejected the refund"),
+        p_refund_id:refund.id,p_succeeded:false,p_failure_reason:String((result.error as Record<string,unknown>|undefined)?.message??"Stripe rejected the refund"),
       });
       refundsFailed++;
     }else{
