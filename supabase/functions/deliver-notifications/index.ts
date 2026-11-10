@@ -83,6 +83,11 @@ function renderMessage(event: EventRow): RenderedMessage {
         subject: `Open Play – match report approved (Gameweek ${p.gameweek ?? "fixture"})`,
         text: `Your match report for ${home} v ${away} has been approved. Official score: ${score}. Administrator note: ${p.review_reason ?? "No additional note."} Thank you for officiating.`,
       };
+    case "message.new":
+      return {
+        subject: `Open Play – new message in ${p.conversation_title ?? "your inbox"}`,
+        text: `${p.sender_name ?? "An Open Play member"} sent you a new message in ${p.conversation_title ?? "your inbox"}. Sign in to Open Play to read and reply.`,
+      };
     default:
       throw new PermanentDeliveryError(`Unsupported notification template: ${event.event_type}`);
   }
