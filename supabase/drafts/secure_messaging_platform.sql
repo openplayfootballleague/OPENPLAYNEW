@@ -252,7 +252,9 @@ returns table(
   unread_count bigint,
   participant_count bigint,
   other_participant_user_id uuid,
-  other_participant_name text
+  other_participant_name text,
+  other_participant_last_read_at timestamptz,
+  read_by_count bigint
 )
 language plpgsql
 stable
@@ -275,7 +277,12 @@ begin
     (select count(*) from public.message_conversation_participants allcp
       where allcp.conversation_id=c.id and allcp.left_at is null),
     op.user_id,
-    coalesce(nullif(oprof.display_name,''),opl.full_name,'Open Play member')
+    coalesce(nullif(oprof.display_name,''),opl.full_name,'Open Play member'),
+    op.last_read_at,
+    (select count(*) from public.message_conversation_participants readcp
+      where readcp.conversation_id=c.id and readcp.user_id<>auth.uid()
+        and readcp.left_at is null and lm.created_at is not null
+        and readcp.last_read_at>=lm.created_at)
   from public.message_conversations c
   join public.message_conversation_participants cp
     on cp.conversation_id=c.id and cp.user_id=auth.uid() and cp.left_at is null
@@ -285,7 +292,7 @@ begin
     order by m.created_at desc,m.id desc limit 1
   ) lm on true
   left join lateral (
-    select othercp.user_id
+    select othercp.user_id,othercp.last_read_at
     from public.message_conversation_participants othercp
     where othercp.conversation_id=c.id
       and othercp.user_id<>auth.uid()
