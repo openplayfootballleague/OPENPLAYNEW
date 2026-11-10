@@ -3,6 +3,7 @@ import { Link,createFileRoute,useNavigate } from "@tanstack/react-router";
 import { useRequiredSession } from "../lib/auth/use-required-session";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { poundsToPence } from "../lib/finance/ledger";
+import { AdminRefereePayoutQueue } from "../components/admin-referee-payout-queue";
 
 type FinanceOption={season_id:string;season_name:string;team_id:string;team_name:string;league_name:string;season_status:string};
 type FinanceEntry={id:string;season_team_id:string;team_name:string;season_id:string;season_name:string;fixture_id:string|null;gameweek:number|null;entry_type:"charge"|"payment"|"refund"|"credit"|"fine";amount_pence:number;description:string;due_at:string|null;occurred_at:string;payment_method:string|null;reference:string|null;notes:string|null;created_by:string;created_at:string;team_balance_pence:number};
@@ -98,6 +99,7 @@ function FinancePage(){
    <article><span>Fines</span><strong>{money(total("fines_pence"))}</strong></article>
    <article><span>Outstanding</span><strong>{money(total("outstanding_pence"))}</strong></article>
   </div>
+  <AdminRefereePayoutQueue/>
   <section className="finance-section">
    <div className="hub-section-heading"><span className="hub-kicker">PLAYER MATCH FEE SETTINGS</span><span>Season-specific</span></div>
    <form className="finance-entry-form" onSubmit={savePlayerFee}>
