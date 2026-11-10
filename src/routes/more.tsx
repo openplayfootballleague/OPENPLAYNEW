@@ -10,6 +10,7 @@ type MoreAccess = {
   captain: boolean;
   admin: boolean;
   finance: boolean;
+  referee: boolean;
 };
 
 const initialAccess: MoreAccess = {
@@ -19,6 +20,7 @@ const initialAccess: MoreAccess = {
   captain: false,
   admin: false,
   finance: false,
+  referee: false,
 };
 
 export const Route = createFileRoute("/more")({ component: MorePage });
@@ -45,6 +47,7 @@ function MorePage() {
         { data: memberships, error: membershipError },
         adminResult,
         financeResult,
+        refereeResult,
       ] = await Promise.all([
         supabase
           .from("players")
@@ -58,6 +61,7 @@ function MorePage() {
           .eq("status", "active"),
         supabase.rpc("get_admin_context_preference"),
         supabase.rpc("get_finance_options"),
+        supabase.from("referee_memberships").select("status").eq("user_id", session.user.id).eq("status", "active"),
       ]);
 
       if (!active) return;
@@ -68,6 +72,7 @@ function MorePage() {
         captain: !membershipError && (memberships ?? []).some((membership) => membership.is_captain),
         admin: !adminResult.error && adminResult.data !== null,
         finance: !financeResult.error,
+        referee: !refereeResult.error && (refereeResult.data ?? []).length > 0,
       });
     }
 
@@ -87,7 +92,7 @@ function MorePage() {
     setAccess({ ...initialAccess, loading: false });
   }
 
-  const hasPrivateWorkspace = access.player || access.captain || access.admin || access.finance;
+  const hasPrivateWorkspace = access.player || access.captain || access.admin || access.finance || access.referee;
 
   return (
     <main className="notice-page player-facing">
@@ -112,6 +117,7 @@ function MorePage() {
         ) : hasPrivateWorkspace ? (
           <section className="hub-memberships">
             <div className="hub-section-heading"><span className="hub-kicker">YOUR OPEN PLAY</span></div>
+            <Link className="admin-inline-action" to="/messages">MESSAGES &amp; SUPPORT <span aria-hidden="true">↗</span></Link>
             {access.player && <Link className="admin-inline-action" to="/player">PLAYER HUB <span aria-hidden="true">↗</span></Link>}
             {access.captain && <Link className="admin-inline-action" to="/captain">CAPTAIN HUB <span aria-hidden="true">↗</span></Link>}
             {access.admin && <Link className="admin-inline-action" to="/admin">ADMIN DASHBOARD <span aria-hidden="true">↗</span></Link>}
