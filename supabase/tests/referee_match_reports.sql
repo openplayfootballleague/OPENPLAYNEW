@@ -225,13 +225,17 @@ begin
   );
   select count(*) into v_count from public.admin_list_referee_match_reports('submitted',v_location);
   if v_count<>2 then raise exception 'Administrator report queue did not include both submitted reports'; end if;
+  execute 'reset role';
 
   -- The match is now complete. Admin result publication may update the locked
   -- appearance rows only after the fixture has entered its completed state.
   update public.fixtures set status='completed' where id in (v_fixture_one,v_fixture_two);
 
   -- Approval creates the official result, permanent cards, team fines and one £22 payout obligation.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
   perform public.admin_review_referee_match_report(v_report_one,'approved','Report and card details verified');
+  execute 'reset role';
   if not exists(
     select 1 from public.notification_events
     where user_id=v_referee and event_type='referee.report.approved'
@@ -254,18 +258,24 @@ begin
   end if;
 
   -- Duplicate approval cannot create another result, fine or payout.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
   v_rejected:=false;
   begin
     perform public.admin_review_referee_match_report(v_report_one,'approved','Duplicate approval attempt');
   exception when others then v_rejected:=true;
   end;
+  execute 'reset role';
   if not v_rejected then raise exception 'An approved referee report was approved twice'; end if;
   if (select count(*) from public.referee_report_payouts where report_id=v_report_one)<>1 then
     raise exception 'Duplicate approval created a second referee payout';
   end if;
 
   -- Admin takeover is not a referee assignment and therefore creates no referee payout.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
   perform public.admin_review_referee_match_report(v_report_two,'approved','Administrative result verified');
+  execute 'reset role';
   if exists(select 1 from public.referee_report_payouts where report_id=v_report_two) then
     raise exception 'Administrative report incorrectly generated a referee payout';
   end if;
@@ -297,7 +307,10 @@ begin
   if not v_rejected then raise exception 'The disciplinary team-sheet guard did not block the inactive player'; end if;
 
   -- Reactivation is audited and does not erase the permanent strike record.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
   perform public.admin_reactivate_disciplined_player(v_home_identity,'Administrator reviewed and approved reactivation');
+  execute 'reset role';
   if not exists(select 1 from public.players where user_id=v_home_user and disciplinary_strikes=3 and disciplinary_inactive=false) then
     raise exception 'Administrator reactivation erased strikes or left the player inactive';
   end if;
