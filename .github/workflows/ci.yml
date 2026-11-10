@@ -128,6 +128,7 @@ jobs:
         run: |
           migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponements.sql' -print -quit)"
           if [ -z "$migration_file" ]; then
+            sleep 2
             supabase migration new weather_gameweek_postponements < supabase/drafts/weather_gameweek_postponements.sql
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponements.sql' -print -quit)"
           else
