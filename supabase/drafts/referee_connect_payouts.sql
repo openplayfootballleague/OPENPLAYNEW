@@ -305,7 +305,6 @@ declare
   v_existing_transfer text;
   v_status text;
   v_attempt integer;
-  v_referee_user_id uuid;
 begin
   if p_payout_type is null or p_payout_type not in ('match_report','milestone')
      or p_payout_id is null or p_stripe_transfer_id is null
@@ -338,14 +337,14 @@ begin
   if v_existing_transfer is not null and v_existing_transfer<>p_stripe_transfer_id then
     raise exception 'A different Stripe transfer is already recorded for this payout';
   end if;
-  if v_status not in ('processing','transferred') then
-    raise exception 'Referee payout is not in a transferable state';
-  end if;
   if exists(
     select 1 from public.referee_payout_transfer_history history
     where history.payout_type=p_payout_type and history.payout_id=p_payout_id
       and history.stripe_transfer_id=p_stripe_transfer_id and history.status='reversed'
   ) then return 'reversed'; end if;
+  if v_status not in ('processing','transferred') then
+    raise exception 'Referee payout is not in a transferable state';
+  end if;
 
   if p_payout_type='match_report' then
     select transfer_attempts into v_attempt from public.referee_report_payouts where id=p_payout_id;
@@ -399,7 +398,7 @@ declare
   v_attempt integer;
   v_transfer_id text;
 begin
-  if p_payout_type not in ('match_report','milestone') or p_payout_id is null then
+  if p_payout_type is null or p_payout_type not in ('match_report','milestone') or p_payout_id is null then
     raise exception 'A valid referee payout is required';
   end if;
   if p_payout_type='match_report' then
