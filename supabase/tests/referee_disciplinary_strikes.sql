@@ -37,7 +37,7 @@ begin
   select pg_get_triggerdef(oid) into v_trigger from pg_trigger
   where tgrelid='public.referee_match_report_incidents'::regclass
     and tgname='referee_report_incident_record_straight_red' and not tgisinternal;
-  if v_trigger is null or position('UPDATE OF finance_entry_id' in upper(v_trigger))=0 then
+  if v_trigger is null or position('UPDATE OF FINANCE_ENTRY_ID' in upper(v_trigger))=0 then
     raise exception 'Straight-red trigger must run only when an approved fine ledger link is written';
   end if;
 end;
