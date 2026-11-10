@@ -83,8 +83,8 @@ export function CaptainTeamPayments({fixtures}:{fixtures:PaymentFixture[]}){
       const payment=paymentByFixture.get(fixture.fixture_id+":"+fixture.season_team_id);
       const deadline=payment?.deadline_at;
       const graceEnd=payment?.grace_ends_at;
-      const payable=!payment||payment.status==="due"||payment.status==="grace_period";
-      const actionLabel=payment?.status==="grace_period"?"PAY NOW · LATE STRIKE":"PAY TEAM FEE";
+      const payable=!payment||payment.status==="due"||payment.status==="grace_period"||payment.status==="defaulted";
+      const actionLabel=payment?.status==="defaulted"?"PAY OUTSTANDING FEE":payment?.status==="grace_period"?"PAY NOW · LATE STRIKE":"PAY TEAM FEE";
       return <article className="captain-team-payment" key={fixture.fixture_id+":"+fixture.season_team_id}>
         <div className="captain-team-payment-heading">
           <strong>GW {fixture.gameweek} · {fixture.team_name} v {fixture.opponent_name}</strong>
