@@ -4,6 +4,7 @@ const baseURL = "http://127.0.0.1:4173";
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  testMatch: "**/analytics-consent.spec.ts",
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
