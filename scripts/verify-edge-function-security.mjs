@@ -93,7 +93,7 @@ assert.ok(connectOnboarding.includes("metadata[openplay_referee_user_id]"), "Con
 
 const refereePayout = readFileSync("supabase/functions/pay-referee-payout/index.ts", "utf8");
 assert.ok(refereePayout.includes("userClient.auth.getUser()"), "Referee payout transfers must validate the signed-in administrator");
-assert.ok(refereePayout.includes('rpc("claim_referee_payout_transfer")'), "Referee payout transfers must be claimed through the scoped finance RPC");
+assert.ok(refereePayout.includes('rpc("claim_referee_payout_transfer",'), "Referee payout transfers must be claimed through the scoped finance RPC");
 assert.ok(refereePayout.includes("Idempotency-Key") && refereePayout.includes("openplay-referee-"), "Referee payout transfers must use attempt-scoped Stripe idempotency keys");
 assert.ok(refereePayout.includes('stripeKey?.startsWith("sk_test_")'), "Referee payout transfers must remain test-mode only");
 assert.ok(refereePayout.includes("if(!transferCreated&&canMarkFailed)"), "Ambiguous or already-created transfers must remain in reconciliation instead of becoming retryable");
