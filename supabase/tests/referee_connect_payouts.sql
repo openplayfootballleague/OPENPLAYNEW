@@ -86,10 +86,10 @@ begin
   ) values(v_referee,1,50,5000,'pending_connect')
   returning id into v_milestone_payout;
 
-  -- A connected account without payouts enabled cannot receive an admin transfer.
+  -- A connected account without transfers enabled cannot receive an admin transfer.
   execute 'set local role service_role';
   perform public.sync_referee_connect_account(
-    v_referee,v_account_id,true,true,false,false,
+    v_referee,v_account_id,true,false,false,false,
     jsonb_build_object('currently_due',jsonb_build_array('external_account')),'requirements.pending'
   );
   execute 'reset role';
@@ -101,12 +101,12 @@ begin
   exception when others then
     v_rejected:=sqlerrm like '%complete Stripe Connect verification%';
   end;
-  if not v_rejected then raise exception 'Payout was claimable before the referee enabled bank payouts'; end if;
+  if not v_rejected then raise exception 'Payout was claimable before the referee enabled transfers'; end if;
   execute 'reset role';
 
   execute 'set local role service_role';
   perform public.sync_referee_connect_account(
-    v_referee,v_account_id,true,true,true,false,
+    v_referee,v_account_id,true,true,false,false,
     '{}'::jsonb,null
   );
   execute 'reset role';
@@ -114,8 +114,9 @@ begin
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_referee::text,true);
   if public.get_my_referee_connect_status()->>'onboarding_status'<>'enabled'
-     or (public.get_my_referee_connect_status()->>'payouts_enabled')::boolean is not true then
-    raise exception 'Referee Connect status did not expose the verified payout state';
+     or (public.get_my_referee_connect_status()->>'transfers_enabled')::boolean is not true
+     or (public.get_my_referee_connect_status()->>'payouts_enabled')::boolean is not false then
+    raise exception 'Referee Connect status did not distinguish transfer readiness from bank payout readiness';
   end if;
   v_rejected:=false;
   begin
