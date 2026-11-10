@@ -298,3 +298,78 @@ end;
 $$;
 revoke all on function public.admin_list_referee_appointments(uuid,boolean) from public,anon;
 grant execute on function public.admin_list_referee_appointments(uuid,boolean) to authenticated;
+
+
+create or replace function public.admin_list_referee_assignment_fixtures()
+returns table(
+  fixture_id uuid,
+  scheduled_at timestamptz,
+  gameweek integer,
+  fixture_number integer,
+  home_team_name text,
+  away_team_name text,
+  location_id uuid,
+  location_name text
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  return query
+  select fixture.id,fixture.scheduled_at,fixture.gameweek,fixture.fixture_number,
+    home_team.name,away_team.name,location.id,location.name
+  from public.fixtures fixture
+  join public.seasons season on season.id=fixture.season_id
+  join public.leagues league on league.id=season.league_id
+  join public.locations location on location.id=coalesce(fixture.venue_id,league.location_id)
+  join public.season_teams home_team on home_team.id=fixture.home_team_id
+  join public.season_teams away_team on away_team.id=fixture.away_team_id
+  where fixture.status='scheduled'
+    and fixture.scheduled_at>now()
+    and public.can_administer_location(location.id)
+  order by fixture.scheduled_at,fixture.gameweek,fixture.fixture_number;
+end;
+$$;
+revoke all on function public.admin_list_referee_assignment_fixtures() from public,anon;
+grant execute on function public.admin_list_referee_assignment_fixtures() to authenticated;
+
+create or replace function public.admin_list_referee_assignment_candidates(p_location_id uuid default null)
+returns table(
+  referee_user_id uuid,
+  referee_name text,
+  referee_email text,
+  preferred_location_ids uuid[],
+  availability jsonb
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  if p_location_id is not null and not public.can_administer_location(p_location_id) then
+    raise exception 'You are not assigned to this referee location';
+  end if;
+  return query
+  select membership.user_id,coalesce(player.full_name,'Open Play referee'),
+    account.email::text,application.preferred_location_ids,application.availability
+  from public.referee_memberships membership
+  join public.referee_applications application on application.id=membership.application_id
+  join auth.users account on account.id=membership.user_id
+  left join public.players player on player.user_id=membership.user_id
+  where membership.status='active'
+    and (p_location_id is null or p_location_id=any(application.preferred_location_ids))
+    and (
+      p_location_id is not null
+      or exists(select 1 from unnest(application.preferred_location_ids) preferred(location_id)
+        where public.can_administer_location(preferred.location_id))
+    )
+  order by player.full_name,account.email;
+end;
+$$;
+revoke all on function public.admin_list_referee_assignment_candidates(uuid) from public,anon;
+grant execute on function public.admin_list_referee_assignment_candidates(uuid) to authenticated;
