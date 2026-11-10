@@ -739,12 +739,16 @@ begin
       ))
     )
   on conflict(conversation_id,user_id) do nothing;
-  select count(*) into v_recipient_count from public.message_conversation_participants
-  where conversation_id=v_conversation_id;
+  select count(*) into v_recipient_count
+  from public.message_conversation_participants
+  where conversation_id=v_conversation_id and user_id<>v_user;
   if v_recipient_count=0 then
     delete from public.message_conversations where id=v_conversation_id;
     raise exception 'No active recipients matched this audience';
   end if;
+  insert into public.message_conversation_participants(conversation_id,user_id)
+  values(v_conversation_id,v_user)
+  on conflict(conversation_id,user_id) do update set last_read_at=now();
   insert into public.messages(conversation_id,sender_id,body,message_type)
   values(v_conversation_id,v_user,btrim(p_body),'announcement')
   returning id into v_message_id;
