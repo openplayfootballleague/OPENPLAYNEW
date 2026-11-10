@@ -2154,6 +2154,13 @@ export type Database = {
         Args: { p_payout_type: string; p_payout_id: string }
         Returns: Json
       }
+      admin_get_referee_payout_transfer_history: {
+        Args: { p_payout_type: string; p_payout_id: string }
+        Returns: {
+          attempt_number: number; status: string; amount_pence: number;
+          stripe_transfer_id: string | null; failure_reason: string | null; created_at: string;
+        }[]
+      }
       admin_list_referee_report_payouts_connect: {
         Args: { p_status?: string | null }
         Returns: {
