@@ -37,6 +37,8 @@ declare
   v_count integer;
   v_amount integer;
   v_options jsonb;
+  v_corrected_events jsonb;
+  v_corrected_version integer;
 begin
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
   values
@@ -338,8 +340,56 @@ begin
   end if;
   execute 'reset role';
 
-  if (select count(*) from public.referee_match_report_history where report_id=v_report_one)<>3 then
-    raise exception 'Rejection and resubmission history was not preserved';
+  -- Correcting an approved report preserves the original incidents, offsets their
+  -- fine liabilities with append-only credits, and applies only the corrected cards.
+  v_corrected_events:=jsonb_build_array(
+    jsonb_build_object('season_team_id',v_away_season_team,'recipient_type','bench',
+      'card_type','yellow','minute',40,'description','Corrected bench caution'),
+    jsonb_build_object('season_team_id',v_home_season_team,'recipient_type','supporter',
+      'card_type','second_yellow_red','minute',60,'description','Corrected supporter misconduct')
+  );
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  v_corrected_version:=public.admin_correct_approved_referee_match_report(
+    v_report_one,2,1,0,'{}'::uuid[],'{}'::uuid[],array[v_home_identity],'{}'::uuid[],
+    v_corrected_events,'Corrected match summary','The original card record was entered incorrectly; corrected after review'
+  );
+  execute 'reset role';
+  if v_corrected_version<>3 then raise exception 'Approved report correction did not advance the version'; end if;
+  if not exists(select 1 from public.referee_match_reports where id=v_report_one and status='approved' and version=3 and jsonb_array_length(disciplinary_events)=2) then
+    raise exception 'Corrected report did not remain approved with its corrected events'; end if;
+  if (select count(*) from public.referee_disciplinary_events where report_id=v_report_one and voided_at is null)<>2
+     or (select count(*) from public.referee_disciplinary_events where report_id=v_report_one and voided_at is not null)<>3 then
+    raise exception 'Correction did not preserve the three original voided incidents and two corrected active incidents'; end if;
+  if not exists(select 1 from public.players where user_id=v_home_user and disciplinary_strikes=2 and disciplinary_inactive=false) then
+    raise exception 'Correction did not reverse the erroneous straight-red strike'; end if;
+  select coalesce(sum(amount_pence) filter(where entry_type='fine'),0)
+       - coalesce(sum(amount_pence) filter(where entry_type='credit'),0)
+    into v_amount
+    from public.finance_entries where fixture_id=v_fixture_one;
+  if v_amount<>2000 then raise exception 'Fine correction did not reconcile the team ledger to the corrected £20 total'; end if;
+  if (select count(*) from public.referee_report_payouts where report_id=v_report_one and gross_allocation_pence=2200 and referee_net_pence=2200)<>1 then
+    raise exception 'Correcting a report duplicated or changed the original referee payout entitlement'; end if;
+
+  -- Optimistic version checking prevents a stale retry from posting a second credit.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  v_rejected:=false;
+  begin
+    perform public.admin_correct_approved_referee_match_report(
+      v_report_one,2,1,0,'{}'::uuid[],'{}'::uuid[],array[v_home_identity],'{}'::uuid[],
+      v_corrected_events,'Corrected match summary','Stale duplicate correction attempt'
+    );
+  exception when others then
+    v_rejected:=sqlerrm like '%report has changed since it was loaded%';
+  end;
+  execute 'reset role';
+  if not v_rejected then raise exception 'A stale duplicate correction was not rejected'; end if;
+  if (select count(*) from public.finance_entries where fixture_id=v_fixture_one and entry_type='credit')<>3 then
+    raise exception 'A stale correction retry created duplicate finance credits'; end if;
+
+  if (select count(*) from public.referee_match_report_history where report_id=v_report_one)<>4 then
+    raise exception 'Rejection, resubmission, approval and correction history was not preserved';
   end if;
 end;
 $referee_match_reports$;
