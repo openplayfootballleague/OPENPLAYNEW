@@ -3,20 +3,26 @@
 ## Implemented in this branch
 
 - Referee applications are stored separately from `user_roles`; referee approval cannot grant platform administrator privileges.
-- Admin-only application review creates or reactivates a distinct referee membership.
+- Admin-only application review creates or reactivates a distinct referee membership; the admin workspace exposes applicant identity, application evidence and reasoned decisions.
 - Approved referees can record dated availability against active locations.
 - Admin-only fixture allocation and removal preserve assignment history and enforce one active official per fixture.
 - Referee fixture retrieval is restricted to the referee's own assignment and the earliest active gameweek in that season.
 - Referee report submission checks active membership, active assignment, both locked/submitted team sheets, match completion time and the 24-hour submission window.
 - Goalscorers and player/bench disciplinary incidents are validated against the submitted team sheets. Supporter incidents cannot be assigned a player identity.
 - Fixed fine amounts are enforced in the database: £5 yellow, £15 second-yellow/red total and £30 straight red.
-- Report versions are retained. Admin review can approve, return or reject a submitted report.
-- Approval publishes the fixture result, creates non-own-goal statistics records, posts team fine ledger entries and creates one £22 gross referee entitlement with a £20 minimum net guarantee.
+- Report versions are retained. Admin review can approve, return or reject a submitted report. Approval posts a single team fine ledger entry per incident and creates the referee entitlement.
+- Approval publishes the fixture result, reconciles active goalscorer records, posts team fine ledger entries, records straight-red strikes against permanent competition identities and creates one £22 gross referee entitlement with a £20 minimum net guarantee.
+- Three straight-red strikes mark a competition identity inactive pending administrator return approval. The team-sheet database guard blocks future scheduled team-sheet selection until the reasoned admin return decision.
 - Referee tables have RLS enabled and direct client table grants revoked. Access is through role- and assignment-checked RPCs.
+
+## UI delivered in this branch
+
+- Referee application and approved-member Hub route at `/referee`, including the five-tab navigation, assigned match centre, both team sheets, score/goals/cards form, draft/submission controls, availability and entitlement history.
+- Admin referee workspace at `/admin-referees`, linked from the main admin navigation, including application decisions, location-scoped availability, fixture allocation/reassignment/removal and report review.
 
 ## Deliberately not claimed complete
 
-- No UI for referee applications, availability, allocation, match reporting or admin review has been connected yet.
+- The new referee and admin routes are implemented but still require browser/device and role-based manual acceptance.
 - Allocation/assignment notifications are not yet dispatched.
 - Admin report correction, unpublish and soft-delete reconciliation are not yet implemented.
 - Own goals are recorded in the report, but are not attributed to player goal statistics until the owner-confirmed own-goal attribution rule is decided.
