@@ -10,8 +10,8 @@ type PlayerOption = { user_id: string; full_name: string };
 type Setup = {
   locations?: LocationOption[];
   seasons?: SeasonOption[];
-  season_teams?: TeamOption[];
-  registered_players?: PlayerOption[];
+  teams?: TeamOption[];
+  players?: PlayerOption[];
 };
 type MessageReport = {
   report_id: string;
@@ -76,9 +76,9 @@ function AdminMessagesPage() {
     : targetType === "season"
       ? (setup.seasons ?? []).map((item) => ({ value: item.id, label: item.location_name + " · " + item.league_name + " · " + item.name }))
       : targetType === "team"
-        ? (setup.season_teams ?? []).map((item) => ({ value: item.id, label: item.location_name + " · " + item.season_name + " · " + item.name }))
+        ? (setup.teams ?? []).map((item) => ({ value: item.id, label: item.location_name + " · " + item.season_name + " · " + item.name }))
         : targetType === "individual"
-          ? (setup.registered_players ?? []).map((item) => ({ value: item.user_id, label: item.full_name }))
+          ? (setup.players ?? []).map((item) => ({ value: item.user_id, label: item.full_name }))
           : [];
 
   async function createBroadcast(event: React.FormEvent<HTMLFormElement>) {
