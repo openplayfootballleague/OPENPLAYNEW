@@ -305,7 +305,7 @@ declare
   v_renumbered integer:=0;
   v_refund_count integer:=0;
   v_waiver_count integer:=0;
-  v_captain uuid;
+  v_member uuid;
   v_assignment record;
   v_week record;
 begin
@@ -393,13 +393,13 @@ begin
       );
     end loop;
 
-    for v_captain in
+    for v_member in
       select user_id from public.team_memberships
       where season_team_id in (v_fixture.home_team_id,v_fixture.away_team_id)
-        and status='active' and is_captain
+        and status='active'
     loop
       perform public.enqueue_notification_event(
-        v_captain,'fixture.weather_postponed',
+        v_member,'fixture.weather_postponed',
         jsonb_build_object('fixture_id',v_fixture.id,'season_id',p_season_id,
           'old_gameweek',p_gameweek,'replacement_date',p_replacement_date,'reason',btrim(p_reason))
       );
