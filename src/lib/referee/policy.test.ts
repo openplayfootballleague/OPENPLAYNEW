@@ -171,3 +171,19 @@ describe("Open Play referee report workflow", () => {
     expect(REFEREE_NAVIGATION_TABS).toEqual(["Home", "Match Centre", "Teams", "Matchday", "More"]);
   });
 });
+
+
+describe("Open Play team payment deadlines and refund arithmetic", () => {
+  it("sets each weekly team fee due 24 hours before kickoff", async () => {
+    const { getTeamPaymentDeadlineAt } = await import("./policy");
+    expect(getTeamPaymentDeadlineAt("2026-11-14T20:00:00.000Z").toISOString())
+      .toBe("2026-11-13T20:00:00.000Z");
+  });
+
+  it("calculates only the remaining refundable amount and rejects invalid ledger totals", async () => {
+    const { calculateRefundDuePence } = await import("./policy");
+    expect(calculateRefundDuePence(3500)).toBe(3500);
+    expect(calculateRefundDuePence(3500, 1000)).toBe(2500);
+    expect(() => calculateRefundDuePence(1000, 1500)).toThrow(RangeError);
+  });
+});
