@@ -250,6 +250,13 @@ begin
      or v_fixture.status in ('cancelled','postponed') then
     raise exception 'Only a fixture that has taken place can receive a match report';
   end if;
+  if p_source='admin' then
+    perform public.assert_admin_location_context((
+      select league.location_id from public.seasons season
+      join public.leagues league on league.id=season.league_id
+      where season.id=v_fixture.season_id
+    ));
+  end if;
 
   select * into v_home_sheet from public.fixture_team_sheets
   where fixture_id=p_fixture_id and season_team_id=v_fixture.home_team_id and is_locked=true;
@@ -327,12 +334,6 @@ begin
     where season_id=v_fixture.season_id and gameweek=v_latest_gameweek
       and scheduled_at is not null and status not in ('cancelled','postponed');
     v_deadline:=v_latest_fixture_at+interval '24 hours';
-  else
-    perform public.assert_admin_location_context((
-      select league.location_id from public.seasons season
-      join public.leagues league on league.id=season.league_id
-      where season.id=v_fixture.season_id
-    ));
   end if;
 
   select * into v_existing from public.referee_match_reports where fixture_id=p_fixture_id for update;
