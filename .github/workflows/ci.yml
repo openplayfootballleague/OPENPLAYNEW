@@ -301,6 +301,23 @@ jobs:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/captain_next_required_fixture_regression.sql
 
+      - name: Verify integration location-admin and global security boundaries
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/integration_security_regressions.sql
+      - name: Verify SECURITY DEFINER and user_roles grant boundaries
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/security_definer_grants_regression.sql
+      - name: Verify avatar-only profile permissions
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/profile_avatar_only_permissions.sql
+      - name: Verify integration captain amendment location scope
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/captain_next_required_fixture_integration_regression.sql
+
       - name: Verify Auth signup, email confirmation and password recovery
         shell: bash
         run: |
