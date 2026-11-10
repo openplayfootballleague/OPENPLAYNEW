@@ -50,6 +50,7 @@ Deno.serve(async(req)=>{
   }
 
   let transferCreated=false;
+  let canMarkFailed=false;
   let createdTransfer:any=null;
   try{
     const params=new URLSearchParams();
@@ -72,7 +73,10 @@ Deno.serve(async(req)=>{
       body:params.toString(),
     });
     const transfer=await response.json();
-    if(!response.ok)throw new Error(transfer?.error?.message??"Stripe transfer failed");
+    if(!response.ok){
+      canMarkFailed=response.status<500;
+      throw new Error(transfer?.error?.message??"Stripe transfer failed");
+    }
     if(transfer.livemode!==false)throw new Error("Live-mode transfers are disabled for this workflow");
     transferCreated=true;
     createdTransfer=transfer;
@@ -96,7 +100,7 @@ Deno.serve(async(req)=>{
     return json({success:true,payout_type:payoutType,payout_id:payoutId,transfer_id:transfer.id,status:"transferred"},200,headers);
   }catch(error){
     const reason=error instanceof Error?error.message:"Stripe transfer failed";
-    if(!transferCreated){
+    if(!transferCreated&&canMarkFailed){
       await serviceClient.rpc("record_referee_payout_transfer_failure",{
         p_payout_type:payoutType,p_payout_id:payoutId,p_failure_reason:reason,p_transfer_reversed:false,
       });
@@ -104,6 +108,6 @@ Deno.serve(async(req)=>{
     return json({
       error:reason,
       ...(transferCreated&&createdTransfer?.id?{transfer_id:createdTransfer.id,status:"processing"}:{}),
-    },transferCreated?503:402,headers);
+    },transferCreated||!canMarkFailed?503:402,headers);
   }
 });
