@@ -308,7 +308,7 @@ declare
   v_credit public.finance_entries;
   v_old_number integer;
   v_new_number integer;
-  v_completed_max integer;
+  v_frozen_max integer;
   v_offset integer;
   v_refunds integer:=0;
   v_credits integer:=0;
@@ -436,8 +436,22 @@ begin
     end if;
   end loop;
 
-  -- Move all unplayed rounds into temporary numbers first to avoid the
-  -- existing (season_id,gameweek,fixture_number) unique constraint.
+  -- Freeze every round containing a completed, cancelled, in-progress or
+  -- published-result fixture. Only wholly unplayed rounds may be renumbered.
+  select coalesce(max(sg.week_number),0) into v_frozen_max
+  from public.season_gameweeks sg
+  where sg.season_id=v_season_id
+    and exists(
+      select 1 from public.fixtures f
+      where f.gameweek_id=sg.id
+        and (
+          f.status in ('completed','cancelled','in_progress')
+          or exists(select 1 from public.fixture_results r where r.fixture_id=f.id)
+        )
+    );
+
+  -- Move only wholly unplayed rounds into temporary numbers first to avoid
+  -- the existing (season_id,gameweek,fixture_number) unique constraint.
   select coalesce(max(week_number),0) into v_offset
   from public.season_gameweeks where season_id=v_season_id;
   v_offset:=v_offset+1000;
@@ -445,16 +459,17 @@ begin
   set week_number=sg.week_number+v_offset
   where sg.season_id=v_season_id
     and exists(select 1 from public.fixtures f where f.gameweek_id=sg.id)
-    and exists(select 1 from public.fixtures f where f.gameweek_id=sg.id and f.status<>'completed');
+    and not exists(
+      select 1 from public.fixtures f
+      where f.gameweek_id=sg.id
+        and (
+          f.status in ('completed','cancelled','in_progress')
+          or exists(select 1 from public.fixture_results r where r.fixture_id=f.id)
+        )
+    );
   update public.fixtures f set gameweek=sg.week_number
   from public.season_gameweeks sg
   where sg.id=f.gameweek_id and sg.season_id=v_season_id and sg.week_number>=v_offset;
-
-  select coalesce(max(sg.week_number),0) into v_completed_max
-  from public.season_gameweeks sg
-  where sg.season_id=v_season_id
-    and exists(select 1 from public.fixtures f where f.gameweek_id=sg.id)
-    and not exists(select 1 from public.fixtures f where f.gameweek_id=sg.id and f.status<>'completed');
 
   with ordered as (
     select sg.id,row_number() over(order by sg.scheduled_at,sg.id)::integer as position
@@ -462,7 +477,7 @@ begin
     where sg.season_id=v_season_id and sg.week_number>=v_offset
   )
   update public.season_gameweeks sg
-  set week_number=v_completed_max+ordered.position
+  set week_number=v_frozen_max+ordered.position
   from ordered where ordered.id=sg.id;
   update public.fixtures f set gameweek=sg.week_number
   from public.season_gameweeks sg where sg.id=f.gameweek_id and sg.season_id=v_season_id;

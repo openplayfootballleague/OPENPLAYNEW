@@ -14,6 +14,7 @@ declare
   v_away_season_team uuid;
   v_week_one_fixture uuid;
   v_week_two_fixture uuid;
+  v_week_two_completed_fixture uuid;
   v_week_three_fixture uuid;
   v_week_four_fixture uuid;
   v_week_four_id uuid;
@@ -67,11 +68,13 @@ begin
   values
     (v_season,1,1,v_home_season_team,v_away_season_team,v_location,now()-interval '7 days','completed'),
     (v_season,2,1,v_home_season_team,v_away_season_team,v_location,now()+interval '7 days','scheduled'),
+    (v_season,2,2,v_away_season_team,v_home_season_team,v_location,now()+interval '8 days','completed'),
     (v_season,3,1,v_home_season_team,v_away_season_team,v_location,now()+interval '14 days','scheduled'),
     (v_season,4,1,v_home_season_team,v_away_season_team,v_location,now()+interval '21 days','scheduled');
 
   select id into v_week_one_fixture from public.fixtures where season_id=v_season and gameweek=1;
-  select id into v_week_two_fixture from public.fixtures where season_id=v_season and gameweek=2;
+  select id into v_week_two_fixture from public.fixtures where season_id=v_season and gameweek=2 and fixture_number=1;
+  select id into v_week_two_completed_fixture from public.fixtures where season_id=v_season and gameweek=2 and fixture_number=2;
   select id into v_week_three_fixture from public.fixtures where season_id=v_season and gameweek=3;
   select id,gameweek_id into v_week_four_fixture,v_week_four_id
     from public.fixtures where season_id=v_season and gameweek=4;
@@ -97,7 +100,7 @@ begin
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
   select count(*) into v_admin_weeks
   from public.get_admin_postponable_gameweeks(v_season);
-  if v_admin_weeks<>3 then raise exception 'Admin gameweek list should include only the three unplayed rounds'; end if;
+  if v_admin_weeks<>2 then raise exception 'Admin gameweek list should exclude the partially completed round'; end if;
 
   select public.admin_postpone_gameweek(v_week_four_id,v_replacement,'Weather cancellation: unsafe pitch conditions')
     into v_result;
@@ -116,8 +119,9 @@ begin
   if (select gameweek from public.fixtures where id=v_week_one_fixture)<>1 then
     raise exception 'Completed historical gameweek number was changed';
   end if;
-  if (select gameweek from public.fixtures where id=v_week_two_fixture)<>2 then
-    raise exception 'Earlier unplayed round should remain Gameweek 2';
+  if (select gameweek from public.fixtures where id=v_week_two_fixture)<>2
+     or (select gameweek from public.fixtures where id=v_week_two_completed_fixture)<>2 then
+    raise exception 'A partially completed historical round must retain its published gameweek number';
   end if;
   if (select gameweek from public.fixtures where id=v_week_four_fixture)<>3 then
     raise exception 'Moved final gameweek was not renumbered into its chronological position';
