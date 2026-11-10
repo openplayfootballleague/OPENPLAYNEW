@@ -1,5 +1,5 @@
 export type AnalyticsLocation = { id: string; name: string; town: string };
-export type AnalyticsSeason = { id: string; league_id: string; location_id: string; name: string; status: string };
+export type AnalyticsSeason = { id: string; league_id: string; location_id?: string; name: string; status: string };
 export type AnalyticsTeam = { id: string; season_id: string; name: string; registration_status: string; member_count: number };
 export type AnalyticsFixture = {
   id: string;
@@ -64,8 +64,9 @@ export type FinanceTotals = {
   outstandingPence: number;
 };
 
-function matchesFilters(season: AnalyticsSeason, filters: AnalyticsFilters): boolean {
-  return (!filters.locationId || season.location_id === filters.locationId)
+function matchesFilters(season: AnalyticsSeason, filters: AnalyticsFilters, locationByLeague: Map<string, string>): boolean {
+  const locationId = season.location_id ?? locationByLeague.get(season.league_id);
+  return (!filters.locationId || locationId === filters.locationId)
     && (!filters.leagueId || season.league_id === filters.leagueId)
     && (!filters.seasonId || season.id === filters.seasonId);
 }
@@ -80,7 +81,8 @@ export function buildAnalyticsOverview(
   contextualFixtures: AnalyticsFixture[],
   filters: AnalyticsFilters,
 ): AnalyticsOverview {
-  const seasons = setup.seasons.filter((season) => matchesFilters(season, filters));
+  const locationByLeague = new Map(setup.leagues.map((league) => [league.id, league.location_id]));
+  const seasons = setup.seasons.filter((season) => matchesFilters(season, filters, locationByLeague));
   const seasonIds = new Set(seasons.map((season) => season.id));
   const teams = setup.season_teams.filter((team) => seasonIds.has(team.season_id) && team.registration_status === "approved");
   const results = contextualFixtures.filter(isPublishedResult);
