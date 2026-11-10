@@ -463,6 +463,7 @@ declare
   v_refund public.team_fixture_payment_refunds;
   v_obligation public.team_fixture_payment_obligations;
   v_entry public.finance_entries;
+  v_credit public.finance_entries;
 begin
   select * into v_refund from public.team_fixture_payment_refunds
   where id=p_refund_id for update;
@@ -486,13 +487,18 @@ begin
     ) values(v_obligation.season_team_id,v_obligation.fixture_id,'refund',v_refund.amount_pence,
       'Stripe refund for cancelled fixture',p_stripe_refund_id,v_obligation.created_by)
     returning * into v_entry;
+    insert into public.finance_entries(
+      season_team_id,fixture_id,entry_type,amount_pence,description,reference,created_by
+    ) values(v_obligation.season_team_id,v_obligation.fixture_id,'credit',v_refund.amount_pence,
+      'Fee credit for cancelled fixture refund',p_stripe_refund_id,v_obligation.created_by)
+    returning * into v_credit;
     update public.team_fixture_payment_refunds
-    set refund_finance_entry_id=v_entry.id,credit_finance_entry_id=null
+    set refund_finance_entry_id=v_entry.id,credit_finance_entry_id=v_credit.id
     where id=v_refund.id;
     insert into public.team_fixture_payment_history(
       obligation_id,action,from_status,to_status,actor_user_id,reason,metadata
     ) values(v_obligation.id,'opponent_refund_confirmed','refund_pending','refunded',null,
-      'Stripe confirmed the opponent refund and the refund ledger entry was recorded',
+      'Stripe confirmed the refund and the fee-waiver credit was recorded',
       jsonb_build_object('stripe_refund_id',p_stripe_refund_id,'amount_pence',v_refund.amount_pence));
   else
     update public.team_fixture_payment_refunds
