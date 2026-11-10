@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
-import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
+import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -176,7 +176,7 @@ function HomePage() {
         <span>© {new Date().getFullYear()} OPEN PLAY</span>
       </footer>
     </main>
-    <PlayerBottomNavigation />
+    <RefereeBottomNavigation />
     </div>
   );
 }
