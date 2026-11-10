@@ -52,7 +52,7 @@ begin
       and p.qual ilike '%auth.uid()%'
       and p.with_check ilike '%auth.uid()%'
   ) then
-    raise exception 'The owner/global-admin row-level UPDATE policy must remain present';
+    raise exception 'The owner/admin row-level UPDATE policy must remain present';
   end if;
 
   if not exists (
