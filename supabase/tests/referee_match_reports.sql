@@ -117,12 +117,16 @@ begin
     or position('length(btrim(p_reason))<5' in v_definition)=0 then
     raise exception 'Only global administrators may change the referee reporting feature flag with a reason';
   end if;
-  if not exists(select 1 from information_schema.columns where table_schema='public'
-    and table_name='referee_get_my_status' and column_name='reporting_enabled') then
-    -- The RPC return column is checked through its function definition below because it is not a table.
-    if position('reporting_enabled' in pg_get_function_result('public.referee_get_my_status()'::regprocedure))=0 then
-      raise exception 'Referee status RPC must return the feature-enabled state';
-    end if;
+  if position('reporting_enabled' in pg_get_function_result('public.referee_get_my_status()'::regprocedure))=0 then
+    raise exception 'Referee status RPC must return the feature-enabled state';
+  end if;
+  select pg_get_functiondef('public.referee_submit_application(text,text,text,text,uuid[])'::regprocedure) into v_definition;
+  if position('is_referee_reporting_enabled' in v_definition)=0 then
+    raise exception 'Referee applications must respect the global feature flag';
+  end if;
+  select pg_get_functiondef('public.referee_get_assigned_fixtures()'::regprocedure) into v_definition;
+  if position('is_referee_reporting_enabled' in v_definition)=0 then
+    raise exception 'Referee fixture access must respect the global feature flag';
   end if;
 
   if not exists (
