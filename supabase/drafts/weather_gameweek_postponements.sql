@@ -109,8 +109,6 @@ create table public.gameweek_postponement_history (
   before_data jsonb not null default '{}'::jsonb,
   after_data jsonb not null default '{}'::jsonb
 );
-create unique index gameweek_postponement_history_idempotency_idx
-  on public.gameweek_postponement_history(gameweek_id,new_scheduled_at);
 alter table public.gameweek_postponement_history enable row level security;
 revoke all on public.gameweek_postponement_history from public,anon,authenticated;
 
@@ -335,7 +333,7 @@ begin
   if v_week.scheduled_at is null then raise exception 'Gameweek has no original scheduled date'; end if;
   select * into v_existing_history from public.gameweek_postponement_history
   where gameweek_id=p_gameweek_id and new_scheduled_at=p_replacement_at limit 1;
-  if found then
+  if found and v_week.scheduled_at=p_replacement_at then
     return jsonb_build_object('gameweek_id',p_gameweek_id,
       'old_week_number',v_existing_history.old_week_number,
       'new_week_number',v_existing_history.new_week_number,
