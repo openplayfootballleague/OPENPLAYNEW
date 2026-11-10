@@ -69,8 +69,7 @@ begin
     (v_season,1,1,v_home_season_team,v_away_season_team,v_location,now()-interval '7 days','completed'),
     (v_season,2,1,v_home_season_team,v_away_season_team,v_location,now()+interval '7 days','scheduled'),
     (v_season,3,1,v_home_season_team,v_away_season_team,v_location,now()+interval '14 days','scheduled'),
-    (v_season,4,1,v_home_season_team,v_away_season_team,v_location,now()+interval '21 days','scheduled')
-  returning id into v_week_one_fixture;
+    (v_season,4,1,v_home_season_team,v_away_season_team,v_location,now()+interval '21 days','scheduled');
 
   select id into v_week_one_fixture from public.fixtures where season_id=v_season and gameweek=1;
   select id into v_week_two_fixture from public.fixtures where season_id=v_season and gameweek=2;
