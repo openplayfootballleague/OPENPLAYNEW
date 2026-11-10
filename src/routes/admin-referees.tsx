@@ -58,8 +58,18 @@ function AdminRefereeWorkspace() {
   const [decisionReasons, setDecisionReasons] = useState<Record<string, string>>({});
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [adminEntryFixtureId, setAdminEntryFixtureId] = useState("");
+  const [adminEntryContext, setAdminEntryContext] = useState<any>(null);
+  const [adminEntryCompletedAt, setAdminEntryCompletedAt] = useState("");
+  const [adminEntryHomeScore, setAdminEntryHomeScore] = useState("0");
+  const [adminEntryAwayScore, setAdminEntryAwayScore] = useState("0");
+  const [adminEntryHomeScorers, setAdminEntryHomeScorers] = useState<string[]>([]);
+  const [adminEntryAwayScorers, setAdminEntryAwayScorers] = useState<string[]>([]);
+  const [adminEntrySummary, setAdminEntrySummary] = useState("");
+  const [adminEntryLoading, setAdminEntryLoading] = useState(false);
 
   const openFixtures = useMemo(() => fixtures.filter((fixture) => ["scheduled", "in_progress"].includes(fixture.status)), [fixtures]);
+  const missingReportFixtures = useMemo(() => openFixtures.filter((fixture) => !reports.some((report) => report.fixture_id === fixture.id)), [openFixtures, reports]);
 
   async function loadWorkspace() {
     setLoading(true); setError("");
@@ -158,6 +168,76 @@ function AdminRefereeWorkspace() {
     finally { setSaving(false); }
   }
 
+  async function loadAdminEntryContext(fixtureId: string) {
+    setAdminEntryFixtureId(fixtureId);
+    setAdminEntryContext(null);
+    setAdminEntryHomeScorers([]);
+    setAdminEntryAwayScorers([]);
+    if (!fixtureId) return;
+    setAdminEntryLoading(true); setError("");
+    try {
+      const { data, error: contextError } = await supabase.rpc("get_admin_fixture_scorer_options", { p_fixture_id: fixtureId });
+      if (contextError) throw contextError;
+      setAdminEntryContext(data);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to load submitted team sheets."); }
+    finally { setAdminEntryLoading(false); }
+  }
+
+  async function submitAdminCompletedReport(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!adminEntryContext?.home_sheet_submitted || !adminEntryContext?.away_sheet_submitted) {
+      setError("Both teams must have locked and submitted their team sheets before a report can be completed.");
+      return;
+    }
+    const homeGoals = Number(adminEntryHomeScore), awayGoals = Number(adminEntryAwayScore);
+    if (!adminEntryCompletedAt || !Number.isInteger(homeGoals) || !Number.isInteger(awayGoals) ||
+      homeGoals < 0 || awayGoals < 0 || homeGoals > 99 || awayGoals > 99 ||
+      adminEntryHomeScorers.slice(0, homeGoals).some((id) => !id) ||
+      adminEntryAwayScorers.slice(0, awayGoals).some((id) => !id)) {
+      setError("Enter the completion time and select one submitted-team-sheet goalscorer for every goal.");
+      return;
+    }
+    const goals = [
+      ...adminEntryHomeScorers.slice(0, homeGoals).map((id) => ({
+        credited_team_id: adminEntryContext.home_team_id,
+        scorer_team_id: adminEntryContext.home_team_id,
+        scorer_competition_player_id: id,
+        is_own_goal: false,
+      })),
+      ...adminEntryAwayScorers.slice(0, awayGoals).map((id) => ({
+        credited_team_id: adminEntryContext.away_team_id,
+        scorer_team_id: adminEntryContext.away_team_id,
+        scorer_competition_player_id: id,
+        is_own_goal: false,
+      })),
+    ];
+    setSaving(true); setError(""); setNotice("");
+    try {
+      const { error: saveError } = await supabase.rpc("admin_save_referee_match_report", {
+        p_fixture_id: adminEntryFixtureId,
+        p_completed_at: new Date(adminEntryCompletedAt).toISOString(),
+        p_home_score: homeGoals,
+        p_away_score: awayGoals,
+        p_match_summary: adminEntrySummary.trim() || null,
+        p_goals: goals,
+        p_incidents: [],
+        p_submit: true,
+      });
+      if (saveError) throw saveError;
+      setNotice("Admin-completed report submitted into the normal approval queue. It has not been published yet.");
+      setAdminEntryFixtureId("");
+      setAdminEntryContext(null);
+      setAdminEntryHomeScorers([]);
+      setAdminEntryAwayScorers([]);
+      setAdminEntryCompletedAt("");
+      setAdminEntryHomeScore("0");
+      setAdminEntryAwayScore("0");
+      setAdminEntrySummary("");
+      await loadWorkspace();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to complete the referee report."); }
+    finally { setSaving(false); }
+  }
+
   async function openReport(report: ReportQueueItem) {
     setReportLoading(true); setError("");
     try {
@@ -224,8 +304,29 @@ function AdminRefereeWorkspace() {
         <div className="admin-referee-actions"><button className="is-danger" disabled={saving} onClick={() => void removeAssignment(assignment)}>Remove assignment</button></div>
       </article>)}
     </section>
+        <section className="admin-referee-panel">
+      <div className="admin-referee-section-title"><span className="eyebrow">04 · REPORT COMPLETION</span><h2>Complete a missing report</h2></div>
+      <p className="admin-referee-muted">Use this for a missing or overdue report. The completed report still enters the approval queue; this action does not publish a result. Goalscorers must come from both submitted team sheets. Own-goal attribution and disciplinary incidents should be completed through the referee report workflow until the admin correction form is extended.</p>
+      <form className="admin-referee-form admin-referee-report-entry" onSubmit={submitAdminCompletedReport}>
+        <label>Fixture<select required value={adminEntryFixtureId} onChange={(event) => void loadAdminEntryContext(event.target.value)}><option value="">Choose missing report fixture</option>{missingReportFixtures.map((fixture) => <option key={fixture.id} value={fixture.id}>GW{fixture.gameweek} · {fixture.home_team_name} v {fixture.away_team_name}</option>)}</select></label>
+        {adminEntryLoading && <p className="admin-referee-muted">Loading both submitted team sheets…</p>}
+        {adminEntryContext && <>
+          {(!adminEntryContext.home_sheet_submitted || !adminEntryContext.away_sheet_submitted) ? <p className="admin-referee-warning">Both team sheets must be locked and submitted before the report can be completed.</p> : <>
+            <label>Actual match completion time<input type="datetime-local" required value={adminEntryCompletedAt} onChange={(event) => setAdminEntryCompletedAt(event.target.value)} /></label>
+            <div className="admin-referee-score-fields"><label>{adminEntryContext.home_team_name} score<input type="number" min="0" max="99" required value={adminEntryHomeScore} onChange={(event) => setAdminEntryHomeScore(event.target.value)} /></label><label>{adminEntryContext.away_team_name} score<input type="number" min="0" max="99" required value={adminEntryAwayScore} onChange={(event) => setAdminEntryAwayScore(event.target.value)} /></label></div>
+            <h3>{adminEntryContext.home_team_name} goalscorers</h3>
+            {Array.from({ length: Math.min(99, Math.max(0, Number(adminEntryHomeScore) || 0)) }, (_, index) => <label key={"admin-home-goal-"+index}>Home goal {index+1}<select required value={adminEntryHomeScorers[index] ?? ""} onChange={(event) => setAdminEntryHomeScorers((current) => { const next=[...current]; next[index]=event.target.value; return next; })}><option value="">Choose scorer</option>{adminEntryContext.home_players.map((player: any) => <option key={player.competition_player_id} value={player.competition_player_id}>{player.full_name}{player.is_goalkeeper ? " · GK" : ""}</option>)}</select></label>)}
+            <h3>{adminEntryContext.away_team_name} goalscorers</h3>
+            {Array.from({ length: Math.min(99, Math.max(0, Number(adminEntryAwayScore) || 0)) }, (_, index) => <label key={"admin-away-goal-"+index}>Away goal {index+1}<select required value={adminEntryAwayScorers[index] ?? ""} onChange={(event) => setAdminEntryAwayScorers((current) => { const next=[...current]; next[index]=event.target.value; return next; })}><option value="">Choose scorer</option>{adminEntryContext.away_players.map((player: any) => <option key={player.competition_player_id} value={player.competition_player_id}>{player.full_name}{player.is_goalkeeper ? " · GK" : ""}</option>)}</select></label>)}
+            <label>Match summary<textarea rows={3} value={adminEntrySummary} onChange={(event) => setAdminEntrySummary(event.target.value)} /></label>
+            <button disabled={saving || adminEntryHomeScorers.slice(0,Number(adminEntryHomeScore)).some((id)=>!id) || adminEntryAwayScorers.slice(0,Number(adminEntryAwayScore)).some((id)=>!id)}>Submit admin-completed report for approval</button>
+          </>}
+        </>}
+      </form>
+    </section>
+
     <section className="admin-referee-panel">
-      <div className="admin-referee-section-title"><span className="eyebrow">04 · REPORT APPROVAL</span><h2>Submitted reports <b>{reports.length}</b></h2></div>
+      <div className="admin-referee-section-title"><span className="eyebrow">05 · REPORT APPROVAL</span><h2>Submitted reports <b>{reports.length}</b></h2></div>
       {reports.length === 0 ? <p className="admin-referee-muted">No match reports awaiting approval.</p> : reports.map((report) => <article className="admin-referee-card" key={report.report_id}>
         <h3>{report.home_team_name} {report.home_score}–{report.away_score} {report.away_team_name}</h3><p>GW{report.gameweek} · {dateTime(report.scheduled_at)} · Official: {report.referee_name}</p>
         {report.match_summary && <p>{report.match_summary}</p>}
