@@ -643,7 +643,7 @@ begin
 
   select * into v_report from public.referee_match_reports where fixture_id=p_fixture_id for update;
   if found then
-    if (v_is_referee and v_report.status not in ('draft','returned')) or (not v_is_referee and v_report.status not in ('draft','returned','submitted')) then raise exception 'This report is already approved or closed'; end if;
+    if (v_is_referee and v_report.status not in ('draft','returned','rejected')) or (not v_is_referee and v_report.status not in ('draft','returned','rejected','submitted')) then raise exception 'This report is already approved or closed'; end if;
     v_report_id:=v_report.id; v_version:=v_report.version+1;
     update public.referee_match_reports set assignment_id=v_assignment.id,assigned_referee_user_id=coalesce(v_assignment.referee_user_id,v_report.assigned_referee_user_id),
       reporter_user_id=v_actor,status=case when p_submit then 'submitted' else 'draft' end,
