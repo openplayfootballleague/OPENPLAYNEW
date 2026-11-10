@@ -28,7 +28,7 @@ const allMigrations = readdirSync(migrationDirectory)
   .sort();
 const appliedSet = new Set(appliedPaths.map((path) => path.split("/").at(-1)));
 const pending = allMigrations.filter((name) => !appliedSet.has(name));
-if (allMigrations.length !== 118 || pending.length !== 19) {
+if (allMigrations.length !== 117 || pending.length !== 18) {
   throw new Error(`Expected 118 local migrations (99 applied + 19 pending); found ${allMigrations.length} total and ${pending.length} pending`);
 }
 
