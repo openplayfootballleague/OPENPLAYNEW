@@ -227,10 +227,11 @@ begin
     raise exception 'Scoped admin setup did not return only the assigned location';
   end if;
   v_dashboard := public.get_admin_dashboard_contextual('00000000-0000-4000-8000-000000000010',null,null);
-  if jsonb_typeof(v_dashboard->'counts'->'pending_player_reviews') <> 'null' then
+  if jsonb_typeof(v_dashboard->'counts'->'pending_player_reviews') is distinct from 'null' then
     raise exception 'Location admin must see player identity review count as restricted, not a fabricated zero';
   end if;
-  if jsonb_array_length(v_dashboard->'player_reviews') <> 0 then
+  if jsonb_typeof(v_dashboard->'player_reviews') is distinct from 'array'
+     or jsonb_array_length(v_dashboard->'player_reviews') is distinct from 0 then
     raise exception 'Location admin received global player identity review evidence';
   end if;
   if jsonb_array_length(v_setup->'leagues') <> 1 or v_setup->'leagues'->0->>'id' <> '00000000-0000-4000-8000-000000000020' then
@@ -401,11 +402,11 @@ begin
   v_setup := public.get_admin_competition_setup();
   if jsonb_array_length(v_setup->'locations') <> 2 then raise exception 'Global admin setup did not return all locations'; end if;
   v_dashboard := public.get_admin_dashboard_contextual(null,null,null);
-  if (v_dashboard->'counts'->>'pending_player_reviews')::integer <> 1 then
+  if (v_dashboard->'counts'->>'pending_player_reviews')::integer is distinct from 1 then
     raise exception 'Global admin must see the real pending player identity review count';
   end if;
-  if jsonb_array_length(v_dashboard->'player_reviews') <> 1
-     or v_dashboard->'player_reviews'->0->>'full_name' <> 'CI Player C' then
+  if jsonb_array_length(v_dashboard->'player_reviews') is distinct from 1
+     or v_dashboard->'player_reviews'->0->>'full_name' is distinct from 'CI Player C' then
     raise exception 'Global admin must retain access to the pending player identity review details';
   end if;
 
