@@ -517,6 +517,15 @@ begin
     into v_fixture
   from public.fixtures f join public.season_teams ht on ht.id=f.home_team_id
   join public.season_teams at on at.id=f.away_team_id where f.id=p_fixture_id;
+  if not exists(
+    select 1 from public.referee_availability av
+    where av.referee_user_id=p_referee_user_id and av.location_id=v_location
+      and av.available_on=(v_fixture.scheduled_at at time zone 'Europe/London')::date
+      and av.starts_at<=(v_fixture.scheduled_at at time zone 'Europe/London')::time
+      and av.ends_at>(v_fixture.scheduled_at at time zone 'Europe/London')::time
+  ) and (p_reason is null or length(btrim(p_reason))<5) then
+    raise exception 'No matching referee availability. Add a reason of at least five characters to override availability.';
+  end if;
   update public.fixture_referee_assignments
   set removed_at=now(),removed_by=v_actor,change_reason=coalesce(nullif(btrim(p_reason),''),'Reassigned by administrator')
   where fixture_id=p_fixture_id and removed_at is null;
