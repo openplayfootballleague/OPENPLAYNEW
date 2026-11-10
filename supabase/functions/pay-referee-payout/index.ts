@@ -36,10 +36,21 @@ Deno.serve(async(req)=>{
   let body:any;
   try{body=await req.json();}catch{return json({error:"A valid payout request is required"},400,headers);}
   const payoutType=body?.payout_type;
-  const payoutId=body?.payout_id;
-  if(!["match_report","milestone"].includes(payoutType)||typeof payoutId!=="string"){
+  let payoutId=body?.payout_id;
+  const reportId=body?.report_id;
+  if(!["match_report","milestone"].includes(payoutType)||
+     (typeof payoutId!=="string" && !(payoutType==="match_report"&&typeof reportId==="string"))){
     return json({error:"A valid referee payout type and ID are required"},400,headers);
   }
+  // Approval callers identify the report, not an internal payout row. Resolve it
+  // server-side; the caller's location permission is still checked by the claim RPC.
+  if(!payoutId&&payoutType==="match_report"){
+    const {data:obligation,error:lookupError}=await serviceClient.from("referee_report_payouts")
+      .select("id").eq("report_id",reportId).maybeSingle();
+    if(lookupError)return json({error:"Unable to locate the approved referee payment obligation"},500,headers);
+    payoutId=obligation?.id;
+  }
+  if(typeof payoutId!=="string")return json({error:"No referee payment obligation exists for this approved report"},409,headers);
 
   const {data:payout,error:claimError}=await userClient.rpc("claim_referee_payout_transfer",{
     p_payout_type:payoutType,p_payout_id:payoutId,
