@@ -51,7 +51,7 @@ Do not place Stripe secret keys or webhook signing secrets in Vite variables, br
 6. Ensure the platform has sufficient **test-mode** available balance before attempting a transfer.
 7. Confirm the platform's fee/loss responsibility configuration in the Stripe Dashboard before any real-money launch.
 
-A referee is eligible for an Open Play transfer only when the connected account is correctly linked, verification requirements are satisfied, and the Stripe transfers capability is active. Bank-payout readiness is a separate status and must be communicated separately; it must not be confused with the platform-to-connected-account transfer.
+A referee is eligible for an Open Play transfer when the connected account is correctly linked, required verification is complete, and the Stripe transfers capability is active. `payouts_enabled` is a separate bank-payout status: it must not block a platform-to-connected-account transfer or be presented as proof that the transfer itself has succeeded.
 
 ## Acceptance requirements
 
