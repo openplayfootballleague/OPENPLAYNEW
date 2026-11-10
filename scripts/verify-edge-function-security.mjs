@@ -104,3 +104,8 @@ assert.ok(refereeConnectWebhook.includes("event.livemode!==false"), "Connect web
 assert.ok(refereeConnectWebhook.includes("referee_connect_webhook_events") && refereeConnectWebhook.includes("processed_at"), "Connect webhook processing must be idempotent and retryable");
 
 console.log("Edge Function security configuration and Phase 1 workflow boundary assertions passed.");
+
+const adminPostpone = readFileSync("supabase/functions/admin-postpone-gameweek/index.ts", "utf8");
+assert.ok(adminPostpone.includes('userClient.auth.getUser(token)'), "Gameweek postponement must validate the signed-in administrator");
+assert.ok(adminPostpone.includes('rpc("admin_postpone_gameweek"'), "Gameweek postponement must use the location-scoped database workflow");
+assert.ok(adminPostpone.includes('stripeKey?.startsWith("sk_test_")'), "Gameweek postponement refunds must remain test-mode only");
