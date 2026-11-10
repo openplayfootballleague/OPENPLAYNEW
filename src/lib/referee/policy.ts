@@ -262,3 +262,28 @@ export const REFEREE_NAVIGATION_TABS = [
   "Matchday",
   "More",
 ] as const;
+
+
+/** Weekly team match fees fall due exactly 24 hours before local fixture kickoff. */
+export function getTeamPaymentDeadlineAt(kickoffAt: string | Date): Date {
+  const kickoff = new Date(kickoffAt).getTime();
+  if (!Number.isFinite(kickoff)) throw new RangeError("Fixture kickoff must be a valid timestamp");
+  return new Date(kickoff - 24 * 60 * 60 * 1000);
+}
+
+/**
+ * Returns the remaining refundable amount in integer pence. The caller must
+ * still create the refund against the original Stripe payment with an
+ * idempotency key and persist the refund ledger entry transactionally.
+ */
+export function calculateRefundDuePence(amountPaidPence: number, alreadyRefundedPence = 0): number {
+  for (const amount of [amountPaidPence, alreadyRefundedPence]) {
+    if (!Number.isSafeInteger(amount) || amount < 0) {
+      throw new RangeError("Refund amounts must be non-negative integer pence");
+    }
+  }
+  if (alreadyRefundedPence > amountPaidPence) {
+    throw new RangeError("Refunded amount cannot exceed the original payment");
+  }
+  return amountPaidPence - alreadyRefundedPence;
+}
