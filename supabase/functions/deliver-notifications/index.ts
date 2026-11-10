@@ -85,8 +85,8 @@ function renderMessage(event: EventRow): RenderedMessage {
       };
     case "message.new":
       return {
-        subject: `Open Play – new message in ${p.conversation_title ?? "your inbox"}`,
-        text: `${p.sender_name ?? "An Open Play member"} sent you a new message in ${p.conversation_title ?? "your inbox"}. Sign in to Open Play to read and reply.`,
+        subject: "Open Play – you have a new message",
+        text: "You have a new private message in Open Play. Sign in to read and reply securely.",
       };
     default:
       throw new PermanentDeliveryError(`Unsupported notification template: ${event.event_type}`);
