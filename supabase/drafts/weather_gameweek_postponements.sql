@@ -345,6 +345,7 @@ begin
       'unpaid_cycles_credited',v_existing_history.credited_unpaid_obligations,
       'already_applied',true);
   end if;
+  if v_week.scheduled_at=p_replacement_at then raise exception 'Choose a different replacement date and time'; end if;
 
   perform 1 from public.fixtures where gameweek_id=p_gameweek_id for update;
   select count(*) into v_fixture_count from public.fixtures where gameweek_id=p_gameweek_id;
