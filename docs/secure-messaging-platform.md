@@ -32,7 +32,7 @@ Every new message creates an in-app notification for the other active participan
 
 ## Retention and privacy
 
-Sender identity references use `ON DELETE SET NULL`; deleted accounts display as “Former member” rather than retaining a name snapshot. Message content is not automatically purged by this feature. The existing Open Play account retention process governs account identity, but no separate message-content retention duration has yet been approved. Do not deploy a timed message purge until that policy is explicitly agreed. Attachments are not supported in this initial release.
+Sender identity references use `ON DELETE SET NULL`; when an auth account is deleted, its messages display as “Former member” rather than retaining a name snapshot. Message content is not automatically purged by this feature. No separate message-content retention duration has yet been approved. Do not deploy a timed message purge until that policy is explicitly agreed. Attachments are not supported in this initial release.
 
 ## Release gates
 
