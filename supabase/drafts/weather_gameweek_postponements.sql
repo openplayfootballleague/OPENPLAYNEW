@@ -644,7 +644,10 @@ begin
       v_opponent_id:=case when v_fixture.home_team_id=v_obligation.season_team_id
         then v_fixture.away_team_id else v_fixture.home_team_id end;
       select * into v_opponent from public.team_fixture_payment_obligations
-      where fixture_id=v_fixture.id and season_team_id=v_opponent_id for update;
+      where fixture_id=v_fixture.id and season_team_id=v_opponent_id
+      order by payment_cycle desc
+      limit 1
+      for update;
       if found and v_opponent.status in ('paid','late_paid') then
         insert into public.team_fixture_payment_refunds(
           obligation_id,amount_pence,stripe_payment_intent_id
