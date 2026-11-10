@@ -46,6 +46,19 @@ type RefereeAvailability = {
   location_name: string;
   note: string | null;
 };
+type RefereeCareerSummary = {
+  lifetime_approved_games: number;
+  active_season_approved_games: number;
+  career_title: string;
+  next_milestone: number | null;
+  milestone_progress_percent: number;
+  milestone_reward_pence: number;
+  lifetime_gross_allocations_pence: number;
+  lifetime_net_entitlement_pence: number;
+  awaiting_payment_pence: number;
+  transferred_to_connected_balance_pence: number;
+  paid_out_to_bank_pence: number;
+};
 type RefereePayment = {
   report_id: string;
   fixture_id: string;
@@ -93,6 +106,7 @@ function RefereeHubPage() {
   const [fixtures, setFixtures] = useState<RefereeFixture[]>([]);
   const [availability, setAvailability] = useState<RefereeAvailability[]>([]);
   const [payments, setPayments] = useState<RefereePayment[]>([]);
+  const [careerSummary, setCareerSummary] = useState<RefereeCareerSummary | null>(null);
   const [activeTab, setActiveTab] = useState<"Home" | "Match Centre" | "Teams" | "Matchday" | "More">("Home");
   const [selectedFixtureId, setSelectedFixtureId] = useState("");
   const [applicationExperience, setApplicationExperience] = useState("");
@@ -145,18 +159,20 @@ function RefereeHubPage() {
     const availableLocations = (locationRows ?? []) as RefereeLocation[];
     setLocations(availableLocations);
     if (currentStatus?.membership_status === "active") {
-      const [{ data: fixtureRows, error: fixtureError }, { data: availabilityRows, error: availabilityError }, { data: paymentRows, error: paymentError }] = await Promise.all([
+      const [{ data: fixtureRows, error: fixtureError }, { data: availabilityRows, error: availabilityError }, { data: paymentRows, error: paymentError }, { data: careerRows, error: careerError }] = await Promise.all([
         supabase.rpc("referee_get_assigned_fixtures"),
         supabase.rpc("referee_get_availability"),
         supabase.rpc("referee_get_payment_entitlements"),
+        supabase.rpc("referee_get_career_summary"),
       ]);
-      if (fixtureError || availabilityError || paymentError) {
-        setError(fixtureError?.message ?? availabilityError?.message ?? paymentError?.message ?? "Unable to load referee matchday data.");
+      if (fixtureError || availabilityError || paymentError || careerError) {
+        setError(fixtureError?.message ?? availabilityError?.message ?? paymentError?.message ?? careerError?.message ?? "Unable to load referee matchday data.");
       } else {
         const nextFixtures = (fixtureRows ?? []) as RefereeFixture[];
         setFixtures(nextFixtures);
         setAvailability((availabilityRows ?? []) as RefereeAvailability[]);
         setPayments((paymentRows ?? []) as RefereePayment[]);
+        setCareerSummary((careerRows?.[0] ?? null) as RefereeCareerSummary | null);
         setSelectedFixtureId((current) => nextFixtures.some((fixture) => fixture.fixture_id === current) ? current : nextFixtures[0]?.fixture_id ?? "");
       }
     }
@@ -364,10 +380,18 @@ function RefereeHubPage() {
       {activeTab === "Home" && <div className="referee-hero">
         <p className="eyebrow">OFFICIALS · OPEN PLAY</p><h1>Matchday<br/><em>starts here.</em></h1>
         <p>Your assigned fixtures, match reports, career earnings and availability in one place.</p>
+        <div className="referee-career-card">
+          <span className="referee-career-label">CAREER RANK</span><strong>{careerSummary?.career_title ?? "Rookie Official"}</strong>
+          <p>{careerSummary?.lifetime_approved_games ?? 0} approved games across your Open Play career</p>
+          <div className="referee-progress-track"><span style={{ width: `${careerSummary?.milestone_progress_percent ?? 0}%` }} /></div>
+          <small>{careerSummary?.next_milestone ? `${careerSummary.next_milestone - (careerSummary.lifetime_approved_games ?? 0)} games to ${careerSummary.next_milestone} · £50 reward subject to admin confirmation` : "500-game career milestone achieved"}</small>
+        </div>
         <div className="referee-stat-grid">
+          <article><span>Lifetime approved games</span><strong>{careerSummary?.lifetime_approved_games ?? 0}</strong></article>
+          <article><span>Active-season games</span><strong>{careerSummary?.active_season_approved_games ?? 0}</strong></article>
           <article><span>Assigned fixtures</span><strong>{fixtures.length}</strong></article>
           <article><span>Reports awaiting review</span><strong>{fixtures.filter((fixture) => fixture.report_status === "submitted").length}</strong></article>
-          <article><span>Gross allocations</span><strong>{money(payments.reduce((total, payment) => total + payment.gross_allocation_pence, 0))}</strong></article>
+          <article><span>Lifetime gross allocations</span><strong>{money(Number(careerSummary?.lifetime_gross_allocations_pence ?? 0))}</strong></article>
         </div>
         <button className="referee-primary" onClick={() => setActiveTab("Matchday")}>Open matchday reporting</button>
       </div>}
@@ -414,7 +438,14 @@ function RefereeHubPage() {
           <button className="referee-primary" disabled={saving}>Save availability</button>
         </form>
         <div className="referee-availability-list">{availability.map((slot) => <article key={slot.id}><strong>{new Date(slot.available_on + "T00:00:00").toLocaleDateString("en-GB", { dateStyle: "medium" })}</strong><span>{slot.starts_at.slice(0,5)}–{slot.ends_at.slice(0,5)} · {slot.location_name}</span></article>)}</div></section>
-        <section className="referee-subsection"><h2>Payments and earnings</h2>{payments.length === 0 ? <p className="referee-muted">No approved report allocations yet.</p> : payments.map((payment) => <article className="referee-payment-row" key={payment.report_id}><div><strong>Gameweek {payment.gameweek}</strong><span>{payment.status.replaceAll("_"," ")}</span></div><div><b>{payment.net_entitlement_pence === null ? "Fee reconciliation pending" : money(payment.net_entitlement_pence)}</b><small>£22 gross · £20 minimum net</small></div></article>)}</section>
+        <section className="referee-subsection"><h2>Payments and earnings</h2>
+          <div className="referee-finance-summary">
+            <article><span>Net entitlement</span><strong>{money(Number(careerSummary?.lifetime_net_entitlement_pence ?? 0))}</strong></article>
+            <article><span>Awaiting payment</span><strong>{money(Number(careerSummary?.awaiting_payment_pence ?? 0))}</strong></article>
+            <article><span>Transferred to Stripe balance</span><strong>{money(Number(careerSummary?.transferred_to_connected_balance_pence ?? 0))}</strong></article>
+            <article><span>Paid out to bank</span><strong>{money(Number(careerSummary?.paid_out_to_bank_pence ?? 0))}</strong></article>
+          </div>
+          {payments.length === 0 ? <p className="referee-muted">No approved report allocations yet.</p> : payments.map((payment) => <article className="referee-payment-row" key={payment.report_id}><div><strong>Gameweek {payment.gameweek}</strong><span>{payment.status.replaceAll("_"," ")}</span></div><div><b>{payment.net_entitlement_pence === null ? "Fee reconciliation pending" : money(payment.net_entitlement_pence)}</b><small>£22 gross · £20 minimum net</small></div></article>)}</section>
       </section>}
     </section>
     <nav className="referee-bottom-nav" aria-label="Referee navigation">
