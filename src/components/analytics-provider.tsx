@@ -70,7 +70,7 @@ function routeCategory(pathname: string): string {
   if (pathname.startsWith("/register") || pathname.startsWith("/registration") || pathname.startsWith("/onboarding")) return "registration";
   if (pathname.startsWith("/notification")) return "notifications";
   if (pathname.startsWith("/gallery")) return "gallery";
-  if (pathname.startsWith("/account") || pathname.startsWith("/profile") || pathname.startsWith("/settings")) return "account";
+  if (pathname.startsWith("/account") || pathname.startsWith("/profile") || pathname.startsWith("/settings") || pathname.startsWith("/privacy")) return "account";
   return "other";
 }
 
@@ -186,7 +186,10 @@ function PostHogCaptureProvider({ children }: { children: ReactNode }) {
     const applyResolvedActor = () => {
       void resolveActor()
         .then((resolved) => {
-          if (alive) setActor(resolved);
+          if (alive) {
+            if (resolved === "unknown") setUserId(null);
+            setActor(resolved);
+          }
         })
         .catch(() => {
           if (alive) setActor("unknown");
@@ -227,7 +230,9 @@ function PostHogCaptureProvider({ children }: { children: ReactNode }) {
       client,
       readBrowserAnalyticsConsent(),
       isGlobalPrivacyControlEnabled(),
-      actor,
+      actor === "unknown" && location.pathname === "/sign-up" && event.startsWith("account_signup_")
+        ? "anonymous"
+        : actor,
       event,
       properties,
     );
