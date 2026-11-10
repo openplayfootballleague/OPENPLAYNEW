@@ -9,6 +9,7 @@ type RefereeStatus = {
   application_review_reason: string | null;
   membership_status: "active" | "suspended" | null;
   membership_approved_at: string | null;
+  reporting_enabled: boolean;
 };
 type RefereeLocation = { location_id: string; location_name: string; town: string; region: string };
 type SheetPlayer = {
@@ -322,6 +323,8 @@ function RefereeHubPage() {
   }
 
   if (loading) return <main className="referee-page"><section className="referee-panel"><p>Loading referee hub…</p></section></main>;
+
+  if (status && !status.reporting_enabled) return <main className="referee-page"><section className="referee-panel"><Link to="/" className="referee-brand">OPEN PLAY <span>OFFICIALS</span></Link><p className="eyebrow">REFEREE REPORTING</p><h1>Temporarily<br/><em>unavailable.</em></h1><p className="referee-muted">Referee applications and matchday reporting are currently switched off by Open Play. Your membership and historical payment records remain preserved.</p><Link to="/" className="referee-back-link">Return to Open Play</Link></section></main>;
 
   if (status?.membership_status !== "active") {
     const pending = status?.application_status === "pending";
