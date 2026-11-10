@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
+import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 import { getSupabaseClient } from "../lib/supabase/client";
 
 type RpcError = { message: string };
@@ -263,7 +263,7 @@ function RefereePage() {
         )}
         <Link className="auth-switch" to="/more">Back to More</Link>
       </section>
-      <PlayerBottomNavigation />
+      <RefereeBottomNavigation />
     </main>
   );
 }
