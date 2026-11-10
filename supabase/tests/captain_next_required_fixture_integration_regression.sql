@@ -4,6 +4,7 @@ do $captain_fixture_workflow$
 declare
   v_projection text;
   v_sheet_reader text;
+  v_admin_amendment text;
 begin
   if to_regprocedure('public.captain_next_required_fixture(uuid)') is null then
     raise exception 'Missing next-required fixture resolver';
@@ -41,6 +42,18 @@ begin
   if position('captain_next_required_fixture' in v_sheet_reader) = 0
      or position('f.status=''scheduled''' in v_sheet_reader) = 0 then
     raise exception 'Captain sheet reader does not enforce next scheduled fixture';
+  end if;
+
+  select pg_get_functiondef(
+    'public.admin_amend_team_sheet(uuid,uuid[],uuid[],uuid,text)'::regprocedure
+  ) into v_admin_amendment;
+  -- Normalize catalog formatting before checking the correction safeguards.
+  v_admin_amendment := regexp_replace(lower(v_admin_amendment), E'\\s+', '', 'g');
+  if position('v_fixture.status<>''completed''' in v_admin_amendment) = 0
+     or position('length(btrim(p_reason))<5' in v_admin_amendment) = 0
+     or position('fixture.team_sheet.admin_amended' in v_admin_amendment) = 0
+     or position('can_administer_location' in v_admin_amendment) = 0 then
+    raise exception 'Admin amendment is missing completed-fixture, reason, audit, or location-scope safeguards';
   end if;
 
   raise notice 'Captain next-fixture and post-match amendment regression assertions passed';
