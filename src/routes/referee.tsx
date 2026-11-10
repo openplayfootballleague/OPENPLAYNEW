@@ -28,6 +28,16 @@ type RefereeMembership = {
   status_reason: string;
 };
 type PortalState = { application: RefereeApplication | null; membership: RefereeMembership | null };
+type RefereeConnectStatus = {
+  onboarding_status: "onboarding_required" | "verification_pending" | "enabled" | "restricted";
+  details_submitted: boolean;
+  transfers_enabled: boolean;
+  payouts_enabled: boolean;
+  charges_enabled: boolean;
+  requirements_due: { currently_due?: string[]; past_due?: string[]; eventually_due?: string[] };
+  disabled_reason: string | null;
+  last_synced_at: string | null;
+};
 type AvailabilitySlot = { weekday: string; start_time: string; end_time: string };
 
 const weekdays = [
@@ -58,6 +68,9 @@ function RefereePage() {
     { weekday: "5", start_time: "18:00", end_time: "22:00" },
   ]);
   const [notes, setNotes] = useState("");
+  const [connectStatus, setConnectStatus] = useState<RefereeConnectStatus | null>(null);
+  const [connectLoading, setConnectLoading] = useState(false);
+  const [connectBusy, setConnectBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -106,6 +119,43 @@ function RefereePage() {
     void load();
     return () => { active = false; };
   }, [navigate]);
+
+  useEffect(() => {
+    if (state.membership?.status !== "active") return;
+    let active = true;
+    setConnectLoading(true);
+    const rpc = getSupabaseClient() as unknown as RpcClient;
+    void rpc.rpc("get_my_referee_connect_status").then(({data,error:connectError}) => {
+      if (!active) return;
+      if (connectError) setError((current) => current || connectError.message);
+      else setConnectStatus(data as RefereeConnectStatus);
+      setConnectLoading(false);
+    });
+    return () => { active = false; };
+  }, [state.membership?.status]);
+
+  async function startOrRefreshConnectOnboarding() {
+    setConnectBusy(true);
+    setError("");
+    setNotice("");
+    const supabase = getSupabaseClient() as unknown as {
+      functions: { invoke(name: string, options?: Record<string, unknown>): Promise<{data: any; error: {message: string} | null}> };
+    };
+    const {data,error:connectError}=await supabase.functions.invoke("create-referee-connect-account");
+    setConnectBusy(false);
+    if(connectError){setError(connectError.message);return;}
+    if(data?.onboarding_url){
+      window.location.assign(data.onboarding_url);
+      return;
+    }
+    const rpc=getSupabaseClient() as unknown as RpcClient;
+    const refreshed=await rpc.rpc("get_my_referee_connect_status");
+    if(refreshed.error)setError(refreshed.error.message);
+    else setConnectStatus(refreshed.data as RefereeConnectStatus);
+    setNotice(data?.connected
+      ? "Your Stripe Connect account is verified and ready for referee payouts."
+      : "Stripe has refreshed your account status. Complete any outstanding verification steps to enable payouts.");
+  }
 
   function updateAvailability(index: number, key: keyof AvailabilitySlot, value: string) {
     setAvailability((current) => current.map((slot, slotIndex) =>
@@ -183,11 +233,39 @@ function RefereePage() {
               <section className="hub-memberships">
                 <div className="hub-section-heading"><span className="hub-kicker">MEMBERSHIP</span></div>
                 <h2>You're an approved Open Play referee.</h2>
-                <p>Your referee membership is active. Fixture allocation and matchday reporting will appear here as those workflows are enabled.</p>
+                <p>Your referee membership is active. Use your matchday workspace to view appointments and submit official match reports.</p>
                 <p className="form-note">Approved {new Date(state.membership.approved_at).toLocaleDateString("en-GB")}</p>
+                <Link className="admin-inline-action" to="/referee/matchday">MATCHDAY WORKSPACE <span aria-hidden="true">↗</span></Link>
                 <Link className="admin-inline-action" to="/match-centre">MATCH CENTRE <span aria-hidden="true">↗</span></Link>
                 <Link className="admin-inline-action" to="/teams">TEAMS <span aria-hidden="true">↗</span></Link>
               </section>
+              <section className="hub-memberships">
+                <div className="hub-section-heading"><span className="hub-kicker">REFEREE PAYOUTS · STRIPE CONNECT</span></div>
+                <h2>{connectStatus?.onboarding_status === "enabled" ? "Payout account verified." : "Set up referee payouts."}</h2>
+                <p>Connect securely through Stripe Express. Open Play does not collect or store your bank details. Match fees and milestone rewards can only be transferred once Stripe confirms your account is eligible.</p>
+                {connectLoading ? <p className="form-note" role="status">Checking your Stripe Connect status…</p> : connectStatus ? (
+                  <>
+                    <p className="form-note" role="status">
+                      {connectStatus.onboarding_status === "enabled"
+                        ? "Verified · Transfers and bank payouts are enabled."
+                        : connectStatus.onboarding_status === "verification_pending"
+                          ? "Details submitted · Stripe verification is still in progress."
+                          : connectStatus.onboarding_status === "restricted"
+                            ? "Restricted · Stripe requires further action before payouts can be enabled."
+                            : "Not connected · Complete Stripe Express onboarding to receive payouts."}
+                    </p>
+                    {connectStatus.disabled_reason && <p className="form-note">Stripe requirement: {connectStatus.disabled_reason}</p>}
+                    {(connectStatus.requirements_due?.currently_due?.length ?? 0) > 0 && (
+                      <p className="form-note">{connectStatus.requirements_due.currently_due?.length} outstanding verification item(s) remain with Stripe.</p>
+                    )}
+                  </>
+                ) : <p className="form-note">Your Stripe Connect status is not available yet.</p>}
+                <button type="button" disabled={connectBusy || connectLoading} onClick={() => void startOrRefreshConnectOnboarding()}>
+                  {connectBusy ? "CONNECTING…" : connectStatus?.onboarding_status === "enabled" ? "REFRESH PAYOUT STATUS" : connectStatus?.onboarding_status === "verification_pending" ? "CONTINUE STRIPE VERIFICATION" : "CONNECT PAYOUT ACCOUNT"}
+                </button>
+                <p className="form-note">Payout transfers are currently restricted to Stripe test mode while Open Play completes platform acceptance testing.</p>
+              </section>
+
             ) : state.membership?.status === "suspended" ? (
               <section className="hub-memberships">
                 <div className="hub-section-heading"><span className="hub-kicker">MEMBERSHIP SUSPENDED</span></div>
