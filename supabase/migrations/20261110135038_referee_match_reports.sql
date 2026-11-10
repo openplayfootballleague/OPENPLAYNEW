@@ -588,6 +588,135 @@ $$;
 revoke all on function public.admin_list_referee_match_reports(text,uuid) from public,anon;
 grant execute on function public.admin_list_referee_match_reports(text,uuid) to authenticated;
 
+create or replace function public.admin_list_referee_reportable_fixtures(p_location_id uuid default null)
+returns table(
+  fixture_id uuid,scheduled_at timestamptz,gameweek integer,fixture_number integer,
+  home_team_id uuid,home_team_name text,away_team_id uuid,away_team_name text,
+  location_id uuid,location_name text,existing_report_id uuid,existing_report_status text
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $
+begin
+  if auth.uid() is null or not public.has_platform_role() then
+    raise exception 'Administrator permission required';
+  end if;
+  if p_location_id is not null and not public.can_administer_location(p_location_id) then
+    raise exception 'You are not assigned to this referee location';
+  end if;
+  return query
+  select fixture.id,fixture.scheduled_at,fixture.gameweek,fixture.fixture_number,
+    home_team.id,home_team.name,away_team.id,away_team.name,
+    location.id,location.name,report.id,report.status
+  from public.fixtures fixture
+  join public.seasons season on season.id=fixture.season_id
+  join public.leagues league on league.id=season.league_id
+  join public.locations location on location.id=coalesce(fixture.venue_id,league.location_id)
+  join public.season_teams home_team on home_team.id=fixture.home_team_id
+  join public.season_teams away_team on away_team.id=fixture.away_team_id
+  join public.fixture_team_sheets home_sheet on home_sheet.fixture_id=fixture.id
+    and home_sheet.season_team_id=fixture.home_team_id and home_sheet.is_locked=true
+  join public.fixture_team_sheets away_sheet on away_sheet.fixture_id=fixture.id
+    and away_sheet.season_team_id=fixture.away_team_id and away_sheet.is_locked=true
+  left join public.referee_match_reports report on report.fixture_id=fixture.id
+  where fixture.status='completed' and fixture.scheduled_at<=now()
+    and (p_location_id is null or location.id=p_location_id)
+    and public.can_administer_location(location.id)
+    and (report.id is null or report.status in ('submitted','rejected'))
+  order by fixture.scheduled_at desc,fixture.gameweek desc,fixture.fixture_number;
+end;
+$;
+revoke all on function public.admin_list_referee_reportable_fixtures(uuid) from public,anon;
+grant execute on function public.admin_list_referee_reportable_fixtures(uuid) to authenticated;
+
+create or replace function public.admin_get_referee_fixture_report_options(p_fixture_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $
+declare
+  v_fixture public.fixtures;
+  v_home_sheet public.fixture_team_sheets;
+  v_away_sheet public.fixture_team_sheets;
+  v_report public.referee_match_reports;
+  v_location_id uuid;
+begin
+  if auth.uid() is null or not public.has_platform_role() then
+    raise exception 'Administrator permission required';
+  end if;
+  select fixture.* into v_fixture
+  from public.fixtures fixture
+  where fixture.id=p_fixture_id;
+  if not found then raise exception 'Fixture not found'; end if;
+  select coalesce(fixture.venue_id,league.location_id) into v_location_id
+  from public.fixtures fixture
+  join public.seasons season on season.id=fixture.season_id
+  join public.leagues league on league.id=season.league_id
+  where fixture.id=p_fixture_id;
+  perform public.assert_admin_location_context(v_location_id);
+  if v_fixture.status<>'completed' or v_fixture.scheduled_at is null or v_fixture.scheduled_at>now() then
+    raise exception 'Only completed fixtures can receive an administrator match report';
+  end if;
+  select * into v_home_sheet from public.fixture_team_sheets
+  where fixture_id=p_fixture_id and season_team_id=v_fixture.home_team_id and is_locked=true;
+  select * into v_away_sheet from public.fixture_team_sheets
+  where fixture_id=p_fixture_id and season_team_id=v_fixture.away_team_id and is_locked=true;
+  if v_home_sheet.id is null or v_away_sheet.id is null then
+    raise exception 'Both teams must submit and lock their team sheets before an administrator report';
+  end if;
+  select * into v_report from public.referee_match_reports where fixture_id=p_fixture_id;
+  if v_report.id is not null and v_report.status in ('approved','voided') then
+    raise exception 'An approved or voided report cannot be amended';
+  end if;
+  return jsonb_build_object(
+    'fixture',jsonb_build_object(
+      'id',v_fixture.id,'scheduled_at',v_fixture.scheduled_at,'gameweek',v_fixture.gameweek,
+      'fixture_number',v_fixture.fixture_number,
+      'home_team_id',v_fixture.home_team_id,
+      'home_team_name',(select name from public.season_teams where id=v_fixture.home_team_id),
+      'away_team_id',v_fixture.away_team_id,
+      'away_team_name',(select name from public.season_teams where id=v_fixture.away_team_id)
+    ),
+    'report',case when v_report.id is null then null else jsonb_build_object(
+      'id',v_report.id,'status',v_report.status,'version',v_report.version,
+      'home_score',v_report.home_score,'away_score',v_report.away_score,
+      'home_scorers',to_jsonb(v_report.home_scorers),'away_scorers',to_jsonb(v_report.away_scorers),
+      'home_substitute_appearances',to_jsonb(v_report.home_substitute_appearances),
+      'away_substitute_appearances',to_jsonb(v_report.away_substitute_appearances),
+      'match_write_up',v_report.match_write_up,'review_reason',v_report.review_reason
+    ) end,
+    'home_players',coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'competition_player_id',tsp.competition_player_id,'full_name',identity.display_name,
+        'role',tsp.role,'is_goalkeeper',tsp.is_goalkeeper,
+        'disciplinary_inactive',coalesce(player.disciplinary_inactive,false)
+      ) order by case when tsp.role='starter' then 0 else 1 end,identity.display_name)
+      from public.fixture_team_sheet_players tsp
+      join public.competition_player_identities identity on identity.id=tsp.competition_player_id
+      left join public.players player on player.competition_player_id=tsp.competition_player_id
+      where tsp.team_sheet_id=v_home_sheet.id and tsp.role in ('starter','substitute')
+    ),'[]'::jsonb),
+    'away_players',coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'competition_player_id',tsp.competition_player_id,'full_name',identity.display_name,
+        'role',tsp.role,'is_goalkeeper',tsp.is_goalkeeper,
+        'disciplinary_inactive',coalesce(player.disciplinary_inactive,false)
+      ) order by case when tsp.role='starter' then 0 else 1 end,identity.display_name)
+      from public.fixture_team_sheet_players tsp
+      join public.competition_player_identities identity on identity.id=tsp.competition_player_id
+      left join public.players player on player.competition_player_id=tsp.competition_player_id
+      where tsp.team_sheet_id=v_away_sheet.id and tsp.role in ('starter','substitute')
+    ),'[]'::jsonb)
+  );
+end;
+$;
+revoke all on function public.admin_get_referee_fixture_report_options(uuid) from public,anon;
+grant execute on function public.admin_get_referee_fixture_report_options(uuid) to authenticated;
+
 create or replace function public.admin_review_referee_match_report(
   p_report_id uuid,p_decision text,p_reason text
 )
