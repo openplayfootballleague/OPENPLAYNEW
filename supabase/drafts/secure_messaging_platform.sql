@@ -429,7 +429,7 @@ begin
   if length(btrim(coalesce(p_body,''))) not between 1 and 2000 then
     raise exception 'Messages must contain between 1 and 2000 characters';
   end if;
-  if p_message_type not in ('message','announcement') then
+  if p_message_type is null or p_message_type not in ('message','announcement') then
     raise exception 'Unsupported message type';
   end if;
   select * into v_conversation
@@ -654,7 +654,7 @@ begin
      or length(btrim(coalesce(p_body,''))) not between 1 and 2000 then
     raise exception 'Enter a title and message';
   end if;
-  if p_target_type not in ('everyone','players','captains','admins','location','season','team','individual') then
+  if p_target_type is null or p_target_type not in ('everyone','players','captains','admins','location','season','team','individual') then
     raise exception 'Unsupported broadcast audience';
   end if;
   select exists(select 1 from public.user_roles ur where ur.user_id=v_user and ur.role in ('admin','super_admin'))
@@ -985,7 +985,7 @@ begin
   if v_user is null or not public.has_platform_role() then
     raise exception 'Administrator permission required';
   end if;
-  if p_action not in ('hide_message','dismiss') or length(btrim(coalesce(p_reason,'')))<5 then
+  if p_action is null or p_action not in ('hide_message','dismiss') or length(btrim(coalesce(p_reason,'')))<5 then
     raise exception 'Choose a moderation action and enter a reason of at least 5 characters';
   end if;
   select * into v_report from public.message_reports where id=p_report_id for update;
