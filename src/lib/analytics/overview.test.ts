@@ -94,7 +94,7 @@ describe("admin analytics aggregation", () => {
     expect(result.goals).toBe(5);
     expect(buildLocationComparisons(withUndatedFixture, {
       locationId: "loc-a", leagueId: "league-a", seasonId: "season-a", fromDate: "2026-10-02", toDate: "2026-10-09",
-    })).toHaveLength(0);
+    })).toMatchObject([{ locationName: "Bideford", fixtures: 0, publishedResults: 0, goals: 0 }]);
   });
 
   it("aggregates integer-pence finance totals without converting to floating point", () => {
