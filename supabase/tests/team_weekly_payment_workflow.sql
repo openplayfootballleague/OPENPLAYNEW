@@ -35,6 +35,16 @@ begin
     raise exception 'Opponent refund lookup must select the latest payment cycle';
   end if;
 
+  -- Cancellation must occur strictly after grace end, not at the exact
+  -- boundary where a webhook may still confirm an eligible payment.
+  if position('p_as_of>v_obligation.grace_ends_at' in pg_get_functiondef(
+    'public.process_team_fixture_payment_deadlines(timestamptz)'::regprocedure
+  ))=0 or position('v_obligation.status=''grace_period'' and p_as_of<=v_obligation.grace_ends_at' in pg_get_functiondef(
+    'public.process_team_fixture_payment_deadlines(timestamptz)'::regprocedure
+  ))=0 then
+    raise exception 'Grace-end cancellation must be race-safe at the exact boundary';
+  end if;
+
   -- Match the shared payment policy: a provider-confirmed payment exactly at
   -- the 12-hour grace boundary is still accepted as late_paid.
   if position('p_paid_at<=v_obligation.grace_ends_at' in pg_get_functiondef(
