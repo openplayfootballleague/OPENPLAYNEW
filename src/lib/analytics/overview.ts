@@ -98,10 +98,6 @@ function matchesFilters(season: AnalyticsSeason, filters: AnalyticsFilters, loca
     && (!filters.seasonId || season.id === filters.seasonId);
 }
 
-function isPublishedResult(fixture: AnalyticsFixture): boolean {
-  return fixture.status === "completed" && fixture.home_score !== null && fixture.away_score !== null;
-}
-
 export function buildAnalyticsOverview(
   setup: AnalyticsSetup,
   dashboard: AnalyticsDashboardCounts,
