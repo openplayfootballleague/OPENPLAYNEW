@@ -559,13 +559,17 @@ begin
   join public.seasons s on s.id=p.season_id
   where (p_season_id is null or p.season_id=p_season_id)
     and exists(
+      select 1 from public.weather_postponement_fixtures wf
+      where wf.postponement_id=p.id
+    )
+    and not exists(
       select 1
       from public.weather_postponement_fixtures wf
       join public.fixtures fixture on fixture.id=wf.fixture_id
       join public.seasons season on season.id=fixture.season_id
       join public.leagues league on league.id=season.league_id
       where wf.postponement_id=p.id
-        and public.can_administer_location(coalesce(fixture.venue_id,league.location_id))
+        and not public.can_administer_location(coalesce(fixture.venue_id,league.location_id))
     )
   order by p.created_at desc;
 end;
