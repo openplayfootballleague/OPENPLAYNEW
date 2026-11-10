@@ -132,8 +132,10 @@ begin
   if v_count<>1 then raise exception 'Admin appointment register did not return the active assignment'; end if;
 
   perform public.admin_cancel_referee_fixture_assignment(v_assignment.id,'Fixture appointment test cancellation');
-  if not exists(select 1 from public.referee_fixture_assignments where id=v_assignment.id and cancelled_at is not null) then
-    raise exception 'Appointment cancellation was not retained in history';
+  if (select count(*) from public.admin_list_referee_appointments(v_location,true)
+      where assignment_id=v_assignment.id and cancelled_at is not null
+        and cancellation_reason='Fixture appointment test cancellation')<>1 then
+    raise exception 'Appointment cancellation was not retained in administrator-visible history';
   end if;
   if (select count(*) from public.admin_list_referee_appointments(v_location,false))<>0 then
     raise exception 'Cancelled appointment was returned as active';
