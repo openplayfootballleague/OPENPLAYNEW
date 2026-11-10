@@ -45,6 +45,13 @@ begin
     raise exception 'Opponent refund lookup must select the latest payment cycle';
   end if;
 
+  -- Checkout claim must use the same inclusive grace-end boundary.
+  if position('now()>v_obligation.grace_ends_at' in pg_get_functiondef(
+    'public.claim_team_fixture_payment_checkout_attempt(uuid,text)'::regprocedure
+  ))=0 then
+    raise exception 'Checkout claim must remain available at the exact grace-end timestamp';
+  end if;
+
   -- Cancellation must occur strictly after grace end, not at the exact
   -- boundary where a webhook may still confirm an eligible payment.
   if position('p_as_of>v_obligation.grace_ends_at' in pg_get_functiondef(
