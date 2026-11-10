@@ -28,6 +28,13 @@ declare
   v_claimed boolean;
   v_rejected boolean;
 begin
+  -- Opponent refunds must never select a superseded obligation cycle.
+  if position('order by payment_cycle desc' in pg_get_functiondef(
+    'public.process_team_fixture_payment_deadlines(timestamptz)'::regprocedure
+  ))=0 then
+    raise exception 'Opponent refund lookup must select the latest payment cycle';
+  end if;
+
   -- Match the shared payment policy: a provider-confirmed payment exactly at
   -- the 12-hour grace boundary is still accepted as late_paid.
   if position('p_paid_at<=v_obligation.grace_ends_at' in pg_get_functiondef(
