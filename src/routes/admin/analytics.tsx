@@ -67,7 +67,7 @@ function AdminAnalyticsPage() {
       const preference = preferenceResult.data as ContextPreference;
       const setupData = (setupResult.data ?? { locations: [], leagues: [], seasons: [], season_teams: [], fixtures: [] }) as AnalyticsSetup;
       let nextLocation = preference.location_id ?? "";
-      if (!preference.is_global_admin && !nextLocation && setupData.locations.length === 1) {
+      if (!preference.is_global_admin && !nextLocation && setupData.locations.length > 0) {
         const { error: saveError } = await getSupabaseClient().rpc("save_admin_context_preference", {
           p_location_id: setupData.locations[0].id,
           p_league_id: undefined,
@@ -269,7 +269,6 @@ function AdminAnalyticsPage() {
       <div className="analytics-context-grid">
         <label>Location<select value={locationId} disabled={contextSaving} onChange={(event) => void saveContext(event.target.value, "", "")}>
           {isGlobalAdmin && <option value="">All accessible locations</option>}
-          {!isGlobalAdmin && setup.locations.length > 1 && <option value="">All assigned locations</option>}
           {setup.locations.map((location) => <option key={location.id} value={location.id}>{location.name} · {location.town}</option>)}
         </select></label>
         <label>League<select value={leagueId} disabled={contextSaving || (!locationId && !isGlobalAdmin)} onChange={(event) => void saveContext(locationId, event.target.value, "")}>
