@@ -332,6 +332,7 @@ function AdminRefereesPage() {
   useEffect(() => {
     if (selectedAdminReportFixtureId) void loadAdminReportOptions(selectedAdminReportFixtureId);
     else {
+      setCorrectionMode(false);
       setAdminReportOptions(null);
       setAdminReportDisciplinaryEvents([]);
     }
@@ -402,15 +403,16 @@ function AdminRefereesPage() {
       return;
     }
     if (adminReportReason.trim().length < 5) {
-      setError("Enter an administrator submission reason of at least five characters.");
+      setError(correctionMode
+        ? "Enter a correction reason of at least five characters."
+        : "Enter an administrator submission reason of at least five characters.");
       return;
     }
     setBusy("admin-report");
     setError("");
     setNotice("");
     const rpc = getSupabaseClient() as unknown as RpcClient;
-    const result = await rpc.rpc("admin_submit_referee_match_report", {
-      p_fixture_id: adminReportOptions.fixture.id,
+    const payload = {
       p_home_score: homeScore,
       p_away_score: awayScore,
       p_home_substitute_appearances: adminReportHomeSubs,
@@ -423,16 +425,30 @@ function AdminRefereesPage() {
       })),
       p_match_write_up: adminReportWriteUp.trim() || null,
       p_reason: adminReportReason.trim(),
-    });
+    };
+    const result = correctionMode && adminReportOptions.report?.status === "approved"
+      ? await rpc.rpc("admin_correct_approved_referee_match_report", {
+          p_report_id: adminReportOptions.report.id,
+          p_expected_version: adminReportOptions.report.version,
+          ...payload,
+        })
+      : await rpc.rpc("admin_submit_referee_match_report", {
+          p_fixture_id: adminReportOptions.fixture.id,
+          ...payload,
+        });
     setBusy("");
     if (result.error) {
       setError(result.error.message);
       return;
     }
-    setNotice("Administrator match report saved. It is now awaiting review before the result is published.");
+    const wasCorrection = correctionMode && adminReportOptions.report?.status === "approved";
+    setNotice(wasCorrection
+      ? "Approved match report corrected. The previous version and reason are retained in the audit history."
+      : "Administrator match report saved. It is now awaiting review before the result is published.");
+    setCorrectionMode(false);
     setSelectedAdminReportFixtureId("");
     setAdminReportOptions(null);
-    await Promise.all([loadReportableFixtures(), loadReports()]);
+    await Promise.all([loadReportableFixtures(), loadReports(), loadApprovedReports()]);
   }
 
   async function reviewReport(report: RefereeMatchReport, decision: "approved" | "rejected") {
