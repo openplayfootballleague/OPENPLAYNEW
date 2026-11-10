@@ -4,6 +4,8 @@ do $role_matrix$
 declare
   v_count integer;
   v_setup jsonb;
+  v_dashboard jsonb;
+  v_review_player_id uuid;
   v_denied boolean;
   v_cross_location_sheet uuid;
 begin
@@ -61,6 +63,14 @@ begin
    ('00000000-0000-4000-8000-000000000002','CI Captain A','+447700900002','ci-captain-a@openplay.invalid',date '1990-01-02','registered'),
    ('00000000-0000-4000-8000-000000000003','CI Player B','+447700900003','ci-player-b@openplay.invalid',date '1990-01-03','registered'),
    ('00000000-0000-4000-8000-000000000006','CI Player C','+447700900006','ci-player-c@openplay.invalid',date '1990-01-06','registered');
+  -- A pending identity review exists globally; location admins must not see
+  -- either its existence as a numeric queue or the underlying identity evidence.
+  update public.players set registration_status='pending_review'
+  where user_id='00000000-0000-4000-8000-000000000006';
+  select id into v_review_player_id from public.players
+  where user_id='00000000-0000-4000-8000-000000000006';
+  insert into public.player_registration_reviews(player_id,name_matched,phone_matched,email_matched,status)
+  values(v_review_player_id,true,true,false,'pending');
 
   insert into public.team_memberships (id,season_team_id,user_id,status,is_captain)
   values
@@ -215,6 +225,13 @@ begin
   v_setup := public.get_admin_competition_setup();
   if jsonb_array_length(v_setup->'locations') <> 1 or v_setup->'locations'->0->>'id' <> '00000000-0000-4000-8000-000000000010' then
     raise exception 'Scoped admin setup did not return only the assigned location';
+  end if;
+  v_dashboard := public.get_admin_dashboard_contextual('00000000-0000-4000-8000-000000000010',null,null);
+  if jsonb_typeof(v_dashboard->'counts'->'pending_player_reviews') <> 'null' then
+    raise exception 'Location admin must see player identity review count as restricted, not a fabricated zero';
+  end if;
+  if jsonb_array_length(v_dashboard->'player_reviews') <> 0 then
+    raise exception 'Location admin received global player identity review evidence';
   end if;
   if jsonb_array_length(v_setup->'leagues') <> 1 or v_setup->'leagues'->0->>'id' <> '00000000-0000-4000-8000-000000000020' then
     raise exception 'Scoped admin setup did not return only the assigned league';
@@ -383,6 +400,14 @@ begin
   if v_count <> 2 then raise exception 'Global admin cannot manage and list location assignments'; end if;
   v_setup := public.get_admin_competition_setup();
   if jsonb_array_length(v_setup->'locations') <> 2 then raise exception 'Global admin setup did not return all locations'; end if;
+  v_dashboard := public.get_admin_dashboard_contextual(null,null,null);
+  if (v_dashboard->'counts'->>'pending_player_reviews')::integer <> 1 then
+    raise exception 'Global admin must see the real pending player identity review count';
+  end if;
+  if jsonb_array_length(v_dashboard->'player_reviews') <> 1
+     or v_dashboard->'player_reviews'->0->>'full_name' <> 'CI Player C' then
+    raise exception 'Global admin must retain access to the pending player identity review details';
+  end if;
 
   -- Repeating an existing grant is a no-op and must not create duplicate audit entries.
   perform public.admin_set_location_assignment('00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000011',true);
