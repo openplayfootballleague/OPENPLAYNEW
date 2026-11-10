@@ -390,7 +390,15 @@ begin
   select * into v_fixture from public.fixtures where id=v_obligation.fixture_id for update;
   if not found then raise exception 'Fixture not found'; end if;
 
-  if p_paid_at<=v_obligation.deadline_at then
+  if v_obligation.status='defaulted' then
+    v_status:='paid_after_cancellation';
+    v_reason:='Defaulting team settled its outstanding fee after fixture cancellation; fixture remains cancelled';
+    insert into public.team_payment_strikes(
+      obligation_id,fixture_id,season_team_id,original_deadline_at,paid_at,reason
+    ) values(v_obligation.id,v_obligation.fixture_id,v_obligation.season_team_id,
+      v_obligation.deadline_at,p_paid_at,'unpaid_at_grace_end')
+    on conflict(obligation_id) do nothing;
+  elsif p_paid_at<=v_obligation.deadline_at then
     v_status:='paid';
     v_reason:='Payment received by the original 24-hour deadline';
   elsif p_paid_at<v_obligation.grace_ends_at then
@@ -555,8 +563,9 @@ begin
   select * into v_obligation from public.team_fixture_payment_obligations
   where id=p_obligation_id for update;
   if not found then raise exception 'Team fixture payment obligation not found'; end if;
-  if v_obligation.status not in ('due','grace_period') or now()>=v_obligation.grace_ends_at then
-    raise exception 'The payment window has closed';
+  if v_obligation.status not in ('due','grace_period','defaulted')
+     or (v_obligation.status in ('due','grace_period') and now()>=v_obligation.grace_ends_at) then
+    raise exception 'The payment window has closed or this obligation cannot be paid';
   end if;
   if v_obligation.stripe_checkout_session_id is distinct from p_expected_session_id then
     raise exception 'Checkout session changed; refresh before retrying';
@@ -590,7 +599,8 @@ begin
   set stripe_checkout_session_id=p_session_id
   where id=p_obligation_id and checkout_attempt=p_attempt
     and stripe_checkout_session_id is null
-    and status in ('due','grace_period') and now()<grace_ends_at;
+    and status in ('due','grace_period','defaulted')
+    and (status='defaulted' or now()<grace_ends_at);
   get diagnostics v_updated=row_count;
   return v_updated=1;
 end;
@@ -613,7 +623,7 @@ begin
   set stripe_checkout_session_id=null,
       status=case when status='admin_review' then 'grace_period' else status end
   where id=p_obligation_id and stripe_checkout_session_id=p_session_id
-    and status in ('due','grace_period','admin_review');
+    and status in ('due','grace_period','defaulted','admin_review');
   get diagnostics v_updated=row_count;
   return v_updated=1;
 end;
