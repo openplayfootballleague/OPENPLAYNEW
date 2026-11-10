@@ -148,6 +148,14 @@ begin
   perform public.record_referee_payout_transfer_failure(
     'match_report',v_match_payout,'Stripe transfer reversed',true
   );
+  -- Out-of-order transfer.created delivery must not overwrite a recorded reversal.
+  v_status:=public.record_referee_payout_transfer_success(
+    'match_report',v_match_payout,'tr_ci_referee_match_000001',v_account_id,2200,'gbp'
+  );
+  if v_status<>'reversed'
+     or (select status from public.referee_report_payouts where id=v_match_payout)<>'failed' then
+    raise exception 'A delayed transfer.created webhook incorrectly overwrote the reversal';
+  end if;
   execute 'reset role';
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
@@ -176,6 +184,13 @@ begin
   );
   if (select status from public.referee_milestone_rewards where id=v_milestone_payout)<>'transferred' then
     raise exception 'Milestone Connect transfer was not recorded';
+  end if;
+  if (select count(*) from public.referee_payout_transfer_history
+      where payout_type='match_report' and payout_id=v_match_payout)<>2
+     or not exists(select 1 from public.referee_payout_transfer_history
+       where payout_type='match_report' and payout_id=v_match_payout
+         and stripe_transfer_id='tr_ci_referee_match_000001' and status='reversed') then
+    raise exception 'Transfer history did not retain both the reversed and successful retry attempts';
   end if;
   execute 'reset role';
 
