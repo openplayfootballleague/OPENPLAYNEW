@@ -8,10 +8,10 @@ This proposal records the payment rules discussed for Open Play. It is deliberat
 
 ## 1. Payment deadline
 
-- When a team fixture-payment request is issued, the system records its authoritative server timestamp and calculates a payment deadline exactly 24 hours later.
-- The captain-facing matchday/payment view should display a live countdown to that deadline, including the exact deadline time, so the team can see how long remains.
+- The payment deadline is exactly 24 hours before the fixture's scheduled kick-off: `deadline_at = scheduled_at - 24 hours`. The request may be created earlier; its creation time does not start or reset the deadline.
+- The captain-facing matchday/payment view should display a live countdown to that exact deadline, including the local deadline time, so the team can see how long remains.
 - The server/database is authoritative. A client countdown is informational and must never decide whether a payment is on time.
-- The payment request, deadline, payment timestamp and any subsequent state transition must be auditable.
+- The payment request, scheduled kick-off snapshot, deadline, payment timestamp and any subsequent state transition must be auditable.
 
 ## 2. Additional 12-hour grace period
 
@@ -22,7 +22,8 @@ This proposal records the payment rules discussed for Open Play. It is deliberat
 
 ## 3. Missed final deadline
 
-- If payment has not been received by the end of the additional 12-hour grace period (36 hours after the payment request), the fixture is cancelled under the proposed default rule.
+- The grace period ends exactly 12 hours before the scheduled kick-off (12 hours after the 24-hours-before-kick-off payment deadline).
+- If payment has not been received by that point, the fixture is cancelled under the proposed default rule. A payment arriving after the cancellation boundary must not reinstate the fixture automatically.
 - The team that missed payment remains liable for the match fee. Cancelling the fixture does not automatically waive that team's fee.
 - If the opposing team has already paid, its payment is refunded.
 - The cancellation, outstanding fee liability, opponent refund obligation and all refund outcomes must be separately recorded and visible to authorised finance/admin users.
@@ -40,8 +41,8 @@ This proposal records the payment rules discussed for Open Play. It is deliberat
 
 1. Create a team-level fixture-payment record with immutable fee and deadline snapshots.
 2. Show the captain the amount due, original 24-hour deadline, live countdown, grace-period state and any strike.
-3. At 24 hours, transition the request into the grace period and clearly explain that a late payment incurs a strike.
-4. At 36 hours, apply the approved cancellation workflow exactly once if no payment has been received and no administrator decision is holding the case.
+3. At 24 hours before kick-off, transition the request into the grace period and clearly explain that a late payment incurs a strike.
+4. At 12 hours before kick-off, apply the approved cancellation workflow exactly once if no payment has been received and no administrator decision is holding the case.
 5. Preserve the defaulting team's fee liability and create a separate refund obligation for an opponent who has already paid.
 6. Reconcile Stripe events idempotently; never infer payment success from a browser redirect.
 7. Provide administrators with an approval queue and a complete audit trail for exceptions, cancellations, liabilities and refunds.
