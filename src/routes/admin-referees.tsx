@@ -5,7 +5,7 @@ import { getSupabaseClient } from "../lib/supabase/client";
 
 type LocationOption = { id: string; name: string; town: string; region: string; is_active: boolean };
 type Application = {
-  application_id: string; user_id: string; experience_summary: string; qualifications: string | null;
+  application_id: string; user_id: string; applicant_name: string; applicant_email: string; experience_summary: string; qualifications: string | null;
   availability_notes: string | null; contact_phone: string | null; preferred_location_ids: string[];
   status: string; created_at: string;
 };
@@ -26,7 +26,7 @@ type ReportQueueItem = {
   submitted_at: string | null; match_summary: string | null;
 };
 type FixtureOption = {
-  fixture_id: string; gameweek: number; scheduled_at: string | null;
+  id: string; gameweek: number; scheduled_at: string | null;
   home_team_name: string; away_team_name: string; location_id: string; location_name: string;
   status: string;
 };
@@ -89,7 +89,7 @@ function AdminRefereeWorkspace() {
       setAssignments((assignmentResult.data ?? []) as Assignment[]);
       setReports((reportResult.data ?? []) as ReportQueueItem[]);
       setFixtures((fixtureRows ?? []) as FixtureOption[]);
-      if (!selectedFixture && fixtureRows?.length) setSelectedFixture(fixtureRows[0].fixture_id);
+      if (!selectedFixture && fixtureRows?.length) setSelectedFixture(fixtureRows[0].id);
       if (!selectedReferee && refereeResult.data?.length) setSelectedReferee(refereeResult.data[0].referee_user_id);
     }
     setLoading(false);
@@ -183,7 +183,7 @@ function AdminRefereeWorkspace() {
     <section className="admin-referee-panel">
       <div className="admin-referee-section-title"><span className="eyebrow">01 · APPLICATIONS</span><h2>Membership review <b>{applications.length}</b></h2></div>
       {applications.length === 0 ? <p className="admin-referee-muted">No pending referee applications in this location scope.</p> : applications.map((application) => <article className="admin-referee-card" key={application.application_id}>
-        <h3>Applicant · {application.user_id.slice(0, 8)}</h3><p>{application.experience_summary}</p>
+        <h3>{application.applicant_name}</h3><p className="admin-referee-muted">{application.applicant_email}</p><p>{application.experience_summary}</p>
         {application.qualifications && <p><strong>Qualifications:</strong> {application.qualifications}</p>}
         {application.availability_notes && <p><strong>Availability:</strong> {application.availability_notes}</p>}
         {application.contact_phone && <p><strong>Contact:</strong> {application.contact_phone}</p>}
@@ -199,7 +199,7 @@ function AdminRefereeWorkspace() {
     <section className="admin-referee-panel">
       <div className="admin-referee-section-title"><span className="eyebrow">03 · FIXTURE ALLOCATION</span><h2>Assign an official</h2></div>
       <form className="admin-referee-form" onSubmit={assignReferee}>
-        <label>Fixture<select required value={selectedFixture} onChange={(event) => setSelectedFixture(event.target.value)}><option value="">Choose fixture</option>{openFixtures.map((fixture) => <option key={fixture.fixture_id} value={fixture.fixture_id}>GW{fixture.gameweek} · {fixture.home_team_name} v {fixture.away_team_name} · {dateTime(fixture.scheduled_at)}</option>)}</select></label>
+        <label>Fixture<select required value={selectedFixture} onChange={(event) => setSelectedFixture(event.target.value)}><option value="">Choose fixture</option>{openFixtures.map((fixture) => <option key={fixture.id} value={fixture.fixture_id}>GW{fixture.gameweek} · {fixture.home_team_name} v {fixture.away_team_name} · {dateTime(fixture.scheduled_at)}</option>)}</select></label>
         <label>Approved referee<select required value={selectedReferee} onChange={(event) => setSelectedReferee(event.target.value)}><option value="">Choose referee</option>{referees.map((referee) => <option key={referee.referee_user_id} value={referee.referee_user_id}>{referee.referee_name} · {referee.availability_slots} upcoming slots</option>)}</select></label>
         <label>Reason / scheduling note<input value={assignmentReason} onChange={(event) => setAssignmentReason(event.target.value)} placeholder="Optional note" /></label>
         <button disabled={saving || !openFixtures.length || !referees.length}>Allocate referee</button>
@@ -222,8 +222,8 @@ function AdminRefereeWorkspace() {
         <div className="admin-referee-section-title"><h2>Report review</h2><button className="admin-referee-close" onClick={() => setSelectedReport(null)}>Close</button></div>
         <p><strong>{selectedReport.home_team_name} {selectedReport.home_score}–{selectedReport.away_score} {selectedReport.away_team_name}</strong></p>
         <p className="admin-referee-muted">Referee: {selectedReport.referee_name} · Submitted {dateTime(selectedReport.submitted_at)}</p>
-        <h3>Goals and score record</h3>{(selectedReport.detail?.goals ?? []).map((goal: any) => <p key={goal.id}>{goal.is_own_goal ? "Own goal" : "Goal"} · {goal.credited_team_id === selectedReport.fixture_id ? "Team" : "Credited team recorded"}</p>)}
-        <h3>Disciplinary incidents</h3>{(selectedReport.detail?.incidents ?? []).map((incident: any) => <p key={incident.id}>{incident.card_outcome.replaceAll("_"," ")} · {incident.recipient_category} · {incident.fine_amount_pence / 100} GBP</p>)}
+        <h3>Goals and score record</h3>{(selectedReport.detail?.goals ?? []).map((goal: any) => <p key={goal.id}>{goal.is_own_goal ? "Own goal" : "Goal"} · {goal.credited_team_name} · {goal.scorer_name ?? "Unattributed scorer"}</p>)}
+        <h3>Disciplinary incidents</h3>{(selectedReport.detail?.incidents ?? []).map((incident: any) => <p key={incident.id}>{incident.card_outcome.replaceAll("_"," ")} · {incident.team_name} · {incident.player_name ?? incident.recipient_category} · £{(incident.fine_amount_pence / 100).toFixed(2)}</p>)}
         <label>Review reason<textarea value={decisionReasons[selectedReport.report_id] ?? ""} onChange={(event) => setDecisionReasons((current) => ({ ...current, [selectedReport.report_id]: event.target.value }))} placeholder="Required for return or rejection" /></label>
         <div className="admin-referee-actions"><button disabled={saving} onClick={() => void reviewReport("approve")}>Approve and publish</button><button disabled={saving} onClick={() => void reviewReport("return")}>Return for correction</button><button className="is-danger" disabled={saving} onClick={() => void reviewReport("reject")}>Reject report</button></div>
       </article>}
