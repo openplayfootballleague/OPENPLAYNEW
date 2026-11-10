@@ -76,7 +76,7 @@ function MessagesPage() {
   }, []);
 
   const loadBlockedUsers = useCallback(async () => {
-    const { data, error: rpcError } = await getSupabaseClient().rpc("get_my_blocked_message_users");
+    const { data, error: rpcError } = await messagingRpc().rpc("get_my_blocked_message_users");
     if (rpcError) throw rpcError;
     setBlockedUsers((data ?? []) as BlockedUser[]);
   }, []);
@@ -84,7 +84,7 @@ function MessagesPage() {
   const loadMessages = useCallback(async (conversationId: string) => {
     if (!conversationId) { setMessages([]); return; }
     setThreadLoading(true);
-    const { data, error: rpcError } = await getSupabaseClient().rpc("get_message_history", {
+    const { data, error: rpcError } = await messagingRpc().rpc("get_message_history", {
       p_conversation_id: conversationId,
       p_limit: 100,
       p_before: null,
@@ -215,7 +215,7 @@ function MessagesPage() {
     }
     setRecipientSearchBusy(true);
     setError("");
-    const { data, error: rpcError } = await getSupabaseClient().rpc("search_message_recipients", {
+    const { data, error: rpcError } = await messagingRpc().rpc("search_message_recipients", {
       p_query: recipientQuery.trim(),
       p_limit: 20,
     });
@@ -226,7 +226,7 @@ function MessagesPage() {
 
   async function startDirectMessage(recipientId: string) {
     setBusy(true); setError(""); setNotice("");
-    const { data, error: rpcError } = await getSupabaseClient().rpc("create_direct_message_conversation", {
+    const { data, error: rpcError } = await messagingRpc().rpc("create_direct_message_conversation", {
       p_recipient_user_id: recipientId,
     });
     if (rpcError) setError(rpcError.message);
@@ -242,7 +242,7 @@ function MessagesPage() {
   async function openSupportConversation(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true); setError(""); setNotice("");
-    const { data, error: rpcError } = await getSupabaseClient().rpc("create_support_message_conversation", {
+    const { data, error: rpcError } = await messagingRpc().rpc("create_support_message_conversation", {
       p_subject: supportSubject.trim(),
       p_initial_message: supportBody.trim(),
     });
@@ -260,7 +260,7 @@ function MessagesPage() {
     event.preventDefault();
     if (!selected || !composer.trim()) return;
     setBusy(true); setError(""); setNotice("");
-    const { error: rpcError } = await getSupabaseClient().rpc("send_message", {
+    const { error: rpcError } = await messagingRpc().rpc("send_message", {
       p_conversation_id: selected.conversation_id,
       p_body: composer.trim(),
       p_message_type: announcement ? "announcement" : "message",
@@ -280,7 +280,7 @@ function MessagesPage() {
       return;
     }
     setBusy(true); setError(""); setNotice("");
-    const { error: rpcError } = await getSupabaseClient().rpc("report_message", {
+    const { error: rpcError } = await messagingRpc().rpc("report_message", {
       p_message_id: messageId,
       p_reason: reportReason.trim(),
     });
@@ -296,7 +296,7 @@ function MessagesPage() {
     if (!selected?.other_participant_user_id) return;
     if (!window.confirm("Block " + (selected.other_participant_name ?? "this member") + "? They will not be able to send you direct messages.")) return;
     setBusy(true); setError(""); setNotice("");
-    const { error: rpcError } = await getSupabaseClient().rpc("block_message_user", {
+    const { error: rpcError } = await messagingRpc().rpc("block_message_user", {
       p_blocked_user_id: selected.other_participant_user_id,
     });
     if (rpcError) setError(rpcError.message);
@@ -309,7 +309,7 @@ function MessagesPage() {
 
   async function unblockParticipant(blockedId: string) {
     setBusy(true); setError(""); setNotice("");
-    const { error: rpcError } = await getSupabaseClient().rpc("unblock_message_user", {
+    const { error: rpcError } = await messagingRpc().rpc("unblock_message_user", {
       p_blocked_user_id: blockedId,
     });
     if (rpcError) setError(rpcError.message);
