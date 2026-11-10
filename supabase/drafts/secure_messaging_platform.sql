@@ -83,6 +83,9 @@ begin
       hidden_at=now(),
       hidden_reason='Account erasure'
   where sender_id=old.id;
+  update public.message_conversations
+  set title='Former member support request'
+  where created_by=old.id and kind='support';
   return old;
 end;
 $;
@@ -544,8 +547,7 @@ begin
       'message.new',
       jsonb_build_object(
         'conversation_id',p_conversation_id,
-        'message_id',v_message_id,
-        'conversation_title',v_conversation.title
+        'message_id',v_message_id
       )
     );
   end loop;
@@ -794,8 +796,7 @@ begin
   loop
     perform public.enqueue_notification_event(
       v_recipient.user_id,'message.new',
-      jsonb_build_object('conversation_id',v_conversation_id,'message_id',v_message_id,
-        'conversation_title',btrim(p_title))
+      jsonb_build_object('conversation_id',v_conversation_id,'message_id',v_message_id)
     );
   end loop;
   return v_conversation_id;

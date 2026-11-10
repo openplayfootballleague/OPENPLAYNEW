@@ -32,7 +32,7 @@ Every new message creates an in-app notification for the other active participan
 
 ## Retention and privacy
 
-While a player account is closed or awaiting erasure, messaging access is disabled and its author is shown as “Former member”. When the existing account-erasure process finally deletes the auth account, a database trigger replaces that account’s message bodies with a neutral erasure placeholder and detaches the sender identity; conversation history remains for the other participants. This follows the platform’s existing 12-month restricted-archive and final-erasure lifecycle; no separate time-based message purge is introduced. Attachments are not supported in this initial release.
+While a player account is closed or awaiting erasure, messaging access is disabled and its author is shown as “Former member”. When the existing account-erasure process finally deletes the auth account, a database trigger replaces that account’s message bodies with a neutral erasure placeholder, redacts any support-request subject they created, and detaches the sender identity; conversation history remains for the other participants. This follows the platform’s existing 12-month restricted-archive and final-erasure lifecycle; no separate time-based message purge is introduced. Attachments are not supported in this initial release.
 
 ## Release gates
 
