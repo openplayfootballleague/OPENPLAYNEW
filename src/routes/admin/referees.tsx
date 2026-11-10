@@ -7,6 +7,9 @@ type RpcError = { message: string };
 type RpcClient = {
   rpc(name: string, args?: Record<string, unknown>): Promise<{ data: unknown; error: RpcError | null }>;
 };
+type RefereeFixtureOption = { fixture_id: string; scheduled_at: string; gameweek: number; fixture_number: number; home_team_name: string; away_team_name: string; location_id: string; location_name: string };
+type RefereeCandidate = { referee_user_id: string; referee_name: string; referee_email: string; preferred_location_ids: string[]; availability: Array<{ weekday: number; start_time: string; end_time: string }> };
+type RefereeAppointment = { assignment_id: string; fixture_id: string; referee_user_id: string; referee_name: string; referee_email: string; assignment_role: "lead" | "assistant"; assigned_at: string; cancelled_at: string | null; cancellation_reason: string | null; scheduled_at: string; gameweek: number; fixture_number: number; location_id: string; location_name: string; home_team_name: string; away_team_name: string };
 type RefereeApplication = {
   application_id: string;
   user_id: string;
@@ -39,6 +42,14 @@ function AdminRefereesPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [reasons, setReasons] = useState<Record<string, string>>({});
+  const [fixtures, setFixtures] = useState<RefereeFixtureOption[]>([]);
+  const [candidates, setCandidates] = useState<RefereeCandidate[]>([]);
+  const [appointments, setAppointments] = useState<RefereeAppointment[]>([]);
+  const [selectedFixtureId, setSelectedFixtureId] = useState("");
+  const [selectedRefereeId, setSelectedRefereeId] = useState("");
+  const [assignmentRole, setAssignmentRole] = useState<"lead" | "assistant">("lead");
+  const [allocationLoading, setAllocationLoading] = useState(true);
+  const [allocationReason, setAllocationReason] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (authStatus === "unauthenticated") void navigate({ to: "/sign-in", replace: true });
@@ -59,6 +70,75 @@ function AdminRefereesPage() {
   }, [statusFilter]);
 
   useEffect(() => { void loadApplications(); }, [loadApplications]);
+
+  const loadAllocationData = useCallback(async () => {
+    setAllocationLoading(true);
+    const rpc = getSupabaseClient() as unknown as RpcClient;
+    const [fixtureResult, candidateResult, appointmentResult] = await Promise.all([
+      rpc.rpc("admin_list_referee_assignment_fixtures"),
+      rpc.rpc("admin_list_referee_assignment_candidates", { p_location_id: null }),
+      rpc.rpc("admin_list_referee_appointments", { p_location_id: null, p_include_cancelled: false }),
+    ]);
+    if (!fixtureResult.error) setFixtures((fixtureResult.data ?? []) as RefereeFixtureOption[]);
+    if (!candidateResult.error) setCandidates((candidateResult.data ?? []) as RefereeCandidate[]);
+    if (!appointmentResult.error) setAppointments((appointmentResult.data ?? []) as RefereeAppointment[]);
+    const firstError = fixtureResult.error ?? candidateResult.error ?? appointmentResult.error;
+    if (firstError) setError(firstError.message);
+    setAllocationLoading(false);
+  }, []);
+
+  useEffect(() => { void loadAllocationData(); }, [loadAllocationData]);
+
+  const selectedFixture = fixtures.find((fixture) => fixture.fixture_id === selectedFixtureId);
+  const eligibleCandidates = selectedFixture
+    ? candidates.filter((candidate) => candidate.preferred_location_ids.includes(selectedFixture.location_id))
+    : [];
+
+  async function assignReferee() {
+    if (!selectedFixtureId || !selectedRefereeId) {
+      setError("Choose a fixture and an active referee before allocating.");
+      return;
+    }
+    setBusy("allocation");
+    setError("");
+    setNotice("");
+    const rpc = getSupabaseClient() as unknown as RpcClient;
+    const result = await rpc.rpc("admin_assign_referee_to_fixture", {
+      p_fixture_id: selectedFixtureId,
+      p_referee_user_id: selectedRefereeId,
+      p_assignment_role: assignmentRole,
+    });
+    setBusy("");
+    if (result.error) {
+      setError(result.error.message);
+      return;
+    }
+    setNotice("Referee appointment saved and notification queued.");
+    setSelectedRefereeId("");
+    await loadAllocationData();
+  }
+
+  async function cancelAppointment(appointment: RefereeAppointment) {
+    const reason = (allocationReason[appointment.assignment_id] ?? "").trim();
+    if (reason.length < 5) {
+      setError("Enter a cancellation reason of at least five characters.");
+      return;
+    }
+    setBusy(appointment.assignment_id);
+    setError("");
+    const rpc = getSupabaseClient() as unknown as RpcClient;
+    const result = await rpc.rpc("admin_cancel_referee_fixture_assignment", {
+      p_assignment_id: appointment.assignment_id,
+      p_reason: reason,
+    });
+    setBusy("");
+    if (result.error) {
+      setError(result.error.message);
+      return;
+    }
+    setNotice("Appointment cancelled, with the history retained and referee notified.");
+    await loadAllocationData();
+  }
 
   async function decide(application: RefereeApplication, decision: "approved" | "rejected") {
     const reason = (reasons[application.application_id] ?? "").trim();
@@ -138,6 +218,65 @@ function AdminRefereesPage() {
             </article>
           ))}
           <button type="button" disabled={loading} onClick={() => void loadApplications()}>REFRESH QUEUE</button>
+        </section>
+        <section className="hub-memberships">
+          <div className="hub-section-heading"><span className="hub-kicker">FIXTURE ALLOCATION</span></div>
+          <p>Appoint active referees to fixtures at locations you administer. The database checks membership, preferred location, declared availability and conflicting kickoff appointments.</p>
+          {allocationLoading ? <p className="form-note">Loading fixtures and referee availability…</p> : (
+            <div className="admin-sheet-editor">
+              <label>
+                Fixture
+                <select value={selectedFixtureId} onChange={(event) => { setSelectedFixtureId(event.target.value); setSelectedRefereeId(""); }}>
+                  <option value="">Choose a future fixture</option>
+                  {fixtures.map((fixture) => <option key={fixture.fixture_id} value={fixture.fixture_id}>
+                    {fixture.location_name} · GW {fixture.gameweek} · {fixture.home_team_name} v {fixture.away_team_name} · {new Date(fixture.scheduled_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+                  </option>)}
+                </select>
+              </label>
+              <label>
+                Active referee
+                <select value={selectedRefereeId} onChange={(event) => setSelectedRefereeId(event.target.value)} disabled={!selectedFixtureId}>
+                  <option value="">Choose a referee</option>
+                  {eligibleCandidates.map((candidate) => <option key={candidate.referee_user_id} value={candidate.referee_user_id}>
+                    {candidate.referee_name} · {candidate.referee_email}
+                  </option>)}
+                </select>
+              </label>
+              <label>
+                Appointment role
+                <select value={assignmentRole} onChange={(event) => setAssignmentRole(event.target.value as "lead" | "assistant")}>
+                  <option value="lead">Lead referee</option>
+                  <option value="assistant">Assistant referee</option>
+                </select>
+              </label>
+              <button type="button" disabled={busy === "allocation" || !selectedFixtureId || !selectedRefereeId} onClick={() => void assignReferee()}>
+                {busy === "allocation" ? "SAVING…" : "ALLOCATE REFEREE"}
+              </button>
+              {selectedFixture && <p className="form-note">{eligibleCandidates.length} active referee(s) have selected {selectedFixture.location_name}. Exact time availability is checked again when saving.</p>}
+              {fixtures.length === 0 && <p className="form-note">No future scheduled fixtures are available for your locations.</p>}
+            </div>
+          )}
+          <div className="hub-section-heading"><span className="hub-kicker">ACTIVE APPOINTMENTS</span></div>
+          {appointments.length === 0 ? <p className="form-note">No active referee appointments.</p> : appointments.map((appointment) => (
+            <article className="admin-queue-row" key={appointment.assignment_id}>
+              <div>
+                <strong>{appointment.referee_name} · {appointment.assignment_role.toUpperCase()}</strong>
+                <span>{appointment.referee_email}</span>
+                <small>{appointment.location_name} · GW {appointment.gameweek} · {appointment.home_team_name} v {appointment.away_team_name}</small>
+                <small>{new Date(appointment.scheduled_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</small>
+              </div>
+              <div className="admin-sheet-editor">
+                <label>
+                  Cancellation / reassignment reason
+                  <textarea rows={2} minLength={5} maxLength={500} value={allocationReason[appointment.assignment_id] ?? ""} onChange={(event) => setAllocationReason((current) => ({ ...current, [appointment.assignment_id]: event.target.value }))} placeholder="Explain why this appointment is being changed." />
+                </label>
+                <button type="button" className="reject" disabled={busy === appointment.assignment_id} onClick={() => void cancelAppointment(appointment)}>
+                  {busy === appointment.assignment_id ? "SAVING…" : "CANCEL APPOINTMENT"}
+                </button>
+              </div>
+            </article>
+          ))}
+          <button type="button" disabled={allocationLoading} onClick={() => void loadAllocationData()}>REFRESH ALLOCATIONS</button>
         </section>
         <Link className="auth-switch" to="/admin">Back to Admin Dashboard</Link>
       </section>
