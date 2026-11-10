@@ -2,6 +2,23 @@
 -- Forward-only migration. Referee is deliberately NOT a user_roles value:
 -- user_roles grants platform administration privileges.
 
+
+create table public.referee_milestone_rewards (
+  id uuid primary key default gen_random_uuid(),
+  referee_user_id uuid not null references auth.users(id) on delete restrict,
+  milestone_games integer not null check (milestone_games in (50,100,150,200,250,300,350,400,450,500)),
+  reward_amount_pence integer not null default 5000 check (reward_amount_pence=5000),
+  status text not null default 'pending_approval' check (status in ('pending_approval','approved_pending_payment','paid','cancelled')),
+  approved_by uuid references auth.users(id) on delete set null,
+  approved_at timestamptz,
+  paid_at timestamptz,
+  payment_reference text,
+  review_reason text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(referee_user_id,milestone_games)
+);
+
 create table public.platform_feature_flags (
   feature_key text primary key check (feature_key in ('referee_reporting')),
   enabled boolean not null default false,
@@ -226,13 +243,39 @@ begin
     'referee_applications','referee_memberships','referee_availability',
     'fixture_referee_assignments','referee_match_reports',
     'referee_match_report_goals','referee_match_report_incidents',
-    'referee_match_report_versions','referee_payment_entitlements','platform_feature_flags'
+    'referee_match_report_versions','referee_payment_entitlements','referee_milestone_rewards','platform_feature_flags'
   ] loop
     execute format('alter table public.%I enable row level security', v_table);
     execute format('revoke all on public.%I from public, anon, authenticated', v_table);
   end loop;
 end;
 $$;
+
+
+create or replace function public.record_referee_milestone_reward()
+returns trigger
+language plpgsql security definer set search_path = ''
+as $milestone$
+declare v_games integer;
+begin
+  if new.status='approved' and old.status is distinct from 'approved'
+    and new.assigned_referee_user_id is not null then
+    select count(*)::integer into v_games
+    from public.referee_match_reports r
+    where r.assigned_referee_user_id=new.assigned_referee_user_id and r.status='approved';
+    if v_games in (50,100,150,200,250,300,350,400,450,500) then
+      insert into public.referee_milestone_rewards(referee_user_id,milestone_games,reward_amount_pence,status)
+      values(new.assigned_referee_user_id,v_games,5000,'pending_approval')
+      on conflict(referee_user_id,milestone_games) do nothing;
+    end if;
+  end if;
+  return new;
+end;
+$milestone$;
+revoke all on function public.record_referee_milestone_reward() from public,anon,authenticated;
+create trigger referee_report_milestone_reward_after_approval
+after update of status on public.referee_match_reports
+for each row execute function public.record_referee_milestone_reward();
 
 create or replace function public.is_referee_reporting_enabled()
 returns boolean
