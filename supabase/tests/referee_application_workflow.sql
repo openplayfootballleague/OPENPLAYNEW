@@ -30,7 +30,11 @@ begin
     (v_applicant,'Referee Applicant','07700900602','ci-referee-applicant@openplay.invalid',date '1990-01-02','registered',false),
     (v_other_applicant,'Referee Other Applicant','07700900603','ci-referee-other@openplay.invalid',date '1990-01-03','registered',false),
     (v_unregistered,'Unregistered Applicant','07700900604','ci-referee-unregistered@openplay.invalid',date '1990-01-04','rejected',false),
-    (v_banned,'Banned Applicant','07700900605','ci-referee-banned@openplay.invalid',date '1990-01-05','registered',true);
+    (v_banned,'Banned Applicant','07700900605','ci-referee-banned@openplay.invalid',date '1990-01-05','registered',false);
+
+  update public.players
+  set is_banned=true,banned_at=now(),banned_reason='CI referee eligibility test'
+  where user_id=v_banned;
 
   insert into public.user_roles(user_id,role,granted_by)
   values(v_admin,'admin',v_admin);
