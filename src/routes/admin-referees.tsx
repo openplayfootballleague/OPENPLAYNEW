@@ -345,7 +345,6 @@ function AdminRefereeWorkspace() {
         {adminEntryLoading && <p className="admin-referee-muted">Loading both submitted team sheets…</p>}
         {adminEntryContext && <>
           {(!adminEntryContext.home_sheet_submitted || !adminEntryContext.away_sheet_submitted) && <p className="admin-referee-warning">One or both team sheets are unavailable. You can still complete the score, but each goal without a verifiable scorer must be marked unattributed.</p>}
-          <>
             <label>Actual match completion time<input type="datetime-local" required value={adminEntryCompletedAt} onChange={(event) => setAdminEntryCompletedAt(event.target.value)} /></label>
             <div className="admin-referee-score-fields"><label>{adminEntryContext.home_team_name} score<input type="number" min="0" max="99" required value={adminEntryHomeScore} onChange={(event) => setAdminEntryHomeScore(event.target.value)} /></label><label>{adminEntryContext.away_team_name} score<input type="number" min="0" max="99" required value={adminEntryAwayScore} onChange={(event) => setAdminEntryAwayScore(event.target.value)} /></label></div>
             <h3>{adminEntryContext.home_team_name} goalscorers</h3>
@@ -354,7 +353,6 @@ function AdminRefereeWorkspace() {
             {Array.from({ length: Math.min(99, Math.max(0, Number(adminEntryAwayScore) || 0)) }, (_, index) => <label key={"admin-away-goal-"+index}>Away goal {index+1}<select required value={adminEntryAwayScorers[index] ?? ""} onChange={(event) => setAdminEntryAwayScorers((current) => { const next=[...current]; next[index]=event.target.value; return next; })}><option value="">Choose scorer</option><option value="__unattributed__">Unattributed goal (admin entry)</option>{adminEntryContext.away_players.map((player: any) => <option key={player.competition_player_id} value={player.competition_player_id}>{player.full_name}{player.is_goalkeeper ? " · GK" : ""}</option>)}</select></label>)}
             <label>Match summary<textarea rows={3} value={adminEntrySummary} onChange={(event) => setAdminEntrySummary(event.target.value)} /></label>
             <button disabled={saving || adminEntryHomeScorers.slice(0,Number(adminEntryHomeScore)).some((id)=>!id) || adminEntryAwayScorers.slice(0,Number(adminEntryAwayScore)).some((id)=>!id)}>Submit admin-completed report for approval</button>
-          </>}
         </>}
       </form>
     </section>
