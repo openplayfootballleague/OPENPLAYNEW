@@ -36,6 +36,7 @@ declare
   v_rejected boolean;
   v_count integer;
   v_amount integer;
+  v_options jsonb;
 begin
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
   values
@@ -230,6 +231,20 @@ begin
   -- The match is now complete. Admin result publication may update the locked
   -- appearance rows only after the fixture has entered its completed state.
   update public.fixtures set status='completed' where id in (v_fixture_one,v_fixture_two);
+
+  -- Admin report-entry selectors expose only completed, locked-sheet fixtures
+  -- within the caller's location scope, and return identity-safe player options.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  select count(*) into v_count from public.admin_list_referee_reportable_fixtures(null);
+  if v_count<>2 then raise exception 'Admin report-entry fixture selector did not return both eligible fixtures'; end if;
+  select public.admin_get_referee_fixture_report_options(v_fixture_one) into v_options;
+  if jsonb_array_length(v_options->'home_players')<>1
+     or jsonb_array_length(v_options->'away_players')<>1
+     or v_options->'report'->>'status'<>'submitted' then
+    raise exception 'Admin report-entry options did not return the locked team-sheet players and existing report';
+  end if;
+  execute 'reset role';
 
   -- Approval creates the official result, permanent cards, team fines and one £22 payout obligation.
   execute 'set local role authenticated';
