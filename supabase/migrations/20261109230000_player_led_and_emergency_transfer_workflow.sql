@@ -1138,6 +1138,9 @@ begin
     raise exception 'Selected location was not found';
   end if;
 
+  if v_location is null and not public.has_global_admin_role() then
+    raise exception 'A global administrator must be selected for an unscoped transfer review';
+  end if;
   perform public.assert_admin_location_context(v_location);
 
   return query
