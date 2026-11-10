@@ -165,7 +165,6 @@ function AdminAnalyticsPage() {
     [leagueId, seasonId, setup],
   );
   const financeTotals = useMemo(() => aggregateFinanceTotals(financeRows), [financeRows]);
-  const selectedSeason = setup.seasons.find((season) => season.id === seasonId);
   const maxLocationFixtures = Math.max(1, ...locationComparisons.map((row) => row.fixtures));
 
   async function saveContext(nextLocation: string, nextLeague: string, nextSeason: string) {
@@ -346,6 +345,19 @@ function AdminAnalyticsPage() {
         <div className="analytics-report-actions"><button type="button" className="button" onClick={exportCsv} disabled={!overview}>EXPORT CSV</button><button type="button" className="admin-inline-action" onClick={() => window.print()}>PRINT / SAVE PDF</button></div>
         <p className="form-note">CSV values are in integer pence for financial totals. Use the Finance Ledger for itemised financial records.</p>
       </>}
+    </section>
+    <section className="analytics-print-report" data-print-report aria-label="Printable analytics summary">
+      <h2>Open Play reporting summary</h2>
+      <p>Reporting context: {locationId ? setup.locations.find((item) => item.id === locationId)?.name ?? "Selected location" : "All accessible locations"} · {leagueId ? setup.leagues.find((item) => item.id === leagueId)?.name ?? "Selected league" : "All accessible leagues"} · {seasonId ? setup.seasons.find((item) => item.id === seasonId)?.name ?? "Selected season" : "All accessible seasons"}</p>
+      {overview && <div className="analytics-print-metrics">
+        <p>Approved teams: {overview.approvedTeams} · Squad memberships: {overview.squadMemberships}</p>
+        <p>Fixtures: {overview.fixtures} · Published results: {overview.publishedResults} · Goals: {overview.goals}</p>
+        <p>Open seasons: {overview.openSeasons} · Pending player reviews: {overview.pendingPlayerReviews} · Pending team applications: {overview.pendingTeamApplications} · Pending join requests: {overview.pendingMembershipRequests}</p>
+      </div>}
+      <h3>Location comparison</h3>
+      <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.publishedResults}</td><td>{row.goals}</td></tr>)}</tbody></table></div>
+      {financeAccess && !financeError && <p>Ledger charges: {money(financeTotals.chargesPence)} · Payments: {money(financeTotals.paymentsPence)} · Refunds: {money(financeTotals.refundsPence)} · Fines: {money(financeTotals.finesPence)} · Outstanding: {money(financeTotals.outstandingPence)}</p>}
+      <p>Generated {new Date().toLocaleString("en-GB")}. Aggregate operational data only; no player personal details included.</p>
     </section>
     <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs. Reporting window: selected season or all seasons in the accessible context. Date-range cohort reporting and consented app-usage metrics remain gated on the analytics release review.</p>
     <Link className="auth-switch" to="/admin">← BACK TO ADMIN DASHBOARD</Link>
