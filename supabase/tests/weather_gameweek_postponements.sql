@@ -30,6 +30,14 @@ declare
   v_list_fixture_count bigint;
   v_list_paid_team_count bigint;
 begin
+  -- Deadline processing must never refund a receipt from a superseded cycle
+  -- after a gameweek has been postponed and a replacement cycle created.
+  if position('order by payment_cycle desc' in pg_get_functiondef(
+    'public.process_team_fixture_payment_deadlines(timestamptz)'::regprocedure
+  ))=0 then
+    raise exception 'Opponent refunds must select the latest payment cycle only';
+  end if;
+
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
   values
     (v_admin,'authenticated','authenticated','ci-weather-admin@openplay.invalid','','{}'::jsonb,now(),now(),now()),
