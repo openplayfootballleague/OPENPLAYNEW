@@ -51,6 +51,7 @@ function AdminRefereeWorkspace() {
   const [availability, setAvailability] = useState<AvailabilityRow[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [reports, setReports] = useState<ReportQueueItem[]>([]);
+  const [existingReportFixtureIds, setExistingReportFixtureIds] = useState<string[]>([]);
   const [fixtures, setFixtures] = useState<FixtureOption[]>([]);
   const [selectedFixture, setSelectedFixture] = useState("");
   const [selectedReferee, setSelectedReferee] = useState("");
@@ -69,7 +70,7 @@ function AdminRefereeWorkspace() {
   const [adminEntryLoading, setAdminEntryLoading] = useState(false);
 
   const openFixtures = useMemo(() => fixtures.filter((fixture) => ["scheduled", "in_progress"].includes(fixture.status)), [fixtures]);
-  const missingReportFixtures = useMemo(() => openFixtures.filter((fixture) => !reports.some((report) => report.fixture_id === fixture.id)), [openFixtures, reports]);
+  const missingReportFixtures = useMemo(() => openFixtures.filter((fixture) => !existingReportFixtureIds.includes(fixture.id)), [openFixtures, existingReportFixtureIds]);
 
   async function loadWorkspace() {
     setLoading(true); setError("");
@@ -101,7 +102,7 @@ function AdminRefereeWorkspace() {
       supabase.rpc("admin_list_active_referees", { p_location_id: selectedLocation || undefined }),
       supabase.rpc("admin_list_referee_availability", { p_location_id: selectedLocation || undefined }),
       supabase.rpc("admin_list_referee_assignments", { p_location_id: selectedLocation || undefined }),
-      supabase.rpc("admin_list_referee_report_queue", { p_status: "submitted", p_location_id: selectedLocation || undefined }),
+      supabase.rpc("admin_list_referee_report_queue", { p_status: "all", p_location_id: selectedLocation || undefined }),
     ]);
     const failure = applicationResult.error ?? refereeResult.error ?? availabilityResult.error ?? assignmentResult.error ?? reportResult.error;
     if (failure) setError(failure.message);
@@ -110,7 +111,9 @@ function AdminRefereeWorkspace() {
       setReferees((refereeResult.data ?? []) as RefereeOption[]);
       setAvailability((availabilityResult.data ?? []) as AvailabilityRow[]);
       setAssignments((assignmentResult.data ?? []) as Assignment[]);
-      setReports((reportResult.data ?? []) as ReportQueueItem[]);
+      const allReportRows = (reportResult.data ?? []) as ReportQueueItem[];
+      setReports(allReportRows.filter((report) => report.status === "submitted"));
+      setExistingReportFixtureIds(allReportRows.map((report) => report.fixture_id));
       setFixtures((fixtureResult.data ?? []) as FixtureOption[]);
       if (!selectedFixture && fixtureResult.data?.length) setSelectedFixture(fixtureResult.data[0].id);
       if (!refereeResult.data?.some((referee: RefereeOption) => referee.referee_user_id === selectedReferee)) setSelectedReferee(refereeResult.data?.[0]?.referee_user_id ?? "");
