@@ -299,6 +299,7 @@ begin
     select r.id,r.user_id,r.league_id
     from public.player_transfer_requests r
     where r.status='pending'
+      and r.user_id is not null
       and r.is_emergency=true
       and r.target_fixture_id=new.fixture_id
       and r.destination_season_team_id=new.season_team_id
