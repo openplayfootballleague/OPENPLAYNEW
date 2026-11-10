@@ -5,8 +5,6 @@ declare
   v_admin constant uuid:='97000000-0000-4000-8000-000000000001';
   v_home_captain constant uuid:='97000000-0000-4000-8000-000000000002';
   v_away_captain constant uuid:='97000000-0000-4000-8000-000000000003';
-  v_home_identity uuid:=gen_random_uuid();
-  v_away_identity uuid:=gen_random_uuid();
   v_location uuid;
   v_league uuid;
   v_season uuid;
@@ -35,10 +33,10 @@ begin
     (v_home_captain,'authenticated','authenticated','ci-weather-home@openplay.invalid','','{}'::jsonb,now(),now(),now()),
     (v_away_captain,'authenticated','authenticated','ci-weather-away@openplay.invalid','','{}'::jsonb,now(),now(),now());
 
-  insert into public.players(user_id,competition_player_id,full_name,phone,email,date_of_birth,registration_status,is_banned,is_genuine)
+  insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status,is_banned,is_genuine)
   values
-    (v_home_captain,v_home_identity,'Weather Home Captain','07700900820','ci-weather-home-player@openplay.invalid',date '1990-04-10','registered',false,true),
-    (v_away_captain,v_away_identity,'Weather Away Captain','07700900821','ci-weather-away-player@openplay.invalid',date '1990-04-11','registered',false,true);
+    (v_home_captain,'Weather Home Captain','07700900820','ci-weather-home-player@openplay.invalid',date '1990-04-10','registered',false,true),
+    (v_away_captain,'Weather Away Captain','07700900821','ci-weather-away-player@openplay.invalid',date '1990-04-11','registered',false,true);
   insert into public.user_roles(user_id,role,granted_by) values(v_admin,'admin',v_admin);
 
   select id into v_location from public.locations where is_active=true order by created_at limit 1;
