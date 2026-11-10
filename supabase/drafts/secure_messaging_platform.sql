@@ -687,7 +687,7 @@ declare
   v_recent_broadcasts integer;
   v_recipient record;
 begin
-  if v_user is null or not public.has_platform_role() then
+  if v_user is null or not public.has_platform_role() or not public.message_actor_is_active(v_user) then
     raise exception 'Administrator permission required';
   end if;
   if length(btrim(coalesce(p_title,''))) not between 3 and 120
@@ -819,7 +819,7 @@ declare
   v_user uuid:=auth.uid();
   v_global boolean;
 begin
-  if v_user is null or not public.has_platform_role() then
+  if v_user is null or not public.has_platform_role() or not public.message_actor_is_active(v_user) then
     raise exception 'Administrator permission required';
   end if;
   select exists(select 1 from public.user_roles ur where ur.user_id=v_user and ur.role in ('admin','super_admin'))
@@ -1002,7 +1002,7 @@ set search_path=''
 as $$
 declare v_user uuid:=auth.uid(); v_global boolean;
 begin
-  if v_user is null or not public.has_platform_role() then
+  if v_user is null or not public.has_platform_role() or not public.message_actor_is_active(v_user) then
     raise exception 'Administrator permission required';
   end if;
   select exists(select 1 from public.user_roles ur where ur.user_id=v_user and ur.role in ('admin','super_admin'))
@@ -1049,7 +1049,7 @@ declare
   v_global boolean;
   v_before jsonb;
 begin
-  if v_user is null or not public.has_platform_role() then
+  if v_user is null or not public.has_platform_role() or not public.message_actor_is_active(v_user) then
     raise exception 'Administrator permission required';
   end if;
   if p_action is null or p_action not in ('hide_message','dismiss') or length(btrim(coalesce(p_reason,'')))<5 then
