@@ -50,7 +50,8 @@ begin
     'referee_submit_application(text,text,text,text,uuid[])',
     'referee_save_availability(date,time,time,uuid,text)',
     'referee_get_assigned_fixtures()',
-    'referee_save_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean)',
+    'referee_save_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean,boolean)',
+    'admin_save_referee_match_report(uuid,timestamptz,integer,integer,text,jsonb,jsonb,boolean)',
     'admin_assign_referee(uuid,uuid,text)',
     'admin_review_referee_application(uuid,text,text)',
     'admin_review_referee_match_report(uuid,text,text)'
