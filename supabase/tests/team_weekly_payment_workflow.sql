@@ -28,6 +28,14 @@ declare
   v_claimed boolean;
   v_rejected boolean;
 begin
+  -- Match the shared payment policy: a provider-confirmed payment exactly at
+  -- the 12-hour grace boundary is still accepted as late_paid.
+  if position('p_paid_at<=v_obligation.grace_ends_at' in pg_get_functiondef(
+    'public.record_team_fixture_payment_success(uuid,text,timestamp with time zone)'::regprocedure
+  ))=0 then
+    raise exception 'Payment at the exact grace-end timestamp must be accepted';
+  end if;
+
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
   values
     (v_admin,'authenticated','authenticated','ci-team-payment-admin@openplay.invalid','','{}'::jsonb,now(),now(),now()),
