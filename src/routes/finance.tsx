@@ -41,6 +41,11 @@ function FinancePage(){
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("");
  const filteredOptions=useMemo(()=>options.filter(o=>!seasonFilter||o.season_id===seasonFilter),[options,seasonFilter]);
+ const teamStrikeCounts=useMemo(()=>{
+  const counts=new Map<string,number>();
+  for(const payment of teamFixturePayments)if(payment.strike_created_at)counts.set(payment.season_team_id,(counts.get(payment.season_team_id)??0)+1);
+  return counts;
+ },[teamFixturePayments]);
  const load=useCallback(async()=>{
   setLoading(true);setError("");
   const [{data:optionRows,error:optionError},{data:summaryRows,error:summaryError},{data:entryRows,error:entryError},{data:stripeRows,error:stripeError},{data:teamPaymentRows,error:teamPaymentError}]=await Promise.all([
@@ -123,7 +128,7 @@ function FinancePage(){
   <section className="finance-section">
    <div className="hub-section-heading"><span className="hub-kicker">TEAM WEEKLY PAYMENTS</span><span>{teamFixturePayments.length} records</span></div>
    <p className="form-note">Review team fees, 24-hour deadlines, the 12-hour grace period, strikes, cancellations and opponent refunds. Exceptions remain subject to an authorised administrator decision.</p>
-   {teamFixturePaymentsError?<p className="form-error" role="alert">Team payment queue unavailable: {teamFixturePaymentsError}</p>:teamFixturePayments.length===0?<p className="form-note">No team fixture payment obligations have been recorded for this season selection.</p>:<div className="finance-table-wrap"><table className="finance-table"><thead><tr><th>Team / Opponent</th><th>Fixture</th><th>Fee</th><th>Deadline</th><th>Status</th><th>Strike</th><th>Refund</th></tr></thead><tbody>{teamFixturePayments.map(p=><tr key={p.obligation_id}><td><strong>{p.team_name}</strong><small>v {p.opponent_name} · {p.season_name}</small></td><td>Gameweek {p.gameweek}<small>{dateTime(p.scheduled_at)}</small></td><td>{money(p.amount_pence)}</td><td>{dateTime(p.deadline_at)}<small>Grace ends {dateTime(p.grace_ends_at)}</small></td><td><span className={"finance-type finance-"+p.status}>{p.status.replaceAll("_"," ")}</span>{p.status==="admin_review"&&<small>Administrator review required</small>}</td><td>{dateTime(p.strike_created_at)}</td><td>{p.refund_status?.replaceAll("_"," ")??"—"}</td></tr>)}</tbody></table></div>}
+   {teamFixturePaymentsError?<p className="form-error" role="alert">Team payment queue unavailable: {teamFixturePaymentsError}</p>:teamFixturePayments.length===0?<p className="form-note">No team fixture payment obligations have been recorded for this season selection.</p>:<div className="finance-table-wrap"><table className="finance-table"><thead><tr><th>Team / Opponent</th><th>Fixture</th><th>Fee</th><th>Deadline</th><th>Status</th><th>Strike</th><th>Season total</th><th>Refund</th></tr></thead><tbody>{teamFixturePayments.map(p=>{const strikeCount=teamStrikeCounts.get(p.season_team_id)??0;return <tr key={p.obligation_id}><td><strong>{p.team_name}</strong><small>v {p.opponent_name} · {p.season_name}</small></td><td>Gameweek {p.gameweek}<small>{dateTime(p.scheduled_at)}</small></td><td>{money(p.amount_pence)}</td><td>{dateTime(p.deadline_at)}<small>Grace ends {dateTime(p.grace_ends_at)}</small></td><td><span className={"finance-type finance-"+p.status}>{p.status.replaceAll("_"," ")}</span>{p.status==="admin_review"&&<small>Administrator review required</small>}</td><td>{dateTime(p.strike_created_at)}</td><td>{strikeCount}{strikeCount>=3&&<small>Third-strike review</small>}</td><td>{p.refund_status?.replaceAll("_"," ")??"—"}</td></tr>;})}</tbody></table></div>}
    <p className="form-note">This queue is read-only. It does not automatically reinstate a cancelled fixture, waive a fee or remove a team.</p>
   </section>
   <section className="finance-section">
