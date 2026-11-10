@@ -8,6 +8,7 @@ export type AnalyticsFixture = {
   status: string;
   home_score: number | null;
   away_score: number | null;
+  scheduled_at?: string | null;
 };
 export type AnalyticsSetup = {
   locations: AnalyticsLocation[];
@@ -22,7 +23,7 @@ export type AnalyticsDashboardCounts = {
   pending_membership_requests: number;
   open_seasons: number;
 };
-export type AnalyticsFilters = { locationId: string; leagueId: string; seasonId: string };
+export type AnalyticsFilters = { locationId: string; leagueId: string; seasonId: string; fromDate: string; toDate: string };
 export type AnalyticsOverview = {
   locations: number;
   leagues: number;
@@ -70,6 +71,22 @@ function matchesFilters(season: AnalyticsSeason, filters: AnalyticsFilters): boo
     && (!filters.seasonId || season.id === filters.seasonId);
 }
 
+function isWithinDateRange(fixture: AnalyticsFixture, filters: Pick<AnalyticsFilters, "fromDate" | "toDate">): boolean {
+  if (!filters.fromDate && !filters.toDate) return true;
+  if (!fixture.scheduled_at) return false;
+  const scheduledAt = new Date(fixture.scheduled_at);
+  if (Number.isNaN(scheduledAt.getTime())) return false;
+  if (filters.fromDate) {
+    const from = new Date(`${filters.fromDate}T00:00:00`);
+    if (Number.isNaN(from.getTime()) || scheduledAt < from) return false;
+  }
+  if (filters.toDate) {
+    const to = new Date(`${filters.toDate}T23:59:59.999`);
+    if (Number.isNaN(to.getTime()) || scheduledAt > to) return false;
+  }
+  return true;
+}
+
 function isPublishedResult(fixture: AnalyticsFixture): boolean {
   return fixture.status === "completed" && fixture.home_score !== null && fixture.away_score !== null;
 }
@@ -83,7 +100,8 @@ export function buildAnalyticsOverview(
   const seasons = setup.seasons.filter((season) => matchesFilters(season, filters));
   const seasonIds = new Set(seasons.map((season) => season.id));
   const teams = setup.season_teams.filter((team) => seasonIds.has(team.season_id) && team.registration_status === "approved");
-  const results = contextualFixtures.filter(isPublishedResult);
+  const fixtures = contextualFixtures.filter((fixture) => isWithinDateRange(fixture, filters));
+  const results = fixtures.filter(isPublishedResult);
   return {
     locations: filters.locationId ? 1 : setup.locations.length,
     leagues: setup.leagues.filter((league) => (!filters.locationId || league.location_id === filters.locationId) && (!filters.leagueId || league.id === filters.leagueId)).length,
@@ -91,7 +109,7 @@ export function buildAnalyticsOverview(
     openSeasons: Number(dashboard.open_seasons ?? 0),
     approvedTeams: teams.length,
     squadMemberships: teams.reduce((total, team) => total + Math.max(0, Number(team.member_count) || 0), 0),
-    fixtures: contextualFixtures.length,
+    fixtures: fixtures.length,
     publishedResults: results.length,
     goals: results.reduce((total, fixture) => total + Number(fixture.home_score ?? 0) + Number(fixture.away_score ?? 0), 0),
     pendingPlayerReviews: Number(dashboard.pending_player_reviews ?? 0),
@@ -102,7 +120,7 @@ export function buildAnalyticsOverview(
 
 export function buildLocationComparisons(
   setup: AnalyticsSetup,
-  filters: Pick<AnalyticsFilters, "locationId" | "leagueId" | "seasonId"> = { locationId: "", leagueId: "", seasonId: "" },
+  filters: Partial<AnalyticsFilters> = {},
 ): AnalyticsLocationComparison[] {
   return setup.locations.flatMap((location) => {
     const seasons = setup.seasons.filter((season) =>
@@ -118,7 +136,7 @@ export function buildLocationComparisons(
     const teams = setup.season_teams.filter((team) =>
       seasonIds.has(team.season_id) && team.registration_status === "approved",
     );
-    const fixtures = setup.fixtures.filter((fixture) => seasonIds.has(fixture.season_id));
+    const fixtures = setup.fixtures.filter((fixture) => seasonIds.has(fixture.season_id) && isWithinDateRange(fixture, { fromDate: filters.fromDate ?? "", toDate: filters.toDate ?? "" }));
     const results = fixtures.filter(isPublishedResult);
     return [{
       locationId: location.id,
