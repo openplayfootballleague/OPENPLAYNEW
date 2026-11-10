@@ -17,7 +17,7 @@ create table public.referee_connect_accounts (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint referee_connect_enabled_state check (
-    onboarding_status<>'enabled' or (details_submitted and transfers_enabled and payouts_enabled)
+    onboarding_status<>'enabled' or (details_submitted and transfers_enabled)
   )
 );
 create index referee_connect_accounts_payouts_idx
@@ -162,8 +162,7 @@ begin
   v_status:=case
     when nullif(btrim(coalesce(p_disabled_reason,'')),'') is not null then 'restricted'
     when coalesce(p_details_submitted,false)
-      and coalesce(p_transfers_enabled,false)
-      and coalesce(p_payouts_enabled,false) then 'enabled'
+      and coalesce(p_transfers_enabled,false) then 'enabled'
     when coalesce(p_details_submitted,false) then 'verification_pending'
     else 'onboarding_required'
   end;
@@ -264,7 +263,7 @@ begin
   select * into v_account from public.referee_connect_accounts
   where referee_user_id=v_referee_user_id for update;
   if not found or v_account.onboarding_status<>'enabled'
-     or not v_account.transfers_enabled or not v_account.payouts_enabled then
+     or not v_account.transfers_enabled then
     raise exception 'The referee must complete Stripe Connect verification before receiving a payout';
   end if;
 
