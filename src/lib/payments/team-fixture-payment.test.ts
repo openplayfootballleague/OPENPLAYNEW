@@ -17,7 +17,7 @@ describe("team fixture payment deadline and 12-hour grace period", () => {
 
   it("accepts payment exactly at the 24-hour deadline without a strike", () => {
     expect(assessTeamFixturePayment({ kickoffAt, assessedAt: deadline, paidAt: deadline }))
-      .toMatchObject({ state: "paid_on_time", strikeCount: 0, fixtureCancellationDue: false, teamFeeRemainsLiable: false });
+      .toMatchObject({ state: "paid_on_time", strikeCount: 0, fixtureCancellationDue: false, teamFeeRemainsLiable: false, adminReviewRequired: false });
   });
 
   it("accepts payment within the additional 12 hours with one strike", () => {
@@ -32,7 +32,7 @@ describe("team fixture payment deadline and 12-hour grace period", () => {
 
   it("marks an unpaid team for cancellation after the final deadline", () => {
     expect(assessTeamFixturePayment({ kickoffAt, assessedAt: "2026-11-20T08:00:00.001Z" }))
-      .toMatchObject({ state: "cancellation_due", strikeCount: 1, fixtureCancellationDue: true, teamFeeRemainsLiable: true });
+      .toMatchObject({ state: "cancellation_due", strikeCount: 1, fixtureCancellationDue: true, teamFeeRemainsLiable: true, adminReviewRequired: false });
   });
 
   it("routes an overdue case to admin review when a hold is present", () => {
@@ -45,7 +45,7 @@ describe("team fixture payment deadline and 12-hour grace period", () => {
       .toMatchObject({ state: "paid_after_deadline", strikeCount: 1, fixtureCancellationDue: true });
   });
 
-  it("rejects invalid timestamps", () => {
+  it("holds an after-deadline payment for admin review instead of cancelling automatically", () => {\n    expect(assessTeamFixturePayment({ kickoffAt, assessedAt: "2026-11-20T10:00:00Z", paidAt: "2026-11-20T09:00:00Z", adminReviewHold: true }))\n      .toMatchObject({ state: "paid_after_deadline", strikeCount: 1, fixtureCancellationDue: false, adminReviewRequired: true });\n  });\n\n  it("rejects a payment timestamp later than the authoritative assessment", () => {\n    expect(() => assessTeamFixturePayment({ kickoffAt, assessedAt: "2026-11-20T08:00:00Z", paidAt: "2026-11-20T09:00:00Z" })).toThrow(RangeError);\n  });\n\n  it("rejects invalid timestamps", () => {
     expect(() => assessTeamFixturePayment({ kickoffAt: "not-a-date", assessedAt: deadline })).toThrow(RangeError);
   });
 });
