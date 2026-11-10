@@ -44,6 +44,7 @@ function AdminRefereeWorkspace() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [locations, setLocations] = useState<LocationOption[]>([]);
+  const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState("");
   const [applications, setApplications] = useState<Application[]>([]);
   const [referees, setReferees] = useState<RefereeOption[]>([]);
@@ -62,17 +63,29 @@ function AdminRefereeWorkspace() {
 
   async function loadWorkspace() {
     setLoading(true); setError("");
-    const [{ data: setupRows, error: setupError }, { data: fixtureRows, error: fixtureError }] = await Promise.all([
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setLoading(false); return; }
+    const [{ data: roleRows, error: roleError }, { data: setupRows, error: setupError }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", session.user.id),
       supabase.rpc("get_admin_competition_setup"),
-      supabase.rpc("get_admin_contextual_fixtures", { p_location_id: selectedLocation || undefined }),
     ]);
-    if (setupError || fixtureError) {
-      setError(setupError?.message ?? fixtureError?.message ?? "Unable to load referee administration.");
+    if (roleError || setupError) {
+      setError(roleError?.message ?? setupError?.message ?? "Unable to load referee administration.");
       setLoading(false);
       return;
     }
+    const globalAdmin = (roleRows ?? []).some((row: { role: string }) => ["admin","super_admin"].includes(row.role));
+    setIsGlobalAdmin(globalAdmin);
     const nextLocations = (setupRows?.locations ?? []) as LocationOption[];
     setLocations(nextLocations);
+    const fixtureResult = globalAdmin || selectedLocation
+      ? await supabase.rpc("get_admin_contextual_fixtures", { p_location_id: selectedLocation || undefined })
+      : { data: [], error: null };
+    if (fixtureResult.error) {
+      setError(fixtureResult.error.message);
+      setLoading(false);
+      return;
+    }
     const [applicationResult, refereeResult, availabilityResult, assignmentResult, reportResult] = await Promise.all([
       supabase.rpc("admin_list_referee_applications", { p_status: "pending" }),
       supabase.rpc("admin_list_active_referees", { p_location_id: selectedLocation || undefined }),
@@ -88,8 +101,8 @@ function AdminRefereeWorkspace() {
       setAvailability((availabilityResult.data ?? []) as AvailabilityRow[]);
       setAssignments((assignmentResult.data ?? []) as Assignment[]);
       setReports((reportResult.data ?? []) as ReportQueueItem[]);
-      setFixtures((fixtureRows ?? []) as FixtureOption[]);
-      if (!selectedFixture && fixtureRows?.length) setSelectedFixture(fixtureRows[0].id);
+      setFixtures((fixtureResult.data ?? []) as FixtureOption[]);
+      if (!selectedFixture && fixtureResult.data?.length) setSelectedFixture(fixtureResult.data[0].id);
       if (!selectedReferee && refereeResult.data?.length) setSelectedReferee(refereeResult.data[0].referee_user_id);
     }
     setLoading(false);
@@ -178,7 +191,7 @@ function AdminRefereeWorkspace() {
     <header className="admin-referee-header"><Link to="/admin" className="admin-referee-back">← Admin workspace</Link><span className="eyebrow">OFFICIALS MANAGEMENT</span><h1>Referee<br/><em>Allocation.</em></h1><p>Approve referee membership, review availability, allocate fixtures and publish match reports.</p></header>
     {error && <p className="referee-alert referee-alert-error">{error}</p>}{notice && <p className="referee-alert referee-alert-success">{notice}</p>}
     <section className="admin-referee-panel">
-      <label>Location context<select value={selectedLocation} onChange={(event) => { setSelectedLocation(event.target.value); setSelectedFixture(""); setSelectedReferee(""); }}><option value="">All locations I administer</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name} · {location.town}</option>)}</select></label>
+      <label>Location context<select value={selectedLocation} onChange={(event) => { setSelectedLocation(event.target.value); setSelectedFixture(""); setSelectedReferee(""); }}><option value="">{isGlobalAdmin ? "All locations" : "Choose a location"}</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name} · {location.town}</option>)}</select></label>
     </section>
     <section className="admin-referee-panel">
       <div className="admin-referee-section-title"><span className="eyebrow">01 · APPLICATIONS</span><h2>Membership review <b>{applications.length}</b></h2></div>
