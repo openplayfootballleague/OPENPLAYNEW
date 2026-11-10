@@ -173,7 +173,6 @@ function AdminAnalyticsPage() {
     [leagueId, seasonId, setup],
   );
   const financeTotals = useMemo(() => aggregateFinanceTotals(financeRows), [financeRows]);
-  const maxLocationFixtures = Math.max(1, ...locationComparisons.map((row) => row.fixtures));
 
   async function saveContext(nextLocation: string, nextLeague: string, nextSeason: string) {
     setContextSaving(true);
