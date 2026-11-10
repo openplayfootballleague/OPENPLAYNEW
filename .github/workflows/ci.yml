@@ -55,10 +55,15 @@ jobs:
         run: supabase start -x studio,edge-runtime,logflare,vector
       - name: Generate referee application migration using the pinned Supabase CLI
         run: |
-          if ! find supabase/migrations -maxdepth 1 -type f -name '*_referee_application_workflow.sql' -print -quit | grep -q .; then
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_application_workflow.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
             supabase migration new referee_application_workflow < supabase/drafts/referee_application_workflow.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_application_workflow.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_application_workflow.sql "$migration_file"
           fi
-          find supabase/migrations -maxdepth 1 -type f -name '*_referee_application_workflow.sql' -print
+          test -n "$migration_file"
+          printf '%s\n' "$migration_file"
       - name: Preserve CLI-generated referee migration for review
         uses: actions/upload-artifact@v4
         with:
