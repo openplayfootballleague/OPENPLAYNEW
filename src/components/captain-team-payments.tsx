@@ -59,6 +59,13 @@ export function CaptainTeamPayments({fixtures}:{fixtures:PaymentFixture[]}){
   useEffect(()=>{void load();},[load]);
   useEffect(()=>{const id=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(id);},[]);
   const paymentByFixture=useMemo(()=>new Map(payments.map(p=>[p.fixture_id+":"+p.season_team_id,p])),[payments]);
+  const strikesBySeasonTeam=useMemo(()=>{
+    const counts=new Map<string,number>();
+    for(const payment of payments)if(["late_paid","defaulted","paid_after_cancellation"].includes(payment.status)){
+      counts.set(payment.season_team_id,(counts.get(payment.season_team_id)??0)+1);
+    }
+    return counts;
+  },[payments]);
   async function pay(fixture:PaymentFixture){
     setBusyId(fixture.fixture_id);setError("");setNotice("");
     try{
@@ -81,6 +88,7 @@ export function CaptainTeamPayments({fixtures}:{fixtures:PaymentFixture[]}){
     {notice&&<p className="form-success" role="status">{notice}</p>}
     {loading?<p className="form-note">Loading team payments…</p>:fixtures.length===0?<p className="form-note">No upcoming fixtures currently require a team payment.</p>:fixtures.map(fixture=>{
       const payment=paymentByFixture.get(fixture.fixture_id+":"+fixture.season_team_id);
+      const seasonStrikes=strikesBySeasonTeam.get(fixture.season_team_id)??0;
       const deadline=payment?.deadline_at;
       const graceEnd=payment?.grace_ends_at;
       const payable=!payment||payment.status==="due"||payment.status==="grace_period"||payment.status==="defaulted";
@@ -92,6 +100,7 @@ export function CaptainTeamPayments({fixtures}:{fixtures:PaymentFixture[]}){
         </div>
         {payment?<>
           <div className="captain-team-payment-status"><span>{statusLabel(payment.status)}</span><strong>{money(payment.amount_pence)}</strong></div>
+          <p className="form-note">Team strikes this season: {seasonStrikes} / 3{seasonStrikes>=3?" · administrator review required":""}</p>
           {deadline&&<p className="form-note">Payment deadline: {dateTime(deadline)}</p>}
           {payment.status==="due"&&deadline&&<p className="payment-countdown">Time until deadline: {countdown(deadline,now)}</p>}
           {payment.status==="grace_period"&&graceEnd&&<p className="payment-countdown">Grace period ends in: {countdown(graceEnd,now)}</p>}
