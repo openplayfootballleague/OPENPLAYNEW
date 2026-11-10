@@ -37,7 +37,8 @@ begin
 
   select pg_get_functiondef('public.get_captain_team_sheet(uuid)'::regprocedure)
     into v_sheet_reader;
-  -- Normalize pg_get_functiondef formatting across PostgreSQL versions.
+  -- pg_get_functiondef formatting varies slightly across PostgreSQL versions;
+  -- compare normalized source so whitespace does not create a false failure.
   v_sheet_reader := regexp_replace(lower(v_sheet_reader), E'\\s+', '', 'g');
   if position('captain_next_required_fixture' in v_sheet_reader) = 0
      or position('f.status=''scheduled''' in v_sheet_reader) = 0 then
