@@ -144,6 +144,26 @@ jobs:
           path: supabase/migrations/*_weather_gameweek_postponement.sql
           if-no-files-found: error
           retention-days: 1
+      - name: Generate approved referee report correction options migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_correction_options.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            supabase migration new referee_approved_report_correction_options < supabase/drafts/referee_approved_report_correction_options.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_correction_options.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_approved_report_correction_options.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\\n' "$migration_file"
+      - name: Preserve CLI-generated approved report correction options migration
+        uses: actions/upload-artifact@v4
+        with:
+          name: referee-approved-report-correction-options-migration
+          path: supabase/migrations/*_referee_approved_report_correction_options.sql
+          if-no-files-found: error
+          retention-days: 1
       - name: Preserve CLI-generated referee migrations for review
         uses: actions/upload-artifact@v4
         with:
