@@ -545,7 +545,7 @@ begin
     application.id,
     application.user_id,
     coalesce(player.full_name,'Registered applicant'),
-    account.email,
+    account.email::text,
     application.contact_phone,
     application.experience_summary,
     application.qualifications,
