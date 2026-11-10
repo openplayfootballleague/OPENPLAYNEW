@@ -817,7 +817,7 @@ declare
   v_user_id uuid; v_entitlement_id uuid; v_before jsonb;
 begin
   if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
-  if p_decision not in ('approve','return','reject') then raise exception 'Invalid report decision'; end if;
+  if p_decision is null or p_decision not in ('approve','return','reject') then raise exception 'Invalid report decision'; end if;
   if p_decision<>'approve' and (p_reason is null or length(btrim(p_reason))<5) then raise exception 'Enter a reason of at least 5 characters'; end if;
   select * into v_report from public.referee_match_reports where id=p_report_id for update;
   if not found then raise exception 'Match report not found'; end if;
