@@ -33,7 +33,7 @@ begin
     end if;
   end loop;
 end;
-$$;
+$global_admin_manage_policies$;
 
 -- Competition records may be read by the public when published, by active
 -- team members, or by admins assigned to the record's location.
