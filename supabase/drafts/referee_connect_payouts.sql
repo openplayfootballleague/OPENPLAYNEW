@@ -201,7 +201,7 @@ begin
   if v_actor is null or not public.has_finance_access() then
     raise exception 'Finance access required';
   end if;
-  if p_payout_type not in ('match_report','milestone') or p_payout_id is null then
+  if p_payout_type is null or p_payout_type not in ('match_report','milestone') or p_payout_id is null then
     raise exception 'A valid referee payout type and ID are required';
   end if;
 
@@ -286,7 +286,7 @@ declare
   v_existing_transfer text;
   v_status text;
 begin
-  if p_payout_type not in ('match_report','milestone')
+  if p_payout_type is null or p_payout_type not in ('match_report','milestone')
      or p_payout_id is null or p_stripe_transfer_id is null
      or p_destination_account_id is null or p_amount_pence is null
      or lower(coalesce(p_currency,''))<>'gbp' then
