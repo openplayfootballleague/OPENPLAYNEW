@@ -1096,6 +1096,59 @@ revoke all on function public.referee_get_payment_entitlements() from public,ano
 grant execute on function public.referee_get_payment_entitlements() to authenticated;
 
 
+
+create or replace function public.referee_get_career_summary()
+returns table(
+  lifetime_approved_games integer,active_season_approved_games integer,career_title text,
+  next_milestone integer,milestone_progress_percent integer,milestone_reward_pence integer,
+  lifetime_gross_allocations_pence bigint,lifetime_net_entitlement_pence bigint,
+  awaiting_payment_pence bigint,transferred_to_connected_balance_pence bigint,paid_out_to_bank_pence bigint
+)
+language plpgsql stable security definer set search_path = ''
+as $career$
+begin
+  if auth.uid() is null or not public.is_active_referee() then raise exception 'Approved referee membership required'; end if;
+  return query
+  with approved as (
+    select r.id,f.season_id
+    from public.referee_match_reports r
+    join public.fixtures f on f.id=r.fixture_id
+    where r.assigned_referee_user_id=auth.uid() and r.status='approved'
+  ), counts as (
+    select count(*)::integer as lifetime_games,
+      count(*) filter (where se.status::text='active')::integer as active_season_games
+    from approved a left join public.seasons se on se.id=a.season_id
+  ), payments as (
+    select
+      coalesce(sum(e.gross_allocation_pence),0)::bigint as gross_allocations,
+      coalesce(sum(coalesce(e.net_entitlement_pence,e.minimum_net_pence)) filter (where e.status<>'reversed'),0)::bigint as net_entitlement,
+      coalesce(sum(coalesce(e.net_entitlement_pence,e.minimum_net_pence)) filter (where e.status in ('earned','pending_transfer','transfer_failed','adjustment_pending')),0)::bigint as awaiting,
+      coalesce(sum(coalesce(e.net_entitlement_pence,e.minimum_net_pence)) filter (where e.status in ('transferred','payout_pending')),0)::bigint as transferred,
+      coalesce(sum(coalesce(e.net_entitlement_pence,e.minimum_net_pence)) filter (where e.status='paid_out'),0)::bigint as paid_out
+    from public.referee_payment_entitlements e where e.referee_user_id=auth.uid()
+  )
+  select c.lifetime_games,c.active_season_games,
+    case when c.lifetime_games>=500 then 'Open Play Ambassador'
+      when c.lifetime_games>=450 then 'Legend Official'
+      when c.lifetime_games>=400 then 'Master Official'
+      when c.lifetime_games>=350 then 'Diamond Official'
+      when c.lifetime_games>=300 then 'Platinum Official'
+      when c.lifetime_games>=250 then 'Premier Official'
+      when c.lifetime_games>=200 then 'Elite Official'
+      when c.lifetime_games>=150 then 'Gold Official'
+      when c.lifetime_games>=100 then 'Silver Official'
+      when c.lifetime_games>=50 then 'Bronze Official'
+      else 'Rookie Official' end,
+    case when c.lifetime_games>=500 then null else ((c.lifetime_games/50)+1)*50 end,
+    case when c.lifetime_games>=500 then 100 else (c.lifetime_games%50)*2 end,
+    case when c.lifetime_games>=500 then 0 else 5000 end,
+    p.gross_allocations,p.net_entitlement,p.awaiting,p.transferred,p.paid_out
+  from counts c cross join payments p;
+end;
+$career$;
+revoke all on function public.referee_get_career_summary() from public,anon;
+grant execute on function public.referee_get_career_summary() to authenticated;
+
 create or replace function public.admin_list_active_referees(p_location_id uuid default null)
 returns table(referee_user_id uuid,referee_name text,approved_at timestamptz,availability_slots integer)
 language plpgsql stable security definer set search_path = ''
