@@ -80,6 +80,29 @@ describe("optional PostHog analytics consent", () => {
     expect(pageViews[1].distinct_id).not.toBe("auth-user-1");
   });
 
+  it("rotates the anonymous identifier when a different account signs in", async () => {
+    const analytics = await import("./posthog");
+    analytics.setAnalyticsConsent(true);
+    analytics.setAnalyticsIdentity("auth-user-1");
+    analytics.setAnalyticsIdentity("auth-user-2");
+
+    const payloads = vi.mocked(fetch).mock.calls.map((call) =>
+      JSON.parse(String((call[1] as RequestInit).body)) as {
+        event: string;
+        distinct_id: string;
+        properties?: { $anon_distinct_id?: string };
+      },
+    );
+    const identities = payloads.filter((payload) => payload.event === "$identify");
+
+    expect(identities).toHaveLength(2);
+    expect(identities[0].distinct_id).toBe("auth-user-1");
+    expect(identities[1].distinct_id).toBe("auth-user-2");
+    expect(identities[0].properties?.$anon_distinct_id).not.toBe(
+      identities[1].properties?.$anon_distinct_id,
+    );
+  });
+
   it("stops capture immediately when consent is withdrawn", async () => {
     const analytics = await import("./posthog");
     analytics.setAnalyticsConsent(true);
