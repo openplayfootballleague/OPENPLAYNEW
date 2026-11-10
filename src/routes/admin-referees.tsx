@@ -127,7 +127,7 @@ function AdminRefereeWorkspace() {
       setAssignments((assignmentResult.data ?? []) as Assignment[]);
       const allReportRows = (reportResult.data ?? []) as ReportQueueItem[];
       setReports(allReportRows.filter((report) => report.status === "submitted"));
-      setExistingReportFixtureIds(allReportRows.map((report) => report.fixture_id));
+      setExistingReportFixtureIds(allReportRows.filter((report) => ["submitted","approved"].includes(report.status)).map((report) => report.fixture_id));
       setFixtures((fixtureResult.data ?? []) as FixtureOption[]);
       if (!selectedFixture && fixtureResult.data?.length) setSelectedFixture(fixtureResult.data[0].id);
       if (!refereeResult.data?.some((referee: RefereeOption) => referee.referee_user_id === selectedReferee)) setSelectedReferee(refereeResult.data?.[0]?.referee_user_id ?? "");
@@ -338,10 +338,10 @@ function AdminRefereeWorkspace() {
       </article>)}
     </section>
         <section className="admin-referee-panel">
-      <div className="admin-referee-section-title"><span className="eyebrow">04 · REPORT COMPLETION</span><h2>Complete a missing report</h2></div>
-      <p className="admin-referee-muted">Use this for a missing or overdue report. The completed report still enters the approval queue; this action does not publish a result. Select scorers from submitted team sheets where available. If a team sheet or scorer identity is unavailable, record an explicitly unattributed goal rather than inventing a player identity. Own-goal attribution and disciplinary incidents remain outside this admin fallback form.</p>
+      <div className="admin-referee-section-title"><span className="eyebrow">04 · REPORT COMPLETION</span><h2>Complete or replace a report</h2></div>
+      <p className="admin-referee-muted">Use this for a missing, returned or rejected report. The completed report still enters the approval queue; this action does not publish a result. Select scorers from submitted team sheets where available. If a team sheet or scorer identity is unavailable, record an explicitly unattributed goal rather than inventing a player identity. Own-goal attribution and disciplinary incidents remain outside this admin fallback form.</p>
       <form className="admin-referee-form admin-referee-report-entry" onSubmit={submitAdminCompletedReport}>
-        <label>Fixture<select required value={adminEntryFixtureId} onChange={(event) => void loadAdminEntryContext(event.target.value)}><option value="">Choose missing report fixture</option>{missingReportFixtures.map((fixture) => <option key={fixture.id} value={fixture.id}>GW{fixture.gameweek} · {fixture.home_team_name} v {fixture.away_team_name}</option>)}</select></label>
+        <label>Fixture<select required value={adminEntryFixtureId} onChange={(event) => void loadAdminEntryContext(event.target.value)}><option value="">Choose missing / returned / rejected fixture</option>{missingReportFixtures.map((fixture) => <option key={fixture.id} value={fixture.id}>GW{fixture.gameweek} · {fixture.home_team_name} v {fixture.away_team_name}</option>)}</select></label>
         {adminEntryLoading && <p className="admin-referee-muted">Loading both submitted team sheets…</p>}
         {adminEntryContext && <>
           {(!adminEntryContext.home_sheet_submitted || !adminEntryContext.away_sheet_submitted) && <p className="admin-referee-warning">One or both team sheets are unavailable. You can still complete the score, but each goal without a verifiable scorer must be marked unattributed.</p>}
