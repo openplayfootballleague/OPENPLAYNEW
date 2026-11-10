@@ -30,6 +30,8 @@ function AdminAnalyticsPage() {
   const [notice, setNotice] = useState("");
   const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
   const [locationId, setLocationId] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [leagueId, setLeagueId] = useState("");
   const [seasonId, setSeasonId] = useState("");
   const [contextSaving, setContextSaving] = useState(false);
@@ -164,13 +166,14 @@ function AdminAnalyticsPage() {
     if (contextReady) void loadContextData();
   }, [contextReady, loadContextData]);
 
-  const filters: AnalyticsFilters = { locationId, leagueId, seasonId };
+  const dateRangeInvalid = Boolean(fromDate && toDate && fromDate > toDate);
+  const filters: AnalyticsFilters = { locationId, leagueId, seasonId, fromDate, toDate };
   const overview = useMemo(() => dashboard
     ? buildAnalyticsOverview(setup, dashboard.counts, fixtures, filters)
-    : null, [dashboard, fixtures, leagueId, locationId, seasonId, setup]);
+    : null, [dashboard, dateRangeInvalid, fixtures, fromDate, leagueId, locationId, seasonId, setup, toDate]);
   const locationComparisons = useMemo(
-    () => buildLocationComparisons(setup, { locationId, leagueId, seasonId }),
-    [leagueId, locationId, seasonId, setup],
+    () => buildLocationComparisons(setup, { locationId, leagueId, seasonId, fromDate, toDate }),
+    [fromDate, leagueId, locationId, seasonId, setup, toDate],
   );
   const financeTotals = useMemo(() => aggregateFinanceTotals(financeRows), [financeRows]);
 
@@ -277,6 +280,8 @@ function AdminAnalyticsPage() {
         <label>Season<select value={seasonId} disabled={contextSaving} onChange={(event) => void saveContext(locationId, leagueId, event.target.value)}>
           <option value="">All seasons</option>{setup.seasons.filter((season) => (!locationId || season.location_id === locationId) && (!leagueId || season.league_id === leagueId)).map((season) => <option key={season.id} value={season.id}>{season.name} · {season.status}</option>)}
         </select></label>
+        <label>From date<input type="date" value={fromDate} disabled={contextSaving} onChange={(event) => setFromDate(event.target.value)} /></label>
+        <label>To date<input type="date" value={toDate} disabled={contextSaving} min={fromDate || undefined} onChange={(event) => setToDate(event.target.value)} /></label>
       </div>
       <p className="form-note">The selected location, league and season define this report. Results are refreshed from the database; no manually edited statistics are used.</p>
     </section>
@@ -351,7 +356,7 @@ function AdminAnalyticsPage() {
       </> : <>
         <h2>Reports &amp; exports</h2>
         <p>Export the current permission-scoped aggregate snapshot. Player names, contact details, dates of birth, message content and payment references are excluded.</p>
-        <div className="analytics-report-actions"><button type="button" className="button" onClick={exportCsv} disabled={!overview}>EXPORT CSV</button><button type="button" className="admin-inline-action" onClick={() => window.print()}>PRINT / SAVE PDF</button></div>
+        <div className="analytics-report-actions"><button type="button" className="button" onClick={exportCsv} disabled={!overview || dateRangeInvalid}>EXPORT CSV</button><button type="button" className="admin-inline-action" onClick={() => window.print()}>PRINT / SAVE PDF</button></div>
         <p className="form-note">CSV values are in integer pence for financial totals. Use the Finance Ledger for itemised financial records.</p>
       </>}
     </section>
@@ -368,7 +373,7 @@ function AdminAnalyticsPage() {
       {financeAccess && !financeError && <p>Ledger charges: {money(financeTotals.chargesPence)} · Payments: {money(financeTotals.paymentsPence)} · Refunds: {money(financeTotals.refundsPence)} · Fines: {money(financeTotals.finesPence)} · Outstanding: {money(financeTotals.outstandingPence)}</p>}
       <p>Generated {new Date().toLocaleString("en-GB")}. Aggregate operational data only; no player personal details included.</p>
     </section>
-    <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs. Reporting window: selected season or all seasons in the accessible context. Date-range cohort reporting and consented app-usage metrics remain gated on the analytics release review.</p>
+    <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs. Reporting window: {fromDate || toDate ? `${fromDate || "Any date"} to ${toDate || "Any date"}` : "all dates"} within the selected season or accessible context. Cohort reporting and consented app-usage metrics remain gated on the analytics release review.</p>
     <Link className="auth-switch" to="/admin">← BACK TO ADMIN DASHBOARD</Link>
   </section></main>;
 }
