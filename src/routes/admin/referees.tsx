@@ -106,6 +106,14 @@ type AdminReportOptions = {
   home_players: AdminReportPlayer[];
   away_players: AdminReportPlayer[];
 };
+type RefereeMilestoneReward = {
+  reward_id:string;referee_user_id:string|null;referee_name:string;milestone_number:number;
+  approved_games:number;amount_pence:number;
+  status:"pending_connect"|"processing"|"transferred"|"failed"|"cancelled";
+  stripe_transfer_id:string|null;failure_reason:string|null;transfer_attempts:number;
+  connect_status:"onboarding_required"|"verification_pending"|"enabled"|"restricted";
+  transfers_enabled:boolean;payouts_enabled:boolean;created_at:string;transferred_at:string|null;
+};
 type RefereePayoutObligation = {
   payout_id: string;
   report_id: string;
@@ -122,8 +130,13 @@ type RefereePayoutObligation = {
   deductions_pence: number;
   referee_net_pence: number;
   open_play_top_up_pence: number;
-  status: "pending_connect" | "transferred" | "failed" | "cancelled";
+  status: "pending_connect" | "processing" | "transferred" | "failed" | "cancelled";
   stripe_transfer_id: string | null;
+  failure_reason: string | null;
+  transfer_attempts: number;
+  connect_status: "onboarding_required" | "verification_pending" | "enabled" | "restricted";
+  transfers_enabled: boolean;
+  payouts_enabled: boolean;
   created_at: string;
   transferred_at: string | null;
 };
@@ -160,6 +173,8 @@ function AdminRefereesPage() {
   const [reportsLoading, setReportsLoading] = useState(false);
   const [reportReasons, setReportReasons] = useState<Record<string, string>>({});
   const [payouts, setPayouts] = useState<RefereePayoutObligation[]>([]);
+  const [milestoneRewards, setMilestoneRewards] = useState<RefereeMilestoneReward[]>([]);
+  const [milestoneRewardsLoading, setMilestoneRewardsLoading] = useState(false);
   const [payoutsLoading, setPayoutsLoading] = useState(false);
   const [payoutStatusFilter, setPayoutStatusFilter] = useState("pending_connect");
   const [reportableFixtures, setReportableFixtures] = useState<AdminReportableFixture[]>([]);
@@ -252,9 +267,8 @@ function AdminRefereesPage() {
   const loadPayouts = useCallback(async () => {
     setPayoutsLoading(true);
     const rpc = getSupabaseClient() as unknown as RpcClient;
-    const result = await rpc.rpc("admin_list_referee_report_payouts", {
+    const result = await rpc.rpc("admin_list_referee_report_payouts_connect", {
       p_status: payoutStatusFilter,
-      p_location_id: null,
     });
     if (result.error) {
       setError(result.error.message);
@@ -266,6 +280,45 @@ function AdminRefereesPage() {
   }, [payoutStatusFilter]);
 
   useEffect(() => { void loadPayouts(); }, [loadPayouts]);
+
+  const loadMilestoneRewards = useCallback(async () => {
+    setMilestoneRewardsLoading(true);
+    const rpc = getSupabaseClient() as unknown as RpcClient;
+    const result = await rpc.rpc("admin_list_referee_milestone_rewards_connect", { p_status: "all" });
+    if (result.error) {
+      setError(result.error.message);
+      setMilestoneRewards([]);
+    } else {
+      setMilestoneRewards((result.data ?? []) as RefereeMilestoneReward[]);
+    }
+    setMilestoneRewardsLoading(false);
+  }, []);
+
+  useEffect(() => { void loadMilestoneRewards(); }, [loadMilestoneRewards]);
+
+  async function sendRefereePayout(payoutType: "match_report" | "milestone", payoutId: string) {
+    setBusy(`referee-payout:${payoutId}`);
+    setError("");
+    setNotice("");
+    const supabase = getSupabaseClient() as unknown as {
+      functions: { invoke(name: string, options?: Record<string, unknown>): Promise<{data: any; error: {message: string} | null}> };
+    };
+    const {data,error:transferError}=await supabase.functions.invoke("pay-referee-payout",{
+      body:{payout_type:payoutType,payout_id:payoutId},
+    });
+    setBusy("");
+    if(transferError){
+      setError(transferError.message);
+      await Promise.all([loadPayouts(),loadMilestoneRewards()]);
+      return;
+    }
+    if(data?.status==="processing"){
+      setNotice("Stripe created the transfer. The payout is awaiting signed webhook reconciliation; do not retry it.");
+    }else{
+      setNotice("Stripe confirmed the referee transfer successfully.");
+    }
+    await Promise.all([loadPayouts(),loadMilestoneRewards()]);
+  }
 
   const loadReportableFixtures = useCallback(async () => {
     setReportableFixturesLoading(true);
