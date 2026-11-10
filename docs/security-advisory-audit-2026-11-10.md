@@ -2,7 +2,7 @@
 
 Project: `OPENPLAYNEW` (`ghnrsysvrlgkjmdlwdmp`, EU West).
 
-This snapshot was collected from the Supabase Security, Performance and Health advisors. It is an advisory review of the current hosted schema; the unmerged weather-postponement migration is not applied to the hosted project.
+This snapshot was collected from the Supabase Security, Performance and Health advisors. It is an advisory review of the hosted schema at the time of review; the newer referee correction, team payment and weather-postponement migrations are forward-only changes in the Phase 1 feature branch and have not been applied to the hosted project.
 
 ## Security
 
