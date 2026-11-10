@@ -887,7 +887,7 @@ function AdminRefereesPage() {
                     {busy===`referee-payout:${payout.payout_id}`?"SENDING…":payout.status==="failed"?"RETRY REFEREE TRANSFER":"SEND REFEREE PAYMENT"}
                   </button>
                 )}
-                <button type="button" className="reject" onClick={()=>void togglePayoutHistory("match_report",payout.payout_id)}>
+                <button type="button" className="admin-inline-action" onClick={()=>void togglePayoutHistory("match_report",payout.payout_id)}>
                   {payoutHistoryOpen===`match_report:${payout.payout_id}`?"HIDE TRANSFER HISTORY":"VIEW TRANSFER HISTORY"}
                 </button>
                 {payoutHistoryOpen===`match_report:${payout.payout_id}`&&(
@@ -920,7 +920,7 @@ function AdminRefereesPage() {
                     {busy===`referee-payout:${reward.reward_id}`?"SENDING…":reward.status==="failed"?"RETRY MILESTONE TRANSFER":"SEND MILESTONE REWARD"}
                   </button>
                 )}
-                <button type="button" className="reject" onClick={()=>void togglePayoutHistory("milestone",reward.reward_id)}>
+                <button type="button" className="admin-inline-action" onClick={()=>void togglePayoutHistory("milestone",reward.reward_id)}>
                   {payoutHistoryOpen===`milestone:${reward.reward_id}`?"HIDE TRANSFER HISTORY":"VIEW TRANSFER HISTORY"}
                 </button>
                 {payoutHistoryOpen===`milestone:${reward.reward_id}`&&(
