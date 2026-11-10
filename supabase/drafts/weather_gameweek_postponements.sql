@@ -42,6 +42,15 @@ set search_path = ''
 as $$
 declare v_gameweek_id uuid;
 begin
+  -- A fixture keeps its stable gameweek identity while the display week number
+  -- is renumbered. Only create/resolve an identity for inserts or explicit moves.
+  if tg_op='UPDATE'
+     and old.gameweek_id is not null
+     and new.season_id=old.season_id
+     and new.gameweek_id=old.gameweek_id then
+    return new;
+  end if;
+
   insert into public.season_gameweeks as existing_week(season_id,week_number,scheduled_at)
   values(new.season_id,new.gameweek,new.scheduled_at)
   on conflict(season_id,week_number) do update
