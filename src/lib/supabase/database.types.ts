@@ -1580,6 +1580,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_postpone_gameweek: {
+        Args: { p_gameweek_id: string; p_replacement_at: string; p_reason: string }
+        Returns: Json
+      }
+      get_admin_postponable_gameweeks: {
+        Args: { p_season_id?: string | null }
+        Returns: {
+          gameweek_id: string
+          season_id: string
+          season_name: string
+          week_number: number
+          scheduled_at: string | null
+          fixture_count: number
+          paid_team_count: number
+          location_name: string | null
+        }[]
+      }
       admin_list_player_retention_accounts: {
         Args: { p_search?: string | null }
         Returns: {
