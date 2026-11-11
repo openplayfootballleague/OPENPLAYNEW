@@ -75,3 +75,7 @@ verify_jwt = false
 [functions.process-referee-payout-queue]
 # Protected by REFEREE_PAYOUT_CRON_SECRET and service-role worker credentials.
 verify_jwt = false
+
+[functions.admin-postpone-gameweek]
+# Requires an authenticated administrator; the function rechecks scoped access and reconciles Stripe test payments.
+verify_jwt = true
