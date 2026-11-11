@@ -50,8 +50,10 @@ begin
     (v_away_captain,'Weather Away Captain','07700900821','ci-weather-away-player@openplay.invalid',date '1990-04-11','registered',false,true);
   insert into public.user_roles(user_id,role,granted_by) values(v_admin,'admin',v_admin);
 
-  select id into v_location from public.locations where is_active=true order by created_at limit 1;
-  if v_location is null then raise exception 'Expected an active location from earlier regressions'; end if;
+  -- Keep this regression independent of seed data and the execution order of other SQL tests.
+  insert into public.locations(name,slug,town,region,is_active)
+  values('Weather Postponement Test Location','ci-weather-postponement-test-location','Bideford','Devon',true)
+  returning id into v_location;
   insert into public.leagues(location_id,name,slug,is_published)
   values(v_location,'CI Weather Postponement League','ci-weather-postponement-league',false)
   returning id into v_league;
