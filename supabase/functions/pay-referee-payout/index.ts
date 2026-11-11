@@ -96,7 +96,9 @@ Deno.serve(async(req)=>{
     });
     const transfer=await response.json();
     if(!response.ok){
-      canMarkFailed=response.status<500;
+      // 409 means the same idempotency key is still in flight; 429 is retryable.
+      // Neither may be recorded as a definitive payout failure.
+      canMarkFailed=response.status<500&&response.status!==409&&response.status!==429;
       throw new Error(transfer?.error?.message??"Stripe transfer failed");
     }
     if(transfer.livemode!==false)throw new Error("Live-mode transfers are disabled for this workflow");
