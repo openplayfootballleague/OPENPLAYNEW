@@ -88,6 +88,11 @@ begin
   end if;
   update public.platform_feature_flags set enabled=true where feature_key='announcements';
 
+  execute 'set local role anon';
+  execute 'select public.get_public_team_recruitment_status()' into v_enabled;
+  execute 'reset role';
+  if not v_enabled then raise exception 'Anonymous visitors must be able to read the enabled recruitment status'; end if;
+
 end;
 $;
 
