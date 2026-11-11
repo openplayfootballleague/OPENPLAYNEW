@@ -331,8 +331,8 @@ function MessagesPage() {
     <main className="notice-page player-facing">
       <section className="notice-panel messaging-panel">
         <div className="hub-top">
-          <Link className="notice-brand" to="/more"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link>
-          <Link className="messaging-back-link" to="/more">MORE</Link>
+          <Link className="notice-brand" to="/"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link>
+          <Link className="messaging-back-link" to="/">HOME</Link>
         </div>
         <p className="eyebrow eyebrow-dark">OPEN PLAY MEMBERS</p>
         <h1>Messages<br/><em>that matter.</em></h1>
