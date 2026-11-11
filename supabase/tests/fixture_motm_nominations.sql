@@ -77,10 +77,11 @@ begin
 
   insert into public.fixtures(id,season_id,gameweek,fixture_number,home_team_id,away_team_id,venue_id,scheduled_at,status)
   values
-    -- The first completed fixture must be inside the 24-hour MOTM window;
-    -- the later gameweek is deliberately outside it for the deadline denial.
-    (v_fixture,v_season,1,1,v_home_season_team,v_away_season_team,v_location,now()-interval '2 hours','scheduled'),
-    (v_late_fixture,v_season,2,1,v_home_season_team,v_away_season_team,v_location,now()-interval '26 hours','scheduled');
+    -- Keep both fixtures pre-kickoff while captains submit their sheets.
+    -- Their scheduled times are moved into/outside the MOTM window only
+    -- after the corresponding team-sheet edits have been completed.
+    (v_fixture,v_season,1,1,v_home_season_team,v_away_season_team,v_location,now()+interval '2 hours','scheduled'),
+    (v_late_fixture,v_season,2,1,v_home_season_team,v_away_season_team,v_location,now()+3*interval '1 hour','scheduled');
 
   -- Protected team-sheet triggers require the acting captain's JWT context,
   -- including during isolated fixture setup performed by the database owner.
@@ -128,6 +129,12 @@ begin
   set did_appear=true
   where team_sheet_id=v_away_sheet and role='starter';
 
+  -- The team sheets were submitted before kickoff. Move the completed
+  -- fixture into the recent MOTM nomination window for this regression.
+  update public.fixtures
+  set scheduled_at=now()-interval '2 hours'
+  where id=v_fixture;
+
   -- The later fixture cannot accept captain sheets until the earlier required
   -- fixture is completed, matching the production next-fixture guard.
   update public.fixtures set status='completed' where id=v_fixture;
@@ -174,6 +181,12 @@ begin
   update public.fixture_team_sheet_players
   set did_appear=true
   where team_sheet_id=v_late_away_sheet and role='starter';
+
+  -- Move the later fixture beyond the 24-hour nomination deadline only
+  -- after its sheets and appearance records have been safely submitted.
+  update public.fixtures
+  set scheduled_at=now()-interval '26 hours'
+  where id=v_late_fixture;
 
   -- Close the later fixture after both sheets have been submitted.
   update public.fixtures set status='completed' where id=v_late_fixture;
