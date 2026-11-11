@@ -42,6 +42,10 @@ begin
     select 1 from pg_catalog.pg_trigger
     where tgname='enforce_announcement_feature_flag' and not tgisinternal
   ) then raise exception 'Announcement enforcement trigger is missing'; end if;
+  if not exists (
+    select 1 from pg_catalog.pg_trigger
+    where tgname='enforce_announcement_message_feature_flag' and not tgisinternal
+  ) then raise exception 'Announcement message enforcement trigger is missing'; end if;
 
   select public.is_platform_feature_enabled('team_recruitment') into v_enabled;
   if not v_enabled then raise exception 'Recruitment must be enabled by default'; end if;
@@ -58,6 +62,10 @@ begin
     raise exception 'Public recruitment status must reflect the platform switch';
   end if;
   update public.platform_feature_flags set enabled=true where feature_key='team_recruitment';
+
+  insert into public.message_conversations(kind,title,created_by)
+  values('support','Feature flag test support conversation',v_user)
+  returning id into v_support;
 
   update public.platform_feature_flags set enabled=false where feature_key='announcements';
   if public.get_public_announcement_status() is distinct from false then
@@ -76,6 +84,7 @@ declare
   v_season uuid;
   v_team uuid;
   v_season_team uuid;
+  v_support uuid;
   v_failed boolean;
 begin
   insert into auth.users
@@ -124,6 +133,15 @@ begin
     v_failed:=true;
   end;
   if not v_failed then raise exception 'Paused announcements must reject new broadcast conversations'; end if;
+
+  v_failed:=false;
+  begin
+    insert into public.messages(conversation_id,sender_id,body,message_type)
+    values(v_support,v_user,'Feature flag test announcement message','announcement');
+  exception when sqlstate '55000' then
+    v_failed:=true;
+  end;
+  if not v_failed then raise exception 'Paused announcements must reject team announcement messages'; end if;
 end;
 $;
 
