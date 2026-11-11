@@ -3266,7 +3266,7 @@ export type Database = {
           season_name: string
           season_team_id: string
           secondary_colour: string | null
-          starts_on: string
+          starts_on: string | null
           team_name: string
         }[]
       }
@@ -3280,7 +3280,7 @@ export type Database = {
           season_name: string
           season_team_id: string
           secondary_colour: string | null
-          starts_on: string
+          starts_on: string | null
           team_name: string
         }[]
       }
