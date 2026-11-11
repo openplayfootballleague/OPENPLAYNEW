@@ -49,11 +49,11 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.create-referee-connect-account]
-# Authenticated active referees create or refresh their Express onboarding link.
+# Authenticated active referees create or refresh a Stripe embedded onboarding session.
 verify_jwt = true
 
 [functions.pay-referee-payout]
-# Finance administrators initiate test-mode transfers through the scoped payout RPC.
+# Location-scoped administrators initiate match-fee transfers; global finance admins manage milestones.
 verify_jwt = true
 
 [functions.referee-connect-webhook]
