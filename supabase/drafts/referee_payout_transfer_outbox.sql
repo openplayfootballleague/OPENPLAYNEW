@@ -80,6 +80,19 @@ begin
   if auth.role()<>'service_role' then
     raise exception 'Service role required';
   end if;
+  -- Recover only leases where the transfer claim never reached the payout row.
+  -- A payout already marked processing is ambiguous and must never be retried here.
+  update public.referee_payout_transfer_jobs job
+  set status='queued',locked_at=null,lock_token=null,available_at=now(),
+      last_error='Recovered expired pre-transfer worker lease',updated_at=now()
+  where job.status='processing'
+    and job.locked_at<now()-interval '15 minutes'
+    and exists(
+      select 1 from public.referee_report_payouts payout
+      where payout.id=job.payout_id
+        and payout.status in ('pending_connect','failed')
+        and payout.stripe_transfer_id is null
+    );
   return query
   with candidates as (
     select job.id
@@ -228,7 +241,7 @@ begin
       'x-referee-payout-cron-secret',v_cron_secret
     ),
     body:=jsonb_build_object('batch_size',10),
-    timeout_milliseconds:=15000
+    timeout_milliseconds:=60000
   );
   return v_request_id;
 end;
