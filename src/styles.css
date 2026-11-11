@@ -1428,3 +1428,7 @@ a { color: inherit; text-decoration: none; }
   width:100%;
   min-height:420px;
 }
+
+
+/* Keep role-specific Captain Hub navigation anchors clear of the fixed bottom bar. */
+#club, #matchday { scroll-margin-top: 28px; }
