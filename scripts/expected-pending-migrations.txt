@@ -34,3 +34,4 @@
 20261111201000_player_self_service_statistics.sql
 20261111203000_optional_goal_attribution.sql
 20261110193000_admin_disciplinary_return_queue.sql
+20261111205000_admin_league_admin_role_management.sql
