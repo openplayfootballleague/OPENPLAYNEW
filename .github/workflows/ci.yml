@@ -119,9 +119,9 @@ jobs:
             diff -u supabase/drafts/admin_disciplinary_return_queue.sql "$migration_file"
           fi
           test -n "$migration_file"
-          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
-          printf '%s\\n' "$migration_file"
+          printf '%s\n' "$migration_file"
       - name: Generate approved referee report correction migration using the pinned Supabase CLI
         run: |
           migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_corrections.sql' -print -quit)"
@@ -174,7 +174,7 @@ jobs:
           test -n "$migration_file"
           grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
-          printf '%s\\n' "$migration_file"
+          printf '%s\n' "$migration_file"
       - name: Preserve CLI-generated weather postponement migration for review
         uses: actions/upload-artifact@v4
         with:
@@ -197,7 +197,7 @@ jobs:
           test -n "$migration_file"
           grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
-          printf '%s\\n' "$migration_file"
+          printf '%s\n' "$migration_file"
       - name: Preserve CLI-generated approved report correction options migration
         uses: actions/upload-artifact@v4
         with:
@@ -220,7 +220,7 @@ jobs:
           test -n "$migration_file"
           grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
-          printf '%s\\n' "$migration_file"
+          printf '%s\n' "$migration_file"
       - name: Preserve CLI-generated referee Connect migration
         uses: actions/upload-artifact@v4
         with:
@@ -318,16 +318,16 @@ jobs:
             diff -u supabase/drafts/admin_league_admin_role_management.sql "$migration_file"
           fi
           test -n "$migration_file"
-          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
-          printf '%s\\n' "$migration_file"
+          printf '%s\n' "$migration_file"
       - name: Verify unique migration versions before replay
         shell: bash
         run: |
-          versions="$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\\n' | cut -c1-14 | sort)"
-          duplicates="$(printf '%s\\n' "$versions" | uniq -d)"
+          versions="$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' | cut -c1-14 | sort)"
+          duplicates="$(printf '%s\n' "$versions" | uniq -d)"
           if [ -n "$duplicates" ]; then
-            printf 'Duplicate migration version(s):\\n%s\\n' "$duplicates"
+            printf 'Duplicate migration version(s):\n%s\n' "$duplicates"
             exit 1
           fi
       - name: Replay every migration against a clean local database
@@ -492,7 +492,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Use the browser runner's supported local workerd compatibility date
         run: |
-          node -e "const fs=require('node:fs');const config=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8'));config.compatibility_date='2026-09-18';fs.writeFileSync('wrangler.jsonc',JSON.stringify(config,null,2)+'\\n');"
+          node -e "const fs=require('node:fs');const config=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8'));config.compatibility_date='2026-09-18';fs.writeFileSync('wrangler.jsonc',JSON.stringify(config,null,2)+'\n');"
       - name: Build production application with isolated Supabase test endpoint
         env:
           VITE_SUPABASE_URL: http://127.0.0.1:54321
