@@ -25,6 +25,7 @@ for (const [name, expected] of [
   ["create-referee-connect-account", true],
   ["pay-referee-payout", true],
   ["referee-connect-webhook", false],
+  ["process-referee-payout-queue", false],
 ]) {
   verifyJwtSetting(name, expected);
 }
@@ -124,6 +125,16 @@ assert.ok(!reportClaim.includes("not v_account.payouts_enabled"), "Bank-payout e
 assert.ok(adminReferees.includes("payout.transfers_enabled") && !adminReferees.includes('payout.transfers_enabled&&payout.payouts_enabled'), "Match-report send/retry controls must not require bank-payout enablement");
 assert.ok(adminReferees.includes("reward.transfers_enabled") && !adminReferees.includes('reward.transfers_enabled&&reward.payouts_enabled'), "Milestone transfer controls must not require bank-payout enablement");
 assert.ok(adminReferees.includes("bank-payout enablement is separate"), "Admin payout guidance must distinguish connected-balance transfers from later bank payouts");
+
+const refereePayoutWorker = readFileSync("supabase/functions/process-referee-payout-queue/index.ts", "utf8");
+assert.ok(refereePayoutWorker.includes('req.headers.get("x-referee-payout-cron-secret")'), "Referee payout queue worker must validate its dedicated cron secret");
+assert.ok(refereePayoutWorker.includes('stripeKey?.startsWith("sk_test_")'), "Referee payout queue worker must remain test-mode only");
+assert.ok(refereePayoutWorker.includes('rpc("claim_referee_payout_transfer_jobs"') && refereePayoutWorker.includes('rpc("release_referee_payout_transfer_job"'), "Referee payout worker must use leased outbox claims and safe release logic");
+const refereePayoutOutbox = readFileSync("supabase/drafts/referee_payout_transfer_outbox.sql", "utf8");
+assert.ok(refereePayoutOutbox.includes("after insert or update of status on public.referee_report_payouts"), "Referee payout creation must atomically enqueue its transfer job");
+assert.ok(refereePayoutOutbox.includes("for update of job skip locked"), "Concurrent referee payout workers must claim jobs without duplicate leases");
+assert.ok(refereePayoutOutbox.includes("auth.role()<>'service_role'"), "Referee payout worker RPCs must be service-role-only");
+assert.ok(refereePayoutOutbox.includes("pg_cron") && refereePayoutOutbox.includes("pg_net") && refereePayoutOutbox.includes("referee_payout_cron_secret"), "Referee payout outbox must include a Vault-backed scheduled dispatcher");
 
 const refereeConnectWebhook = readFileSync("supabase/functions/referee-connect-webhook/index.ts", "utf8");
 assert.ok(refereeConnectWebhook.includes('req.headers.get("stripe-signature")') && refereeConnectWebhook.includes("verifyStripeSignature(rawBody,signature,secret)"), "Connect webhook must verify the raw-body Stripe signature");
