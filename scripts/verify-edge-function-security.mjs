@@ -26,6 +26,7 @@ for (const [name, expected] of [
   ["pay-referee-payout", true],
   ["referee-connect-webhook", false],
   ["process-referee-payout-queue", false],
+  ["admin-postpone-gameweek", true],
 ]) {
   verifyJwtSetting(name, expected);
 }
@@ -80,6 +81,13 @@ const teamWebhook = readFileSync("supabase/functions/team-stripe-webhook/index.t
 assert.ok(teamWebhook.includes('req.headers.get("stripe-signature")') && teamWebhook.includes("verifySignature(raw"), "Team Stripe webhook must verify the raw-body signature");
 assert.ok(teamWebhook.includes("event.livemode!==false"), "Team Stripe webhook must reject live-mode events");
 assert.ok(teamWebhook.includes('rpc("record_team_fixture_payment_success"'), "Team payment state must be driven by the signed webhook");
+
+const weatherPostponement = readFileSync("supabase/functions/admin-postpone-gameweek/index.ts", "utf8");
+assert.ok(weatherPostponement.includes("userClient.auth.getUser(token)"), "Weather postponement must validate the signed-in administrator");
+assert.ok(weatherPostponement.includes('rpc("get_admin_postponable_gameweeks"') && weatherPostponement.includes('rpc("admin_postpone_gameweek"'), "Weather postponement must use location-scoped eligibility and stable gameweek identity RPCs");
+assert.ok(weatherPostponement.includes('stripeKey?.startsWith("sk_test_")'), "Weather postponement must remain test-mode only");
+assert.ok(weatherPostponement.includes("36*60*60*1000"), "Replacement kickoff must preserve the 36-hour payment window");
+assert.ok(weatherPostponement.includes("checkout/sessions/") && weatherPostponement.includes("payment_intents/"), "Weather postponement must reconcile Stripe checkout and completed payment state before changing fixtures");
 
 const teamDeadlineWorker = readFileSync("supabase/functions/process-team-payment-deadlines/index.ts", "utf8");
 assert.ok(teamDeadlineWorker.includes('req.headers.get("x-team-payment-cron-secret")'), "Team payment scheduler must validate its dedicated cron secret");
