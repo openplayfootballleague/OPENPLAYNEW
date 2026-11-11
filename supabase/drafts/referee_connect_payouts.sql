@@ -14,6 +14,7 @@ create table public.referee_connect_accounts (
     check(jsonb_typeof(requirements_due)='object'),
   disabled_reason text,
   last_synced_at timestamptz not null default now(),
+  stripe_event_created_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint referee_connect_enabled_state check (
@@ -128,7 +129,8 @@ create or replace function public.sync_referee_connect_account(
   p_payouts_enabled boolean,
   p_charges_enabled boolean,
   p_requirements_due jsonb,
-  p_disabled_reason text
+  p_disabled_reason text,
+  p_stripe_event_created_at timestamptz default null
 )
 returns text
 language plpgsql
@@ -169,11 +171,11 @@ begin
 
   insert into public.referee_connect_accounts(
     referee_user_id,stripe_account_id,onboarding_status,details_submitted,
-    transfers_enabled,payouts_enabled,charges_enabled,requirements_due,disabled_reason,last_synced_at
+    transfers_enabled,payouts_enabled,charges_enabled,requirements_due,disabled_reason,last_synced_at,stripe_event_created_at
   ) values(
     p_referee_user_id,p_stripe_account_id,v_status,coalesce(p_details_submitted,false),
     coalesce(p_transfers_enabled,false),coalesce(p_payouts_enabled,false),
-    coalesce(p_charges_enabled,false),p_requirements_due,left(p_disabled_reason,500),now()
+    coalesce(p_charges_enabled,false),p_requirements_due,left(p_disabled_reason,500),now(),coalesce(p_stripe_event_created_at,now())
   )
   on conflict(referee_user_id) do update set
     onboarding_status=excluded.onboarding_status,
@@ -183,14 +185,16 @@ begin
     charges_enabled=excluded.charges_enabled,
     requirements_due=excluded.requirements_due,
     disabled_reason=excluded.disabled_reason,
-    last_synced_at=now();
+    last_synced_at=excluded.last_synced_at,
+    stripe_event_created_at=excluded.stripe_event_created_at
+  where public.referee_connect_accounts.stripe_event_created_at < excluded.stripe_event_created_at;
 
   return v_status;
 end;
 $$;
-revoke all on function public.sync_referee_connect_account(uuid,text,boolean,boolean,boolean,boolean,jsonb,text)
+revoke all on function public.sync_referee_connect_account(uuid,text,boolean,boolean,boolean,boolean,jsonb,text,timestamptz)
   from public,anon,authenticated;
-grant execute on function public.sync_referee_connect_account(uuid,text,boolean,boolean,boolean,boolean,jsonb,text)
+grant execute on function public.sync_referee_connect_account(uuid,text,boolean,boolean,boolean,boolean,jsonb,text,timestamptz)
   to service_role;
 
 create or replace function public.claim_referee_payout_transfer(
