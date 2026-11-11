@@ -68,6 +68,7 @@ jobs:
             sleep 1
             supabase migration new referee_application_workflow < supabase/drafts/referee_application_workflow.sql
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_application_workflow.sql' -print -quit)"
+            cp "supabase/drafts/referee_application_workflow.sql" "$migration_file"
           else
             diff -u supabase/drafts/referee_application_workflow.sql "$migration_file"
           fi
@@ -81,6 +82,7 @@ jobs:
             sleep 1
             supabase migration new referee_fixture_assignments < supabase/drafts/referee_fixture_assignments.sql
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_fixture_assignments.sql' -print -quit)"
+            cp "supabase/drafts/referee_fixture_assignments.sql" "$migration_file"
           else
             diff -u supabase/drafts/referee_fixture_assignments.sql "$migration_file"
           fi
@@ -94,6 +96,7 @@ jobs:
             sleep 1
             supabase migration new referee_match_reports < supabase/drafts/referee_match_reports.sql
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_match_reports.sql' -print -quit)"
+            cp "supabase/drafts/referee_match_reports.sql" "$migration_file"
           else
             diff -u supabase/drafts/referee_match_reports.sql "$migration_file"
           fi
@@ -107,6 +110,7 @@ jobs:
             sleep 1
             supabase migration new referee_approved_report_corrections < supabase/drafts/referee_approved_report_corrections.sql
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_corrections.sql' -print -quit)"
+            cp "supabase/drafts/referee_approved_report_corrections.sql" "$migration_file"
           else
             diff -u supabase/drafts/referee_approved_report_corrections.sql "$migration_file"
           fi
@@ -120,6 +124,7 @@ jobs:
             sleep 1
             supabase migration new team_weekly_payment_workflow < supabase/drafts/team_weekly_payment_workflow.sql
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_team_weekly_payment_workflow.sql' -print -quit)"
+            cp "supabase/drafts/team_weekly_payment_workflow.sql" "$migration_file"
           else
             diff -u supabase/drafts/team_weekly_payment_workflow.sql "$migration_file"
           fi
@@ -142,6 +147,7 @@ jobs:
             sleep 1
             supabase migration new weather_gameweek_postponements < supabase/drafts/weather_gameweek_postponements.sql
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponements.sql' -print -quit)"
+            cp "supabase/drafts/weather_gameweek_postponements.sql" "$migration_file"
           else
             diff -u supabase/drafts/weather_gameweek_postponements.sql "$migration_file"
           fi
@@ -164,6 +170,7 @@ jobs:
             sleep 1
             supabase migration new referee_approved_report_correction_options < supabase/drafts/referee_approved_report_correction_options.sql
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_correction_options.sql' -print -quit)"
+            cp "supabase/drafts/referee_approved_report_correction_options.sql" "$migration_file"
           else
             diff -u supabase/drafts/referee_approved_report_correction_options.sql "$migration_file"
           fi
@@ -186,6 +193,7 @@ jobs:
             sleep 1
             supabase migration new referee_connect_payouts < supabase/drafts/referee_connect_payouts.sql
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_connect_payouts.sql' -print -quit)"
+            cp "supabase/drafts/referee_connect_payouts.sql" "$migration_file"
           else
             diff -u supabase/drafts/referee_connect_payouts.sql "$migration_file"
           fi
