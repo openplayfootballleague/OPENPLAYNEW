@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 
-type NavigationMode = "viewer" | "player" | "captain";
+type NavigationMode = "loading" | "viewer" | "player" | "captain";
 type AppPath = "/" | "/player" | "/match-centre" | "/join" | "/teams" | "/captain" | "/more";
 type NavItem = { to: AppPath; hash?: string; label: string; icon: string; activePaths?: string[] };
 
@@ -17,40 +17,47 @@ function NavIcon({ name }: { name: string }) {
 
 export function PlayerBottomNavigation() {
   const location = useRouterState({ select: (state) => state.location });
-  const [mode, setMode] = useState<NavigationMode>("viewer");
+  const [mode, setMode] = useState<NavigationMode>("loading");
 
   useEffect(() => {
     const supabase = getSupabaseClient();
     let alive = true;
+    let requestSequence = 0;
 
     async function resolveMode() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!alive) return;
-      if (!session) {
-        setMode("viewer");
-        return;
-      }
+      const sequence = ++requestSequence;
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (!alive || sequence !== requestSequence) return;
+        if (sessionError || !session) {
+          setMode("viewer");
+          return;
+        }
 
-      const [playerResult, captainResult] = await Promise.all([
-        supabase.from("players").select("registration_status,is_banned").eq("user_id", session.user.id).maybeSingle(),
-        supabase.from("team_memberships").select("is_captain").eq("user_id", session.user.id).eq("status", "active").eq("is_captain", true),
-      ]);
-      if (!alive) return;
-      const registeredPlayer = !playerResult.error && playerResult.data?.registration_status === "registered" && playerResult.data.is_banned !== true;
-      if (!registeredPlayer) {
-        setMode("viewer");
-        return;
+        const [playerResult, captainResult] = await Promise.all([
+          supabase.from("players").select("registration_status,is_banned").eq("user_id", session.user.id).maybeSingle(),
+          supabase.from("team_memberships").select("is_captain").eq("user_id", session.user.id).eq("status", "active").eq("is_captain", true),
+        ]);
+        if (!alive || sequence !== requestSequence) return;
+        const registeredPlayer = !playerResult.error && playerResult.data?.registration_status === "registered" && playerResult.data.is_banned !== true;
+        if (!registeredPlayer) {
+          setMode("viewer");
+          return;
+        }
+        setMode(!captainResult.error && (captainResult.data ?? []).some((membership) => membership.is_captain) ? "captain" : "player");
+      } catch {
+        if (alive && sequence === requestSequence) setMode("viewer");
       }
-      setMode(!captainResult.error && (captainResult.data ?? []).some((membership) => membership.is_captain) ? "captain" : "player");
     }
 
-    void resolveMode();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => { void resolveMode(); });
     return () => {
       alive = false;
       subscription.unsubscribe();
     };
   }, []);
+
+  if (mode === "loading") return null;
 
   const items: NavItem[] = mode === "captain"
     ? [
