@@ -440,6 +440,19 @@ begin
      or exists(select 1 from public.location_admin_assignments where user_id='00000000-0000-4000-8000-000000000006') then
     raise exception 'Revoking league_admin must also remove every location assignment';
   end if;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000005',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000005"}',true);
+  v_denied:=false;
+  begin
+    perform public.admin_set_location_assignment(
+      '00000000-0000-4000-8000-000000000006','00000000-0000-4000-8000-000000000010',true
+    );
+  exception when others then
+    v_denied:=sqlerrm like '%must have the league_admin role%';
+  end;
+  execute 'reset role';
+  if not v_denied then raise exception 'A user without league_admin role received a location assignment'; end if;
   select count(*) into v_count from public.audit_log
   where actor_user_id='00000000-0000-4000-8000-000000000005'
     and action='role.league_admin.granted' and entity_type='user_role';
