@@ -335,15 +335,17 @@ begin
   select unread_count into v_unread from public.get_my_message_conversations(50)
   where conversation_id=v_broadcast;
   if coalesce(v_unread,0)<>1 then raise exception 'New admin broadcast was not marked unread for its recipients'; end if;
+  -- The recipient's notification is private to that player; inspect it with
+  -- the trusted test role before restoring the administrator session.
   execute 'reset role';
-  execute 'set local role authenticated';
-  perform set_config('request.jwt.claim.sub',v_admin::text,true);
-  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_admin::text,'role','authenticated')::text,true);
   if not exists (
     select 1 from public.notification_events
     where user_id=v_player_a and channel='in_app' and event_type='message.new'
       and payload->>'conversation_id'=v_broadcast::text
   ) then raise exception 'Admin broadcast did not enqueue an in-app message notification'; end if;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_admin::text,'role','authenticated')::text,true);
   select count(*) into v_count from public.admin_get_message_reports('open',50)
   where report_id=v_report;
   if v_count<>1 then raise exception 'Administrator could not review the message report'; end if;
