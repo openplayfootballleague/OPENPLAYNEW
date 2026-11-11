@@ -15,6 +15,8 @@ const expectedMigrations = [
   "referee_connect_payouts",
   "referee_payout_transfer_outbox",
   "secure_messaging_platform",
+  "player_self_service_statistics",
+  "optional_goal_attribution",
   "admin_league_admin_role_management",
 ];
 let checked = 0;
