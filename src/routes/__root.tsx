@@ -50,7 +50,7 @@ function RootComponent() {
       <div className="openplay-app-frame">
         <header className="openplay-app-header">
           <Link className="openplay-app-brand" to="/player" aria-label="Open Play Player Hub">
-            <span className="openplay-app-mark">OP</span>
+            <img className="openplay-app-mark" src="/open-play-logo.svg" alt="" />
             <span>OPEN PLAY</span>
           </Link>
           <div className="openplay-header-actions">
