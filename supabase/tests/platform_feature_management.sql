@@ -64,7 +64,67 @@ begin
     raise exception 'Public announcement status must reflect the platform switch';
   end if;
   update public.platform_feature_flags set enabled=true where feature_key='announcements';
+
 end;
-$$;
+$;
+
+do $
+declare
+  v_user uuid:=gen_random_uuid();
+  v_location uuid;
+  v_league uuid;
+  v_season uuid;
+  v_team uuid;
+  v_season_team uuid;
+  v_failed boolean;
+begin
+  insert into auth.users
+    (id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
+  values
+    (v_user,'authenticated','authenticated','ci-platform-feature@openplay.invalid','','{}'::jsonb,now(),now(),now());
+
+  insert into public.profiles(id,display_name,account_retention_status)
+  values(v_user,'Platform Feature Test','active');
+
+  insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status,is_banned)
+  values(v_user,'Platform Feature Test','+447700929991','ci-platform-feature@openplay.invalid',date '1990-01-01','registered',false);
+
+  select id into v_location from public.locations where is_active=true order by created_at limit 1;
+  if v_location is null then raise exception 'Feature flag regression requires an active location'; end if;
+
+  insert into public.leagues(location_id,name,slug,format,is_published)
+  values(v_location,'Feature Flag Test League','ci-feature-flag-test-league','six_a_side',false)
+  returning id into v_league;
+
+  insert into public.seasons(league_id,name,status,is_public)
+  values(v_league,'Feature Flag Test Season','registration_open',false)
+  returning id into v_season;
+
+  insert into public.teams(created_by) values(v_user) returning id into v_team;
+  insert into public.season_teams(team_id,season_id,name,slug,registration_status)
+  values(v_team,v_season,'Feature Flag Test Team','ci-feature-flag-test-team','approved')
+  returning id into v_season_team;
+
+  update public.platform_feature_flags set enabled=false where feature_key='team_recruitment';
+  v_failed:=false;
+  begin
+    insert into public.team_memberships(season_team_id,user_id,status,is_captain)
+    values(v_season_team,v_user,'pending',false);
+  exception when sqlstate '55000' then
+    v_failed:=true;
+  end;
+  if not v_failed then raise exception 'Paused team recruitment must reject new pending memberships'; end if;
+
+  update public.platform_feature_flags set enabled=false where feature_key='announcements';
+  v_failed:=false;
+  begin
+    insert into public.message_conversations(kind,title,created_by,target_type)
+    values('announcement','Feature flag test announcement',v_user,'everyone');
+  exception when sqlstate '55000' then
+    v_failed:=true;
+  end;
+  if not v_failed then raise exception 'Paused announcements must reject new broadcast conversations'; end if;
+end;
+$;
 
 rollback;
