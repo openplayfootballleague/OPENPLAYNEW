@@ -92,8 +92,18 @@ begin
 
   if not pg_catalog.has_function_privilege('authenticated','public.update_team_instagram_profile(uuid,text)','EXECUTE')
      or pg_catalog.has_function_privilege('anon','public.update_team_instagram_profile(uuid,text)','EXECUTE')
-     or pg_catalog.has_function_privilege('anon','public.admin_get_team_social_profiles()','EXECUTE') then
-    raise exception 'Team profile mutation and admin listing grants are not least-privilege';
+     or pg_catalog.has_function_privilege('anon','public.admin_get_team_social_profiles()','EXECUTE')
+     or not pg_catalog.has_function_privilege('authenticated','public.admin_get_team_social_profiles()','EXECUTE')
+     or not pg_catalog.has_function_privilege('authenticated','public.register_team(uuid,text,text,text,text)','EXECUTE')
+     or not pg_catalog.has_function_privilege('authenticated','public.register_team(uuid,text,text,text,text,text)','EXECUTE')
+     or pg_catalog.has_function_privilege('anon','public.register_team(uuid,text,text,text,text)','EXECUTE')
+     or pg_catalog.has_function_privilege('anon','public.register_team(uuid,text,text,text,text,text)','EXECUTE') then
+    raise exception 'Team profile mutation, registration and admin listing grants are not least-privilege';
+  end if;
+  if pg_catalog.has_table_privilege('authenticated','public.teams','INSERT')
+     or pg_catalog.has_table_privilege('authenticated','public.teams','UPDATE')
+     or pg_catalog.has_table_privilege('authenticated','public.teams','DELETE') then
+    raise exception 'Authenticated users must use the scoped RPCs rather than directly mutating public.teams';
   end if;
 end;
 $team_instagram$;
