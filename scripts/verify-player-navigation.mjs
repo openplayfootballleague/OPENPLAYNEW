@@ -6,7 +6,7 @@ assert.ok(navigation.includes('id: "home", to: mode === "player" ? "/player" : "
 assert.ok(navigation.includes('id: "match-centre", to: "/match-centre"') && navigation.includes('id: "teams", to: "/teams"'), "Viewer and registered-player navigation must include Match Centre and Teams");
 assert.ok(navigation.includes('id: "club", to: "/captain", hash: "#captain-club"') && navigation.includes('id: "matchday", to: "/captain", hash: "#captain-matchday"'), "Captain navigation must expose Club and Matchday as distinct destinations");
 assert.ok(navigation.includes('id: "home", to: "/player"') && navigation.includes('id: "more", to: "/more"'), "Captain navigation must retain Player Hub Home and More");
-assert.ok(navigation.includes('registration_status !== "registered"') && navigation.includes("row.is_captain") && navigation.includes('setMode((captainRows ?? []).length > 0 ? "captain" : "player")'), "Navigation must derive viewer, registered-player and captain states from authorised account data");
+assert.ok(navigation.includes('registration_status !== "registered"') && navigation.includes('.eq("is_captain", true)') && navigation.includes('setMode((captainRows ?? []).length > 0 ? "captain" : "player")'), "Navigation must derive viewer, registered-player and captain states from authorised account data");
 const captainNavBlock = navigation.match(/const items: NavigationItem\[\] = mode === "captain"\s*\?\s*\[([\s\S]*?)\]\s*:\s*\[([\s\S]*?)\];/);
 assert.ok(captainNavBlock, "Account-specific navigation arrays must be present");
 for (const [index, block] of captainNavBlock.slice(1).entries()) {
