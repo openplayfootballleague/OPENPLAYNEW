@@ -1,25 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const encoder=new TextEncoder();
-const hex=(bytes:Uint8Array)=>Array.from(bytes).map((byte)=>byte.toString(16).padStart(2,"0")).join("");
-const safeEqual=(a:string,b:string)=>{
-  if(a.length!==b.length)return false;
-  let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);
-  return diff===0;
-};
-async function verifyStripeSignature(rawBody:string,header:string,secret:string){
-  const parts=header.split(",").map((part)=>part.trim());
-  const timestamp=parts.find((part)=>part.startsWith("t="))?.slice(2);
-  const signatures=parts.filter((part)=>part.startsWith("v1=")).map((part)=>part.slice(3));
-  if(!timestamp||signatures.length===0)return false;
-  const seconds=Number(timestamp);
-  if(!Number.isFinite(seconds)||Math.abs(Date.now()/1000-seconds)>300)return false;
-  const key=await crypto.subtle.importKey("raw",encoder.encode(secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
-  const digest=new Uint8Array(await crypto.subtle.sign("HMAC",key,encoder.encode(`${timestamp}.${rawBody}`)));
-  const expected=hex(digest);
-  return signatures.some((signature)=>safeEqual(signature,expected));
-}
+import { verifyStripeSignature } from "./signature.ts";
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json"}});
 
 Deno.serve(async(req)=>{
