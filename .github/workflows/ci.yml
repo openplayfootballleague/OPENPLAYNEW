@@ -276,6 +276,36 @@ jobs:
           grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\n' "$migration_file"
+      - name: Generate player self-service statistics migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_player_self_service_statistics.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new player_self_service_statistics
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_player_self_service_statistics.sql' -print -quit)"
+            cp supabase/drafts/player_self_service_statistics.sql "$migration_file"
+          else
+            diff -u supabase/drafts/player_self_service_statistics.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
+      - name: Generate optional goal attribution migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_optional_goal_attribution.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new optional_goal_attribution
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_optional_goal_attribution.sql' -print -quit)"
+            cp supabase/drafts/optional_goal_attribution.sql "$migration_file"
+          else
+            diff -u supabase/drafts/optional_goal_attribution.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
       - name: Generate league administrator role management migration using the pinned Supabase CLI
         run: |
           migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_admin_league_admin_role_management.sql' -print -quit)"
