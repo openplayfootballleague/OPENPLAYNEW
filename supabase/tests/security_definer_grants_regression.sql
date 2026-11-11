@@ -11,7 +11,13 @@ begin
   join pg_catalog.pg_namespace n on n.oid=p.pronamespace
   where n.nspname='public'
     and p.prosecdef
-    and pg_catalog.has_function_privilege('anon', p.oid, 'EXECUTE');
+    and pg_catalog.has_function_privilege('anon', p.oid, 'EXECUTE')
+    -- These two explicitly public RPCs expose only approved teams in
+    -- published, public seasons at active locations; no private team data.
+    and p.oid::regprocedure::text not in (
+      'get_public_team_directory(uuid)',
+      'get_public_team_profile(uuid)'
+    );
 
   if v_anon_executable is not null then
     raise exception 'Anonymous role can execute SECURITY DEFINER functions: %',
