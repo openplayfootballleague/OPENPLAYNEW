@@ -1,0 +1,37 @@
+import { readFileSync } from "node:fs";
+
+const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
+const lines = workflow.split(/\r?\n/);
+const errors = [];
+let checked = 0;
+
+for (let index = 0; index < lines.length; index += 1) {
+  const command = lines[index].match(/supabase migration new ([a-z0-9_]+)(.*)$/);
+  if (!command) continue;
+
+  const name = command[1];
+  const suffix = command[2].trim();
+  const next = lines[index + 1]?.trim() ?? "";
+  const after = lines[index + 2]?.trim() ?? "";
+
+  if (suffix.length > 0) {
+    errors.push(`Migration ${name} redirects draft SQL into the CLI. The CLI creates the file; it does not populate it from stdin.`);
+    continue;
+  }
+  if (!next.startsWith("migration_file=") || !next.includes(`*_${name}.sql`)) {
+    errors.push(`Migration ${name} does not locate its generated file immediately after creation.`);
+    continue;
+  }
+  if (after !== `cp supabase/drafts/${name}.sql "$migration_file"`) {
+    errors.push(`Migration ${name} does not copy its canonical SQL draft into the generated file.`);
+    continue;
+  }
+  checked += 1;
+}
+
+if (checked === 0) errors.push("No Supabase CLI migration-generation steps were found.");
+if (errors.length > 0) {
+  for (const error of errors) console.error(`::error::${error}`);
+  process.exit(1);
+}
+console.log(`Verified canonical SQL draft copying for ${checked} generated migrations.`);
