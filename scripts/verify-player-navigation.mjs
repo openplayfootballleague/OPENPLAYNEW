@@ -113,6 +113,14 @@ assert.ok(playerStatsSource.includes("Assists and Man of the Match awards are no
 const analyticsEventsSource = readFileSync("src/lib/analytics/events.ts", "utf8");
 assert.ok(analyticsEventsSource.includes('"player_statistics_viewed"') && analyticsEventsSource.includes('"player_statistics"'), "Player statistics usage must use the consent-gated, allow-listed analytics taxonomy");
 assert.ok(playerStatsSource.includes('capture("player_statistics_viewed"'), "Player Hub statistics views must be captured only through the consent-aware analytics provider");
+
+const adminResultSource = readFileSync("src/routes/admin.tsx", "utf8");
+const refereeReportSource = readFileSync("src/routes/referee/report.$fixtureId.tsx", "utf8");
+const optionalGoalMigration = readFileSync("supabase/migrations/20261111203000_optional_goal_attribution.sql", "utf8");
+assert.ok(!adminResultSource.includes("hasOneScorerPerGoal") && adminResultSource.includes("Goalscorer attribution is optional"), "Admin result entry must allow a valid score without named scorers");
+assert.ok(!refereeReportSource.includes("Select one goalscorer for every goal") && refereeReportSource.includes("GOALSCORERS · OPTIONAL"), "Referee reports must allow unattributed goals without inventing player records");
+assert.ok(optionalGoalMigration.includes("cardinality(coalesce(p_home_scorers,'{}'::uuid[]))>p_home_score") && optionalGoalMigration.includes("cardinality(coalesce(p_home_scorers,'{}'::uuid[])) > p_home_score"), "Database result and referee-report RPCs must cap scorer attribution at the official score without requiring full attribution");
+
 const playerStatsMigration = readFileSync("supabase/migrations/20261111201000_player_self_service_statistics.sql", "utf8");
 assert.ok(playerStatsMigration.includes("auth.uid()") && playerStatsMigration.includes("r.confirmed_at is not null") && playerStatsMigration.includes("ts.is_locked is true") && playerStatsMigration.includes("g.voided_at is null"), "Player statistics must be limited to the signed-in player, locked appearances, confirmed results and non-voided goals");
 assert.ok(playerStatsMigration.includes("revoke all on function public.get_my_player_statistics(uuid) from public, anon;") && playerStatsMigration.includes("grant execute on function public.get_my_player_statistics(uuid) to authenticated;"), "Player statistics RPC must be unavailable to anonymous users");
