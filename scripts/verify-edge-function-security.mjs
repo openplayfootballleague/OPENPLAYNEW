@@ -160,4 +160,11 @@ assert.ok(adminPostpone.includes('rpc("admin_postpone_gameweek"'), "Gameweek pos
 assert.ok(adminPostpone.includes('stripeKey?.startsWith("sk_test_")'), "Gameweek postponement refunds must remain test-mode only");
 assert.ok(adminPostpone.includes('intent.status!=="succeeded"') && adminPostpone.includes("Number(session.amount_total)!==obligation.amount_pence"), "Completed Checkout reconciliation must verify the settled PaymentIntent and Checkout amount");
 
+
+const adminRoute = readFileSync("src/routes/admin.tsx", "utf8");
+assert.ok(adminRoute.includes('to="/admin-messages"'), "Administrators must have a visible route to messaging and moderation controls");
+const adminMessagingRoute = readFileSync("src/routes/admin-messages.tsx", "utf8");
+assert.ok(adminMessagingRoute.includes('rpc("admin_get_message_reports"') && adminMessagingRoute.includes('rpc("admin_resolve_message_report"'), "Admin messaging workspace must expose the protected moderation queue and resolution action");
+assert.ok(adminMessagingRoute.includes('rpc("admin_create_message_broadcast"'), "Admin messaging workspace must expose targeted announcements");
+
 console.log("Edge Function security configuration and Phase 1 workflow boundary assertions passed.");
