@@ -106,6 +106,22 @@ jobs:
           fi
           test -n "$migration_file"
           printf '%s\n' "$migration_file"
+      - name: Generate disciplinary return review migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_admin_disciplinary_return_queue.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            # Keep the generated timestamp unique and later than referee match reports.
+            sleep 1
+            supabase migration new admin_disciplinary_return_queue
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_admin_disciplinary_return_queue.sql' -print -quit)"
+            cp supabase/drafts/admin_disciplinary_return_queue.sql "$migration_file"
+          else
+            diff -u supabase/drafts/admin_disciplinary_return_queue.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\\n' "$migration_file"
       - name: Generate approved referee report correction migration using the pinned Supabase CLI
         run: |
           migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_corrections.sql' -print -quit)"
