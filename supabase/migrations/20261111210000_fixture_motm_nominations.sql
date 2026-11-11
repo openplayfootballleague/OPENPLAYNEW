@@ -451,7 +451,7 @@ begin
   return query
   select n.competition_player_id,cpi.display_name,n.season_team_id,st.name::text,
     count(*)::bigint,
-    count(distinct tsp.fixture_id)::bigint
+    count(distinct sh.fixture_id)::bigint
   from public.fixture_motm_nominations n
   join public.fixtures f on f.id=n.fixture_id and f.status='completed'
   join public.season_teams st on st.id=n.season_team_id
