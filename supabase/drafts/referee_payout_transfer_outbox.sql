@@ -92,7 +92,7 @@ returns table(job_id uuid,payout_id uuid,lock_token uuid)
 language plpgsql
 security invoker
 set search_path=''
-as $
+as $$
 begin
   -- Execute privilege is granted only to service_role; this invoker function
   -- therefore runs with the service role's explicit table grants.
@@ -156,7 +156,7 @@ returns jsonb
 language plpgsql
 security invoker
 set search_path=''
-as $
+as $$
 declare
   v_job public.referee_payout_transfer_jobs;
   v_payout public.referee_report_payouts;
@@ -220,7 +220,7 @@ returns boolean
 language plpgsql
 security invoker
 set search_path=''
-as $
+as $$
 begin
   update public.referee_payout_transfer_jobs
   set status='queued',available_at=now()+make_interval(secs=>greatest(60,least(coalesce(p_delay_seconds,300),3600))),
