@@ -4,6 +4,7 @@ import { Link,createFileRoute } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { useOpenPlayAnalytics } from "../components/analytics-provider";
 import { CaptainTeamPayments } from "../components/captain-team-payments";
+import { TeamInstagramManager } from "../components/team-instagram-manager";
 type CaptainRow={season_team_id:string;team_name:string;membership_id:string;player_name:string;membership_status:string;is_captain:boolean;squad_number:number|null;requested_at:string};
 type CaptainFixture={fixture_id:string;season_team_id:string;team_name:string;opponent_name:string;gameweek:number;scheduled_at:string|null;competition_format:string};
 type CaptainAvailability={fixture_id:string;season_team_id:string;team_name:string;gameweek:number;scheduled_at:string|null;player_name:string;is_available:boolean|null;response_note:string|null;responded_at:string|null};
@@ -48,6 +49,7 @@ function CaptainsHubPage(){
   </section>)}
   {teams.length===0&&<section className="hub-empty"><h2>No captain teams yet.</h2><p>Once your team registration is approved and captain access is activated, your squad and requests will appear here.</p></section>}
   </div>
+  <TeamInstagramManager mode="captain"/>
   <div id="captain-matchday">
   <div className="hub-section-heading"><span className="hub-kicker">MATCHDAY</span><span>Team sheets, availability &amp; duties</span></div>
   {<section className="hub-memberships"><div className="hub-section-heading"><span className="hub-kicker">PLAYER TRANSFER REQUESTS</span><span>{transferRequests.length} pending</span></div>{transferRequests.length===0?<p className="form-note">No transfer requests are waiting for your club.</p>:transferRequests.map(request=><article className="captain-request" key={request.id}><div><strong>{request.player_name}{request.is_emergency?" · EMERGENCY":""}</strong><span>{request.source_team_name} → {request.destination_team_name}</span><small>{request.league_name} · {request.season_name} · {new Date(request.requested_at).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"})}</small><small>{request.reason}</small><label>Decision reason<textarea rows={2} minLength={5} value={transferReasons[request.id]??""} onChange={e=>setTransferReasons(old=>({...old,[request.id]:e.target.value}))} placeholder="Add a reason for approving or declining."/></label></div><div className="captain-actions"><button type="button" disabled={busyId==="transfer-"+request.id} onClick={()=>void decideTransfer(request.id,"approved")}>Approve transfer</button><button type="button" className="reject" disabled={busyId==="transfer-"+request.id} onClick={()=>void decideTransfer(request.id,"rejected")}>Decline</button></div></article>)}</section>}
