@@ -1601,6 +1601,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_disciplinary_suspensions: {
+        Args: { p_location_id?: string | null }
+        Returns: {
+          competition_player_id: string
+          player_name: string
+          disciplinary_strikes: number
+          last_straight_red_at: string
+          last_fixture_id: string
+          last_gameweek: number
+          last_team_name: string
+        }[]
+      }
+      admin_reactivate_disciplined_player: {
+        Args: { p_competition_player_id: string; p_reason: string }
+        Returns: undefined
+      }
       admin_postpone_gameweek: {
         Args: { p_gameweek_id: string; p_replacement_at: string; p_reason: string }
         Returns: Json
