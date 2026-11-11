@@ -77,11 +77,8 @@ begin
 
   insert into public.fixtures(id,season_id,gameweek,fixture_number,home_team_id,away_team_id,venue_id,scheduled_at,status)
   values
-    (v_fixture,v_season,1,1,v_home_season_team,v_away_season_team,v_location,now()-interval '2 hours','completed'),
-    (v_late_fixture,v_season,2,1,v_home_season_team,v_away_season_team,v_location,now()-interval '25 hours','completed');
-
-  insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
-  values(v_fixture,1,0,now(),v_admin),(v_late_fixture,0,0,now(),v_admin);
+    (v_fixture,v_season,1,1,v_home_season_team,v_away_season_team,v_location,now()+interval '2 hours','scheduled'),
+    (v_late_fixture,v_season,2,1,v_home_season_team,v_away_season_team,v_location,now()+interval '2 hours','scheduled');
 
   -- Protected team-sheet triggers require the acting captain's JWT context,
   -- including during isolated fixture setup performed by the database owner.
@@ -112,6 +109,12 @@ begin
     (v_late_home_sheet,v_home_teammate,'starter'),
     (v_late_away_sheet,v_away_captain,'starter'),
     (v_late_away_sheet,v_away_teammate,'starter');
+
+  -- Team sheets must be submitted while the fixture is still scheduled and in the future.
+  -- Then close both fixtures and attach their confirmed results for the MOTM workflow.
+  update public.fixtures set status='completed' where id in (v_fixture,v_late_fixture);
+  insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
+  values(v_fixture,1,0,now(),v_admin),(v_late_fixture,0,0,now(),v_admin);
 
   -- Mirror the official result workflow: starters are confirmed appearances;
   -- the named substitute remains unplayed and must not be eligible.
