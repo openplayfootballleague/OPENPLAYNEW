@@ -134,7 +134,7 @@ assert.ok(refereePayoutWorker.includes('rpc("claim_referee_payout_transfer_jobs"
 const refereePayoutOutbox = readFileSync("supabase/drafts/referee_payout_transfer_outbox.sql", "utf8");
 assert.ok(refereePayoutOutbox.includes("after insert or update of status on public.referee_report_payouts"), "Referee payout creation must atomically enqueue its transfer job");
 assert.ok(refereePayoutOutbox.includes("for update of job skip locked"), "Concurrent referee payout workers must claim jobs without duplicate leases");
-assert.ok(refereePayoutOutbox.includes("auth.role()<>'service_role'"), "Referee payout worker RPCs must be service-role-only");
+assert.ok(refereePayoutOutbox.includes("security invoker") && refereePayoutOutbox.includes("grant execute on function public.claim_referee_payout_transfer_jobs(integer) to service_role") && refereePayoutOutbox.includes("grant execute on function public.claim_referee_payout_transfer_worker(uuid,uuid,uuid) to service_role"), "Referee payout worker RPCs must use invoker security and service-role-only execution grants");
 assert.ok(refereePayoutOutbox.includes("pg_cron") && refereePayoutOutbox.includes("pg_net") && refereePayoutOutbox.includes("referee_payout_cron_secret"), "Referee payout outbox must include a Vault-backed scheduled dispatcher");
 
 const refereeConnectWebhook = readFileSync("supabase/functions/referee-connect-webhook/index.ts", "utf8");
