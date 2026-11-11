@@ -93,8 +93,11 @@ begin
   if not v_failed then raise exception 'A non-admin user must not change platform feature flags'; end if;
   perform set_config('request.jwt.claim.sub','',true);
 
-  select id into v_location from public.locations where is_active=true order by created_at limit 1;
-  if v_location is null then raise exception 'Feature flag regression requires an active location'; end if;
+  -- The clean CI database is replayed without seed data, so this test must
+  -- provision its own location instead of depending on an existing one.
+  insert into public.locations(name,slug,town,region,is_active)
+  values('Feature Flag Test Location','ci-feature-flag-test-location','Bideford','Devon',true)
+  returning id into v_location;
   insert into public.leagues(location_id,name,slug,format,is_published)
   values(v_location,'Feature Flag Test League','ci-feature-flag-test-league','six_a_side',false) returning id into v_league;
   insert into public.seasons(league_id,name,status,is_public)
