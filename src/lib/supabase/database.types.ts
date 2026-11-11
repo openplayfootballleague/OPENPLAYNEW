@@ -3444,6 +3444,10 @@ export type Database = {
         Args: { p_enabled: boolean; p_feature_key: string; p_reason: string }
         Returns: Database["public"]["Tables"]["platform_feature_flags"]["Row"]
       }
+      get_public_team_recruitment_status: {
+        Args: never
+        Returns: boolean
+      }
       get_admin_platform_feature_flags: {
         Args: never
         Returns: {
