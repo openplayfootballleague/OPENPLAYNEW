@@ -10,9 +10,12 @@ assert.ok(navigation.includes('registration_status === "registered"') && navigat
 assert.ok(navigation.includes('eq("status", "active")') && navigation.includes('eq("is_captain", true)'), "Captain navigation must require an active server-backed captain membership");
 assert.ok(navigation.includes('hash: "club"') && navigation.includes('hash: "matchday"'), "Captain Club and Matchday tabs must navigate to their respective workspace sections");
 assert.ok(navigation.includes("useRouterState") && navigation.includes('location.pathname'), "Navigation active state must follow the current route");
-const captainNav = navigation.slice(navigation.indexOf('mode === "captain" ? ['), navigation.indexOf(': mode === "player"'));
-const playerNav = navigation.slice(navigation.indexOf(': mode === "player"'), navigation.indexOf(': [', navigation.indexOf(': mode === "player"') + 1));
-const viewerNav = navigation.slice(navigation.lastIndexOf(': ['));
+const captainStart = navigation.indexOf('mode === "captain"');
+const playerStart = navigation.indexOf('mode === "player"');
+const viewerStart = navigation.indexOf(": [", playerStart);
+const captainNav = navigation.slice(captainStart, playerStart);
+const playerNav = navigation.slice(playerStart, viewerStart);
+const viewerNav = navigation.slice(viewerStart);
 for (const [name, block] of [["captain", captainNav], ["player", playerNav], ["viewer", viewerNav]]) {
   assert.equal((block.match(/label:/g) ?? []).length, 4, `${name} navigation must contain exactly four tabs`);
 }
