@@ -3288,6 +3288,14 @@ export type Database = {
         Args: { p_instagram_profile_url: string | null; p_season_team_id: string }
         Returns: string | null
       }
+      update_team_instagram_details: {
+        Args: {
+          p_instagram_handle: string | null
+          p_instagram_profile_url: string | null
+          p_season_team_id: string
+        }
+        Returns: undefined
+      }
       register_team: {
         Args: {
           p_instagram_handle?: string | null
