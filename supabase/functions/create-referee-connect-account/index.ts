@@ -84,6 +84,10 @@ Deno.serve(async(req)=>{
       p_charges_enabled:!!account.charges_enabled,
       p_requirements_due:account.requirements??{},
       p_disabled_reason:account.requirements?.disabled_reason??null,
+      // Use Stripe's immutable account creation time as the initial event watermark.
+      // A verification webhook is necessarily newer and must be allowed to advance
+      // readiness; using local now() here can incorrectly classify it as stale.
+      p_stripe_event_created_at:new Date((typeof account.created==="number"?account.created:Math.floor(Date.now()/1000))*1000).toISOString(),
     });
     if(syncError)throw new Error(syncError.message);
 
