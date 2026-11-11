@@ -7,6 +7,7 @@
 - The account onboarding flow requests the transfers capability.
 - Account status is synchronized from signed `account.updated` events.
 - Match-report and milestone payout obligations have separate records and idempotency identities.
+- Approved match-fee entitlements are transactionally inserted into a private payout-transfer outbox; a Vault-backed `pg_cron` / `pg_net` dispatcher invokes the service-role worker every minute. The worker leases jobs with `SKIP LOCKED` and uses the same attempt-specific Stripe idempotency keys.
 - Transfer attempts are reconciled into the payout ledger; ambiguous attempts must not be blindly retried.
 - All current integration work is restricted to Stripe test mode.
 
@@ -22,7 +23,7 @@
 
 ## Current implementation boundary
 
-The current branch invokes the test-mode transfer workflow from the administrator client immediately after the approval RPC succeeds. This remains a best-effort trigger, not a durable server-side outbox: if the browser closes between approval and invocation, the payout remains pending and needs an administrator retry. A durable approval-triggered outbox/worker is still required for unattended reliability. The Edge Function resolves the payout obligation from the approved report, then uses the authenticated administrator's location-scoped database claim. The £50 milestone workflow remains separate and requires a global finance administrator.
+The current branch invokes the test-mode transfer workflow from the administrator client immediately after the approval RPC succeeds for low latency. Independently, the payout row's insert trigger creates a durable outbox job in the same database transaction as approval. The scheduled worker processes queued jobs without an open admin browser. The browser call and worker share the same payout status claim and Stripe idempotency key, so they cannot create separate transfer attempts for the same claimed attempt. The Edge Function resolves the payout obligation from the approved report, then uses the authenticated administrator's location-scoped database claim. The £50 milestone workflow remains separate and requires a global finance administrator.
 
 The transfer/reconciliation foundations use attempt-specific Stripe idempotency keys and signed webhook confirmation. Ambiguous outcomes remain processing and must be reconciled before retry. A referee without an eligible connected account cannot receive a transfer; the entitlement remains visible for later action.
 
@@ -36,10 +37,12 @@ Configure these in the Open Play New Supabase project's Edge Function secrets wh
 - `VITE_STRIPE_PUBLISHABLE_KEY`: Stripe **test-mode** publishable key beginning `pk_test_`, supplied only to the frontend build. This is public and must never contain a secret key.
 - `APP_ORIGIN`: exact application origin, without a trailing slash.
 - `REFEREE_CONNECT_WEBHOOK_SECRET`: signing secret for the dedicated Connect webhook endpoint.
-- `REFEREE_PAYOUT_CRON_SECRET`: required only by the current protected payout-worker endpoint; do not expose it to browser code.
+- `REFEREE_PAYOUT_CRON_SECRET`: required by the protected payout queue worker and payout-transfer function; do not expose it to browser code.
 - Standard Supabase Edge Function environment values: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`.
 
-Do not place Stripe secret keys or webhook signing secrets in Vite variables, browser code, GitHub files or the public repository.
+Add `open_play_supabase_url`, `open_play_service_role_key`, and `referee_payout_cron_secret` to Supabase Vault for the scheduled dispatcher. The dispatcher remains a no-op until all three Vault values and the Edge Function secrets are configured.
+
+Do not place Stripe secret keys, Supabase service-role keys or webhook/cron signing secrets in Vite variables, browser code, GitHub files or the public repository.
 
 ## Stripe Dashboard test-mode configuration
 
@@ -61,12 +64,12 @@ A referee is eligible for an Open Play transfer when the connected account is co
 - Report approval creates exactly one £22 gross entitlement and triggers an immediate transfer attempt when the referee account is eligible.
 - An ineligible account leaves the entitlement safely pending with a clear reason; it must not lose or duplicate the entitlement.
 - Stable idempotency prevents duplicate transfers on repeated approval, retries, worker replay or corrected report submission.
-- A Stripe timeout/ambiguous response is reconciled before another attempt is permitted.
+- A Stripe timeout/ambiguous response is reconciled before another attempt is permitted. Jobs whose payout row is already `processing` are never automatically reclaimed; only expired leases where the payout claim never reached the payout row can be safely re-queued.
 - Signed webhook processing is replay-safe, validates transfer identity, destination and amount, and cannot let stale events overwrite a newer successful attempt.
 - A definitive transfer failure is visible to administrators and can be retried only after reconciliation.
 - Milestone rewards require a separate administrator approval and cannot be triggered by match-report approval.
 - Referees can see match-fee entitlement, connected-balance transfer and bank-payout status as distinct states.
-- CI covers account readiness, role restrictions, amount calculation, immediate trigger, idempotency, failed/ambiguous transfer recovery, webhook replay/reversal and milestone approval without calling Stripe.
+- CI covers account readiness, role restrictions, amount calculation, transactional outbox enqueue, worker lease/release, idempotency, failed/ambiguous transfer recovery, webhook replay/reversal and milestone approval without calling Stripe.
 - Browser/device acceptance verifies the referee and finance/admin views.
 
 ## Release safety
