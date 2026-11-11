@@ -60,7 +60,7 @@ begin
       where payout_id=new.id;
     elsif new.status='pending_connect' then
       update public.referee_payout_transfer_jobs
-      set status='queued',locked_at=null,lock_token=null,available_at=now(),updated_at=now()
+      set status='queued',locked_at=null,lock_token=null,first_attempt_at=null,available_at=now(),updated_at=now()
       where payout_id=new.id and status<>'completed';
     end if;
   end if;
@@ -224,7 +224,7 @@ as $$
 begin
   update public.referee_payout_transfer_jobs
   set status='queued',available_at=now()+make_interval(secs=>greatest(60,least(coalesce(p_delay_seconds,300),3600))),
-      locked_at=null,lock_token=null,last_error=left(coalesce(p_reason,'Worker could not claim payout'),500),
+      locked_at=null,lock_token=null,first_attempt_at=null,last_error=left(coalesce(p_reason,'Worker could not claim payout'),500),
       updated_at=now()
   where id=p_job_id and status='processing' and lock_token=p_lock_token
     and not exists(
