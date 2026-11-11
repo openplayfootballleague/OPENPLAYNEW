@@ -105,7 +105,7 @@ assert.ok(refereeConnectWebhook.includes("event.livemode!==false"), "Connect web
 assert.ok(refereeConnectWebhook.includes("referee_connect_webhook_events") && refereeConnectWebhook.includes("processed_at"), "Connect webhook processing must be idempotent and retryable");
 
 
-const connectOnboarding = readFileSync("supabase/functions/create-referee-connect-account/index.ts", "utf8");
+
 assert.ok(connectOnboarding.includes('controller[stripe_dashboard][type]","express"') && connectOnboarding.includes('controller[fees][payer]","application"') && connectOnboarding.includes('controller[losses][payments]","application"'), "New referee Connect accounts must use Stripe controller properties with platform fee and loss responsibility");
 assert.ok(!connectOnboarding.includes('params.set("type","express")'), "New referee Connect accounts must not use deprecated legacy account-type creation");
 assert.ok(connectOnboarding.includes('sessionParams.set("components[account_onboarding][enabled]","true")') && connectOnboarding.includes('stripeRequest("account_sessions","POST"'), "Referee onboarding must use a Stripe Account Session for embedded onboarding");
