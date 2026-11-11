@@ -121,9 +121,9 @@ language sql
 stable
 security invoker
 set search_path = ''
-as $
+as $function$
   select coalesce((select enabled from public.platform_feature_flags where feature_key='team_recruitment'),true);
-$;
+$function$;
 revoke all on function public.get_public_team_recruitment_status() from public;
 grant execute on function public.get_public_team_recruitment_status() to anon,authenticated;
 
@@ -154,9 +154,9 @@ language sql
 stable
 security invoker
 set search_path = ''
-as $
+as $function$
   select coalesce((select enabled from public.platform_feature_flags where feature_key='announcements'),true);
-$;
+$function$;
 revoke all on function public.get_public_announcement_status() from public;
 grant execute on function public.get_public_announcement_status() to anon,authenticated;
 
@@ -166,7 +166,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $function$
 begin
   if new.message_type='announcement'
      and not public.is_platform_feature_enabled('announcements') then
@@ -174,7 +174,7 @@ begin
   end if;
   return new;
 end;
-$;
+$function$;
 revoke all on function public.enforce_announcement_message_feature_flag() from public,anon,authenticated;
 drop trigger if exists enforce_announcement_message_feature_flag on public.messages;
 create trigger enforce_announcement_message_feature_flag
