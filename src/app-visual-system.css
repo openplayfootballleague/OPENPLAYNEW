@@ -1,0 +1,206 @@
+/* Open Play dark/orange visual layer — adapted to the current integration DOM.
+   Presentation-only overrides: preserve existing route structure and workflows. */
+:root {
+  --op-visual-orange:#ff6500;
+  --op-visual-bg:#070707;
+  --op-visual-panel:#111111;
+  --op-visual-card:#181818;
+  --op-visual-border:#303030;
+  --op-visual-muted:#a3a3a3;
+}
+.notice-page:has(.hub-panel),
+.notice-page:has(.match-panel),
+.notice-page:has(.directory-team),
+.notice-page:has(.admin-workspace-nav) {
+  display:block;
+  min-height:100svh;
+  padding:clamp(12px,2.5vw,30px);
+  background:var(--op-visual-bg);
+  color:#f5f5f5;
+}
+.notice-page:has(.hub-panel) .hub-panel,
+.notice-page:has(.match-panel) .match-panel,
+.notice-page:has(.directory-team) .teams-directory-panel,
+#admin-dashboard {
+  width:min(100%,1180px);
+  max-width:1180px;
+  margin:0 auto;
+  padding:clamp(16px,2.5vw,30px);
+  border:1px solid var(--op-visual-border);
+  border-radius:18px;
+  background:var(--op-visual-panel);
+  color:#f5f5f5;
+  box-shadow:0 16px 48px rgba(0,0,0,.24);
+}
+.notice-page:has(.hub-panel) .hub-panel h1,
+#admin-dashboard>h1 {
+  color:#fff;
+  font-family:"Oswald",sans-serif;
+}
+.notice-page:has(.hub-panel) .hub-panel h1 em,
+#admin-dashboard>h1 em { color:var(--op-visual-orange); }
+.notice-page:has(.hub-panel) .hub-panel .hub-top,
+#admin-dashboard .eyebrow { color:var(--op-visual-orange); }
+.notice-page:has(.hub-panel) .hub-panel .hub-memberships,
+.notice-page:has(.match-panel) .match-fixtures,
+.notice-page:has(.directory-team) .hub-memberships,
+#admin-dashboard .admin-context-selector,
+#admin-dashboard .admin-queue {
+  border:1px solid var(--op-visual-border);
+  border-radius:14px;
+  background:var(--op-visual-card);
+  color:#f2f2f2;
+}
+.notice-page:has(.hub-panel) .hub-panel .hub-memberships { padding:18px; }
+.notice-page:has(.hub-panel) .hub-panel .hub-section-heading,
+#admin-dashboard .hub-section-heading { color:#fff; }
+.notice-page:has(.hub-panel) .hub-panel .hub-kicker,
+#admin-dashboard .hub-kicker { color:var(--op-visual-orange); }
+.notice-page:has(.hub-panel) .hub-panel .hub-team-row,
+.notice-page:has(.match-panel) .match-row,
+#admin-dashboard .admin-queue-row { border-color:#333; color:#eee; }
+.notice-page:has(.hub-panel) .hub-panel .form-note,
+.notice-page:has(.hub-panel) .hub-panel small,
+#admin-dashboard .form-note,
+#admin-dashboard .admin-queue-row span,
+#admin-dashboard .admin-queue-row small { color:var(--op-visual-muted); }
+.notice-page:has(.hub-panel) .hub-panel input,
+.notice-page:has(.hub-panel) .hub-panel select,
+.notice-page:has(.hub-panel) .hub-panel textarea,
+#admin-dashboard input,
+#admin-dashboard select,
+#admin-dashboard textarea {
+  max-width:100%;
+  border:1px solid #393939;
+  border-radius:9px;
+  background:#171717;
+  color:#f5f5f5;
+  color-scheme:dark;
+}
+.notice-page:has(.hub-panel) .hub-panel button,
+#admin-dashboard button {
+  border-radius:9px;
+}
+.notice-page:has(.hub-panel) .hub-panel button:focus-visible,
+.notice-page:has(.hub-panel) .hub-panel a:focus-visible,
+#admin-dashboard button:focus-visible,
+#admin-dashboard a:focus-visible {
+  outline:2px solid var(--op-visual-orange);
+  outline-offset:3px;
+}
+#admin-dashboard .admin-workspace-nav {
+  display:flex;
+  flex-wrap:nowrap;
+  gap:7px;
+  overflow-x:auto;
+  padding:12px 0;
+  border-color:#333;
+  scrollbar-width:thin;
+}
+#admin-dashboard .admin-workspace-nav a {
+  flex:0 0 auto;
+  min-height:38px;
+  display:inline-flex;
+  align-items:center;
+  padding:8px 11px;
+  border:1px solid #333;
+  border-radius:9px;
+  background:#171717;
+  color:#ddd;
+  font-size:11px;
+  font-weight:700;
+}
+#admin-dashboard .admin-workspace-nav a:hover,
+#admin-dashboard .admin-workspace-nav a:focus-visible {
+  border-color:#75401f;
+  background:#24170f;
+  color:#fff;
+}
+#admin-dashboard .admin-context-selector { padding:16px; }
+#admin-dashboard .admin-stat-grid {
+  gap:10px;
+  margin:20px 0;
+  background:transparent;
+}
+#admin-dashboard .admin-stat-grid a {
+  min-height:82px;
+  padding:14px;
+  border:1px solid #303030;
+  border-radius:12px;
+  background:#181818;
+  color:#eee;
+}
+#admin-dashboard .admin-stat-grid strong {
+  color:var(--op-visual-orange);
+  font-family:"Oswald",sans-serif;
+  font-size:30px;
+}
+#admin-dashboard .admin-stat-grid span { color:#aaa; }
+#admin-dashboard .admin-queue { padding:clamp(14px,2vw,22px); }
+#admin-dashboard .admin-setup-grid { gap:12px; }
+#admin-dashboard .admin-setup-form,
+#admin-dashboard .admin-setup-registers>div {
+  border:1px solid #333;
+  border-radius:12px;
+  background:#141414;
+  color:#eee;
+}
+#admin-dashboard .admin-finance-link a,
+#admin-dashboard .admin-inline-action {
+  color:#fff;
+}
+#admin-dashboard .admin-finance-link a {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:9px 13px;
+  border:1px solid #383838;
+  border-radius:999px;
+  background:#171717;
+}
+#admin-dashboard .admin-finance-link a span { color:var(--op-visual-orange); }
+.notice-page:has(.captain-availability-fixture) .notice-panel,
+.notice-page:has(.team-sheet-form) .notice-panel {
+  width:min(100%,1040px);
+  max-width:1040px;
+  border:1px solid var(--op-visual-border);
+  border-radius:18px;
+  background:#101010;
+  color:#f5f5f5;
+}
+.notice-page:has(.captain-availability-fixture) .captain-availability-fixture,
+.notice-page:has(.team-sheet-form) .team-sheet-form,
+.notice-page:has(.team-sheet-form) .fixture-pick {
+  border-color:#343434;
+  border-radius:11px;
+  background:#171717;
+  color:#eee;
+}
+.notice-page:has(.captain-availability-fixture) .captain-actions button,
+.notice-page:has(.team-sheet-form) .captain-actions button {
+  min-height:40px;
+  padding:9px 14px;
+}
+.notice-page:has(.match-panel) .league-table {
+  background:#111;
+  color:#eee;
+}
+.notice-page:has(.match-panel) .league-table th {
+  background:#191919;
+  color:var(--op-visual-orange);
+}
+.notice-page:has(.match-panel) .league-table td,
+.notice-page:has(.match-panel) .league-table th { border-color:#333; }
+.notice-page:has(.match-panel) .league-table tbody tr:nth-child(even) { background:#171717; }
+@media(max-width:760px) {
+  .notice-page:has(.hub-panel),
+  .notice-page:has(.match-panel),
+  .notice-page:has(.directory-team),
+  .notice-page:has(.admin-workspace-nav) { padding:10px 7px 24px; }
+  .notice-page:has(.hub-panel) .hub-panel,
+  .notice-page:has(.match-panel) .match-panel,
+  .notice-page:has(.directory-team) .teams-directory-panel,
+  #admin-dashboard { padding:15px 11px; border-radius:13px; }
+  #admin-dashboard .admin-stat-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #admin-dashboard .admin-setup-grid { grid-template-columns:1fr; }
+}
