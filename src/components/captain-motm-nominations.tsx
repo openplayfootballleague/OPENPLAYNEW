@@ -48,7 +48,7 @@ export function CaptainMotmNominations(){
     }catch(cause){setError(cause instanceof Error?cause.message:"Unable to submit this nomination.");}
     finally{setBusy("");}
   }
-  return <section className="hub-section captain-motm-nominations">
+  return <section className="hub-memberships captain-motm-nominations">
     <div className="hub-section-heading"><span className="hub-kicker">MAN OF THE MATCH</span><span>{options.length} recent fixtures</span></div>
     <p className="form-note">Each team captain may submit one nomination within 24 hours of kick-off. Choose only a player from your team's locked sheet who actually appeared. You may nominate yourself if you meet the same eligibility rules. Once submitted, the nomination is locked unless an authorised administrator corrects it.</p>
     {error&&<p className="form-error" role="alert">{error}</p>}
