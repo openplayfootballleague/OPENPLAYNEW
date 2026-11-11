@@ -284,7 +284,7 @@ function AdminDashboardPage(){
      </select></label>
      <label className="admin-feature-toggle"><input type="checkbox" checked={platformFlagEnabled} onChange={event=>setPlatformFlagEnabled(event.target.checked)}/>{platformFlagEnabled?"Enable this feature":"Pause this feature"}</label>
      <label>Reason for change<textarea required minLength={5} maxLength={500} rows={2} value={platformFlagReason} onChange={event=>setPlatformFlagReason(event.target.value)} placeholder="Record why this platform control is changing."/></label>
-     <button type="submit" disabled={busy==="platform-feature-"+platformFlagKey||platformFlagsLoading||platformFlags.find(flag=>flag.feature_key===platformFlagKey)?.enabled===platformFlagEnabled}>{busy==="platform-feature-"+platformFlagKey?"SAVING…":"SAVE FEATURE SETTING"}</button>
+     <button type="submit" disabled={busy==="platform-feature-"+platformFlagKey||platformFlagsLoading||platformFlags.length===0||platformFlags.find(flag=>flag.feature_key===platformFlagKey)?.enabled===platformFlagEnabled}>{busy==="platform-feature-"+platformFlagKey?"SAVING…":"SAVE FEATURE SETTING"}</button>
     </form>
    </section>}
 
