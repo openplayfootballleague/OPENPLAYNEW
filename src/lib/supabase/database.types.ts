@@ -2927,6 +2927,10 @@ export type Database = {
           teams_with_entries: number
         }[]
       }
+      get_my_player_statistics: {
+        Args: { p_season_id: string }
+        Returns: Json
+      }
       get_my_fixture_payments: {
         Args: never
         Returns: {
