@@ -4,6 +4,7 @@ declare
   v_directory text:=lower(pg_catalog.pg_get_functiondef('public.get_public_team_directory(uuid)'::regprocedure));
   v_profile text:=lower(pg_catalog.pg_get_functiondef('public.get_public_team_profile(uuid)'::regprocedure));
   v_update text:=lower(pg_catalog.pg_get_functiondef('public.update_team_instagram_profile(uuid,text)'::regprocedure));
+  v_update_details text:=lower(pg_catalog.pg_get_functiondef('public.update_team_instagram_details(uuid,text,text)'::regprocedure));
   v_admin text:=lower(pg_catalog.pg_get_functiondef('public.admin_get_team_social_profiles()'::regprocedure));
   v_five pg_catalog.pg_proc;
   v_six pg_catalog.pg_proc;
@@ -86,12 +87,20 @@ begin
      or position('tm.is_captain' in v_update)=0 then
     raise exception 'Team Instagram updates must be restricted to active captains or assigned location administrators';
   end if;
+  if position('can_administer_location' in v_update_details)=0
+     or position('tm.status=''active''' in v_update_details)=0
+     or position('tm.is_captain' in v_update_details)=0
+     or position('instagram_handle' in v_update_details)=0 then
+    raise exception 'Combined Instagram details update must validate both fields and enforce captain/location-admin scope';
+  end if;
   if position('can_administer_location' in v_admin)=0 then
     raise exception 'Admin social profile list must be location scoped';
   end if;
 
   if not pg_catalog.has_function_privilege('authenticated','public.update_team_instagram_profile(uuid,text)','EXECUTE')
      or pg_catalog.has_function_privilege('anon','public.update_team_instagram_profile(uuid,text)','EXECUTE')
+     or not pg_catalog.has_function_privilege('authenticated','public.update_team_instagram_details(uuid,text,text)','EXECUTE')
+     or pg_catalog.has_function_privilege('anon','public.update_team_instagram_details(uuid,text,text)','EXECUTE')
      or pg_catalog.has_function_privilege('anon','public.admin_get_team_social_profiles()','EXECUTE')
      or not pg_catalog.has_function_privilege('authenticated','public.admin_get_team_social_profiles()','EXECUTE')
      or not pg_catalog.has_function_privilege('authenticated','public.register_team(uuid,text,text,text,text)','EXECUTE')
