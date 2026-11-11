@@ -146,3 +146,21 @@ assert.ok(refereePayoutOutbox.includes("security invoker") && refereePayoutOutbo
 assert.ok(refereePayoutOutbox.includes("pg_cron") && refereePayoutOutbox.includes("pg_net") && refereePayoutOutbox.includes("referee_payout_cron_secret"), "Referee payout outbox must include a Vault-backed scheduled dispatcher");
 
 console.log("Edge Function security configuration and Phase 1 workflow boundary assertions passed.");
+
+const adminRoute = readFileSync("src/routes/admin.tsx", "utf8");
+for (const rpc of [
+  "get_admin_dashboard_contextual",
+  "get_admin_team_sheets_contextual",
+  "get_admin_player_register_contextual",
+  "admin_get_transfer_requests_contextual",
+]) {
+  assert.ok(adminRoute.includes(`rpc("${rpc}"`), `Admin Dashboard must use the authorised contextual RPC: ${rpc}`);
+}
+for (const legacyRpc of [
+  "get_admin_dashboard",
+  "get_admin_team_sheets",
+  "get_admin_player_register",
+  "admin_get_transfer_requests",
+]) {
+  assert.ok(!new RegExp(`rpc\\(["']${legacyRpc}["']`).test(adminRoute), `Admin Dashboard must not call revoked legacy RPC: ${legacyRpc}`);
+}
