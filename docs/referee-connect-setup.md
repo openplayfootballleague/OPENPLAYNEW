@@ -64,7 +64,7 @@ A referee is eligible for an Open Play transfer when the connected account is co
 - Report approval creates exactly one £22 gross entitlement and triggers an immediate transfer attempt when the referee account is eligible.
 - An ineligible account leaves the entitlement safely pending with a clear reason; it must not lose or duplicate the entitlement.
 - Stable idempotency prevents duplicate transfers on repeated approval, retries, worker replay or corrected report submission.
-- A Stripe timeout/ambiguous response is reconciled before another attempt is permitted. Jobs whose payout row is already `processing` are never automatically reclaimed; only expired leases where the payout claim never reached the payout row can be safely re-queued.
+- A Stripe timeout/ambiguous response is reconciled before another attempt is permitted. Expired leases are reconciled with the same Stripe idempotency key, without incrementing the payout attempt, and only inside a conservative 23-hour window. A 409 idempotency-in-progress or 429 rate-limit response remains `processing`; after the safe window, the job is held for explicit reconciliation rather than risking a duplicate transfer.
 - Signed webhook processing is replay-safe, validates transfer identity, destination and amount, and cannot let stale events overwrite a newer successful attempt.
 - A definitive transfer failure is visible to administrators and can be retried only after reconciliation.
 - Milestone rewards require a separate administrator approval and cannot be triggered by match-report approval.
