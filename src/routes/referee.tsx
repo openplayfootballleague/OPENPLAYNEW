@@ -24,7 +24,8 @@ declare global {
 }
 let stripeConnectScriptPromise: Promise<StripeConnectGlobal> | null = null;
 function loadStripeConnect(): Promise<StripeConnectGlobal> {
-  if (window.StripeConnect?.init) return Promise.resolve(window.StripeConnect);
+  const existing = window.StripeConnect;
+  if (existing?.init) return Promise.resolve(existing);
   if (stripeConnectScriptPromise) return stripeConnectScriptPromise;
   stripeConnectScriptPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
