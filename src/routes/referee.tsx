@@ -27,12 +27,13 @@ function loadStripeConnect(): Promise<StripeConnectGlobal> {
   const existing = window.StripeConnect;
   if (existing?.init) return Promise.resolve(existing);
   if (stripeConnectScriptPromise) return stripeConnectScriptPromise;
-  stripeConnectScriptPromise = new Promise((resolve, reject) => {
+  const pending = new Promise<StripeConnectGlobal>((resolve, reject) => {
     const script = document.createElement("script");
     script.src = "https://connect-js.stripe.com/v1.0/connect.js";
     script.async = true;
     script.onload = () => {
-      if (window.StripeConnect?.init) resolve(window.StripeConnect);
+      const loaded = window.StripeConnect;
+      if (loaded?.init) resolve(loaded);
       else reject(new Error("Stripe Connect loaded without its initialisation API."));
     };
     script.onerror = () => reject(new Error("Unable to load Stripe's secure onboarding component."));
@@ -41,7 +42,8 @@ function loadStripeConnect(): Promise<StripeConnectGlobal> {
     stripeConnectScriptPromise = null;
     throw error;
   });
-  return stripeConnectScriptPromise;
+  stripeConnectScriptPromise = pending;
+  return pending;
 }
 
 type RpcError = { message: string };
