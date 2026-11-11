@@ -223,9 +223,9 @@ jobs:
             diff -u supabase/drafts/secure_messaging_platform.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
-          printf '%s\\n' "$migration_file"
+          printf '%s\n' "$migration_file"
       - name: Verify unique migration versions before replay
         shell: bash
         run: |
