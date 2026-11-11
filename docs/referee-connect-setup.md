@@ -2,7 +2,7 @@
 
 ## Implemented foundation
 
-- Active referees can create or resume a UK connected account using Accounts v1 with controller properties (Express Dashboard), from the Referee workspace. The current branch uses Stripe-hosted onboarding; embedded onboarding remains outstanding.
+- Active referees can create or resume a UK connected account using Accounts v1 with controller properties (Express Dashboard), from the Referee workspace. The current branch uses Stripe's embedded Account Onboarding component through Connect.js and Account Sessions. It requires the public `VITE_STRIPE_PUBLISHABLE_KEY` to be configured in the frontend build environment.
 - The connected account is mapped to the referee's internal user ID; bank details remain with Stripe.
 - The account onboarding flow requests the transfers capability.
 - Account status is synchronized from signed `account.updated` events.
@@ -22,7 +22,7 @@
 
 ## Current implementation boundary
 
-The current branch invokes the test-mode transfer workflow from the administrator client immediately after the approval RPC succeeds. This is a best-effort immediate trigger, not a durable server-side outbox: if the browser closes between approval and invocation, the payout remains pending and needs an administrator retry. A durable approval-triggered outbox/worker is still required for unattended reliability. The Edge Function resolves the payout obligation from the approved report, then uses the authenticated administrator's location-scoped database claim. The £50 milestone workflow remains separate and requires a global finance administrator.
+The current branch invokes the test-mode transfer workflow from the administrator client immediately after the approval RPC succeeds. This remains a best-effort trigger, not a durable server-side outbox: if the browser closes between approval and invocation, the payout remains pending and needs an administrator retry. A durable approval-triggered outbox/worker is still required for unattended reliability. The Edge Function resolves the payout obligation from the approved report, then uses the authenticated administrator's location-scoped database claim. The £50 milestone workflow remains separate and requires a global finance administrator.
 
 The transfer/reconciliation foundations use attempt-specific Stripe idempotency keys and signed webhook confirmation. Ambiguous outcomes remain processing and must be reconciled before retry. A referee without an eligible connected account cannot receive a transfer; the entitlement remains visible for later action.
 
@@ -33,6 +33,7 @@ This is a branch implementation, **not a verified release**. CI, clean migration
 Configure these in the Open Play New Supabase project's Edge Function secrets when the test integration is authorised:
 
 - `STRIPE_SECRET_KEY`: Stripe **test-mode** secret key beginning `sk_test_`.
+- `VITE_STRIPE_PUBLISHABLE_KEY`: Stripe **test-mode** publishable key beginning `pk_test_`, supplied only to the frontend build. This is public and must never contain a secret key.
 - `APP_ORIGIN`: exact application origin, without a trailing slash.
 - `REFEREE_CONNECT_WEBHOOK_SECRET`: signing secret for the dedicated Connect webhook endpoint.
 - `REFEREE_PAYOUT_CRON_SECRET`: required only by the current protected payout-worker endpoint; do not expose it to browser code.
@@ -41,6 +42,8 @@ Configure these in the Open Play New Supabase project's Edge Function secrets wh
 Do not place Stripe secret keys or webhook signing secrets in Vite variables, browser code, GitHub files or the public repository.
 
 ## Stripe Dashboard test-mode configuration
+
+The referee workspace loads the official Connect.js script from `https://connect-js.stripe.com/v1.0/connect.js` and mounts Stripe's `account-onboarding` embedded component. The server creates a fresh Account Session (`/v1/account_sessions`) for every initial or refreshed client-secret request. Do not expose the Account Session secret beyond the signed-in referee's browser session. Stripe's embedded components require the Stripe script and frame origins in any custom Content Security Policy; this application currently does not add a restrictive custom CSP.
 
 1. Enable Connect for the Open Play platform account.
 2. Use UK domestic Accounts v1 connected accounts with controller properties: `controller.stripe_dashboard.type=express`, `controller.fees.payer=application`, and `controller.losses.payments=application`; request `capabilities.transfers`. This preserves separate platform charges and later transfers, which the current Accounts v2 preview does not support.
