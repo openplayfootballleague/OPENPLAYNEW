@@ -46,7 +46,7 @@ select
       and pg_get_functiondef('public.get_public_team_directory(uuid)'::regprocedure) ilike '%s.is_public is true%'
       and pg_get_functiondef('public.get_public_team_directory(uuid)'::regprocedure) ilike '%l.is_published is true%'
       and pg_get_functiondef('public.get_public_team_directory(uuid)'::regprocedure) ilike '%loc.is_active is true%'
-      and pg_get_functiondef('public.get_public_team_directory(uuid)'::regprocedure) !~* '(insert[[:space:]]+into|update[[:space:]]+|delete[[:space:]]+from|truncate[[:space:]]+)'
+
   ) as public_team_directory_sql_scope,
   (
     select pg_get_functiondef('public.get_public_team_profile(uuid)'::regprocedure)
@@ -54,7 +54,7 @@ select
       and pg_get_functiondef('public.get_public_team_profile(uuid)'::regprocedure) ilike '%s.is_public is true%'
       and pg_get_functiondef('public.get_public_team_profile(uuid)'::regprocedure) ilike '%l.is_published is true%'
       and pg_get_functiondef('public.get_public_team_profile(uuid)'::regprocedure) ilike '%loc.is_active is true%'
-      and pg_get_functiondef('public.get_public_team_profile(uuid)'::regprocedure) !~* '(insert[[:space:]]+into|update[[:space:]]+|delete[[:space:]]+from|truncate[[:space:]]+)'
+
   ) as public_team_profile_sql_scope,
   not has_table_privilege('anon','public.teams','SELECT') as anon_cannot_select_teams_table,
   not exists (
