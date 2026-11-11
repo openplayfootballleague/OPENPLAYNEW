@@ -469,7 +469,7 @@
 }
 
 /* The public landing page stays image-led, with the same black/orange identity. */
-.site-home-page .site-shell { background:#070707; color:#f5f5f5; }
+.site-home-page { background:#070707; color:#f5f5f5; }
 .site-home-page .site-header { border-color:#292929; background:rgba(7,7,7,.92); }
 .site-home-page .wordmark,
 .site-home-page .header-nav a,
