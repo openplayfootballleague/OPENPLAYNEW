@@ -2,6 +2,8 @@
 -- Public team details are exposed only through the scoped read RPCs below.
 -- Remove the broad anonymous table grant before adding any profile fields.
 revoke all privileges on table public.teams from anon;
+-- Team creation and edits must go through the eligibility-checked SECURITY DEFINER RPCs.
+revoke insert, update, delete on table public.teams from authenticated;
 -- Keep the profile URL separate from the handle: only a validated profile URL
 -- is used for a clickable public Instagram link.
 alter table public.teams
