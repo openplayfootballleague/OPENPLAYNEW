@@ -217,7 +217,7 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select st.id,st.name,s.id,s.name,s.starts_on,st.primary_colour,st.secondary_colour,
          t.instagram_profile_url,t.instagram_handle
   from public.season_teams st
