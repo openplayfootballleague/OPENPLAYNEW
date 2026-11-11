@@ -105,6 +105,19 @@ $$;
 revoke all on function public.admin_set_platform_feature_flag(text,boolean,text) from public,anon;
 grant execute on function public.admin_set_platform_feature_flag(text,boolean,text) to authenticated;
 
+
+create or replace function public.get_public_team_recruitment_status()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select public.is_platform_feature_enabled('team_recruitment');
+$;
+revoke all on function public.get_public_team_recruitment_status() from public;
+grant execute on function public.get_public_team_recruitment_status() to anon,authenticated;
+
 create or replace function public.enforce_team_recruitment_feature_flag()
 returns trigger
 language plpgsql
