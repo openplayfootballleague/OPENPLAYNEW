@@ -346,3 +346,149 @@
   .notice-page.finance-page .finance-summary-grid,
   .notice-page.analytics-page .analytics-stat-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
+
+
+/* Extend the same visual language to every existing notice/form workspace. */
+.notice-page .notice-panel {
+  border:1px solid var(--op-visual-border);
+  border-radius:18px;
+  background:#111;
+  color:#f5f5f5;
+}
+.notice-page .notice-panel h1,
+.notice-page .notice-panel h2,
+.notice-page .notice-panel h3 { color:#fff; }
+.notice-page .notice-panel h1 em,
+.notice-page .notice-panel .eyebrow,
+.notice-page .notice-panel .hub-kicker { color:var(--op-visual-orange); }
+.notice-page .notice-panel p,
+.notice-page .notice-panel small { color:#aaa; }
+.notice-page .notice-panel input,
+.notice-page .notice-panel select,
+.notice-page .notice-panel textarea {
+  border:1px solid #393939;
+  border-radius:9px;
+  background:#171717;
+  color:#f5f5f5;
+  color-scheme:dark;
+}
+.notice-page .notice-panel button:focus-visible,
+.notice-page .notice-panel a:focus-visible {
+  outline:2px solid var(--op-visual-orange);
+  outline-offset:3px;
+}
+.notice-page .auth-panel .auth-form label,
+.notice-page .auth-panel .auth-form p { color:#ccc; }
+.notice-page .auth-panel .auth-switch,
+.notice-page .auth-panel .auth-text-button { color:#ddd; }
+.notice-page .join-request-item,
+.notice-page .join-request-list,
+.notice-page .account-security-section,
+.notice-page .admin-help-card,
+.notice-page .admin-help-warning {
+  border-color:#333;
+  border-radius:12px;
+  background:#171717;
+  color:#eee;
+}
+.notice-page .join-request-item small,
+.notice-page .admin-help-card p,
+.notice-page .admin-help-warning p { color:#aaa; }
+
+/* Finance and analytics are independent workspaces, but share the same shell. */
+.finance-page .finance-panel,
+.analytics-page .analytics-panel {
+  width:min(100%,1180px);
+  max-width:1180px;
+  margin:0 auto;
+  padding:clamp(16px,2.5vw,30px);
+  border:1px solid var(--op-visual-border);
+  border-radius:18px;
+  background:#101010;
+  color:#f5f5f5;
+}
+.finance-page .finance-panel h1,
+.analytics-page .analytics-panel h1,
+.analytics-page .analytics-panel h2 { color:#fff; }
+.finance-page .finance-panel h1 em,
+.analytics-page .analytics-panel .eyebrow,
+.analytics-page .analytics-panel .hub-kicker { color:var(--op-visual-orange); }
+.finance-page .finance-summary-grid,
+.analytics-page .analytics-stat-grid {
+  gap:10px;
+  background:transparent;
+}
+.finance-page .finance-summary-grid>div,
+.analytics-page .analytics-stat-grid>div {
+  border:1px solid #303030;
+  border-radius:12px;
+  background:#181818;
+  color:#eee;
+}
+.finance-page .finance-summary-grid strong,
+.analytics-page .analytics-stat-grid strong { color:var(--op-visual-orange); }
+.finance-page .finance-section,
+.finance-page .finance-entry-form,
+.finance-page .finance-filters,
+.analytics-page .analytics-context,
+.analytics-page .analytics-section,
+.analytics-page .analytics-tab-content {
+  border:1px solid #303030;
+  border-radius:13px;
+  background:#171717;
+  color:#eee;
+}
+.finance-page .finance-table,
+.analytics-page .analytics-table-wrap table {
+  background:#111;
+  color:#eee;
+}
+.finance-page .finance-table th,
+.analytics-page .analytics-table-wrap th {
+  background:#1c1c1c;
+  color:var(--op-visual-orange);
+}
+.finance-page .finance-table td,
+.finance-page .finance-table th,
+.analytics-page .analytics-table-wrap td,
+.analytics-page .analytics-table-wrap th { border-color:#333; }
+.finance-page .finance-table tbody tr:nth-child(even),
+.analytics-page .analytics-table-wrap tbody tr:nth-child(even) { background:#171717; }
+.analytics-page .analytics-tab-list { border-color:#333; }
+.analytics-page .analytics-tab-list button {
+  border:1px solid #333;
+  border-radius:9px;
+  background:#171717;
+  color:#ddd;
+}
+.analytics-page .analytics-tab-list button[aria-selected="true"],
+.analytics-page .analytics-tab-list button.active {
+  border-color:#75401f;
+  background:#28180f;
+  color:#fff;
+}
+
+/* The public landing page stays image-led, with the same black/orange identity. */
+.site-home-page .site-shell { background:#070707; color:#f5f5f5; }
+.site-home-page .site-header { border-color:#292929; background:rgba(7,7,7,.92); }
+.site-home-page .wordmark,
+.site-home-page .header-nav a,
+.site-home-page .login-link { color:#f5f5f5; }
+.site-home-page .hero { background-color:#070707; }
+.site-home-page .hero h1 em,
+.site-home-page .hero .eyebrow,
+.site-home-page .feature-index { color:var(--op-visual-orange); }
+.site-home-page .intro-grid,
+.site-home-page .site-footer { border-color:#292929; background:#0d0d0d; color:#eee; }
+.site-home-page .feature-card { border-color:#303030; background:#141414; color:#eee; }
+.site-home-page .feature-card p { color:#aaa; }
+.site-home-page .feature-card.feature-orange { border-color:#6c3516; background:#25160e; }
+.site-home-page .feature-card.feature-light { background:#171717; color:#eee; }
+.site-home-page .site-footer a { color:#eee; }
+
+@media(max-width:760px) {
+  .finance-page .finance-panel,
+  .analytics-page .analytics-panel { padding:15px 11px; border-radius:13px; }
+  .finance-page .finance-summary-grid,
+  .analytics-page .analytics-stat-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
