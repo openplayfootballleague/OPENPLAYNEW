@@ -90,6 +90,8 @@ assert.ok(connectOnboarding.includes("userClient.auth.getUser()"), "Connect onbo
 assert.ok(connectOnboarding.includes('stripeKey?.startsWith("sk_test_")'), "Connect onboarding must remain test-mode only");
 assert.ok(connectOnboarding.includes('rpc("get_my_referee_connect_status")') && connectOnboarding.includes('rpc("sync_referee_connect_account",'), "Connect onboarding must require active referee membership and synchronize verified account state");
 assert.ok(connectOnboarding.includes("metadata[openplay_referee_user_id]"), "Connect accounts must retain the internal referee identity mapping");
+assert.ok(connectOnboarding.includes('controller[stripe_dashboard][type]","express"') && connectOnboarding.includes('controller[fees][payer]","application"') && connectOnboarding.includes('controller[losses][payments]","application"'), "New referee Connect accounts must use Stripe controller properties with platform fee and loss responsibility");
+assert.ok(!connectOnboarding.includes('params.set("type","express")'), "New referee Connect accounts must not use deprecated legacy account-type creation");
 assert.ok(connectOnboarding.includes("p_stripe_event_created_at:new Date((typeof account.created===\"number\"?account.created:Math.floor(Date.now()/1000))*1000).toISOString()"), "Initial Connect sync must use Stripe account creation time so later verification webhooks are not rejected as stale");
 assert.ok(connectOnboarding.includes("if(transfersEnabled){") && !connectOnboarding.includes("if(transfersEnabled&&account.payouts_enabled)"), "Referee connected-balance transfer readiness must not be blocked by later bank-payout enablement");
 
