@@ -132,7 +132,7 @@ assert.ok(refereePayoutWorker.includes('req.headers.get("x-referee-payout-cron-s
 assert.ok(refereePayoutWorker.includes('stripeKey?.startsWith("sk_test_")'), "Referee payout queue worker must remain test-mode only");
 assert.ok(refereePayoutWorker.includes('rpc("claim_referee_payout_transfer_jobs"') && refereePayoutWorker.includes('rpc("release_referee_payout_transfer_job"'), "Referee payout worker must use leased outbox claims and safe release logic");
 const refereePayoutOutbox = readFileSync("supabase/drafts/referee_payout_transfer_outbox.sql", "utf8");
-assert.ok(!/^\\s*as \\$/m.test(refereePayoutOutbox), "Referee payout outbox SQL functions must use complete dollar-quote delimiters");
+assert.ok(!/^\s*as \$$/m.test(refereePayoutOutbox), "Referee payout outbox SQL functions must use complete dollar-quote delimiters");
 assert.ok(refereePayoutOutbox.includes("after insert or update of status on public.referee_report_payouts"), "Referee payout creation must atomically enqueue its transfer job");
 assert.ok(refereePayoutOutbox.includes("for update of job skip locked"), "Concurrent referee payout workers must claim jobs without duplicate leases");
 assert.ok(refereePayoutOutbox.includes("first_attempt_at") && refereePayoutOutbox.includes("now()-interval '23 hours'") && refereePayoutOutbox.includes("transfer_attempts=case when status='processing' then transfer_attempts else transfer_attempts+1 end"), "Ambiguous payout recovery must reuse the original attempt only within Stripe's idempotency retention window");
