@@ -146,3 +146,8 @@ Static source checks and file/draft parity checks are the next verification gate
 
 
 Additional CI coverage: the canonical `admin-postpone-gameweek` Edge Function is now explicitly included in the Deno type-check command, and the security verifier asserts that inclusion. The operational and acceptance runbooks have also been ported to PR #89.
+
+
+### Disciplinary return review integrated into visual Admin — 11 November 2026
+
+Ported the location-scoped disciplinary return queue migration and Admin component from the workflow branch to PR #89. The UI lists players whose third approved straight-red strike has made them ineligible, requires a reason before approving a return, and states that permanent strike history is retained. The migration enforces administrator/location access, locks the player row during reactivation, writes an audit event and enqueues an in-app notification. The existing referee match-report SQL regression now asserts that a permitted administrator sees the suspended player in the queue; it already exercises reactivation and preservation of strike totals. CI migration generation and the expected migration manifest include this migration. Exact-head SQL replay/build verification is pending.
