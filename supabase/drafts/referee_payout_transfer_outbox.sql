@@ -73,13 +73,12 @@ for each row execute function public.sync_referee_report_payout_transfer_job();
 create or replace function public.claim_referee_payout_transfer_jobs(p_limit integer default 10)
 returns table(job_id uuid,payout_id uuid,lock_token uuid)
 language plpgsql
-security definer
+security invoker
 set search_path=''
-as $$
+as $
 begin
-  if auth.role()<>'service_role' then
-    raise exception 'Service role required';
-  end if;
+  -- Execute privilege is granted only to service_role; this invoker function
+  -- therefore runs with the service role's explicit table grants.
   -- Recover only leases where the transfer claim never reached the payout row.
   -- A payout already marked processing is ambiguous and must never be retried here.
   update public.referee_payout_transfer_jobs job
@@ -118,6 +117,9 @@ begin
 end;
 $$;
 revoke all on function public.claim_referee_payout_transfer_jobs(integer) from public,anon,authenticated;
+grant select,update on public.referee_payout_transfer_jobs to service_role;
+grant select,update on public.referee_report_payouts to service_role;
+grant select on public.referee_match_reports,public.referee_connect_accounts to service_role;
 grant execute on function public.claim_referee_payout_transfer_jobs(integer) to service_role;
 
 create or replace function public.claim_referee_payout_transfer_worker(
@@ -127,16 +129,15 @@ create or replace function public.claim_referee_payout_transfer_worker(
 )
 returns jsonb
 language plpgsql
-security definer
+security invoker
 set search_path=''
-as $$
+as $
 declare
   v_job public.referee_payout_transfer_jobs;
   v_payout public.referee_report_payouts;
   v_account public.referee_connect_accounts;
   v_report public.referee_match_reports;
 begin
-  if auth.role()<>'service_role' then raise exception 'Service role required'; end if;
   select * into v_job from public.referee_payout_transfer_jobs
   where id=p_job_id and payout_id=p_payout_id and status='processing'
     and lock_token=p_lock_token
@@ -185,11 +186,10 @@ create or replace function public.release_referee_payout_transfer_job(
 )
 returns boolean
 language plpgsql
-security definer
+security invoker
 set search_path=''
-as $$
+as $
 begin
-  if auth.role()<>'service_role' then raise exception 'Service role required'; end if;
   update public.referee_payout_transfer_jobs
   set status='queued',available_at=now()+make_interval(secs=>greatest(60,least(coalesce(p_delay_seconds,300),3600))),
       locked_at=null,lock_token=null,last_error=left(coalesce(p_reason,'Worker could not claim payout'),500),
