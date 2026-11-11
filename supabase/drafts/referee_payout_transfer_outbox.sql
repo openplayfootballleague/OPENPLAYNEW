@@ -73,6 +73,20 @@ after insert or update of status on public.referee_report_payouts
 for each row execute function public.sync_referee_report_payout_transfer_job();
 revoke all on function public.sync_referee_report_payout_transfer_job() from public,anon,authenticated;
 
+-- Backfill pre-existing entitlements. Preserve any in-flight attempt as a
+-- processing lease so it can be reconciled with its original idempotency key.
+insert into public.referee_payout_transfer_jobs(
+  payout_id,status,locked_at,first_attempt_at,lock_token
+)
+select payout.id,
+  case when payout.status='processing' then 'processing' else 'queued' end,
+  case when payout.status='processing' then coalesce(payout.processing_started_at,now()) else null end,
+  case when payout.status='processing' then coalesce(payout.processing_started_at,payout.created_at) else null end,
+  case when payout.status='processing' then gen_random_uuid() else null end
+from public.referee_report_payouts payout
+where payout.status in ('pending_connect','failed','processing')
+on conflict(payout_id) do nothing;
+
 create or replace function public.claim_referee_payout_transfer_jobs(p_limit integer default 10)
 returns table(job_id uuid,payout_id uuid,lock_token uuid)
 language plpgsql
