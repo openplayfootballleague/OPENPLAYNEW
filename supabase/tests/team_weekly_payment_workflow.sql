@@ -30,23 +30,23 @@ declare
 begin
   -- A timely Stripe event arriving after the deadline worker has already
   -- cancelled the fixture must be escalated, not recorded as a late payment.
-  if position('v_obligation.status=''defaulted''andp_paid_at<=v_obligation.grace_ends_at' in lower(regexp_replace(pg_get_functiondef(
+  if position('v_obligation.status=''defaulted''andp_paid_at<=v_obligation.grace_ends_at' in regexp_replace(lower(pg_get_functiondef(
     'public.record_team_fixture_payment_success(uuid,text,timestamp with time zone)'::regprocedure
-  )), '[[:space:]]+', '', 'g'))=0 or position('v_status:=''admin_review''' in lower(regexp_replace(pg_get_functiondef(
+  )), '[[:space:]]+', '', 'g'))=0 or position('v_status:=''admin_review''' in regexp_replace(lower(pg_get_functiondef(
     'public.record_team_fixture_payment_success(uuid,text,timestamp with time zone)'::regprocedure
   )), '[[:space:]]+', '', 'g'))=0 then
     raise exception 'Delayed timely payments after cancellation must require admin reconciliation';
   end if;
 
   -- Opponent refunds must never select a superseded obligation cycle.
-  if position('orderbypayment_cycledesc' in lower(regexp_replace(pg_get_functiondef(
+  if position('orderbypayment_cycledesc' in regexp_replace(lower(pg_get_functiondef(
     'public.process_team_fixture_payment_deadlines(timestamptz)'::regprocedure
   )), '[[:space:]]+', '', 'g'))=0 then
     raise exception 'Opponent refund lookup must select the latest payment cycle';
   end if;
 
   -- Checkout claim must use the same inclusive grace-end boundary.
-  if position('now()>v_obligation.grace_ends_at' in lower(regexp_replace(pg_get_functiondef(
+  if position('now()>v_obligation.grace_ends_at' in regexp_replace(lower(pg_get_functiondef(
     'public.claim_team_fixture_payment_checkout_attempt(uuid,text)'::regprocedure
   )), '[[:space:]]+', '', 'g'))=0 then
     raise exception 'Checkout claim must remain available at the exact grace-end timestamp';
@@ -54,9 +54,9 @@ begin
 
   -- Cancellation must occur strictly after grace end, not at the exact
   -- boundary where a webhook may still confirm an eligible payment.
-  if position('p_as_of>v_obligation.grace_ends_at' in lower(regexp_replace(pg_get_functiondef(
+  if position('p_as_of>v_obligation.grace_ends_at' in regexp_replace(lower(pg_get_functiondef(
     'public.process_team_fixture_payment_deadlines(timestamptz)'::regprocedure
-  )), '[[:space:]]+', '', 'g'))=0 or position('v_obligation.status=''grace_period''andp_as_of<=v_obligation.grace_ends_at' in lower(regexp_replace(pg_get_functiondef(
+  )), '[[:space:]]+', '', 'g'))=0 or position('v_obligation.status=''grace_period''andp_as_of<=v_obligation.grace_ends_at' in regexp_replace(lower(pg_get_functiondef(
     'public.process_team_fixture_payment_deadlines(timestamptz)'::regprocedure
   )), '[[:space:]]+', '', 'g'))=0 then
     raise exception 'Grace-end cancellation must be race-safe at the exact boundary';
@@ -64,7 +64,7 @@ begin
 
   -- Match the shared payment policy: a provider-confirmed payment exactly at
   -- the 12-hour grace boundary is still accepted as late_paid.
-  if position('p_paid_at<=v_obligation.grace_ends_at' in lower(regexp_replace(pg_get_functiondef(
+  if position('p_paid_at<=v_obligation.grace_ends_at' in regexp_replace(lower(pg_get_functiondef(
     'public.record_team_fixture_payment_success(uuid,text,timestamp with time zone)'::regprocedure
   )), '[[:space:]]+', '', 'g'))=0 then
     raise exception 'Payment at the exact grace-end timestamp must be accepted';
