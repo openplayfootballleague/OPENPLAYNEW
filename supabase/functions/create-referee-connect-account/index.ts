@@ -64,7 +64,12 @@ Deno.serve(async(req)=>{
       account=await stripeRequest(`accounts/${existing.stripe_account_id}`,"GET",stripeKey);
     }else{
       const params=new URLSearchParams();
-      params.set("type","express");
+      // Use Stripe controller properties rather than the deprecated Express account type.
+      // This retains the Express Dashboard while explicitly assigning payment-fee and
+      // negative-balance responsibility to Open Play, as required by the agreed model.
+      params.set("controller[stripe_dashboard][type]","express");
+      params.set("controller[fees][payer]","application");
+      params.set("controller[losses][payments]","application");
       params.set("country","GB");
       params.set("business_type","individual");
       if(user.email)params.set("email",user.email);
