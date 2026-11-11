@@ -82,6 +82,9 @@ assert.ok(teamWebhook.includes('req.headers.get("stripe-signature")') && teamWeb
 assert.ok(teamWebhook.includes("event.livemode!==false"), "Team Stripe webhook must reject live-mode events");
 assert.ok(teamWebhook.includes('rpc("record_team_fixture_payment_success"'), "Team payment state must be driven by the signed webhook");
 
+const ciWorkflow = readFileSync(".github/workflows/ci.yml", "utf8");
+assert.ok(ciWorkflow.includes("supabase/functions/admin-postpone-gameweek/index.ts"), "The weather postponement Edge Function must be included in Deno type-check CI");
+
 const weatherPostponement = readFileSync("supabase/functions/admin-postpone-gameweek/index.ts", "utf8");
 assert.ok(weatherPostponement.includes("userClient.auth.getUser(token)"), "Weather postponement must validate the signed-in administrator");
 assert.ok(weatherPostponement.includes('rpc("get_admin_postponable_gameweeks"') && weatherPostponement.includes('rpc("admin_postpone_gameweek"'), "Weather postponement must use location-scoped eligibility and stable gameweek identity RPCs");
