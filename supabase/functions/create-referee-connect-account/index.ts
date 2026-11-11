@@ -106,6 +106,7 @@ Deno.serve(async(req)=>{
     const sessionParams=new URLSearchParams();
     sessionParams.set("account",account.id);
     sessionParams.set("components[account_onboarding][enabled]","true");
+    sessionParams.set("components[account_onboarding][features][external_account_collection]","true");
     const accountSession=await stripeRequest("account_sessions","POST",stripeKey,sessionParams);
     if(typeof accountSession.client_secret!=="string"||!accountSession.client_secret.startsWith("cuss_")){
       throw new Error("Stripe did not return a valid embedded onboarding session");
