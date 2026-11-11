@@ -92,6 +92,12 @@ assert.ok(connectOnboarding.includes('rpc("get_my_referee_connect_status")') && 
 assert.ok(connectOnboarding.includes("metadata[openplay_referee_user_id]"), "Connect accounts must retain the internal referee identity mapping");
 assert.ok(connectOnboarding.includes('controller[stripe_dashboard][type]","express"') && connectOnboarding.includes('controller[fees][payer]","application"') && connectOnboarding.includes('controller[losses][payments]","application"'), "New referee Connect accounts must use Stripe controller properties with platform fee and loss responsibility");
 assert.ok(!connectOnboarding.includes('params.set("type","express")'), "New referee Connect accounts must not use deprecated legacy account-type creation");
+assert.ok(connectOnboarding.includes('sessionParams.set("components[account_onboarding][enabled]","true")') && connectOnboarding.includes('stripeRequest("account_sessions","POST"'), "Referee onboarding must use a Stripe Account Session for embedded onboarding");
+assert.ok(connectOnboarding.includes("account_session_client_secret") && !connectOnboarding.includes('stripeRequest("account_links"'), "Referee onboarding must return an embedded session secret, not a hosted Account Link");
+const refereeWorkspace = readFileSync("src/routes/referee.tsx", "utf8");
+assert.ok(refereeWorkspace.includes("https://connect-js.stripe.com/v1.0/connect.js") && refereeWorkspace.includes('instance.create("account-onboarding")'), "Referee workspace must mount Stripe's embedded account onboarding component");
+assert.ok(refereeWorkspace.includes("VITE_STRIPE_PUBLISHABLE_KEY") && refereeWorkspace.includes('locale: "en-GB"'), "Embedded onboarding must use the configured publishable key and UK locale");
+assert.ok(!refereeWorkspace.includes("window.location.assign(data.onboarding_url)"), "Referee onboarding must not redirect to Stripe-hosted onboarding");
 assert.ok(connectOnboarding.includes("p_stripe_event_created_at:new Date((typeof account.created===\"number\"?account.created:Math.floor(Date.now()/1000))*1000).toISOString()"), "Initial Connect sync must use Stripe account creation time so later verification webhooks are not rejected as stale");
 assert.ok(connectOnboarding.includes("if(transfersEnabled){") && !connectOnboarding.includes("if(transfersEnabled&&account.payouts_enabled)"), "Referee connected-balance transfer readiness must not be blocked by later bank-payout enablement");
 
