@@ -119,10 +119,10 @@ create or replace function public.get_public_team_recruitment_status()
 returns boolean
 language sql
 stable
-security definer
+security invoker
 set search_path = ''
 as $
-  select public.is_platform_feature_enabled('team_recruitment');
+  select coalesce((select enabled from public.platform_feature_flags where feature_key='team_recruitment'),true);
 $;
 revoke all on function public.get_public_team_recruitment_status() from public;
 grant execute on function public.get_public_team_recruitment_status() to anon,authenticated;
@@ -152,10 +152,10 @@ create or replace function public.get_public_announcement_status()
 returns boolean
 language sql
 stable
-security definer
+security invoker
 set search_path = ''
 as $
-  select public.is_platform_feature_enabled('announcements');
+  select coalesce((select enabled from public.platform_feature_flags where feature_key='announcements'),true);
 $;
 revoke all on function public.get_public_announcement_status() from public;
 grant execute on function public.get_public_announcement_status() to anon,authenticated;
