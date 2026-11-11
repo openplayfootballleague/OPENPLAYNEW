@@ -431,3 +431,62 @@ export function ConsentAwareAnalytics({ children }: { children: ReactNode }) {
     </AnalyticsCaptureContext.Provider>
   );
 }
+
+
+/** Account settings for reviewing or withdrawing optional product-analytics consent. */
+export function AnalyticsConsentSettings() {
+  const [consent, setConsent] = useState<"unset" | "granted" | "denied">("unset");
+  const [enabled, setEnabled] = useState(false);
+  const [gpc, setGpc] = useState(false);
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    const refresh = () => {
+      const privacySignal = isGlobalPrivacyControlEnabled();
+      setGpc(privacySignal);
+      setConsent(readBrowserAnalyticsConsent(privacySignal));
+      setEnabled(Boolean(
+        import.meta.env.VITE_POSTHOG_PROJECT_TOKEN?.trim()
+        && import.meta.env.VITE_POSTHOG_HOST?.trim()
+        && import.meta.env.VITE_POSTHOG_PRIVACY_SETTINGS_VERIFIED === "true"
+      ));
+    };
+    refresh();
+    return subscribeToBrowserAnalyticsConsent(refresh);
+  }, []);
+
+  function choose(choice: "granted" | "denied") {
+    const result = writeBrowserAnalyticsConsent(choice);
+    setConsent(result.consent);
+    setNotice(result.persisted
+      ? choice === "granted" && !gpc
+        ? "Your analytics preference has been saved."
+        : "Optional analytics are disabled."
+      : "Your browser could not save this preference. Analytics remain disabled.");
+  }
+
+  return (
+    <section className="analytics-consent-settings hub-memberships" aria-labelledby="analytics-consent-settings-title">
+      <div className="hub-section-heading"><span className="hub-kicker">PRIVACY</span><span>Optional</span></div>
+      <h2 id="analytics-consent-settings-title">Analytics preferences</h2>
+      <p className="form-note">
+        {!enabled
+          ? "Optional analytics are currently disabled by Open Play. No analytics events are sent."
+          : gpc
+            ? "Your browser's Global Privacy Control signal is active, so optional analytics stay disabled."
+            : consent === "granted"
+              ? "You have allowed optional, privacy-minimised product analytics. You can withdraw consent at any time."
+              : consent === "denied"
+                ? "Optional analytics are disabled. You can change your choice at any time."
+                : "No choice has been saved. Optional analytics remain off until you opt in."}
+      </p>
+      {enabled && !gpc && (
+        <div className="analytics-consent-actions">
+          <button type="button" className="button" onClick={() => choose("granted")}>ALLOW OPTIONAL ANALYTICS</button>
+          <button type="button" className="auth-text-button" onClick={() => choose("denied")}>DISABLE ANALYTICS</button>
+        </div>
+      )}
+      {notice && <p className="form-note" role="status">{notice}</p>}
+    </section>
+  );
+}
