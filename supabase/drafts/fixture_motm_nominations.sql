@@ -85,7 +85,7 @@ begin
   join public.fixtures f on st.id in (f.home_team_id,f.away_team_id)
   join public.season_teams opponent
     on opponent.id=case when f.home_team_id=st.id then f.away_team_id else f.home_team_id end
-  join public.fixture_results fr on fr.fixture_id=f.id
+  join public.fixture_results fr on fr.fixture_id=f.id and fr.confirmed_at is not null
   left join public.fixture_motm_nominations n
     on n.fixture_id=f.id and n.season_team_id=st.id
   left join public.competition_player_identities nominated_identity
@@ -135,7 +135,7 @@ begin
   for update;
   if not found then raise exception 'Fixture not found'; end if;
   if v_fixture.status<>'completed'
-     or not exists(select 1 from public.fixture_results r where r.fixture_id=v_fixture.id) then
+     or not exists(select 1 from public.fixture_results r where r.fixture_id=v_fixture.id and r.confirmed_at is not null) then
     raise exception 'A Man of the Match nomination is available only after the official result is published';
   end if;
   if v_fixture.scheduled_at is null
@@ -449,16 +449,29 @@ begin
   ) then raise exception 'Published season not found'; end if;
 
   return query
+  with appearances as (
+    select tsp.competition_player_id,sh.season_team_id,
+      count(distinct sh.fixture_id)::bigint as appearances
+    from public.fixture_team_sheets sh
+    join public.fixtures appeared_fixture
+      on appeared_fixture.id=sh.fixture_id
+      and appeared_fixture.season_id=p_season_id
+      and appeared_fixture.status='completed'
+    join public.fixture_team_sheet_players tsp
+      on tsp.team_sheet_id=sh.id and tsp.did_appear is true
+    where sh.is_locked is true
+    group by tsp.competition_player_id,sh.season_team_id
+  )
   select n.competition_player_id,cpi.display_name,n.season_team_id,st.name::text,
     count(*)::bigint,
-    count(distinct sh.fixture_id)::bigint
+    coalesce(max(a.appearances),0)::bigint
   from public.fixture_motm_nominations n
   join public.fixtures f on f.id=n.fixture_id and f.status='completed'
   join public.season_teams st on st.id=n.season_team_id
   join public.competition_player_identities cpi on cpi.id=n.competition_player_id
-  left join public.fixture_team_sheets sh on sh.fixture_id=f.id and sh.season_team_id=n.season_team_id and sh.is_locked is true
-  left join public.fixture_team_sheet_players tsp on tsp.team_sheet_id=sh.id
-    and tsp.competition_player_id=n.competition_player_id and tsp.did_appear is true
+  left join appearances a
+    on a.competition_player_id=n.competition_player_id
+    and a.season_team_id=n.season_team_id
   where f.season_id=p_season_id and cpi.counts_for_statistics is true
   group by n.competition_player_id,cpi.display_name,n.season_team_id,st.name
   order by count(*) desc, cpi.display_name, st.name
