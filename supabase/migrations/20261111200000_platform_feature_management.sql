@@ -151,6 +151,27 @@ $;
 revoke all on function public.get_public_announcement_status() from public;
 grant execute on function public.get_public_announcement_status() to anon,authenticated;
 
+
+create or replace function public.enforce_announcement_message_feature_flag()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  if new.message_type='announcement'
+     and not public.is_platform_feature_enabled('announcements') then
+    raise exception 'Open Play announcements are temporarily paused' using errcode='55000';
+  end if;
+  return new;
+end;
+$;
+revoke all on function public.enforce_announcement_message_feature_flag() from public,anon,authenticated;
+drop trigger if exists enforce_announcement_message_feature_flag on public.messages;
+create trigger enforce_announcement_message_feature_flag
+before insert or update of message_type on public.messages
+for each row execute function public.enforce_announcement_message_feature_flag();
+
 create or replace function public.enforce_announcement_feature_flag()
 returns trigger
 language plpgsql
