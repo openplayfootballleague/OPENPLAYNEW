@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import "../styles.css";
+import { BottomNavigation } from "../components/bottom-navigation";
 
 export const Route = createRootRoute({
   head: () => ({
