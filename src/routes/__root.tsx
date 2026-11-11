@@ -53,6 +53,7 @@ function RootComponent() {
             <span>OPEN PLAY</span>
           </Link>
           <div className="openplay-header-actions">
+            <Link className="openplay-location" to="/teams" aria-label="Explore Open Play locations"><NavIcon name="pin" /><span>ALL LOCATIONS</span></Link>
             {(captainView || pathname === "/player") && <span className="openplay-role-badge">{captainView ? "CAPTAIN" : "PLAYER"}</span>}
             <Link className="openplay-account" to="/player" aria-label="Player account"><NavIcon name="user" /></Link>
           </div>
