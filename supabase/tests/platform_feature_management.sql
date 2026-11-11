@@ -101,8 +101,8 @@ begin
   returning id into v_season;
 
   insert into public.teams(created_by) values(v_user) returning id into v_team;
-  insert into public.season_teams(team_id,season_id,name,slug,registration_status)
-  values(v_team,v_season,'Feature Flag Test Team','ci-feature-flag-test-team','approved')
+  insert into public.season_teams(team_id,season_id,name,slug,registration_status,approved_by)
+  values(v_team,v_season,'Feature Flag Test Team','ci-feature-flag-test-team','approved',v_user)
   returning id into v_season_team;
 
   update public.platform_feature_flags set enabled=false where feature_key='team_recruitment';
