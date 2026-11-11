@@ -171,6 +171,19 @@ begin
   end if;
   execute 'reset role';
 
+  -- A payout already claimed for a Stripe request must not be released as a safe retry.
+  execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
+  select lock_token into v_job_token from public.referee_payout_transfer_jobs
+  where payout_id=v_match_payout;
+  if public.release_referee_payout_transfer_job(
+    (select id from public.referee_payout_transfer_jobs where payout_id=v_match_payout),
+    v_job_token,'CI must preserve ambiguous processing state',60
+  ) then
+    raise exception 'The worker released a payout whose transfer claim is already processing';
+  end if;
+  execute 'reset role';
+
   execute 'set local role service_role';
   v_rejected:=false;
   begin
