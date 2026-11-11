@@ -20,7 +20,7 @@ begin
     raise exception 'Sign in to view player statistics';
   end if;
 
-  select pl.*, pr.account_retention_status
+  select pl, pr.account_retention_status
   into v_player, v_account_status
   from public.players pl
   join public.profiles pr on pr.id = pl.user_id
@@ -41,7 +41,7 @@ begin
     raise exception 'Player statistics are not currently enabled for this account';
   end if;
 
-  select * into v_season
+  select s.* into v_season
   from public.seasons s
   join public.leagues l on l.id = s.league_id
   where s.id = p_season_id
