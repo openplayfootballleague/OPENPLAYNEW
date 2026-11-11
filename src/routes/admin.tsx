@@ -273,7 +273,7 @@ function AdminDashboardPage(){
   <section id="admin-settings" className="admin-queue admin-settings">
    <div className="hub-section-heading"><span className="hub-kicker">SETTINGS &amp; FEATURE MANAGEMENT</span><span>Available controls only</span></div>
    <p className="form-note">{isGlobalAdmin?"Manage platform-wide controls here. Feature changes are permission checked and recorded in the audit history.":"Platform-wide feature controls are restricted to global administrators."}</p>
-   {isGlobalAdmin&&<section className="admin-setup-form admin-feature-management">
+   {isGlobalAdmin&&<div className="admin-setup-form admin-feature-management">
     <div className="hub-section-heading"><span className="hub-kicker">LIVE FEATURE CONTROLS</span><span>{platformFlagsLoading?"Loading…":platformFlags.length+" controls"}</span></div>
     <div className="admin-feature-status-list">
      {platformFlags.map(flag=><article className="admin-feature-status" key={flag.feature_key}><div><strong>{flag.feature_key==="team_recruitment"?"Team recruitment":"Announcements"}</strong><p className="form-note">{flag.feature_key==="team_recruitment"?"Controls new player join requests and new team applications across all seasons. Existing memberships and captain approvals are preserved.":"Controls creation of new platform announcement conversations. Existing conversations and messages remain available."}</p></div><span className={flag.enabled?"admin-feature-enabled":"admin-feature-disabled"}>{flag.enabled?"ENABLED":"PAUSED"}</span></article>)}
@@ -286,7 +286,7 @@ function AdminDashboardPage(){
      <label>Reason for change<textarea required minLength={5} maxLength={500} rows={2} value={platformFlagReason} onChange={event=>setPlatformFlagReason(event.target.value)} placeholder="Record why this platform control is changing."/></label>
      <button type="submit" disabled={busy==="platform-feature-"+platformFlagKey||platformFlagsLoading||platformFlags.length===0||platformFlags.find(flag=>flag.feature_key===platformFlagKey)?.enabled===platformFlagEnabled}>{busy==="platform-feature-"+platformFlagKey?"SAVING…":"SAVE FEATURE SETTING"}</button>
     </form>
-   </section>}
+   </div>}
 
    <div className="admin-setup-grid">
     <article className="admin-setup-form"><h3>Competition &amp; season configuration</h3><p className="form-note">Manage locations, leagues, seasons, team setup and the existing competition lifecycle. Changes remain subject to your assigned location permissions.</p><a className="admin-inline-action" href="#admin-competitions">OPEN COMPETITION SETUP</a></article>
@@ -298,7 +298,7 @@ function AdminDashboardPage(){
     {isGlobalAdmin&&<article className="admin-setup-form"><h3>Audit history</h3><p className="form-note">Search administrative audit metadata. Private before/after payloads remain withheld from this view.</p><a className="admin-inline-action" href="#admin-audit">OPEN AUDIT HISTORY</a></article>}
     {isGlobalAdmin&&<article className="admin-setup-form"><h3>Player account retention</h3><p className="form-note">Review inactivity and archive status. Apply or clear documented retention holds with a reason and audit trail.</p><Link className="admin-inline-action" to="/admin/retention">OPEN RETENTION WORKSPACE</Link></article>}
    </div>
-   <div className="admin-setup-form"><h3>Not yet configurable here</h3><p className="form-note">Global feature flags, branding controls, role creation, advanced competition-rule overrides and central security settings are not yet backed by a complete settings workflow. They are deliberately not presented as editable controls. Existing permissions, database safeguards and audit controls remain in force.</p></div>
+   <div className="admin-setup-form"><h3>Not yet configurable here</h3><p className="form-note">Branding controls, role creation, advanced competition-rule overrides and central security settings are not yet backed by a complete settings workflow. They are deliberately not presented as editable controls. Existing permissions, database safeguards and audit controls remain in force.</p></div>
   </section><Link className="auth-switch" to="/player">Back to Player Hub</Link>
  </section></main>;
 }
