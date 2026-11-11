@@ -40,6 +40,7 @@ function AdminMessagesPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [announcementsEnabled, setAnnouncementsEnabled] = useState<boolean | null>(null);
   const [targetType, setTargetType] = useState("everyone");
   const [targetId, setTargetId] = useState("");
   const [title, setTitle] = useState("");
@@ -49,18 +50,20 @@ function AdminMessagesPage() {
   const load = useCallback(async () => {
     setError("");
     const supabase = getSupabaseClient();
-    const [{ data: preference, error: preferenceError }, { data: setupData, error: setupError }, { data: reportData, error: reportError }] = await Promise.all([
+    const [{ data: preference, error: preferenceError }, { data: setupData, error: setupError }, { data: reportData, error: reportError }, { data: announcementStatus, error: announcementStatusError }] = await Promise.all([
       supabase.rpc("get_admin_context_preference"),
       messagingRpc().rpc("admin_get_message_target_options"),
       messagingRpc().rpc("admin_get_message_reports", { p_status: "open", p_limit: 100 }),
+      supabase.rpc("get_public_announcement_status"),
     ]);
-    if (preferenceError || setupError || reportError) {
-      setError(preferenceError?.message ?? setupError?.message ?? reportError?.message ?? "Unable to load messaging administration.");
+    if (preferenceError || setupError || reportError || announcementStatusError) {
+      setError(preferenceError?.message ?? setupError?.message ?? reportError?.message ?? announcementStatusError?.message ?? "Unable to load messaging administration.");
       setLoading(false);
       return;
     }
     const context = preference as { is_global_admin?: boolean } | null;
     setIsGlobalAdmin(Boolean(context?.is_global_admin));
+    setAnnouncementsEnabled(announcementStatus === true);
     setTargetType(context?.is_global_admin ? "everyone" : "location");
     setSetup((setupData ?? {}) as Setup);
     setReports((reportData ?? []) as MessageReport[]);
@@ -85,6 +88,10 @@ function AdminMessagesPage() {
 
   async function createBroadcast(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (announcementsEnabled !== true) {
+      setError("Open Play announcements are currently paused by a platform administrator.");
+      return;
+    }
     if (needsTarget && !targetId) {
       setError("Choose the audience before sending the broadcast.");
       return;
@@ -150,6 +157,7 @@ function AdminMessagesPage() {
         {error && <p className="form-error" role="alert">{error}</p>}
         {notice && <p className="form-success" role="status">{notice}</p>}
 
+        {announcementsEnabled === false && <p className="form-error" role="status">Announcements are currently paused by a platform administrator. Existing conversations and member messages remain available.</p>}
         <form className="admin-setup-form messaging-broadcast-form" onSubmit={createBroadcast}>
           <h3>CREATE ANNOUNCEMENT</h3>
           <label>Audience
@@ -174,7 +182,7 @@ function AdminMessagesPage() {
           <label>Announcement title<input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} minLength={3} required placeholder="e.g. Matchday update"/></label>
           <label>Message<textarea value={body} onChange={(event) => setBody(event.target.value)} rows={5} maxLength={2000} required placeholder="Write a clear announcement…"/></label>
           <small>Message limit: 2,000 characters. Email/SMS notifications contain an alert only; the message content remains inside the authenticated inbox.</small>
-          <button type="submit" disabled={busy}>{busy ? "SENDING…" : "SEND ANNOUNCEMENT"}</button>
+          <button type="submit" disabled={busy || announcementsEnabled !== true}>{busy ? "SENDING…" : announcementsEnabled === false ? "ANNOUNCEMENTS PAUSED" : "SEND ANNOUNCEMENT"}</button>
         </form>
 
         <section className="messaging-moderation">
