@@ -203,7 +203,15 @@ begin
   end;
   if not v_failed then raise exception 'Non-participant could read a private direct conversation'; end if;
 
+  -- Confirm the support administrator fixture is active before exercising
+  -- the caller-facing RPC; the RPC itself must discover this role securely.
   execute 'reset role';
+  select count(*) into v_count from public.user_roles
+  where user_id=v_admin and role in ('admin','super_admin','league_admin','finance_admin');
+  if v_count=0 or not public.message_actor_is_active(v_admin) then
+    raise exception 'Messaging support admin fixture is not active';
+  end if;
+
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_player_a::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_a::text,'role','authenticated')::text,true);
