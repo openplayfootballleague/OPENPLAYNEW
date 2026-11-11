@@ -95,6 +95,23 @@ begin
   values(v_fixture,v_away_season_team,v_away_captain,true,now())
   returning id into v_away_sheet;
 
+  -- Sheet-player rows for the first fixture must be added before it is
+  -- completed; the amendment guard correctly prevents edits to past fixtures.
+  perform set_config('request.jwt.claim.sub',v_home_captain::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_home_captain)::text,true);
+  insert into public.fixture_team_sheet_players(team_sheet_id,user_id,role)
+  values
+    (v_home_sheet,v_home_captain,'starter'),
+    (v_home_sheet,v_home_teammate,'starter'),
+    (v_home_sheet,v_home_sub,'substitute');
+
+  perform set_config('request.jwt.claim.sub',v_away_captain::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_away_captain)::text,true);
+  insert into public.fixture_team_sheet_players(team_sheet_id,user_id,role)
+  values
+    (v_away_sheet,v_away_captain,'starter'),
+    (v_away_sheet,v_away_teammate,'starter');
+
   -- The later fixture cannot accept captain sheets until the earlier required
   -- fixture is completed, matching the production next-fixture guard.
   update public.fixtures set status='completed' where id=v_fixture;
@@ -114,23 +131,7 @@ begin
   returning id into v_late_away_sheet;
 
 
-  -- Sheet-player writes are captain-protected too; authenticate each
-  -- team's captain while populating that team's submitted sheet.
-  perform set_config('request.jwt.claim.sub',v_home_captain::text,true);
-  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_home_captain)::text,true);
-  insert into public.fixture_team_sheet_players(team_sheet_id,user_id,role)
-  values
-    (v_home_sheet,v_home_captain,'starter'),
-    (v_home_sheet,v_home_teammate,'starter'),
-    (v_home_sheet,v_home_sub,'substitute');
-
-  perform set_config('request.jwt.claim.sub',v_away_captain::text,true);
-  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_away_captain)::text,true);
-  insert into public.fixture_team_sheet_players(team_sheet_id,user_id,role)
-  values
-    (v_away_sheet,v_away_captain,'starter'),
-    (v_away_sheet,v_away_teammate,'starter');
-
+  -- Populate the later fixture's players under their own captains.
   perform set_config('request.jwt.claim.sub',v_home_captain::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_home_captain)::text,true);
   insert into public.fixture_team_sheet_players(team_sheet_id,user_id,role)
