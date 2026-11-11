@@ -47,6 +47,23 @@ begin
   if not v_enabled then raise exception 'Recruitment must be enabled by default'; end if;
   select public.is_platform_feature_enabled('announcements') into v_enabled;
   if not v_enabled then raise exception 'Announcements must be enabled by default'; end if;
+
+  if not has_function_privilege('anon','public.get_public_team_recruitment_status()','EXECUTE')
+     or not has_function_privilege('anon','public.get_public_announcement_status()','EXECUTE') then
+    raise exception 'Public status RPCs must be readable by anonymous visitors';
+  end if;
+
+  update public.platform_feature_flags set enabled=false where feature_key='team_recruitment';
+  if public.get_public_team_recruitment_status() is distinct from false then
+    raise exception 'Public recruitment status must reflect the platform switch';
+  end if;
+  update public.platform_feature_flags set enabled=true where feature_key='team_recruitment';
+
+  update public.platform_feature_flags set enabled=false where feature_key='announcements';
+  if public.get_public_announcement_status() is distinct from false then
+    raise exception 'Public announcement status must reflect the platform switch';
+  end if;
+  update public.platform_feature_flags set enabled=true where feature_key='announcements';
 end;
 $$;
 
