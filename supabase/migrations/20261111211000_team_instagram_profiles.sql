@@ -192,7 +192,7 @@ as $$
   where st.registration_status='approved'
     and s.id=p_season_id
     and s.is_public is true
-    and s.status in ('active','completed')
+    and s.status in ('registration_open','active','completed')
     and l.is_published is true
   order by st.name;
 $$;
@@ -225,7 +225,7 @@ as $$
   where st.id=p_season_team_id
     and st.registration_status='approved'
     and s.is_public is true
-    and s.status in ('active','completed')
+    and s.status in ('registration_open','active','completed')
     and l.is_published is true
   limit 1;
 $$;
