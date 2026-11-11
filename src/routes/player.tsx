@@ -117,7 +117,7 @@ function PlayerHubPage(){
       <article className="player-stat-card"><span>MAN OF THE MATCH</span><strong>{motmAwardsLoading?"—":motmAwards.season_awards}</strong><small>Captain nominations</small></article>
      </div>
      <div className="player-career-stats"><span className="hub-kicker">CAREER TOTALS</span><div><strong>{playerStats.career.appearances}</strong><small>Appearances</small></div><div><strong>{playerStats.career.goals}</strong><small>Goals</small></div><div><strong>{playerStats.career.goals_per_game.toFixed(2)}</strong><small>Goals per appearance</small></div><div><strong>{playerStats.career.goalkeeper_clean_sheets}</strong><small>GK clean sheets</small></div><div><strong>{motmAwardsLoading?"—":motmAwards.career_awards}</strong><small>Man of the Match awards</small></div></div>
-     <p className="form-note">Only appearances from locked team sheets, goals from confirmed results and audited captain Man of the Match nominations are included. Assists remain excluded until their capture workflow is complete.</p>
+     <p className="form-note">Only appearances from locked team sheets and goals from confirmed results are included in these totals. Assists and Man of the Match awards are not yet included in the appearance and goals calculations shown above; audited Man of the Match awards are displayed separately below.</p>
      {motmAwardsError&&<p className="form-note" role="status">Man of the Match totals are temporarily unavailable: {motmAwardsError}</p>}
     </>:<p className="form-note">Choose a published season to view your verified season and career statistics.</p>}
    </section>}
