@@ -108,6 +108,13 @@ begin
     (v_late_away_sheet,v_away_captain,'starter'),
     (v_late_away_sheet,v_away_teammate,'starter');
 
+  -- Mirror the official result workflow: starters are confirmed appearances;
+  -- the named substitute remains unplayed and must not be eligible.
+  update public.fixture_team_sheet_players tsp
+  set did_appear=true
+  where tsp.team_sheet_id in (v_home_sheet,v_away_sheet,v_late_home_sheet,v_late_away_sheet)
+    and tsp.role='starter';
+
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_home_captain::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_home_captain)::text,true);
