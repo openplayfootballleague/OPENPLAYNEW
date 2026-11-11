@@ -138,6 +138,19 @@ create trigger enforce_team_recruitment_feature_flag
 before insert or update of status on public.team_memberships
 for each row execute function public.enforce_team_recruitment_feature_flag();
 
+
+create or replace function public.get_public_announcement_status()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select public.is_platform_feature_enabled('announcements');
+$;
+revoke all on function public.get_public_announcement_status() from public;
+grant execute on function public.get_public_announcement_status() to anon,authenticated;
+
 create or replace function public.enforce_announcement_feature_flag()
 returns trigger
 language plpgsql
