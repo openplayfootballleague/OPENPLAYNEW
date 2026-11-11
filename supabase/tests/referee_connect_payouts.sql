@@ -112,6 +112,14 @@ begin
   if not v_rejected then raise exception 'Payout was claimable before the referee enabled transfers'; end if;
   execute 'reset role';
 
+  -- The service worker cannot claim a payout until Stripe has enabled transfers.
+  execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
+  if exists(select 1 from public.claim_referee_payout_transfer_jobs(10)) then
+    raise exception 'The payout worker claimed a referee account before transfer capability was active';
+  end if;
+  execute 'reset role';
+
   execute 'set local role service_role';
   perform public.sync_referee_connect_account(
     v_referee,v_account_id,true,true,false,false,
@@ -122,14 +130,6 @@ begin
     v_referee,v_account_id,true,false,false,false,
     jsonb_build_object('currently_due',jsonb_build_array('external_account')),'requirements.pending',now()-interval '2 days'
   );
-  execute 'reset role';
-
-  -- The service worker cannot claim a payout until Stripe has enabled transfers.
-  execute 'set local role service_role';
-  perform set_config('request.jwt.claim.role','service_role',true);
-  if exists(select 1 from public.claim_referee_payout_transfer_jobs(10)) then
-    raise exception 'The payout worker claimed a referee account before transfer capability was active';
-  end if;
   execute 'reset role';
 
   execute 'set local role service_role';
