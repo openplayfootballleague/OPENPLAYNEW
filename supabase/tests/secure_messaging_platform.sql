@@ -130,10 +130,13 @@ begin
   where conversation_id=v_direct;
   if coalesce(v_unread,0)<>0 then raise exception 'Sender should not have unread messages'; end if;
 
+  -- Seed the recipient's prior read timestamp as a trusted test fixture.
+  -- Authenticated members must not be able to update another participant row.
+  execute 'reset role';
+  execute 'set local role service_role';
   update public.message_conversation_participants
   set last_read_at=now()-interval '1 minute'
   where conversation_id=v_direct and user_id=v_player_b;
-
   execute 'reset role';
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_player_b::text,true);
