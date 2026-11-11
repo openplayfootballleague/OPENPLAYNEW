@@ -650,3 +650,7 @@
 .messaging-report button,.messaging-block-button { border:1px solid #4a3a30!important; border-radius:999px!important; background:#21170f!important; color:#f5f5f5!important; }
 .messaging-moderation { display:grid; gap:10px; margin-top:18px; }
 .messaging-moderation-actions { display:flex; flex-wrap:wrap; gap:8px; }
+
+
+#captain-club,#captain-matchday { scroll-margin-top:22px; }
+#captain-matchday { padding-top:8px; }
