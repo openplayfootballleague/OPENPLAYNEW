@@ -145,15 +145,15 @@ jobs:
           retention-days: 1
       - name: Generate weather gameweek postponement migration using the pinned Supabase CLI
         run: |
-          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponement.sql' -print -quit)"
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponements.sql' -print -quit)"
           if [ -z "$migration_file" ]; then
             # Supabase CLI versions migrations to the nearest second; keep generated versions unique.
             sleep 1
-            supabase migration new weather_gameweek_postponement
-            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponement.sql' -print -quit)"
-            cp supabase/drafts/weather_gameweek_postponement.sql "$migration_file"
+            supabase migration new weather_gameweek_postponements
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponements.sql' -print -quit)"
+            cp supabase/drafts/weather_gameweek_postponements.sql "$migration_file"
           else
-            diff -u supabase/drafts/weather_gameweek_postponement.sql "$migration_file"
+            diff -u supabase/drafts/weather_gameweek_postponements.sql "$migration_file"
           fi
           test -n "$migration_file"
           grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
@@ -163,7 +163,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: weather-gameweek-postponement-migration
-          path: supabase/migrations/*_weather_gameweek_postponement.sql
+          path: supabase/migrations/*_weather_gameweek_postponements.sql
           if-no-files-found: error
           retention-days: 1
       - name: Generate approved referee report correction options migration using the pinned Supabase CLI
@@ -359,7 +359,7 @@ jobs:
       - name: Verify whole-gameweek weather postponements, refunds and chronological renumbering
         env:
           PGPASSWORD: postgres
-        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/weather_gameweek_postponement.sql
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/weather_gameweek_postponements.sql
 
       - name: Verify age tiers and guardian consent lifecycle
         env:
