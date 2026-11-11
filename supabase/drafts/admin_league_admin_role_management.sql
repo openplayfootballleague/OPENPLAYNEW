@@ -96,8 +96,8 @@ declare
   v_query text:=nullif(btrim(p_query),'');
 begin
   if auth.uid() is null or not exists(
-    select 1 from public.user_roles
-    where user_id=auth.uid() and role in ('admin','super_admin')
+    select 1 from public.user_roles ur
+    where ur.user_id=auth.uid() and ur.role in ('admin','super_admin')
   ) then
     raise exception 'Global administrator permission required';
   end if;
