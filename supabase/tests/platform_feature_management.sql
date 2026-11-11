@@ -83,6 +83,16 @@ begin
   insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status,is_banned)
   values(v_user,'Platform Feature Test','+447700929991','ci-platform-feature@openplay.invalid',date '1990-01-01','registered',false);
 
+  perform set_config('request.jwt.claim.sub',v_user::text,true);
+  v_failed:=false;
+  begin
+    perform public.admin_set_platform_feature_flag('team_recruitment',false,'Unauthorised test change');
+  exception when sqlstate '42501' then
+    v_failed:=true;
+  end;
+  if not v_failed then raise exception 'A non-admin user must not change platform feature flags'; end if;
+  perform set_config('request.jwt.claim.sub','',true);
+
   select id into v_location from public.locations where is_active=true order by created_at limit 1;
   if v_location is null then raise exception 'Feature flag regression requires an active location'; end if;
   insert into public.leagues(location_id,name,slug,format,is_published)
