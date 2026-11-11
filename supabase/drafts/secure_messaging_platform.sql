@@ -74,7 +74,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path=''
-as $
+as $$
 begin
   update public.messages
   set body='[Message removed after account erasure]',
@@ -91,7 +91,7 @@ begin
   where reporter_id=old.id;
   return old;
 end;
-$;
+$$;
 revoke all on function public.redact_messages_on_account_erasure() from public,anon,authenticated;
 drop trigger if exists auth_users_redact_messages_before_delete on auth.users;
 create trigger auth_users_redact_messages_before_delete
