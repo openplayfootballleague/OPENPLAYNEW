@@ -112,6 +112,13 @@ begin
     (v_away_sheet,v_away_captain,'starter'),
     (v_away_sheet,v_away_teammate,'starter');
 
+  -- Record first-fixture appearances while that fixture is still the
+  -- captains' next required fixture; completed sheets are immutable to captains.
+  update public.fixture_team_sheet_players
+  set did_appear=true
+  where team_sheet_id in (v_home_sheet,v_away_sheet)
+    and role='starter';
+
   -- The later fixture cannot accept captain sheets until the earlier required
   -- fixture is completed, matching the production next-fixture guard.
   update public.fixtures set status='completed' where id=v_fixture;
@@ -146,17 +153,18 @@ begin
     (v_late_away_sheet,v_away_captain,'starter'),
     (v_late_away_sheet,v_away_teammate,'starter');
 
+  -- Record later-fixture appearances before closing its locked sheets.
+  update public.fixture_team_sheet_players
+  set did_appear=true
+  where team_sheet_id in (v_late_home_sheet,v_late_away_sheet)
+    and role='starter';
+
   -- Close the later fixture after both sheets have been submitted.
   update public.fixtures set status='completed' where id=v_late_fixture;
   insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
   values(v_late_fixture,0,0,now(),v_admin);
 
-  -- Mirror the official result workflow: starters are confirmed appearances;
-  -- the named substitute remains unplayed and must not be eligible.
-  update public.fixture_team_sheet_players tsp
-  set did_appear=true
-  where tsp.team_sheet_id in (v_home_sheet,v_away_sheet,v_late_home_sheet,v_late_away_sheet)
-    and tsp.role='starter';
+  -- Starter appearance flags were set before each fixture was completed.
 
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_home_captain::text,true);
