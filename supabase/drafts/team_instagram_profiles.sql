@@ -217,13 +217,14 @@ language sql
 stable
 security definer
 set search_path = ''
-as $$
+as $
   select st.id,st.name,s.id,s.name,s.starts_on,st.primary_colour,st.secondary_colour,
          t.instagram_profile_url,t.instagram_handle
   from public.season_teams st
   join public.teams t on t.id=st.team_id
   join public.seasons s on s.id=st.season_id
   join public.leagues l on l.id=s.league_id
+  join public.locations loc on loc.id=l.location_id
   where st.id=p_season_team_id
     and st.registration_status='approved'
     and s.is_public is true
