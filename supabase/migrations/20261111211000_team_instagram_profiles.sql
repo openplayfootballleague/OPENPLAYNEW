@@ -49,7 +49,7 @@ begin
        or split_part(regexp_replace(v_url,'^https://(www[.])?instagram[.]com/','','i'), '/', 1) ~ '(^[.]|[.]{2}|[.]$)' then
       raise exception 'Enter a valid HTTPS Instagram profile URL';
     end if;
-    v_url := regexp_replace(v_url,'^https://instagram[.]com/','https://www.instagram.com/','i');
+    v_url := regexp_replace(v_url,'^https://(www[.])?instagram[.]com/','https://www.instagram.com/','i');
     if right(v_url,1)<>'/' then v_url:=v_url||'/'; end if;
   end if;
 
@@ -152,7 +152,7 @@ begin
        or split_part(regexp_replace(v_url,'^https://(www[.])?instagram[.]com/','','i'), '/', 1) ~ '(^[.]|[.]{2}|[.]$)' then
       raise exception 'Enter a valid HTTPS Instagram profile URL';
     end if;
-    v_url:=regexp_replace(v_url,'^https://instagram[.]com/','https://www.instagram.com/','i');
+    v_url:=regexp_replace(v_url,'^https://(www[.])?instagram[.]com/','https://www.instagram.com/','i');
     if right(v_url,1)<>'/' then v_url:=v_url||'/'; end if;
   end if;
 
