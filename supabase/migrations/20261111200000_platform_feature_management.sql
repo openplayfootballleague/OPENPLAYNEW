@@ -15,6 +15,15 @@ on conflict (feature_key) do nothing;
 alter table public.platform_feature_flags enable row level security;
 revoke all on public.platform_feature_flags from public,anon,authenticated;
 
+create policy public_read_platform_feature_switches
+on public.platform_feature_flags
+for select to anon,authenticated
+using (feature_key in ('team_recruitment','announcements'));
+
+grant select(feature_key,enabled)
+on public.platform_feature_flags to anon,authenticated;
+
+
 create or replace function public.is_platform_feature_enabled(p_feature_key text)
 returns boolean
 language sql
