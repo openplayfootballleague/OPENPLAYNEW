@@ -40,7 +40,7 @@ begin
     (v_away_teammate,'authenticated','authenticated','ci-motm-away-player@openplay.invalid','','{}'::jsonb,now(),now());
 
   insert into public.locations(id,name,slug,town,region,is_active)
-  values(v_location,'MOTM Test Location','ci-motm-location','Bideford','Devon',true);
+  values(v_location,'MOTM Test Location','ci-motm-location','Bideford','Devon',false);
   insert into public.user_roles(user_id,role,granted_by)
   values(v_admin,'admin',v_admin);
   insert into public.leagues(id,location_id,name,slug,format,is_published)
