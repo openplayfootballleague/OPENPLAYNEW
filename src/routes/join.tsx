@@ -6,6 +6,8 @@ import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { getTeamRequestDisplay, type TeamRequestStatus } from "../lib/team-request-status";
 import { useOpenPlayAnalytics } from "../components/analytics-provider";
+import { normalizeInstagramProfileUrl } from "../lib/teams/instagram";
+import { normalizeInstagramHandle } from "../lib/teams/instagram-handle";
 
 type TeamOption = { id: string; name: string; season_id: string };
 type PlayerState = { registration_status: "registered" | "pending_review" | "rejected"; is_banned: boolean };
@@ -25,6 +27,8 @@ function JoinPage() {
   const [teamName,setTeamName]=useState("");
   const [primaryColour,setPrimaryColour]=useState("");
   const [secondaryColour,setSecondaryColour]=useState("");
+  const [instagramHandle,setInstagramHandle]=useState("");
+  const [instagramProfileUrl,setInstagramProfileUrl]=useState("");
   const [error,setError]=useState("");
   const [message,setMessage]=useState("");
   const [busy,setBusy]=useState(false);
@@ -91,12 +95,14 @@ function JoinPage() {
     event.preventDefault();setError("");setMessage("");setBusy(true);
     try{
       if(!competition.selectedSeasonId)throw new Error("There is no open season available for team registration.");
-      const {data,error:rpcError}=await getSupabaseClient().rpc("register_team",{p_season_id:competition.selectedSeasonId,p_team_name:teamName.trim(),p_primary_colour:primaryColour||undefined,p_secondary_colour:secondaryColour||undefined});
+      const handle=normalizeInstagramHandle(instagramHandle);
+      const instagramUrl=normalizeInstagramProfileUrl(instagramProfileUrl);
+      const {data,error:rpcError}=await getSupabaseClient().rpc("register_team",{p_season_id:competition.selectedSeasonId,p_team_name:teamName.trim(),p_primary_colour:primaryColour||null,p_secondary_colour:secondaryColour||null,p_instagram_profile_url:instagramUrl,p_instagram_handle:handle});
       if(rpcError)throw rpcError;
       capture("team_registration_submitted", { feature: "team_registration", outcome: "success", season_id: competition.selectedSeasonId });
       setMessage(`Your application for ${data.name} has been submitted for administrator approval. You will become its captain only after approval.`);
       try{await refreshMyRequests();}catch{}
-      setTeamName("");setPrimaryColour("");setSecondaryColour("");
+      setTeamName("");setPrimaryColour("");setSecondaryColour("");setInstagramHandle("");setInstagramProfileUrl("");
     }catch(cause){capture("workflow_error", { feature: "team_registration", error_code: "unexpected_error", outcome: "failure" });setError(cause instanceof Error?cause.message:"Unable to submit team registration.");}
     finally{setBusy(false);}
   }
@@ -134,6 +140,9 @@ function JoinPage() {
       </form>:<form className="auth-form" onSubmit={submitTeam}>
         <label>Team name<input required maxLength={80} value={teamName} onChange={e=>setTeamName(e.target.value)}/></label>
         <div className="auth-colours"><label>Primary colour<input type="text" maxLength={30} placeholder="e.g. Orange" value={primaryColour} onChange={e=>setPrimaryColour(e.target.value)}/></label><label>Secondary colour<input type="text" maxLength={30} placeholder="e.g. Black" value={secondaryColour} onChange={e=>setSecondaryColour(e.target.value)}/></label></div>
+        <label>Instagram handle (optional)<input type="text" maxLength={31} autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="@yourteam" value={instagramHandle} onChange={e=>setInstagramHandle(e.target.value)}/></label>
+        <label>Instagram profile link (optional)<input type="url" maxLength={200} placeholder="https://www.instagram.com/yourteam/" value={instagramProfileUrl} onChange={e=>setInstagramProfileUrl(e.target.value)}/></label>
+        <p className="form-note">The handle is stored separately. The Instagram icon appears on public team profiles only when a valid profile link is supplied.</p>
         <p className="form-note">Team applications require administrator approval. Your captain access is not activated until approval.</p>
         <button className="button" type="submit" disabled={busy||!teamName.trim()}>{busy?"SUBMITTING…":"SUBMIT TEAM APPLICATION"} <span>↗</span></button>
       </form>}
