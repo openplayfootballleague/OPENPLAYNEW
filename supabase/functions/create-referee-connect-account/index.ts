@@ -108,8 +108,10 @@ Deno.serve(async(req)=>{
     sessionParams.set("components[account_onboarding][enabled]","true");
     sessionParams.set("components[account_onboarding][features][external_account_collection]","true");
     const accountSession=await stripeRequest("account_sessions","POST",stripeKey,sessionParams);
-    if(typeof accountSession.client_secret!=="string"||!accountSession.client_secret.startsWith("cuss_")){
-      throw new Error("Stripe did not return a valid embedded onboarding session");
+    if(accountSession.object!=="account_session"||accountSession.account!==account.id||
+       accountSession.livemode!==false||typeof accountSession.client_secret!=="string"||
+       accountSession.client_secret.length<20){
+      throw new Error("Stripe did not return a valid test-mode embedded onboarding session");
     }
     return json({
       connected:false,
