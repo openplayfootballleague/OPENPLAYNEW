@@ -130,8 +130,9 @@ The consolidation also carries five forward-only security migrations from the in
 
 ## Additional forward-only feature sources — 11 November 2026
 
-The current development integration adds five further canonical, timestamped migration sources after the existing 99-version hosted baseline and the previously declared pending migrations:
+The current development integration adds six further canonical, timestamped migration sources after the existing 99-version hosted baseline and the previously declared pending migrations:
 
+- `20261110193000_admin_disciplinary_return_queue.sql` — location-scoped disciplinary suspension review and audited return-to-play approval that preserves the permanent strike record.
 - `20261111190000_team_weekly_payment_workflow.sql` — team-level weekly fixture obligations, deadlines, refunds and ledger state.
 - `20261111191000_weather_gameweek_postponements.sql` — whole-gameweek postponement, replacement scheduling and refund reconciliation.
 - `20261111192000_referee_connect_payouts.sql` — Stripe Connect account readiness and approved referee payout obligations.
