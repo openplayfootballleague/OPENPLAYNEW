@@ -1601,6 +1601,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_search_league_admin_role_candidates: {
+        Args: { p_query: string }
+        Returns: {
+          user_id: string
+          email: string | null
+          display_name: string
+          has_league_admin: boolean
+        }[]
+      }
+      admin_set_league_admin_role: {
+        Args: { p_user_id: string; p_granted: boolean; p_reason: string }
+        Returns: boolean
+      }
       admin_list_disciplinary_suspensions: {
         Args: { p_location_id?: string | null }
         Returns: {
