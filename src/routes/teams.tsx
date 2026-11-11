@@ -56,7 +56,7 @@ function TeamsPage(){
   {competition.selectedSeasonId&&<section className="hub-memberships club-leaders" aria-label="Club Leaders">
    <div className="hub-section-heading"><span className="hub-kicker">CLUB LEADERS</span><span>{leaders.length} ranked players</span></div>
    {leadersLoading?<p className="form-note">Loading Club Leaders…</p>:leadersError?<p className="form-note" role="status">Club Leaders are temporarily unavailable: {leadersError}</p>:leaders.length===0?<p className="form-note">No Man of the Match awards have been recorded for this season yet.</p>:leaders.map((leader,index)=><article className="directory-team" key={leader.competition_player_id+"-"+leader.season_team_id}>
-    <span className="team-colour-mark">{index+1}</span>
+    <span className="leader-rank">{index+1}</span>
     <div><strong>{leader.player_name}</strong><span>{leader.team_name} · {leader.motm_awards} Man of the Match · {leader.appearances} appearances</span></div>
    </article>)}
   </section>}
