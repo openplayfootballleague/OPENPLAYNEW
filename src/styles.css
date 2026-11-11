@@ -1074,3 +1074,67 @@ html,body { background:#000; color:#f5f5f5; }
  .openplay-location { padding:7px 8px; font-size:8px; }
  .openplay-role-badge { min-height:26px; padding:0 9px; font-size:9px; }
 }
+
+
+/* Player Hub — approved reference alignment (page-scoped; preserves shared workflows) */
+.player-dashboard-page { padding: 18px 16px 26px !important; background:#080808 !important; }
+.player-dashboard { width:100% !important; max-width:1120px !important; }
+.player-dashboard .hub-top { display:none; }
+.player-welcome { padding:18px 18px 0; border:1px solid #333; border-radius:20px; background:#151515; }
+.player-welcome-meta { margin-bottom:16px; }
+.player-section-label { font-family:"Inter",sans-serif; font-size:12px !important; letter-spacing:0 !important; }
+.season-chip { padding:5px 11px; border:0; background:#292929; color:#ddd; font-size:10px; letter-spacing:0; }
+.player-welcome-main { margin:0; min-height:116px; align-items:center; }
+.player-welcome-copy h1 { font-family:"Inter",sans-serif; font-size:clamp(27px,4vw,40px); line-height:1.1; letter-spacing:-.035em; font-weight:700; }
+.player-welcome-name { display:none; }
+.player-welcome-team { margin:12px 0 10px !important; font-size:15px !important; }
+.player-status-active,.player-status-pending { padding:0; border:0; border-radius:0; background:transparent; font-size:12px; letter-spacing:0; }
+.player-welcome-avatar { width:100px; height:100px; flex-basis:100px; border-width:3px; }
+.player-stat-strip { margin:22px 0 0; padding:22px 0 16px; border-top:1px solid #393939; border-bottom:0; }
+.player-stat-strip>div { justify-items:start; gap:8px; border:0; padding-right:8px; }
+.player-stat-strip strong { font-family:"Inter",sans-serif; font-size:38px; font-weight:700; }
+.player-stat-strip span { font-size:11px; letter-spacing:0; font-weight:500; }
+.player-stat-strip>p { display:none; }
+.player-dashboard-grid { gap:12px; margin-top:16px; }
+.player-dashboard-grid a { grid-template-columns:1fr 18px; grid-template-rows:30px auto auto; gap:6px 8px; min-height:132px; padding:16px; border:1px solid #333; border-radius:16px; background:#191919; }
+.player-dashboard-grid a:hover { transform:none; border-color:#555; }
+.dashboard-card-icon { grid-row:1; width:auto; height:28px; justify-content:start; border:0; border-radius:0; color:var(--orange); font-size:23px; }
+.player-dashboard-grid strong { grid-column:1; grid-row:2; font-family:"Inter",sans-serif; font-size:17px; letter-spacing:-.02em; }
+.player-dashboard-grid small { grid-column:1/-1; grid-row:3; color:#aaa; font-size:12px; }
+.player-dashboard-grid b { grid-column:2; grid-row:1; justify-self:end; font-size:20px; }
+.player-feature-section { margin-top:22px; }
+.player-feature-heading { margin-bottom:14px; }
+.player-feature-heading .player-section-label { color:#fff !important; font-size:24px !important; font-weight:700; }
+.player-feature-heading>span,.player-feature-heading>a { color:var(--orange); font-size:11px; letter-spacing:0; }
+.player-next-match { min-height:190px; padding:16px; border:1px solid #333; border-radius:16px; background:#191919; }
+.player-next-match>div { gap:10px; }
+.player-next-match>div:first-child::before { content:""; }
+.player-next-match small { font-size:11px; letter-spacing:0; }
+.player-next-match strong { font-family:"Inter",sans-serif; font-size:15px; }
+.player-next-match>b { padding:12px 16px; border-radius:14px; background:#252525; font-family:"Inter",sans-serif; font-size:24px; }
+.player-next-match-empty { min-height:110px; }
+.player-recent-results { display:none; }
+.player-dashboard .hub-email { display:none; }
+@media(min-width:760px) {
+ .player-dashboard-page { padding-left:28px !important; padding-right:28px !important; }
+ .player-dashboard-grid a { min-height:145px; }
+}
+@media(max-width:520px) {
+ .player-dashboard-page { padding:14px 14px 20px !important; }
+ .player-welcome { padding:16px 15px 0; }
+ .player-welcome-main { gap:10px; min-height:104px; }
+ .player-welcome-copy h1 { font-size:clamp(24px,7vw,32px); }
+ .player-welcome-team { font-size:12px !important; }
+ .player-welcome-avatar { width:78px; height:78px; flex-basis:78px; }
+ .player-stat-strip { margin-top:18px; padding-top:18px; }
+ .player-stat-strip strong { font-size:32px; }
+ .player-stat-strip span { font-size:9px; }
+ .player-dashboard-grid { gap:10px; margin-top:14px; }
+ .player-dashboard-grid a { min-height:112px; padding:13px; }
+ .player-dashboard-grid strong { font-size:14px; }
+ .player-dashboard-grid small { font-size:10px; }
+ .player-feature-heading .player-section-label { font-size:21px !important; }
+ .player-next-match { min-height:150px; padding:12px; gap:7px; }
+ .player-next-match strong { font-size:12px; }
+ .player-next-match>b { padding:9px 10px; font-size:18px; }
+}
