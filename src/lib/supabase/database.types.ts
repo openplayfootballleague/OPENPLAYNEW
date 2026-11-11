@@ -1601,6 +1601,67 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_captain_motm_nomination_options: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          fixture_id: string
+          season_team_id: string
+          team_name: string
+          opponent_name: string
+          gameweek: number
+          scheduled_at: string
+          deadline_at: string
+          nomination_id: string | null
+          nominated_competition_player_id: string | null
+          nominated_player_name: string | null
+          can_nominate: boolean
+          eligible_players: Json
+        }[]
+      }
+      submit_fixture_motm_nomination: {
+        Args: { p_fixture_id: string; p_competition_player_id: string }
+        Returns: string
+      }
+      admin_list_fixture_motm_nominations: {
+        Args: { p_location_id?: string | null }
+        Returns: {
+          nomination_id: string
+          fixture_id: string
+          season_team_id: string
+          team_name: string
+          opponent_name: string
+          gameweek: number
+          scheduled_at: string | null
+          location_id: string
+          location_name: string
+          competition_player_id: string
+          nominated_player_name: string
+          nominated_by: string
+          nominated_at: string
+          corrected_at: string | null
+          correction_reason: string | null
+          eligible_players: Json
+        }[]
+      }
+      admin_correct_fixture_motm_nomination: {
+        Args: { p_nomination_id: string; p_competition_player_id: string; p_reason: string }
+        Returns: undefined
+      }
+      get_my_player_motm_awards: {
+        Args: { p_season_id: string }
+        Returns: Json
+      }
+      get_public_season_club_leaders: {
+        Args: { p_season_id: string }
+        Returns: {
+          competition_player_id: string
+          player_name: string
+          season_team_id: string
+          team_name: string
+          motm_awards: number
+          appearances: number
+        }[]
+      }
       admin_search_league_admin_role_candidates: {
         Args: { p_query: string }
         Returns: {
