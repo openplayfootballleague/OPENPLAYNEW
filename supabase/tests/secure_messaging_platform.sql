@@ -54,15 +54,16 @@ begin
     (v_player_c,'authenticated','authenticated','ci-message-player-c@openplay.invalid','','{}'::jsonb,now(),now(),now()),
     (v_spammer,'authenticated','authenticated','ci-message-spammer@openplay.invalid','','{}'::jsonb,now(),now(),now());
 
-  insert into public.profiles(id,display_name)
+  insert into public.profiles(id,display_name,account_retention_status)
   values
-    (v_admin,'Messaging Admin'),
-    (v_captain,'Messaging Captain'),
-    (v_player_a,'Messaging Player A'),
-    (v_player_b,'Messaging Player B'),
-    (v_player_c,'Messaging Outsider'),
-    (v_spammer,'Messaging Spammer')
-  on conflict(id) do update set display_name=excluded.display_name;
+    (v_admin,'Messaging Admin','active'),
+    (v_captain,'Messaging Captain','active'),
+    (v_player_a,'Messaging Player A','active'),
+    (v_player_b,'Messaging Player B','active'),
+    (v_player_c,'Messaging Outsider','active'),
+    (v_spammer,'Messaging Spammer','active')
+  on conflict(id) do update
+    set display_name=excluded.display_name,account_retention_status='active';
 
   insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status,is_banned)
   values
