@@ -103,6 +103,7 @@ function MorePage() {
         <section className="hub-memberships">
           <div className="hub-section-heading"><span className="hub-kicker">EXPLORE</span></div>
           <Link className="admin-inline-action" to="/teams">TEAMS &amp; LEAGUES <span aria-hidden="true">↗</span></Link>
+          <Link className="admin-inline-action" to="/join">JOIN OPEN PLAY <span aria-hidden="true">↗</span></Link>
           <Link className="admin-inline-action" to="/gallery">MATCHDAY GALLERY <span aria-hidden="true">↗</span></Link>
           <Link className="admin-inline-action" to="/match-centre">FIXTURES, RESULTS &amp; TABLES <span aria-hidden="true">↗</span></Link>
           <Link className="admin-inline-action" to="/referee">REFEREE APPLICATION / WORKSPACE <span aria-hidden="true">↗</span></Link>
