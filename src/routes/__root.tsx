@@ -62,7 +62,7 @@ function RootComponent() {
           <Link to="/player" className={pathname === "/player" ? "active" : ""}><NavIcon name="home" /><small>HOME</small></Link>
           <Link to="/match-centre" className={pathname.startsWith("/match-centre") ? "active" : ""}><NavIcon name="trophy" /><small>MATCH CENTRE</small></Link>
           <Link to="/teams" className={pathname.startsWith("/teams") ? "active" : ""}><NavIcon name="shield" /><small>TEAMS</small></Link>
-          {captainView && <Link to="/captain" className="active"><span aria-hidden="true">♛</span><small>CAPTAIN'S HUB</small></Link>}
+          {captainView && <Link to="/captain" className="active"><NavIcon name="crown" /><small>CAPTAIN'S HUB</small></Link>}
           <Link to="/more" className={pathname.startsWith("/more") ? "active" : ""}><NavIcon name="menu" /><small>MORE</small></Link>
         </nav>
       </div>
