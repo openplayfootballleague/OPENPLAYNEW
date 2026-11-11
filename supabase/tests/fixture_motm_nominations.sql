@@ -112,12 +112,19 @@ begin
     (v_away_sheet,v_away_captain,'starter'),
     (v_away_sheet,v_away_teammate,'starter');
 
-  -- Record first-fixture appearances while that fixture is still the
-  -- captains' next required fixture; completed sheets are immutable to captains.
+  -- Record each team's appearances under its own captain identity while
+  -- the fixture is still the next required fixture.
+  perform set_config('request.jwt.claim.sub',v_home_captain::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_home_captain)::text,true);
   update public.fixture_team_sheet_players
   set did_appear=true
-  where team_sheet_id in (v_home_sheet,v_away_sheet)
-    and role='starter';
+  where team_sheet_id=v_home_sheet and role='starter';
+
+  perform set_config('request.jwt.claim.sub',v_away_captain::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_away_captain)::text,true);
+  update public.fixture_team_sheet_players
+  set did_appear=true
+  where team_sheet_id=v_away_sheet and role='starter';
 
   -- The later fixture cannot accept captain sheets until the earlier required
   -- fixture is completed, matching the production next-fixture guard.
@@ -153,11 +160,18 @@ begin
     (v_late_away_sheet,v_away_captain,'starter'),
     (v_late_away_sheet,v_away_teammate,'starter');
 
-  -- Record later-fixture appearances before closing its locked sheets.
+  -- Record later-fixture appearances under each team's own captain.
+  perform set_config('request.jwt.claim.sub',v_home_captain::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_home_captain)::text,true);
   update public.fixture_team_sheet_players
   set did_appear=true
-  where team_sheet_id in (v_late_home_sheet,v_late_away_sheet)
-    and role='starter';
+  where team_sheet_id=v_late_home_sheet and role='starter';
+
+  perform set_config('request.jwt.claim.sub',v_away_captain::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_away_captain)::text,true);
+  update public.fixture_team_sheet_players
+  set did_appear=true
+  where team_sheet_id=v_late_away_sheet and role='starter';
 
   -- Close the later fixture after both sheets have been submitted.
   update public.fixtures set status='completed' where id=v_late_fixture;
