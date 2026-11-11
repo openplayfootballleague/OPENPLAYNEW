@@ -49,6 +49,7 @@ function MessagesPage() {
   const [olderLoading, setOlderLoading] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [announcementsEnabled, setAnnouncementsEnabled] = useState<boolean | null>(null);
   const [captainTeams, setCaptainTeams] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [threadLoading, setThreadLoading] = useState(false);
@@ -138,12 +139,14 @@ function MessagesPage() {
         return;
       }
       setUserId(session.user.id);
-      const [{ data: roleRows, error: roleError }, { data: membershipRows, error: membershipError }] = await Promise.all([
+      const [{ data: roleRows, error: roleError }, { data: membershipRows, error: membershipError }, { data: announcementStatus, error: announcementStatusError }] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", session.user.id),
         supabase.from("team_memberships").select("season_team_id,is_captain,status").eq("user_id", session.user.id).eq("status", "active"),
+        supabase.rpc("get_public_announcement_status"),
       ]);
       if (!active) return;
-      if (roleError || membershipError) setError(roleError?.message ?? membershipError?.message ?? "Unable to load messaging permissions.");
+      if (roleError || membershipError || announcementStatusError) setError(roleError?.message ?? membershipError?.message ?? announcementStatusError?.message ?? "Unable to load messaging permissions.");
+      setAnnouncementsEnabled(announcementStatusError ? false : announcementStatus === true);
       setIsAdmin((roleRows ?? []).some((row) => ["admin", "super_admin", "league_admin"].includes(row.role)));
       setCaptainTeams((membershipRows ?? []).filter((row) => row.is_captain).map((row) => row.season_team_id));
       try {
@@ -205,9 +208,10 @@ function MessagesPage() {
     () => conversations.find((row) => row.conversation_id === selectedId) ?? null,
     [conversations, selectedId],
   );
-  const canAnnounce = Boolean(selected?.kind === "team" && (
+  const canManageAnnouncement = Boolean(selected?.kind === "team" && (
     (selected.season_team_id && captainTeams.includes(selected.season_team_id)) || isAdmin
   ));
+  const canAnnounce = canManageAnnouncement && announcementsEnabled === true;
 
   async function searchRecipients(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -387,6 +391,7 @@ function MessagesPage() {
                 {!threadLoading&&messages.length===0&&<p className="form-note">This conversation is ready. Send the first message.</p>}
               </div>
               {selected.kind!=="announcement"&&<form className="messaging-composer" onSubmit={sendMessage}>
+                {canManageAnnouncement&&announcementsEnabled===false&&<p className="form-note">Team announcements are temporarily paused by Open Play. Regular private messages remain available.</p>}
                 {canAnnounce&&<label className="messaging-announcement-toggle"><input type="checkbox" checked={announcement} onChange={(event)=>setAnnouncement(event.target.checked)}/> Post as a team announcement</label>}
                 <textarea value={composer} onChange={(event)=>setComposer(event.target.value)} maxLength={2000} rows={3} placeholder="Write a message…" required/>
                 <div><small>{composer.length}/2000</small><button type="submit" disabled={busy||!composer.trim()}>{busy?"SENDING…":"SEND MESSAGE"}</button></div>
