@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
+import { AnalyticsConsentSettings } from "../components/analytics-provider";
 import { getSupabaseClient } from "../lib/supabase/client";
 
 type MoreAccess = {
@@ -121,6 +122,7 @@ function MorePage() {
           <p className="form-note">Your account has basic-view access. You can follow public fixtures, results and league tables. Player registration starts at age 16; team actions require an approved player registration.</p>
         ) : null}
 
+        <AnalyticsConsentSettings />
         <section className="hub-memberships">
           <div className="hub-section-heading"><span className="hub-kicker">ACCOUNT</span></div>
           {access.signedIn && <Link className="admin-inline-action" to="/messages">MESSAGES &amp; SUPPORT <span aria-hidden="true">↗</span></Link>}
