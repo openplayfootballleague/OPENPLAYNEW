@@ -67,7 +67,7 @@ begin
     coalesce((
       select jsonb_agg(
         jsonb_build_object(
-          'competition_player_id',eligible.competition_player_id,
+          'competition_player_id',eligible.id,
           'display_name',eligible.display_name
         ) order by eligible.display_name
       )
