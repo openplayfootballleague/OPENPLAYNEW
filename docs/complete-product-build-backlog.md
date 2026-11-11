@@ -127,3 +127,12 @@ Implemented on `integration/complete-product-build-visual-referee-2026-11-11`:
 - Updated generated Supabase function types and the expected pending migration manifest.
 
 Verification: source files and the migration manifest were re-fetched from the branch and the expected implementation markers were confirmed. GitHub Actions Build verification run `43097186184` and Analytics browser acceptance run `43097186187` were created for the latest implementation head `2ce3403734961ac6bb83b90ee396cbd9a2f28487`, but both were still queued at the last check. The SQL regression has not yet been executed in an isolated PostgreSQL replay in this session. Therefore this work is **implemented; automated and database verification pending**, not signed off. No hosted migration, merge or deployment was performed.
+
+
+### Weather postponement regression isolation — 11 November 2026
+
+Updated `supabase/tests/weather_gameweek_postponement.sql` to create its own active test location instead of selecting a location created by an earlier regression. The old test failed on a clean/reordered test run when no active location existed, despite the test's stated disposable-database scope. The new fixture uses the same explicit location columns as the self-contained feature-management regression. The location is then assigned to the synthetic admin and used for the test league, season and fixtures.
+
+Commit: `538735d64bae6eb53d915ee19fd84f9b3b0cd2e8`.
+
+Verification: source re-fetched and the dependency on pre-existing active location removed. The new commit's Build verification run `43097474686` was queued at the last check; SQL regression execution remains pending. This is a test-fixture correction, not evidence that the full weather migration or refund workflow is verified.
