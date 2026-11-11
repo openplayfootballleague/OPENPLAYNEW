@@ -6,7 +6,8 @@ type NavigationMode = "viewer" | "player" | "captain";
 
 type NavigationItem = {
   id: "home" | "match-centre" | "teams" | "club" | "matchday" | "more";
-  to: string;
+  to: "/" | "/player" | "/match-centre" | "/teams" | "/captain" | "/more";
+  hash?: "#captain-club" | "#captain-matchday";
   label: string;
   icon: "home" | "match" | "teams" | "whistle" | "more";
 };
@@ -66,8 +67,8 @@ export function PlayerBottomNavigation() {
   const items: NavigationItem[] = mode === "captain"
     ? [
         { id: "home", to: "/player", label: "Home", icon: "home" },
-        { id: "club", to: "/captain#captain-club", label: "Club", icon: "teams" },
-        { id: "matchday", to: "/captain#captain-matchday", label: "Matchday", icon: "whistle" },
+        { id: "club", to: "/captain", hash: "#captain-club", label: "Club", icon: "teams" },
+        { id: "matchday", to: "/captain", hash: "#captain-matchday", label: "Matchday", icon: "whistle" },
         { id: "more", to: "/more", label: "More", icon: "more" },
       ]
     : [
@@ -87,7 +88,7 @@ export function PlayerBottomNavigation() {
   return (
     <nav className="player-bottom-nav" aria-label={mode === "captain" ? "Captain navigation" : "Main navigation"}>
       {items.map((item) => (
-        <Link key={item.id} to={item.to as never} className={"player-bottom-nav-link" + (isActive(item) ? " active" : "")}>
+        <Link key={item.id} to={item.to} hash={item.hash} className={"player-bottom-nav-link" + (isActive(item) ? " active" : "")}>
           <NavIcon name={item.icon} />
           <span>{item.label}</span>
         </Link>
