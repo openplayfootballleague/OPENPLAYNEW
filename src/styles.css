@@ -844,3 +844,101 @@ body { background: #080808; color: #f5f5f5; }
 }
 
 .openplay-role-badge{display:inline-flex;align-items:center;justify-content:center;min-height:29px;padding:0 13px;border:1px solid #4b2b1d;border-radius:999px;background:#25170f;color:var(--orange);font-size:11px;font-weight:800;letter-spacing:.05em}
+
+
+/* Admin dashboard — extend the same charcoal/orange system to every register and workflow */
+.admin-queue, .admin-sheet-editor, .admin-setup-form, .admin-setup-registers>div,
+.admin-goal-scorers, .admin-result-review, .admin-genuine-form, .admin-stat-summary>div,
+.admin-player-detail { border:1px solid #303030; border-radius:12px; background:#191919; color:#eee; }
+.admin-setup-form { gap:12px; padding:16px; }
+.admin-setup-form h3, .admin-goal-scorers h4, .admin-result-review h4,
+.admin-stat-block h3 { color:#eee; font-family:"Oswald",sans-serif; letter-spacing:.06em; }
+.admin-setup-form label, .admin-player-search label, .admin-goal-scorers label,
+.admin-reason-label, .admin-genuine-form label { color:#bbb; }
+.admin-setup-form input, .admin-setup-form select, .admin-setup-form textarea,
+.admin-player-search input, .admin-player-search select, .admin-goal-scorers select,
+.admin-reason-label textarea, .admin-genuine-form textarea,
+.admin-sheet-editor select, .admin-sheet-editor textarea,
+.admin-genuine-form input, .admin-result-review input, .admin-result-review select,
+.admin-appearance-choice select, .admin-score-fields input {
+  min-height:40px; padding:9px 11px; border:1px solid #3b3b3b; border-radius:9px;
+  background:#202020; color:#f5f5f5; font:inherit;
+}
+.admin-setup-form button, .admin-player-search button, .admin-player-pagination button,
+.admin-inline-action, .admin-process-notifications {
+  min-height:38px; padding:0 13px; border:1px solid #ff6426; border-radius:999px;
+  background:#ff6426; color:#111; font-size:10px; font-weight:800; cursor:pointer;
+}
+.admin-setup-form button:disabled, .admin-player-search button:disabled,
+.admin-player-pagination button:disabled, .admin-process-notifications:disabled { opacity:.45; }
+.admin-setup-registers>div { padding:14px; }
+.admin-setup-registers>div>strong, .admin-setup-registers small,
+.admin-player-pagination span, .admin-stat-summary span { color:#999; }
+.admin-setup-registers p, .admin-player-private-grid strong,
+.admin-stat-summary strong, .admin-player-detail h3 { color:#f5f5f5; }
+.admin-setup-form>small, .admin-player-list .admin-queue-row small,
+.admin-notification-list .admin-queue-row small { color:#999; }
+.admin-captain-check input, .admin-sheet-editor input,
+.admin-goal-scorers input { accent-color:var(--orange); }
+.admin-inline-action { background:transparent; color:var(--orange); }
+.admin-fixture-list .admin-queue-row, .admin-player-list .admin-queue-row,
+.admin-notification-list .admin-queue-row { border-color:#333; }
+.admin-player-search { gap:12px; }
+.admin-player-search input, .admin-player-search select { width:100%; }
+.admin-goal-scorers, .admin-result-review, .admin-genuine-form { gap:12px; padding:16px; }
+.admin-goal-scorers h4, .admin-result-review h4 { margin:0; }
+.admin-goal-scorers label, .admin-result-review label,
+.admin-genuine-form label { display:grid; gap:7px; }
+.admin-result-review p, .admin-genuine-form>strong { color:#ccc; }
+.admin-result-review p strong { color:#fff; }
+.admin-stat-summary>div { gap:6px; padding:14px; }
+.admin-stat-summary strong { color:var(--orange); font-family:"Oswald",sans-serif; font-size:26px; }
+.admin-stats-table { color:#eee; }
+.admin-stats-table th { background:#292929; color:var(--orange); }
+.admin-stats-table td { border-color:#333; }
+.admin-stats-table tbody tr:nth-child(even) { background:#202020; }
+.admin-player-detail { padding:16px; }
+.admin-player-detail .hub-section-heading button { color:var(--orange); }
+.admin-player-private-grid span { color:#999; }
+.admin-player-detail .captain-actions button,
+.admin-sheet-editor .captain-actions button { border-radius:999px; }
+.admin-sheet-editor .sheet-player { border-color:#333; background:#202020; }
+.admin-sheet-editor .sheet-player>span { color:#eee; }
+.admin-sheet-editor .sheet-player label { color:#bbb; }
+.admin-sheet-editor .sheet-confirm-summary { border-color:#333; background:#202020; }
+.admin-reason-label textarea:focus, .admin-setup-form input:focus,
+.admin-setup-form select:focus, .admin-setup-form textarea:focus,
+.admin-player-search input:focus, .admin-player-search select:focus { outline:2px solid var(--orange); }
+.admin-finance-link a { color:var(--orange); font-size:11px; font-weight:800; }
+.admin-stat-block h3 { color:#eee; }
+.admin-queue .hub-section-heading { color:#aaa; }
+.admin-queue .hub-kicker { color:var(--orange); }
+
+/* Finance ledger and admin help */
+.finance-panel, .admin-help-panel { border-color:#303030; background:#090909; color:#f5f5f5; }
+.finance-intro, .finance-footer-note, .admin-help-intro { color:#999; }
+.finance-section { margin-top:18px; padding:18px; border:1px solid #303030; border-radius:14px; background:#191919; }
+.finance-summary-grid { gap:10px; }
+.finance-summary-grid>div { padding:16px; border:1px solid #333; border-radius:12px; background:#202020; }
+.finance-summary-grid strong { color:var(--orange); font-family:"Oswald",sans-serif; }
+.finance-summary-grid span { color:#999; }
+.finance-filters, .finance-entry-form { display:grid; gap:12px; }
+.finance-filters label, .finance-entry-form label { display:grid; gap:7px; color:#bbb; font-size:11px; }
+.finance-filters input, .finance-filters select, .finance-entry-form input,
+.finance-entry-form select, .finance-entry-form textarea {
+  min-height:40px; padding:9px 11px; border:1px solid #3b3b3b; border-radius:9px;
+  background:#202020; color:#f5f5f5; font:inherit;
+}
+.finance-table-wrap { overflow-x:auto; border:1px solid #333; border-radius:10px; }
+.finance-table { width:100%; border-collapse:collapse; color:#eee; font-size:11px; }
+.finance-table th { padding:11px; background:#292929; color:var(--orange); text-align:left; }
+.finance-table td { padding:11px; border-top:1px solid #333; }
+.finance-notes { color:#999; }
+.finance-page .button { border-radius:999px; }
+.admin-help-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.admin-help-card, .admin-help-tour { padding:16px; border:1px solid #333; border-radius:12px; background:#191919; color:#eee; }
+.admin-help-card h2, .admin-help-card h3 { color:#fff; font-family:"Oswald",sans-serif; }
+.admin-help-card p, .admin-help-card li { color:#aaa; }
+.admin-help-tour-progress, .admin-help-tour-track { background:#292929; }
+.admin-help-warning { padding:12px; border:1px solid #6b432a; border-radius:10px; background:#2a1c14; color:#ffb28b; }
+@media(max-width:700px) { .admin-help-grid { grid-template-columns:1fr; } .finance-summary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
