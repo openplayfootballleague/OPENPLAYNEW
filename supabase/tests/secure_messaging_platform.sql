@@ -216,11 +216,13 @@ begin
   perform set_config('request.jwt.claim.sub',v_player_a::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_a::text,'role','authenticated')::text,true);
   v_support:=public.create_support_message_conversation('Help with my account','Please can an administrator help me?');
+  -- Participant rows are intentionally private under RLS; inspect the seeded
+  -- support recipient with the trusted test role, then restore the player session.
+  execute 'reset role';
   if not exists (
     select 1 from public.message_conversation_participants
     where conversation_id=v_support and user_id=v_admin and left_at is null
   ) then raise exception 'Private support thread did not include an administrator'; end if;
-  execute 'reset role';
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_admin::text,'role','authenticated')::text,true);
