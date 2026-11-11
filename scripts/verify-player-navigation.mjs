@@ -104,3 +104,11 @@ const standingsSource = readFileSync("src/lib/competition/standings.ts", "utf8")
 assert.ok(standingsSource.includes("getJointFirstTeams") && standingsSource.includes("leaders.length > 1 ? leaders : []"), "Tied first-place teams must be detected without goal-difference tie-breaks");
 assert.ok(adminStats.includes("Final required:") && adminStats.includes("Schedule a final to decide the season winner"), "Admin season statistics must flag a tied first place and prompt a final");
 assert.ok(matchCentreSource.includes("Final required between") && matchCentreSource.includes("jointFirstTeams.length>1"), "Public Match Centre must disclose when a tied first place requires a final");
+
+
+const playerStatsSource = readFileSync("src/routes/player.tsx", "utf8");
+assert.ok(playerStatsSource.includes('rpc("get_my_player_statistics"') && playerStatsSource.includes("playerStats.season.stats") && playerStatsSource.includes("playerStats.career"), "Player Hub must load and display the authenticated player's verified season and career statistics");
+assert.ok(playerStatsSource.includes("Assists and Man of the Match awards are not yet included"), "Player Hub must disclose statistics that are not yet supported by audited matchday capture");
+const playerStatsMigration = readFileSync("supabase/migrations/20261111201000_player_self_service_statistics.sql", "utf8");
+assert.ok(playerStatsMigration.includes("auth.uid()") && playerStatsMigration.includes("r.confirmed_at is not null") && playerStatsMigration.includes("ts.is_locked is true") && playerStatsMigration.includes("g.voided_at is null"), "Player statistics must be limited to the signed-in player, locked appearances, confirmed results and non-voided goals");
+assert.ok(playerStatsMigration.includes("revoke all on function public.get_my_player_statistics(uuid) from public, anon;") && playerStatsMigration.includes("grant execute on function public.get_my_player_statistics(uuid) to authenticated;"), "Player statistics RPC must be unavailable to anonymous users");
