@@ -136,3 +136,10 @@ Updated `supabase/tests/weather_gameweek_postponement.sql` to create its own act
 Commit: `538735d64bae6eb53d915ee19fd84f9b3b0cd2e8`.
 
 Verification: source re-fetched and the dependency on pre-existing active location removed. The new commit's Build verification run `43097474686` was queued at the last check; SQL regression execution remains pending. This is a test-fixture correction, not evidence that the full weather migration or refund workflow is verified.
+
+
+### Canonical weather workflow ported to the visual integration branch — 11 November 2026
+
+Ported the stable-ID weather/gameweek implementation from the workflow branch onto the visual integration branch: stable `season_gameweeks` migration, matching draft and SQL regression, protected `admin-postpone-gameweek` Edge Function, `AdminGameweekPostponements` component, Admin route wiring, RPC types, migration manifest and function JWT configuration. Removed the competing integer-gameweek migration, draft, test, duplicate Admin form and legacy history RPC usage. The component requires explicit confirmation and a replacement kickoff at least 36 hours away; the Edge Function checks an authenticated administrator's location scope, restricts Stripe to test mode, reconciles active/completed checkout state before invoking the postponement RPC, and does not permit a live Stripe secret.
+
+Static source checks and file/draft parity checks are the next verification gate. The stable migration has not yet passed exact-head CI/local SQL replay on this branch, and no hosted migration or live payment action has been performed.
