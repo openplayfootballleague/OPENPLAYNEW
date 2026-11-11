@@ -108,6 +108,22 @@ describe("consent and role-gated analytics capture", () => {
     expect(capture).toHaveBeenCalledOnce();
   });
 
+  it("captures verified player statistics views without personal identifiers", () => {
+    const capture = vi.fn();
+    expect(captureOpenPlayEvent(
+      { capture },
+      "granted",
+      false,
+      "player",
+      "player_statistics_viewed",
+      { feature: "player_statistics", season_id: locationId, email: "private@example.com" },
+    )).toBe(true);
+    expect(capture).toHaveBeenCalledWith("player_statistics_viewed", {
+      feature: "player_statistics",
+      season_id: locationId,
+    });
+  });
+
   it("allows anonymous product events after explicit consent", () => {
     const capture = vi.fn();
     expect(captureOpenPlayEvent(
