@@ -83,6 +83,11 @@ begin
   insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
   values(v_fixture,1,0,now(),v_admin),(v_late_fixture,0,0,now(),v_admin);
 
+  -- Protected team-sheet triggers require the acting captain's JWT context,
+  -- including during isolated fixture setup performed by the database owner.
+  perform set_config('request.jwt.claim.sub',v_home_captain::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_home_captain)::text,true);
+
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
   values(v_fixture,v_home_season_team,v_home_captain,true,now())
   returning id into v_home_sheet;
