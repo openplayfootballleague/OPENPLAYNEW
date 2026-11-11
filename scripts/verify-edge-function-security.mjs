@@ -61,6 +61,24 @@ assert.ok(!notifications.includes('rpc("get_admin_dashboard")'), "Do not rely on
 const deliveryErrors = readFileSync("supabase/functions/deliver-notifications/shared/delivery-errors.ts", "utf8");
 assert.ok(!deliveryErrors.includes("JSON.stringify(body)"), "Notification provider errors must not persist raw recipient details");
 
+const adminRoute = readFileSync("src/routes/admin.tsx", "utf8");
+for (const rpc of [
+  "get_admin_dashboard_contextual",
+  "get_admin_team_sheets_contextual",
+  "get_admin_player_register_contextual",
+  "admin_get_transfer_requests_contextual",
+]) {
+  assert.ok(adminRoute.includes(`rpc("${rpc}"`), `Admin Dashboard must use the authorised contextual RPC: ${rpc}`);
+}
+for (const legacyRpc of [
+  "get_admin_dashboard",
+  "get_admin_team_sheets",
+  "get_admin_player_register",
+  "admin_get_transfer_requests",
+]) {
+  assert.ok(!new RegExp(`rpc\\(["']${legacyRpc}["']`).test(adminRoute), `Admin Dashboard must not call revoked legacy RPC: ${legacyRpc}`);
+}
+
 const checkout = readFileSync("supabase/functions/create-player-checkout/index.ts", "utf8");
 assert.ok(checkout.includes("userClient.auth.getUser(token)"), "Checkout must validate the signed-in user");
 assert.ok(!checkout.includes("lovable.app"), "Open Play New must not fall back to the retired Lovable origin");
