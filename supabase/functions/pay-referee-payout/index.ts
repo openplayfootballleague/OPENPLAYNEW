@@ -25,19 +25,26 @@ Deno.serve(async(req)=>{
   if(!stripeKey?.startsWith("sk_test_")||!supabaseUrl||!anonKey||!serviceKey||!allowedOrigin){
     return json({error:"Referee payout transfers are not configured for test mode"},503,headers);
   }
-  const token=(req.headers.get("authorization")??"").replace(/^Bearer\s+/i,"");
-  if(!token)return json({error:"Sign in to continue"},401,headers);
+  const cronSecret=Deno.env.get("REFEREE_PAYOUT_CRON_SECRET");
+  const isWorker=!!cronSecret&&req.headers.get("x-referee-payout-cron-secret")===cronSecret;
+  const token=(req.headers.get("authorization")??"").replace(/^Bearer\\s+/i,"");
+  if(!isWorker&&!token)return json({error:"Sign in to continue"},401,headers);
 
-  const userClient=createClient(supabaseUrl,anonKey,{global:{headers:{Authorization:`Bearer ${token}`}},auth:{persistSession:false}});
   const serviceClient=createClient(supabaseUrl,serviceKey,{auth:{persistSession:false}});
-  const {data:{user},error:userError}=await userClient.auth.getUser();
-  if(userError||!user)return json({error:"Your session could not be verified"},401,headers);
+  const userClient=isWorker?null:createClient(supabaseUrl,anonKey,{global:{headers:{Authorization:`Bearer ${token}`}},auth:{persistSession:false}});
+  if(!isWorker){
+    const {data:{user},error:userError}=await userClient!.auth.getUser();
+    if(userError||!user)return json({error:"Your session could not be verified"},401,headers);
+  }
 
   let body:any;
   try{body=await req.json();}catch{return json({error:"A valid payout request is required"},400,headers);}
   const payoutType=body?.payout_type;
   let payoutId=body?.payout_id;
   const reportId=body?.report_id;
+  if(isWorker&&(payoutType!=="match_report"||typeof body?.job_id!=="string"||typeof body?.lock_token!=="string")){
+    return json({error:"A valid queued referee match-fee job is required"},400,headers);
+  }
   if(!["match_report","milestone"].includes(payoutType)||
      (typeof payoutId!=="string" && !(payoutType==="match_report"&&typeof reportId==="string"))){
     return json({error:"A valid referee payout type and ID are required"},400,headers);
@@ -52,9 +59,13 @@ Deno.serve(async(req)=>{
   }
   if(typeof payoutId!=="string")return json({error:"No referee payment obligation exists for this approved report"},409,headers);
 
-  const {data:payout,error:claimError}=await userClient.rpc("claim_referee_payout_transfer",{
-    p_payout_type:payoutType,p_payout_id:payoutId,
-  });
+  const {data:payout,error:claimError}=isWorker
+    ? await serviceClient.rpc("claim_referee_payout_transfer_worker",{
+        p_job_id:body.job_id,p_payout_id:payoutId,p_lock_token:body.lock_token,
+      })
+    : await userClient!.rpc("claim_referee_payout_transfer",{
+        p_payout_type:payoutType,p_payout_id:payoutId,
+      });
   if(claimError)return json({error:claimError.message},403,headers);
   if(!payout?.stripe_account_id||!payout?.amount_pence||!payout?.attempt){
     return json({error:"The payout could not be prepared for transfer"},409,headers);
