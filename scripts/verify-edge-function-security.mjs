@@ -79,11 +79,17 @@ const teamWebhook = readFileSync("supabase/functions/team-stripe-webhook/index.t
 assert.ok(teamWebhook.includes('req.headers.get("stripe-signature")') && teamWebhook.includes("verifySignature(raw"), "Team Stripe webhook must verify the raw-body signature");
 assert.ok(teamWebhook.includes("event.livemode!==false"), "Team Stripe webhook must reject live-mode events");
 assert.ok(teamWebhook.includes('rpc("record_team_fixture_payment_success"'), "Team payment state must be driven by the signed webhook");
+assert.ok(teamWebhook.includes('intent.status!=="succeeded"') && teamWebhook.includes('Number(intent.amount_received)!==obligation.amount_pence'), "Team payment webhook must verify the fully settled PaymentIntent");
+assert.ok(teamWebhook.includes('intentMetadata?.team_fixture_payment_obligation_id!==obligationId') && teamWebhook.includes('Number.isSafeInteger(paidAt)'), "Team payment webhook must verify PaymentIntent metadata and the actual charge timestamp");
 
 const teamDeadlineWorker = readFileSync("supabase/functions/process-team-payment-deadlines/index.ts", "utf8");
 assert.ok(teamDeadlineWorker.includes('req.headers.get("x-team-payment-cron-secret")'), "Team payment scheduler must validate its dedicated cron secret");
 assert.ok(teamDeadlineWorker.includes('Idempotency-Key') && teamDeadlineWorker.includes("openplay-team-refund-"), "Team refunds must be idempotent at the provider");
 assert.ok(teamDeadlineWorker.includes('stripeKey?.startsWith("sk_test_")'), "Team payment scheduler must remain test-mode only");
+assert.ok(teamDeadlineWorker.includes('.order("id").range(offset,offset+499)'), "Team payment and refund queues must be fully paginated in stable batches");
+assert.ok(teamDeadlineWorker.includes('[400,402,404,422].includes(stripeResponse.status)'), "Transient Stripe refund errors must not be recorded as definitive failures");
+assert.ok(teamDeadlineWorker.includes('result.status==="failed"||result.status==="canceled"'), "Provider-confirmed refund failures must be recorded for administrator review");
+assert.ok(teamDeadlineWorker.includes('result.payment_intent===refund.stripe_payment_intent_id') && teamDeadlineWorker.includes('Number(result.amount)===Number(refund.amount_pence)'), "Successful Stripe refunds must match the intended PaymentIntent and exact amount");
 
 const connectOnboarding = readFileSync("supabase/functions/create-referee-connect-account/index.ts", "utf8");
 assert.ok(connectOnboarding.includes("userClient.auth.getUser()"), "Connect onboarding must validate the signed-in referee");
@@ -104,3 +110,9 @@ assert.ok(refereeConnectWebhook.includes("event.livemode!==false"), "Connect web
 assert.ok(refereeConnectWebhook.includes("referee_connect_webhook_events") && refereeConnectWebhook.includes("processed_at"), "Connect webhook processing must be idempotent and retryable");
 
 console.log("Edge Function security configuration and Phase 1 workflow boundary assertions passed.");
+
+const adminPostpone = readFileSync("supabase/functions/admin-postpone-gameweek/index.ts", "utf8");
+assert.ok(adminPostpone.includes('userClient.auth.getUser(token)'), "Gameweek postponement must validate the signed-in administrator");
+assert.ok(adminPostpone.includes('rpc("admin_postpone_gameweek"'), "Gameweek postponement must use the location-scoped database workflow");
+assert.ok(adminPostpone.includes('stripeKey?.startsWith("sk_test_")'), "Gameweek postponement refunds must remain test-mode only");
+assert.ok(adminPostpone.includes('intent.status!=="succeeded"') && adminPostpone.includes('Number(session.amount_total)!==obligation.amount_pence'), "Completed Checkout reconciliation must verify the settled PaymentIntent and Checkout amount");

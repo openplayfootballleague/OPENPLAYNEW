@@ -284,6 +284,10 @@ begin
       continue;
     end if;
 
+    -- Default an unpaid obligation at the exact grace-end boundary. A delayed
+    -- provider webhook with a timely payment timestamp is reconciled separately
+    -- by record_team_fixture_payment_success and must never restore the fixture.
+
     if p_as_of>=v_obligation.grace_ends_at and v_obligation.stripe_checkout_session_id is not null then
       update public.team_fixture_payment_obligations set status='admin_review' where id=v_obligation.id;
       insert into public.team_fixture_payment_history(
@@ -310,7 +314,10 @@ begin
       v_opponent_id:=case when v_fixture.home_team_id=v_obligation.season_team_id
         then v_fixture.away_team_id else v_fixture.home_team_id end;
       select * into v_opponent from public.team_fixture_payment_obligations
-      where fixture_id=v_fixture.id and season_team_id=v_opponent_id for update;
+      where fixture_id=v_fixture.id and season_team_id=v_opponent_id
+      order by payment_cycle desc
+      limit 1
+      for update;
       if found and v_opponent.status in ('paid','late_paid') then
         insert into public.team_fixture_payment_refunds(
           obligation_id,amount_pence,stripe_payment_intent_id
@@ -390,7 +397,14 @@ begin
   select * into v_fixture from public.fixtures where id=v_obligation.fixture_id for update;
   if not found then raise exception 'Fixture not found'; end if;
 
-  if v_obligation.status='defaulted' then
+  if v_obligation.status='defaulted' and p_paid_at<=v_obligation.grace_ends_at then
+    -- The worker may have cancelled after grace while Stripe's successful
+    -- payment event was delayed in transit. Do not misclassify a timely
+    -- provider payment as a late settlement or automatically restore play:
+    -- preserve cancellation and require an administrator to reconcile it.
+    v_status:='admin_review';
+    v_reason:='Provider confirmed payment timestamp is within grace, but the fixture was already cancelled; administrator reconciliation required';
+  elsif v_obligation.status='defaulted' then
     v_status:='paid_after_cancellation';
     v_reason:='Defaulting team settled its outstanding fee after fixture cancellation; fixture remains cancelled';
     insert into public.team_payment_strikes(
@@ -401,7 +415,7 @@ begin
   elsif p_paid_at<=v_obligation.deadline_at then
     v_status:='paid';
     v_reason:='Payment received by the original 24-hour deadline';
-  elsif p_paid_at<v_obligation.grace_ends_at then
+  elsif p_paid_at<=v_obligation.grace_ends_at then
     v_status:='late_paid';
     v_reason:='Payment received during the 12-hour grace period';
     insert into public.team_payment_strikes(
@@ -564,7 +578,7 @@ begin
   where id=p_obligation_id for update;
   if not found then raise exception 'Team fixture payment obligation not found'; end if;
   if v_obligation.status not in ('due','grace_period','defaulted')
-     or (v_obligation.status in ('due','grace_period') and now()>=v_obligation.grace_ends_at) then
+     or (v_obligation.status in ('due','grace_period') and now()>v_obligation.grace_ends_at) then
     raise exception 'The payment window has closed or this obligation cannot be paid';
   end if;
   if v_obligation.stripe_checkout_session_id is distinct from p_expected_session_id then

@@ -71,3 +71,7 @@ verify_jwt = false
 [functions.process-team-payment-deadlines]
 # Protected by TEAM_PAYMENT_CRON_SECRET; handles deadlines and idempotent refunds.
 verify_jwt = false
+
+[functions.admin-postpone-gameweek]
+# Authenticated location administrators invoke the scoped postponement RPC.
+verify_jwt = true
