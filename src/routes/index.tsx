@@ -7,7 +7,7 @@ function PublicHomePage() {
     <main className="site-shell home-reference">
       <header className="reference-header">
         <a className="reference-brand" href="/" aria-label="Open Play home">
-          <span className="reference-mark">OP</span><span>OPEN PLAY</span>
+          <img className="reference-mark" src="/open-play-logo.svg" alt="" /><span>OPEN PLAY</span>
         </a>
         <a className="reference-location" href="/teams"><span>⌖</span> BIDEFORD <span className="reference-chevron">⌄</span></a>
         <a className="reference-account" href="/sign-in" aria-label="Sign in"><span>♙</span></a>
@@ -27,7 +27,7 @@ function PublicHomePage() {
               <a className="reference-secondary" href="/match-centre">EXPLORE MATCH CENTRE <span>›</span></a>
             </div>
           </div>
-          <div className="reference-ball-art" aria-hidden="true"><span>OP</span></div>
+          <div className="reference-ball-art" aria-hidden="true"><img src="/open-play-logo.svg" alt="" /></div>
         </div>
         <div className="reference-welcome-foot">
           <span>PLAY HARD. RESPECT ALWAYS.</span>
@@ -52,7 +52,7 @@ function PublicHomePage() {
         </div>
       </section>
 
-      <footer className="reference-footer"><span>OP&nbsp; OPEN PLAY</span><span>PLAY HARD. RESPECT ALWAYS.</span><span>© OPEN PLAY</span></footer>
+      <footer className="reference-footer"><span className="reference-footer-brand"><img src="/open-play-logo.svg" alt="" /> OPEN PLAY</span><span>PLAY HARD. RESPECT ALWAYS.</span><span>© OPEN PLAY</span></footer>
       <nav className="reference-bottom-nav" aria-label="Main navigation">
         <a className="active" href="/"><span>⌂</span><small>HOME</small></a>
         <a href="/match-centre"><span>♜</span><small>MATCH CENTRE</small></a>
