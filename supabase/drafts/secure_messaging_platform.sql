@@ -319,7 +319,7 @@ begin
   join public.message_conversation_participants cp
     on cp.conversation_id=c.id and cp.user_id=auth.uid() and cp.left_at is null
   left join lateral (
-    select m.id,m.body,m.is_hidden,m.created_at,m.sender_id
+    select m.id,m.body,m.is_hidden,m.hidden_reason,m.created_at,m.sender_id
     from public.messages m where m.conversation_id=c.id
     order by m.created_at desc,m.id desc limit 1
   ) lm on true
