@@ -275,3 +275,68 @@ as $$
 $$;
 revoke all on function public.admin_get_team_social_profiles() from public,anon;
 grant execute on function public.admin_get_team_social_profiles() to authenticated;
+
+create or replace function public.update_team_instagram_details(
+  p_season_team_id uuid,
+  p_instagram_profile_url text,
+  p_instagram_handle text
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_actor uuid:=auth.uid();
+  v_team_id uuid;
+  v_location_id uuid;
+  v_url text:=nullif(trim(p_instagram_profile_url),'');
+  v_handle text:=nullif(trim(p_instagram_handle),'');
+begin
+  if v_actor is null then raise exception 'Authentication required' using errcode='42501'; end if;
+  select st.team_id,l.location_id into v_team_id,v_location_id
+  from public.season_teams st
+  join public.seasons s on s.id=st.season_id
+  join public.leagues l on l.id=s.league_id
+  where st.id=p_season_team_id;
+  if v_team_id is null then raise exception 'Team not found'; end if;
+
+  if not public.can_administer_location(v_location_id)
+     and not exists(
+       select 1 from public.team_memberships tm
+       where tm.season_team_id=p_season_team_id
+         and tm.user_id=v_actor and tm.status='active' and tm.is_captain is true
+     ) then
+    raise exception 'Active team captain or assigned location administrator permission required';
+  end if;
+
+  if v_url is not null then
+    if v_url !~* '^https://(www[.])?instagram[.]com/[A-Za-z0-9._]{1,30}/?$'
+       or split_part(regexp_replace(v_url,'^https://(www[.])?instagram[.]com/','','i'), '/', 1) ~ '(^[.]|[.]{2}|[.]$)' then
+      raise exception 'Enter a valid HTTPS Instagram profile URL';
+    end if;
+    v_url:=regexp_replace(v_url,'^https://(www[.])?instagram[.]com/','https://www.instagram.com/','i');
+    if right(v_url,1)<>'/' then v_url:=v_url||'/'; end if;
+  end if;
+
+  if v_handle is not null then
+    v_handle:=regexp_replace(v_handle,'^@','');
+    if v_handle !~ '^[A-Za-z0-9_](?:[A-Za-z0-9._]{0,28}[A-Za-z0-9_])?$'
+       or v_handle ~ '[.]{2}' then
+      raise exception 'Enter a valid Instagram handle';
+    end if;
+  end if;
+
+  update public.teams
+     set instagram_profile_url=v_url,instagram_handle=v_handle
+   where id=v_team_id;
+  insert into public.audit_log(actor_user_id,action,entity_type,entity_id,after_data)
+  values(v_actor,'team.instagram_details.updated','team',v_team_id::text,
+    jsonb_build_object(
+      'instagram_profile_provided',v_url is not null,
+      'instagram_handle_provided',v_handle is not null
+    ));
+end;
+$$;
+revoke all on function public.update_team_instagram_details(uuid,text,text) from public,anon;
+grant execute on function public.update_team_instagram_details(uuid,text,text) to authenticated;
