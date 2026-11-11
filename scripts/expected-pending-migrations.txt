@@ -32,3 +32,4 @@
 20261111194000_secure_messaging_platform.sql
 20261111200000_platform_feature_management.sql
 20261111201000_player_self_service_statistics.sql
+20261111203000_optional_goal_attribution.sql
