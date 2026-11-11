@@ -30,6 +30,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Verify canonical migration source manifest
         run: npm run verify:migration-sources
+      - name: Verify generated migrations receive their canonical SQL drafts
+        run: npm run verify:ci-migration-generation
       - name: Verify Edge Function security configuration
         run: node scripts/verify-edge-function-security.mjs
       - name: Verify player navigation specification
