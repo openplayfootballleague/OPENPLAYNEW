@@ -26,6 +26,7 @@ for (const [name, expected] of [
   ["pay-referee-payout", true],
   ["referee-connect-webhook", false],
   ["process-referee-payout-queue", false],
+  ["admin-postpone-gameweek", true],
 ]) {
   verifyJwtSetting(name, expected);
 }
@@ -144,5 +145,19 @@ assert.ok(refereePayoutOutbox.includes("for update of job skip locked"), "Concur
 assert.ok(refereePayoutOutbox.includes("first_attempt_at") && refereePayoutOutbox.includes("now()-interval '23 hours'"), "Ambiguous payout recovery must reuse the original attempt only within Stripe's idempotency retention window");
 assert.ok(refereePayoutOutbox.includes("security invoker") && refereePayoutOutbox.includes("grant execute on function public.claim_referee_payout_transfer_jobs(integer) to service_role") && refereePayoutOutbox.includes("grant execute on function public.claim_referee_payout_transfer_worker(uuid,uuid,uuid) to service_role"), "Referee payout worker RPCs must use invoker security and service-role-only execution grants");
 assert.ok(refereePayoutOutbox.includes("pg_cron") && refereePayoutOutbox.includes("pg_net") && refereePayoutOutbox.includes("referee_payout_cron_secret"), "Referee payout outbox must include a Vault-backed scheduled dispatcher");
+
+
+assert.ok(teamWebhook.includes('intent.status!=="succeeded"') && teamWebhook.includes('Number(intent.amount_received)!==obligation.amount_pence'), "Team payment webhook must verify the fully settled PaymentIntent");
+assert.ok(teamWebhook.includes('intentMetadata?.team_fixture_payment_obligation_id!==obligationId') && teamWebhook.includes("Number.isSafeInteger(paidAt)"), "Team payment webhook must verify PaymentIntent metadata and the actual charge timestamp");
+assert.ok(teamDeadlineWorker.includes('.order("id").range(offset,offset+499)'), "Team payment and refund queues must be fully paginated in stable batches");
+assert.ok(teamDeadlineWorker.includes("[400,402,404,422].includes(stripeResponse.status)"), "Transient Stripe refund errors must not be recorded as definitive failures");
+assert.ok(teamDeadlineWorker.includes('result.status==="failed"||result.status==="canceled"'), "Provider-confirmed refund failures must be recorded for administrator review");
+assert.ok(teamDeadlineWorker.includes("result.payment_intent===refund.stripe_payment_intent_id") && teamDeadlineWorker.includes("Number(result.amount)===Number(refund.amount_pence)"), "Successful Stripe refunds must match the intended PaymentIntent and exact amount");
+
+const adminPostpone = readFileSync("supabase/functions/admin-postpone-gameweek/index.ts", "utf8");
+assert.ok(adminPostpone.includes('userClient.auth.getUser(token)'), "Gameweek postponement must validate the signed-in administrator");
+assert.ok(adminPostpone.includes('rpc("admin_postpone_gameweek"'), "Gameweek postponement must use the location-scoped database workflow");
+assert.ok(adminPostpone.includes('stripeKey?.startsWith("sk_test_")'), "Gameweek postponement refunds must remain test-mode only");
+assert.ok(adminPostpone.includes('intent.status!=="succeeded"') && adminPostpone.includes("Number(session.amount_total)!==obligation.amount_pence"), "Completed Checkout reconciliation must verify the settled PaymentIntent and Checkout amount");
 
 console.log("Edge Function security configuration and Phase 1 workflow boundary assertions passed.");
