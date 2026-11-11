@@ -4,7 +4,7 @@ import { PlayerCompetitionSelector, usePlayerCompetitionContext } from "../lib/c
 import { Link,createFileRoute } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 
-type TeamRow={season_team_id:string;team_name:string;season_id:string;season_name:string;starts_on:string;primary_colour:string|null;secondary_colour:string|null;instagram_profile_url:string|null;instagram_handle:string|null};
+type TeamRow={season_team_id:string;team_name:string;season_id:string;season_name:string;starts_on:string|null;primary_colour:string|null;secondary_colour:string|null;instagram_profile_url:string|null;instagram_handle:string|null};
 
 export const Route=createFileRoute("/teams")({component:TeamsPage});
 
