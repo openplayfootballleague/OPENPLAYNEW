@@ -20,11 +20,19 @@ begin
     raise exception 'Sign in to view player statistics';
   end if;
 
-  select pl, pr.account_retention_status
-  into v_player, v_account_status
+  -- Fetch the composite player row and scalar profile status separately.
+  -- PostgreSQL does not allow a row variable in a multi-target INTO list.
+  select pl.* into v_player
   from public.players pl
-  join public.profiles pr on pr.id = pl.user_id
   where pl.user_id = v_actor;
+
+  if not found then
+    raise exception 'An active registered player account is required';
+  end if;
+
+  select pr.account_retention_status into v_account_status
+  from public.profiles pr
+  where pr.id = v_actor;
 
   if not found
      or v_player.registration_status <> 'registered'
