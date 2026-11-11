@@ -24,6 +24,21 @@ begin
     raise exception 'Feature flags must be accessed only through authorised RPCs';
   end if;
 
+  if not has_column_privilege('anon','public.platform_feature_flags','enabled','SELECT')
+     or not has_column_privilege('authenticated','public.platform_feature_flags','feature_key','SELECT')
+     or has_column_privilege('anon','public.platform_feature_flags','updated_by','SELECT')
+     or has_column_privilege('authenticated','public.platform_feature_flags','updated_at','SELECT') then
+    raise exception 'Public feature status must expose only the two non-sensitive columns';
+  end if;
+
+  if exists (
+    select 1 from pg_catalog.pg_proc p
+    join pg_catalog.pg_namespace n on n.oid=p.pronamespace
+    where n.nspname='public'
+      and p.proname in ('get_public_team_recruitment_status','get_public_announcement_status')
+      and p.prosecdef
+  ) then raise exception 'Public status functions must run with invoker privileges'; end if;
+
   if has_function_privilege('anon','public.admin_set_platform_feature_flag(text,boolean,text)','EXECUTE')
      or has_function_privilege('anon','public.get_admin_platform_feature_flags()','EXECUTE') then
     raise exception 'Anonymous users must not execute feature-management RPCs';
