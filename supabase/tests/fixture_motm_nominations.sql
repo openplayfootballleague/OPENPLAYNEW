@@ -77,8 +77,10 @@ begin
 
   insert into public.fixtures(id,season_id,gameweek,fixture_number,home_team_id,away_team_id,venue_id,scheduled_at,status)
   values
-    (v_fixture,v_season,1,1,v_home_season_team,v_away_season_team,v_location,now()+interval '2 hours','scheduled'),
-    (v_late_fixture,v_season,2,1,v_home_season_team,v_away_season_team,v_location,now()+interval '2 hours','scheduled');
+    -- The first completed fixture must be inside the 24-hour MOTM window;
+    -- the later gameweek is deliberately outside it for the deadline denial.
+    (v_fixture,v_season,1,1,v_home_season_team,v_away_season_team,v_location,now()-interval '2 hours','scheduled'),
+    (v_late_fixture,v_season,2,1,v_home_season_team,v_away_season_team,v_location,now()-interval '26 hours','scheduled');
 
   -- Protected team-sheet triggers require the acting captain's JWT context,
   -- including during isolated fixture setup performed by the database owner.
