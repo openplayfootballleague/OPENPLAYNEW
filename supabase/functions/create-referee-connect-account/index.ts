@@ -100,18 +100,20 @@ Deno.serve(async(req)=>{
       return json({connected:true,onboarding_status:"enabled",payouts_enabled:!!account.payouts_enabled},200,headers);
     }
 
-    const linkParams=new URLSearchParams();
-    linkParams.set("account",account.id);
-    linkParams.set("type","account_onboarding");
-    linkParams.set("return_url",`${allowedOrigin}/referee?connect=return`);
-    linkParams.set("refresh_url",`${allowedOrigin}/referee?connect=refresh`);
-    linkParams.set("collection_options[fields]","eventually_due");
-    const link=await stripeRequest("account_links","POST",stripeKey,linkParams);
+    // Create a short-lived AccountSession for Stripe's embedded account-onboarding
+    // component. The browser receives only the session client secret, never the
+    // platform secret key or connected-account ID.
+    const sessionParams=new URLSearchParams();
+    sessionParams.set("account",account.id);
+    sessionParams.set("components[account_onboarding][enabled]","true");
+    const accountSession=await stripeRequest("account_sessions","POST",stripeKey,sessionParams);
+    if(typeof accountSession.client_secret!=="string"||!accountSession.client_secret.startsWith("cuss_")){
+      throw new Error("Stripe did not return a valid embedded onboarding session");
+    }
     return json({
       connected:false,
       onboarding_status:account.details_submitted?"verification_pending":"onboarding_required",
-      onboarding_url:link.url,
-      expires_at:link.expires_at,
+      account_session_client_secret:accountSession.client_secret,
     },200,headers);
   }catch(error){
     return json({error:error instanceof Error?error.message:"Unable to start Stripe Connect onboarding"},400,headers);
