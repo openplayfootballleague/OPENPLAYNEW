@@ -27,7 +27,7 @@ Deno.serve(async(req)=>{
   }
   const cronSecret=Deno.env.get("REFEREE_PAYOUT_CRON_SECRET");
   const isWorker=!!cronSecret&&req.headers.get("x-referee-payout-cron-secret")===cronSecret;
-  const token=(req.headers.get("authorization")??"").replace(/^Bearer\\s+/i,"");
+  const token=(req.headers.get("authorization")??"").replace(/^Bearer[ ]+/i,"");
   if(!isWorker&&!token)return json({error:"Sign in to continue"},401,headers);
 
   const serviceClient=createClient(supabaseUrl,serviceKey,{auth:{persistSession:false}});
