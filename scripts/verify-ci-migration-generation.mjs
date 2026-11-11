@@ -15,6 +15,7 @@ const expectedMigrations = [
   "referee_connect_payouts",
   "referee_payout_transfer_outbox",
   "secure_messaging_platform",
+  "admin_league_admin_role_management",
 ];
 let checked = 0;
 const foundMigrations = [];
