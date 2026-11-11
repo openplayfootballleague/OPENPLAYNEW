@@ -78,8 +78,7 @@ begin
 
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
   values(v_user,'authenticated','authenticated','ci-platform-feature@openplay.invalid','','{}'::jsonb,now(),now(),now());
-  insert into public.profiles(id,display_name,account_retention_status)
-  values(v_user,'Platform Feature Test','active');
+  -- The auth.users insert trigger creates the matching profile automatically.
   insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status,is_banned)
   values(v_user,'Platform Feature Test','+447700929991','ci-platform-feature@openplay.invalid',date '1990-01-01','registered',false);
 
