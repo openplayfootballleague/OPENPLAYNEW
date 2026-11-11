@@ -492,3 +492,74 @@
   .finance-page .finance-summary-grid,
   .analytics-page .analytics-stat-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
+
+
+/* Approved Player Hub dashboard composition, applied to the current workflow markup. */
+.player-dashboard-page { padding:18px 16px 28px!important; background:#080808!important; }
+.player-dashboard { width:100%!important; max-width:1120px!important; }
+.player-welcome { padding:18px 18px 0; border:1px solid #333; border-radius:16px 16px 0 0; border-bottom:0; background:#151515; }
+.player-welcome-meta { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+.player-section-label { margin:0; color:#fff!important; font-family:"Inter",sans-serif; font-size:12px!important; letter-spacing:0!important; font-weight:700; }
+.season-chip { padding:5px 11px; border:0; border-radius:999px; background:#292929; color:#ddd; font-size:10px; font-weight:700; }
+.player-welcome-main { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:116px; margin:0; }
+.player-welcome-copy { min-width:0; }
+.player-welcome-copy h1 { margin:0; color:#fff; font-family:"Inter",sans-serif; font-size:clamp(27px,4vw,40px); line-height:1.1; letter-spacing:-.035em; font-weight:700; }
+.player-welcome-copy h1 em { color:var(--op-visual-orange); font-style:normal; }
+.player-welcome-name { margin:9px 0 0!important; color:#ddd!important; font-size:13px; }
+.player-welcome-team { margin:7px 0 9px!important; color:#aaa!important; font-size:13px!important; }
+.player-status-active,.player-status-pending { display:inline-flex; padding:0; border:0; border-radius:0; background:transparent; color:#bbb; font-size:11px; font-weight:700; letter-spacing:0; }
+.player-status-active { color:var(--op-visual-orange); }
+.player-welcome-avatar { width:100px; height:100px; flex:0 0 100px; border:3px solid #393939; border-radius:50%; object-fit:cover; background:#222; }
+.player-welcome-avatar-empty { display:grid; place-items:center; color:var(--op-visual-orange); font-size:40px; font-weight:800; }
+.player-welcome>.competition-selector,
+.player-welcome>.player-competition-selector { margin-top:14px; padding:12px 0 0; border-top:1px solid #333; }
+.player-welcome .form-note { color:#999; }
+.player-stat-strip { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0; margin:0; padding:20px 18px 15px; border:1px solid #333; border-top:1px solid #393939; border-radius:0 0 16px 16px; background:#151515; }
+.player-stat-strip>div { display:grid; justify-items:start; gap:7px; padding:0 10px; border:0; }
+.player-stat-strip strong { color:#fff; font-family:"Inter",sans-serif; font-size:clamp(28px,4vw,38px); font-weight:700; }
+.player-stat-strip span { color:#aaa; font-size:10px; letter-spacing:.04em; font-weight:600; }
+.player-stat-strip>p { grid-column:1/-1; margin:12px 10px 0!important; color:#888!important; font-size:10px!important; line-height:1.5; }
+.player-dashboard-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:16px; }
+.player-dashboard-grid a { display:grid; grid-template-columns:1fr 18px; grid-template-rows:30px auto auto; gap:6px 8px; min-height:132px; padding:16px; border:1px solid #333; border-radius:15px; background:#191919; color:#f5f5f5; }
+.player-dashboard-grid a:hover { border-color:#555; background:#1d1d1d; }
+.dashboard-card-icon { grid-row:1; display:flex; align-items:center; justify-content:flex-start; width:auto; height:28px; border:0; border-radius:0; color:var(--op-visual-orange); font-size:23px; }
+.player-dashboard-grid strong { grid-column:1; grid-row:2; align-self:end; color:#fff; font-family:"Inter",sans-serif; font-size:15px; letter-spacing:-.02em; }
+.player-dashboard-grid small { grid-column:1/-1; grid-row:3; color:#aaa; font-size:11px; line-height:1.45; }
+.player-dashboard-grid b { grid-column:2; grid-row:1; justify-self:end; color:var(--op-visual-orange); font-size:20px; }
+.player-feature-section { margin-top:22px; }
+.player-feature-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.player-feature-heading>span,.player-feature-heading>a { color:var(--op-visual-orange); font-size:10px; font-weight:700; letter-spacing:.04em; }
+.player-next-match { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:150px; padding:17px; border:1px solid #333; border-radius:15px; background:#191919; color:#f5f5f5; }
+.player-next-match>div { display:grid; gap:8px; min-width:0; }
+.player-next-match small { color:#999; font-size:10px; letter-spacing:.04em; }
+.player-next-match strong { color:#fff; font-family:"Inter",sans-serif; font-size:14px; overflow-wrap:anywhere; }
+.player-next-match>b { flex:0 0 auto; padding:10px 13px; border-radius:12px; background:#252525; color:var(--op-visual-orange); font-family:"Inter",sans-serif; font-size:20px; }
+.player-next-match-empty { min-height:105px; flex-direction:column; align-items:flex-start; justify-content:center; }
+.player-next-match-empty>span { color:#999; font-size:11px; }
+.player-recent-results { display:block!important; margin-top:20px; padding:16px 17px; border:1px solid #333; border-radius:15px; background:#191919; }
+.player-recent-results>p { margin:0!important; color:#aaa!important; font-size:11px!important; line-height:1.5; }
+.player-dashboard .hub-email { display:none; }
+@media(min-width:760px) {
+  .player-dashboard-page { padding-left:28px!important; padding-right:28px!important; }
+  .player-dashboard-grid a { min-height:142px; }
+}
+@media(max-width:640px) {
+  .player-dashboard-page { padding:14px 10px 24px!important; }
+  .player-dashboard { padding:14px 11px!important; }
+  .player-welcome { padding:15px 14px 0; }
+  .player-welcome-main { min-height:102px; gap:10px; }
+  .player-welcome-copy h1 { font-size:clamp(24px,7vw,32px); }
+  .player-welcome-team { font-size:11px!important; }
+  .player-welcome-avatar { width:76px; height:76px; flex-basis:76px; }
+  .player-stat-strip { padding:17px 10px 13px; }
+  .player-stat-strip>div { padding:0 6px; }
+  .player-stat-strip strong { font-size:29px; }
+  .player-stat-strip span { font-size:8px; }
+  .player-dashboard-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+  .player-dashboard-grid a { min-height:108px; padding:12px; }
+  .player-dashboard-grid strong { font-size:13px; }
+  .player-dashboard-grid small { font-size:9px; }
+  .player-next-match { gap:7px; padding:12px 10px; }
+  .player-next-match strong { font-size:11px; }
+  .player-next-match>b { padding:8px 9px; font-size:16px; }
+}
