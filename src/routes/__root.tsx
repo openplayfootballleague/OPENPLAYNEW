@@ -53,17 +53,17 @@ function RootComponent() {
             <span>OPEN PLAY</span>
           </Link>
           <div className="openplay-header-actions">
-            <span className="openplay-location"><span aria-hidden="true">⌖</span> Bideford</span>
-            <Link className="openplay-account" to="/player" aria-label="Player account">♙</Link>
+            <span className="openplay-location"><NavIcon name="pin" /> Bideford</span>
+            <Link className="openplay-account" to="/player" aria-label="Player account"><NavIcon name="user" /></Link>
           </div>
         </header>
         <div className="openplay-app-content"><Outlet /></div>
         <nav className={captainView ? "openplay-bottom-nav captain-nav" : "openplay-bottom-nav"} aria-label="Player navigation">
-          <Link to="/player" className={pathname === "/player" ? "active" : ""}><span aria-hidden="true">⌂</span><small>HOME</small></Link>
-          <Link to="/match-centre" className={pathname.startsWith("/match-centre") ? "active" : ""}><span aria-hidden="true">♜</span><small>MATCH CENTRE</small></Link>
-          <Link to="/teams" className={pathname.startsWith("/teams") ? "active" : ""}><span aria-hidden="true">♢</span><small>TEAMS</small></Link>
+          <Link to="/player" className={pathname === "/player" ? "active" : ""}><NavIcon name="home" /><small>HOME</small></Link>
+          <Link to="/match-centre" className={pathname.startsWith("/match-centre") ? "active" : ""}><NavIcon name="trophy" /><small>MATCH CENTRE</small></Link>
+          <Link to="/teams" className={pathname.startsWith("/teams") ? "active" : ""}><NavIcon name="shield" /><small>TEAMS</small></Link>
           {captainView && <Link to="/captain" className="active"><span aria-hidden="true">♛</span><small>CAPTAIN'S HUB</small></Link>}
-          <Link to="/more" className={pathname.startsWith("/more") ? "active" : ""}><span aria-hidden="true">☰</span><small>MORE</small></Link>
+          <Link to="/more" className={pathname.startsWith("/more") ? "active" : ""}><NavIcon name="menu" /><small>MORE</small></Link>
         </nav>
       </div>
     </RootDocument>
@@ -77,4 +77,17 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
       <body>{children}<Scripts /></body>
     </html>
   );
+}
+
+function NavIcon({ name }: { name: "pin" | "user" | "home" | "trophy" | "shield" | "crown" | "menu" }) {
+  const common = { viewBox: "0 0 24 24", "aria-hidden": true as const, focusable: false as const };
+  switch (name) {
+    case "pin": return <svg {...common}><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>;
+    case "user": return <svg {...common}><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>;
+    case "home": return <svg {...common}><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></svg>;
+    case "trophy": return <svg {...common}><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z"/><path d="M7 6H3v2a4 4 0 0 0 4 4M17 6h4v2a4 4 0 0 1-4 4"/></svg>;
+    case "shield": return <svg {...common}><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/></svg>;
+    case "crown": return <svg {...common}><path d="m2 7 5 4 5-7 5 7 5-4-2 12H4Z"/><path d="M4 22h16"/></svg>;
+    case "menu": return <svg {...common}><path d="M4 6h16M4 12h16M4 18h16"/></svg>;
+  }
 }
