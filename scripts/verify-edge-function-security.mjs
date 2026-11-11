@@ -104,7 +104,7 @@ assert.ok(connectOnboarding.includes("p_stripe_event_created_at:new Date((typeof
 assert.ok(connectOnboarding.includes("if(transfersEnabled){") && !connectOnboarding.includes("if(transfersEnabled&&account.payouts_enabled)"), "Referee connected-balance transfer readiness must not be blocked by later bank-payout enablement");
 
 const refereePayout = readFileSync("supabase/functions/pay-referee-payout/index.ts", "utf8");
-assert.ok(refereePayout.includes("userClient.auth.getUser()"), "Referee payout transfers must validate the signed-in administrator");
+assert.ok(refereePayout.includes("userClient!.auth.getUser()") && refereePayout.includes("req.headers.get(\"x-referee-payout-cron-secret\")"), "Referee payout transfers must validate the signed-in administrator or protected cron worker");
 assert.ok(refereePayout.includes('rpc("claim_referee_payout_transfer",'), "Referee payout transfers must be claimed through the location-scoped approval RPC");
 assert.ok(refereePayout.includes('eq("report_id",reportId)'), "Approval-triggered transfers must resolve the payout obligation from the approved report server-side");
 assert.ok(refereePayout.includes("Idempotency-Key") && refereePayout.includes("openplay-referee-"), "Referee payout transfers must use attempt-scoped Stripe idempotency keys");
