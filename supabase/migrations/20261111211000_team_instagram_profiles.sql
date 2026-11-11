@@ -1,4 +1,7 @@
 -- Optional team-owned Instagram identity.
+-- Public team details are exposed only through the scoped read RPCs below.
+-- Remove the broad anonymous table grant before adding any profile fields.
+revoke all privileges on table public.teams from anon;
 -- Keep the profile URL separate from the handle: only a validated profile URL
 -- is used for a clickable public Instagram link.
 alter table public.teams
