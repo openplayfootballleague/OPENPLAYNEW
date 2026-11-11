@@ -153,6 +153,7 @@ function AdminDashboardPage(){
     <a href="#admin-settings">15 Settings &amp; Feature Management</a>
    </nav>
    <div className="admin-workspace-utility-nav" aria-label="Additional administrative tools">
+    <Link to="/admin-messages">Messaging &amp; moderation</Link>
     <a href="#admin-transfers">Transfer queue</a>
     {isGlobalAdmin&&<a href="#admin-audit">Audit history</a>}
    </div><p className="admin-finance-link"><Link to="/finance">OPEN FINANCE LEDGER <span>↗</span></Link></p><p className="admin-finance-link"><Link to="/admin-help">ADMIN HELP &amp; GUIDES <span>↗</span></Link></p>
