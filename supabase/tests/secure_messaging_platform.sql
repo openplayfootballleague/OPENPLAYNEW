@@ -315,6 +315,9 @@ begin
   v_broadcast:=public.admin_create_message_broadcast(
     'Team-only update','A message for the active team only','team',v_season_team_one
   );
+  -- Recipient lists are private under RLS; inspect the broadcast membership
+  -- using the trusted test role, not the administrator's own session.
+  execute 'reset role';
   if not exists (
     select 1 from public.message_conversation_participants
     where conversation_id=v_broadcast and user_id=v_player_a
@@ -326,7 +329,6 @@ begin
     select 1 from public.message_conversation_participants
     where conversation_id=v_broadcast and user_id=v_admin
   ) then raise exception 'Broadcast creator was not enrolled in the broadcast conversation'; end if;
-  execute 'reset role';
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_player_a::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_a::text,'role','authenticated')::text,true);
