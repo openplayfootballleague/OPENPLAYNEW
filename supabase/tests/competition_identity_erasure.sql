@@ -205,6 +205,18 @@ begin
     (v_transfer_fixture,v_transfer_home_season_team,v_player,v_admin),
     (v_transfer_fixture,v_transfer_home_season_team,v_player,v_admin);
 
+  perform set_config('request.jwt.claim.sub',v_player::text,true);
+  select public.get_my_player_statistics(v_season) into v_stats;
+  if (v_stats #>> '{season,stats,appearances}')::integer <> 2
+     or (v_stats #>> '{season,stats,starts}')::integer <> 2
+     or (v_stats #>> '{season,stats,goals}')::integer <> 3
+     or (v_stats #>> '{career,appearances}')::integer <> 2
+     or (v_stats #>> '{career,goals}')::integer <> 3 then
+    raise exception 'Player self-service career totals did not combine verified performances across clubs';
+  end if;
+
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+
   -- The account is later erased, so preserve both club memberships as history.
   update public.team_memberships
   set status='left',is_captain=false,left_at=now()
