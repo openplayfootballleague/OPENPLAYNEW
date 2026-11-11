@@ -80,18 +80,23 @@ as $
 begin
   -- Execute privilege is granted only to service_role; this invoker function
   -- therefore runs with the service role's explicit table grants.
-  -- Recover only leases where the transfer claim never reached the payout row.
-  -- A payout already marked processing is ambiguous and must never be retried here.
+  -- Recover expired leases only while Stripe's idempotency window is safely open.
+  -- Replays reuse the same payout attempt key; after 23h, leave the job held for
+  -- explicit reconciliation rather than risk a second transfer after key expiry.
   update public.referee_payout_transfer_jobs job
   set status='queued',locked_at=null,lock_token=null,available_at=now(),
-      last_error='Recovered expired pre-transfer worker lease',updated_at=now()
+      last_error='Recovered expired transfer lease for idempotent reconciliation',updated_at=now()
   where job.status='processing'
-    and job.locked_at<now()-interval '15 minutes'
+    and job.locked_at<now()-interval '5 minutes'
+    and job.locked_at>now()-interval '23 hours'
     and exists(
       select 1 from public.referee_report_payouts payout
       where payout.id=job.payout_id
-        and payout.status in ('pending_connect','failed')
         and payout.stripe_transfer_id is null
+        and (
+          payout.status in ('pending_connect','failed')
+          or (payout.status='processing' and payout.processing_started_at<now()-interval '5 minutes')
+        )
     );
   return query
   with candidates as (
@@ -101,7 +106,9 @@ begin
     join public.referee_connect_accounts account on account.referee_user_id=payout.referee_user_id
     where job.status='queued'
       and job.available_at<=now()
-      and payout.status in ('pending_connect','failed')
+      and (payout.status in ('pending_connect','failed') or
+        (payout.status='processing' and payout.processing_started_at<now()-interval '5 minutes'
+          and payout.processing_started_at>now()-interval '23 hours'))
       and account.onboarding_status='enabled'
       and account.transfers_enabled=true
       and payout.stripe_transfer_id is null
@@ -147,9 +154,15 @@ begin
 
   select * into v_payout from public.referee_report_payouts
   where id=p_payout_id for update;
-  if not found or v_payout.status not in ('pending_connect','failed')
+  if not found or v_payout.status not in ('pending_connect','failed','processing')
      or v_payout.stripe_transfer_id is not null then
     raise exception 'Referee payout is not ready for a worker transfer';
+  end if;
+  if v_payout.status='processing'
+     and (v_payout.processing_started_at is null
+       or v_payout.processing_started_at>now()-interval '5 minutes'
+       or v_payout.processing_started_at<now()-interval '23 hours') then
+    raise exception 'An in-flight referee transfer is not yet safe to reconcile';
   end if;
   select * into v_report from public.referee_match_reports
   where id=v_payout.report_id;
@@ -165,7 +178,8 @@ begin
 
   update public.referee_report_payouts
   set status='processing',processing_started_at=now(),
-      transfer_attempts=transfer_attempts+1,failure_reason=null
+      transfer_attempts=case when status='processing' then transfer_attempts else transfer_attempts+1 end,
+      failure_reason=null
   where id=p_payout_id
   returning * into v_payout;
 
