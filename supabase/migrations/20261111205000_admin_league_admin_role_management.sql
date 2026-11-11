@@ -26,7 +26,7 @@ begin
     u.id,
     u.email,
     coalesce(nullif(u.raw_user_meta_data->>'full_name',''),
-      nullif(u.raw_user_meta_data->>'name',''),u.email)::text,
+      nullif(u.raw_user_meta_data->>'name',''),u.email,'Unnamed account')::text,
     exists(select 1 from public.user_roles role_row
       where role_row.user_id=u.id and role_row.role='league_admin')
   from auth.users u
