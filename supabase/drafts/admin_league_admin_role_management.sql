@@ -21,6 +21,7 @@ begin
   ) then
     raise exception 'Global administrator permission required';
   end if;
+  if p_assigned is null then raise exception 'Choose whether to grant or revoke the location assignment'; end if;
 
   if p_assigned then
     perform 1 from public.user_roles
