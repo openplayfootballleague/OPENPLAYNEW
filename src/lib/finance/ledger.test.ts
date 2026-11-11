@@ -19,8 +19,9 @@ describe("manual finance ledger calculations", () => {
     expect(financeEntryImpactPence("credit", 500)).toBe(-500);
   });
 
-  it("adds a refund back to the outstanding balance", () => {
-    expect(financeEntryImpactPence("refund", 1200)).toBe(1200);
+  it("treats refunds and credits as reductions to outstanding balances", () => {
+    expect(financeEntryImpactPence("refund", 1200)).toBe(-1200);
+    expect(financeEntryImpactPence("credit", 500)).toBe(-500);
   });
 
   it("does not let one team's overpayment cancel another team's debt", () => {

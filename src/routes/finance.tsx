@@ -1,4 +1,5 @@
 import { useCallback,useEffect,useMemo,useState } from "react";
+import { SiteNavigation } from "../components/site-navigation";
 import { Link,createFileRoute } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { poundsToPence } from "../lib/finance/ledger";
@@ -61,7 +62,7 @@ function FinancePage(){
   finally{setSaving(false);}
  }
  const total=(key:"charges_pence"|"payments_pence"|"refunds_pence"|"credits_pence"|"fines_pence"|"outstanding_pence")=>summary.reduce((n,s)=>n+Number(s[key]??0),0);
- return <main className="notice-page finance-page"><section className="notice-panel finance-panel">
+ return <main className="notice-page finance-page"><SiteNavigation /><section className="notice-panel finance-panel">
   <Link className="notice-brand" to="/admin">OPEN PLAY · ADMIN</Link>
   <p className="eyebrow eyebrow-dark">FINANCE · MANUAL RECORD KEEPING</p>
   <h1>Money<br/><em>matters.</em></h1>
