@@ -20,7 +20,7 @@ type PlayerFixture={id:string;season_id:string;gameweek:number;scheduled_at:stri
 export const Route=createFileRoute("/player")({component:PlayerHubPage});
 
 function PlayerHubPage(){
- const competition=usePlayerCompetitionContext();
+ const competition=usePlayerCompetitionContext();const capture=useOpenPlayAnalytics();
  const navigate=useNavigate();const [session,setSession]=useState<Session|null>(null);const [player,setPlayer]=useState<Player|null>(null);const [profile,setProfile]=useState<Profile|null>(null);const [memberships,setMemberships]=useState<Membership[]>([]);const [teamRequestStatuses,setTeamRequestStatuses]=useState<TeamRequestStatus[]>([]);const [saving,setSaving]=useState(false);const [avatarUrl,setAvatarUrl]=useState("");const [isAdmin,setIsAdmin]=useState(false);const [fixtures,setFixtures]=useState<PlayerFixture[]>([]);const [availability,setAvailability]=useState<Availability[]>([]);const [availabilityBusy,setAvailabilityBusy]=useState("");const [teams,setTeams]=useState<Team[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [notificationPrefs,setNotificationPrefs]=useState<NotificationPreferences|null>(null);const [notificationSaving,setNotificationSaving]=useState(false);const [notifications,setNotifications]=useState<PlayerNotification[]>([]);const [transferDestinations,setTransferDestinations]=useState<TransferDestination[]>([]);const [transferRequests,setTransferRequests]=useState<TransferRequest[]>([]);const [payments,setPayments]=useState<PlayerPayment[]>([]);const [paymentBusy,setPaymentBusy]=useState("");const [transferSelection,setTransferSelection]=useState<string[]>([]);const [transferReason,setTransferReason]=useState("");const [transferSaving,setTransferSaving]=useState(false);const [playerStats,setPlayerStats]=useState<PlayerStatistics|null>(null);const [playerStatsLoading,setPlayerStatsLoading]=useState(false);const [playerStatsError,setPlayerStatsError]=useState("");
  useEffect(()=>{if(loading)return;if(player?.is_banned){void navigate({to:"/register-player",replace:true});return;}if(!session||(!(player?.registration_status==="registered")&&!memberships.some(m=>m.status==="active"&&m.is_captain))){void navigate({to:"/",replace:true});}},[loading,session,player,memberships,navigate]);
  useEffect(()=>{let alive=true;const supabase=getSupabaseClient();
@@ -53,12 +53,18 @@ function PlayerHubPage(){
  useEffect(()=>{let alive=true;
   if(!session||player?.registration_status!=="registered"||player.is_banned||!competition.selectedSeasonId){setPlayerStats(null);setPlayerStatsError("");setPlayerStatsLoading(false);return()=>{alive=false;};}
   setPlayerStatsLoading(true);setPlayerStatsError("");
-  void getSupabaseClient().rpc("get_my_player_statistics",{p_season_id:competition.selectedSeasonId}).then(({data,error:statsError})=>{
-   if(!alive)return;
-   if(statsError){setPlayerStats(null);setPlayerStatsError(statsError.message);}
-   else setPlayerStats(data as unknown as PlayerStatistics);
-  }).catch(cause=>{if(alive){setPlayerStats(null);setPlayerStatsError(cause instanceof Error?cause.message:"Unable to load your verified player statistics.");}})
-   .finally(()=>{if(alive)setPlayerStatsLoading(false);});
+  void (async()=>{
+   try{
+    const {data,error:statsError}=await getSupabaseClient().rpc("get_my_player_statistics",{p_season_id:competition.selectedSeasonId});
+    if(!alive)return;
+    if(statsError){setPlayerStats(null);setPlayerStatsError(statsError.message);}
+    else setPlayerStats(data as unknown as PlayerStatistics);
+   }catch(cause){
+    if(alive){setPlayerStats(null);setPlayerStatsError(cause instanceof Error?cause.message:"Unable to load your verified player statistics.");}
+   }finally{
+    if(alive)setPlayerStatsLoading(false);
+   }
+  })();
   return()=>{alive=false;};
  },[session?.user.id,player?.id,player?.registration_status,player?.is_banned,competition.selectedSeasonId]);
  useEffect(()=>{if(playerStats)capture("player_statistics_viewed",{feature:"player_statistics",season_id:playerStats.season.id});},[capture,playerStats?.season.id]);
