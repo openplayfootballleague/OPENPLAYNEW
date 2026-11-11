@@ -412,6 +412,11 @@ jobs:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_match_reports.sql
 
+      - name: Verify captain Man of the Match nomination and correction workflow
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/fixture_motm_nominations.sql
+
       - name: Verify Stripe Connect referee onboarding and payout transfers
         env:
           PGPASSWORD: postgres
