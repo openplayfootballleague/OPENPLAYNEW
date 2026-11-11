@@ -137,6 +137,20 @@ begin
     fixture_id,season_team_id,scorer_user_id,created_by,voided_at,voided_by,void_reason
   ) values(v_fixture,v_home_season_team,v_player,v_admin,now(),v_player,'Test voided record');
 
+  -- A signed-in player can retrieve only their own verified season and career totals.
+  select public.get_my_player_statistics(v_season) into v_stats;
+  if (v_stats #>> '{season,stats,appearances}')::integer <> 1
+     or (v_stats #>> '{season,stats,starts}')::integer <> 1
+     or (v_stats #>> '{season,stats,substitute_appearances}')::integer <> 0
+     or (v_stats #>> '{season,stats,goals}')::integer <> 1
+     or (v_stats #>> '{career,appearances}')::integer <> 1
+     or (v_stats #>> '{career,goals}')::integer <> 1 then
+    raise exception 'Player self-service statistics did not return the verified appearance and goal totals';
+  end if;
+  if has_function_privilege('anon','public.get_my_player_statistics(uuid)','EXECUTE') then
+    raise exception 'Anonymous users must not execute the player self-service statistics RPC';
+  end if;
+
   -- The player leaves Club A, then represents Club B in the same season.
   -- The permanent competition identity must accumulate the season totals while
   -- the club-specific rows continue to show the performances for each club.
