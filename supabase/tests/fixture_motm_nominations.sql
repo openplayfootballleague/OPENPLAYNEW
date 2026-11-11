@@ -88,12 +88,21 @@ begin
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
   values(v_fixture,v_home_season_team,v_home_captain,true,now())
   returning id into v_home_sheet;
+
+  perform set_config('request.jwt.claim.sub',v_away_captain::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_away_captain)::text,true);
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
   values(v_fixture,v_away_season_team,v_away_captain,true,now())
   returning id into v_away_sheet;
+
+  perform set_config('request.jwt.claim.sub',v_home_captain::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_home_captain)::text,true);
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
   values(v_late_fixture,v_home_season_team,v_home_captain,true,now())
   returning id into v_late_home_sheet;
+
+  perform set_config('request.jwt.claim.sub',v_away_captain::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_away_captain)::text,true);
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
   values(v_late_fixture,v_away_season_team,v_away_captain,true,now())
   returning id into v_late_away_sheet;
