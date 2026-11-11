@@ -382,3 +382,164 @@ a { color: inherit; text-decoration: none; }
 .notification-dispatch-control .admin-genuine-form > button { margin-top:12px; }
 .notification-dispatch-control .sheet-confirm-check { display:flex; align-items:flex-start; gap:9px; margin-top:12px; color:#45463f; font-size:11px; line-height:1.5; }
 .notification-dispatch-control .sheet-confirm-check input { flex:0 0 auto; margin-top:2px; }
+
+
+/* OPEN PLAY — unified player and captain visual system */
+:root {
+  color-scheme: dark;
+  --orange: #ff6426;
+  --ink: #f5f5f5;
+  --paper: #080808;
+  --muted: #a0a0a0;
+  --panel: #191919;
+  --panel-raised: #202020;
+  --line: #303030;
+}
+body { background: #080808; color: #f5f5f5; }
+.notice-page {
+  min-height: calc(100svh - 148px);
+  display: block;
+  padding: 28px clamp(16px, 3vw, 42px) 34px;
+  background: #080808;
+  color: #f5f5f5;
+}
+.notice-panel {
+  width: min(100%, 1040px);
+  margin: 0 auto;
+  padding: clamp(22px, 3vw, 36px);
+  border: 1px solid #303030;
+  border-radius: 19px;
+  background: #090909;
+  color: #f5f5f5;
+  box-shadow: 0 10px 34px rgba(0,0,0,.18);
+}
+.notice-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 34px;
+  color: #f5f5f5;
+  font-family: "DM Sans", sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+.notice-brand::before {
+  content: "OP";
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 9px;
+  background: #1c1c1c;
+  color: var(--orange);
+  font-size: 17px;
+  letter-spacing: -.04em;
+}
+.eyebrow, .eyebrow-dark { color: var(--orange); letter-spacing: .07em; }
+.notice-panel h1, .notice-panel h2, .notice-panel h3 {
+  color: #f5f5f5;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 750;
+  letter-spacing: -.035em;
+  line-height: 1.03;
+}
+.notice-panel h1 { font-size: clamp(34px, 5vw, 58px); }
+.notice-panel h1 em { color: var(--orange); }
+.notice-panel > p:not(.eyebrow), .intro-copy { color: #a0a0a0; }
+.notice-panel .button, .button {
+  border-radius: 999px;
+  background: var(--orange);
+  color: #101010;
+}
+.auth-panel, .hub-panel, .match-panel { width: min(100%, 1040px); }
+.auth-form label, .auth-select-label { color: #e5e5e5; }
+.auth-form input, .auth-form select, .auth-select-label select,
+.auth-form textarea, .captain-squad-edit input {
+  border: 1px solid #363636;
+  border-radius: 10px;
+  background: #202020;
+  color: #f5f5f5;
+}
+.auth-form input:focus, .auth-form select:focus, .auth-form textarea:focus {
+  outline: 2px solid var(--orange);
+  border-color: var(--orange);
+}
+.auth-text-button, .auth-switch { color: #a0a0a0; }
+.auth-switch a { color: var(--orange); }
+.hub-empty, .hub-profile, .hub-memberships, .match-fixtures,
+.admin-queue, .team-sheet-form {
+  margin-top: 18px;
+  padding: 22px;
+  border: 1px solid #303030;
+  border-radius: 16px;
+  background: #191919;
+  color: #f5f5f5;
+}
+.hub-empty h2, .hub-profile h2 { color: #fff; }
+.hub-empty p, .hub-profile p, .hub-team-row div span,
+.hub-team-row > span, .form-note, .match-meta { color: #a0a0a0; }
+.hub-section-heading { color: #aaa; }
+.hub-kicker { color: var(--orange); }
+.hub-team-row, .captain-request, .captain-availability-fixture,
+.match-row, .directory-team, .availability-row { border-color: #333; }
+.hub-team-row strong, .captain-request strong, .directory-team strong,
+.match-score strong, .fixture-pick span { color: #f5f5f5; }
+.hub-team-row .status-active { color: #24c66a; }
+.hub-team-row .status-pending { color: var(--orange); }
+.captain-actions button {
+  border-radius: 999px;
+  background: #292929;
+  color: #f5f5f5;
+}
+.captain-actions button.reject { background: #34201b; color: #ff9875; }
+.captain-actions button.button { background: var(--orange); color: #111; }
+.captain-availability-fixture .hub-section-heading strong { color: #f5f5f5; }
+.captain-availability-fixture .hub-section-heading small { color: #999; }
+.status-unanswered { background: #292929; color: #aaa; }
+.fixture-pick { border-color: #333; }
+.fixture-pick.selected { background: #2a1b14; box-shadow: inset 3px 0 var(--orange); }
+.sheet-player { border-color: #333; color: #f5f5f5; }
+.sheet-player input { accent-color: var(--orange); }
+.sheet-confirm-summary { color: #e8e8e8; }
+.sheet-confirm-check { color: #ddd; }
+.sheet-confirm-check input { accent-color: var(--orange); }
+.match-score b, .league-table td strong { color: var(--orange); }
+.league-table { color: #eee; }
+.league-table th, .league-table td { border-color: #333; }
+.league-table th { color: #999; }
+.table-scroll { border-radius: 10px; }
+.team-colour-mark { border-radius: 5px; }
+.directory-team span { color: #999; }
+.form-error { border: 1px solid #69352b; border-radius: 10px; background: #2c1713; color: #ffad98; }
+.form-success { border: 1px solid #245b37; border-radius: 10px; background: #13261a; color: #8be0a7; }
+.admin-stat-grid { gap: 8px; background: transparent; }
+.admin-stat-grid>div { border: 1px solid #303030; border-radius: 12px; background: #191919; }
+.admin-stat-grid strong { color: var(--orange); }
+.admin-stat-grid span { color: #999; }
+.admin-queue-row { border-color: #333; }
+.admin-queue-row strong { color: #f5f5f5; }
+.admin-queue-row span, .admin-queue-row small { color: #999; }
+.team-sheet-form h2 { color: #fff; }
+.team-sheet-form .form-note { color: #aaa; }
+.team-sheet-form .button { color: #111; }
+.sheet-counts { color: #aaa; }
+.sheet-player small { color: #999; }
+.sheet-confirm-summary p { color: #ddd; }
+.availability-actions button { border-color: #444; border-radius: 999px; background: #242424; color: #ddd; }
+.availability-actions button.selected { border-color: var(--orange); background: #3a2117; color: #ff8b5d; }
+.captain-squad-edit input { width: 64px; padding: 8px; }
+.captain-squad-edit button { border-radius: 999px; }
+.auth-mode-switch { background: #333; }
+.auth-mode-switch button { background: #202020; color: #aaa; }
+.auth-mode-switch button.active { background: #302018; color: #fff; box-shadow: inset 0 -3px var(--orange); }
+.auth-select-label select, .auth-form select { color-scheme: dark; }
+@media (max-width: 620px) {
+  .notice-page { padding: 14px 10px 24px; }
+  .notice-panel { padding: 20px 16px; border-radius: 15px; }
+  .hub-empty, .hub-profile, .hub-memberships, .match-fixtures, .admin-queue { padding: 16px; }
+  .hub-section-heading { gap: 10px; }
+  .match-score { grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: 7px; }
+  .match-score strong { overflow-wrap: anywhere; font-size: 11px; }
+  .match-score b { min-width: 48px; }
+}
