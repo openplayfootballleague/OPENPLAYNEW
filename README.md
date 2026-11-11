@@ -60,3 +60,19 @@ Copy `.env.example` to `.env` for local development. It contains only the public
 - No fake authentication, payments, or database success states.
 - All privileged actions must be enforced server-side.
 - Supabase schema changes will be versioned as migrations.
+
+## Production domain
+
+The production Worker is configured to serve both custom domains:
+
+- `https://openplayfootball.co.uk`
+- `https://www.openplayfootball.co.uk`
+
+Both hostnames are declared as Cloudflare Worker custom domains in `wrangler.jsonc`. Before deploying, the `openplayfootball.co.uk` zone must be active in the same Cloudflare account used by Wrangler. Authenticate with `npx wrangler login`, then run `npm run deploy`. Wrangler/Cloudflare provisions the custom-domain DNS records and TLS certificates; do not add conflicting A, AAAA, or CNAME records manually.
+
+After deployment, update Supabase Authentication URL Configuration:
+
+- Site URL: `https://openplayfootball.co.uk`
+- Additional Redirect URLs: `https://openplayfootball.co.uk/**`, `https://www.openplayfootball.co.uk/**`, and the required local development URL.
+
+Also update any external provider callback/return URL allow-lists to use the production origin. Do not remove existing working origins until sign-in, email verification, password reset, and payment return flows have been tested on the new domain.
