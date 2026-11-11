@@ -77,7 +77,7 @@ export function PlayerBottomNavigation() {
     <nav className="player-bottom-nav" aria-label={mode === "captain" ? "Captain navigation" : "Main navigation"}>
       {items.map((item) => {
         const active = item.hash
-          ? location.pathname === item.to && location.hash === `#${item.hash}`
+          ? location.pathname === item.to && (location.hash === `#${item.hash}` || (!location.hash && item.hash === "club"))
           : (item.activePaths ?? [item.to]).includes(location.pathname);
         return (
           <Link
