@@ -346,6 +346,11 @@ jobs:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/secure_messaging_platform.sql
 
+      - name: Verify global-admin platform feature controls and default state
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/platform_feature_management.sql
+
       - name: Verify team weekly payment deadlines, strikes, cancellation and refund ledger
         env:
           PGPASSWORD: postgres
