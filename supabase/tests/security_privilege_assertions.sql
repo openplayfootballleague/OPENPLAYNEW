@@ -21,7 +21,32 @@ select
     select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname='public' and p.prosecdef
       and has_function_privilege('anon',p.oid,'EXECUTE')
-  ) as no_anon_security_definer_execution,
+      and p.oid not in (
+        'public.get_public_team_directory(uuid)'::regprocedure,
+        'public.get_public_team_profile(uuid)'::regprocedure
+      )
+  ) as no_anon_security_definer_execution_except_public_team_read_rpcs,
+  (
+    has_function_privilege('anon','public.get_public_team_directory(uuid)','EXECUTE')
+    and has_function_privilege('anon','public.get_public_team_profile(uuid)','EXECUTE')
+    and (select p.prosecdef and p.provolatile='s' and p.proconfig @> array['search_path=""']
+      from pg_proc p where p.oid='public.get_public_team_directory(uuid)'::regprocedure)
+    and (select p.prosecdef and p.provolatile='s' and p.proconfig @> array['search_path=""']
+      from pg_proc p where p.oid='public.get_public_team_profile(uuid)'::regprocedure)
+    and (select pg_get_functiondef('public.get_public_team_directory(uuid)'::regprocedure)
+      ilike '%st.registration_status=''approved''%'
+      and pg_get_functiondef('public.get_public_team_directory(uuid)'::regprocedure) ilike '%s.is_public is true%'
+      and pg_get_functiondef('public.get_public_team_directory(uuid)'::regprocedure) ilike '%l.is_published is true%'
+      and pg_get_functiondef('public.get_public_team_directory(uuid)'::regprocedure) ilike '%loc.is_active is true%'
+      and pg_get_functiondef('public.get_public_team_directory(uuid)'::regprocedure) !~* '(insert[[:space:]]+into|update[[:space:]]+|delete[[:space:]]+from|truncate[[:space:]]+)')
+    and (select pg_get_functiondef('public.get_public_team_profile(uuid)'::regprocedure)
+      ilike '%st.registration_status=''approved''%'
+      and pg_get_functiondef('public.get_public_team_profile(uuid)'::regprocedure) ilike '%s.is_public is true%'
+      and pg_get_functiondef('public.get_public_team_profile(uuid)'::regprocedure) ilike '%l.is_published is true%'
+      and pg_get_functiondef('public.get_public_team_profile(uuid)'::regprocedure) ilike '%loc.is_active is true%'
+      and pg_get_functiondef('public.get_public_team_profile(uuid)'::regprocedure) !~* '(insert[[:space:]]+into|update[[:space:]]+|delete[[:space:]]+from|truncate[[:space:]]+)')
+    and not has_table_privilege('anon','public.teams','SELECT')
+  ) as public_team_directory_and_profile_are_scoped_read_only_rpcs,
   not exists (
     select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname='public' and p.prosecdef
