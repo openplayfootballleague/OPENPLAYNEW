@@ -2,7 +2,7 @@
 
 ## Implemented foundation
 
-- Active referees can create or resume a UK Express connected-account onboarding link from the Referee workspace.
+- Active referees can create or resume a UK connected account using Accounts v1 with controller properties (Express Dashboard), from the Referee workspace. The current branch uses Stripe-hosted onboarding; embedded onboarding remains outstanding.
 - The connected account is mapped to the referee's internal user ID; bank details remain with Stripe.
 - The account onboarding flow requests the transfers capability.
 - Account status is synchronized from signed `account.updated` events.
@@ -22,7 +22,7 @@
 
 ## Current implementation boundary
 
-The current branch now invokes the test-mode transfer workflow immediately after an administrator approves a referee match report. The Edge Function resolves the payout obligation from the approved report, then uses the authenticated administrator's location-scoped database claim. The £50 milestone workflow remains separate and requires a global finance administrator.
+The current branch invokes the test-mode transfer workflow from the administrator client immediately after the approval RPC succeeds. This is a best-effort immediate trigger, not a durable server-side outbox: if the browser closes between approval and invocation, the payout remains pending and needs an administrator retry. A durable approval-triggered outbox/worker is still required for unattended reliability. The Edge Function resolves the payout obligation from the approved report, then uses the authenticated administrator's location-scoped database claim. The £50 milestone workflow remains separate and requires a global finance administrator.
 
 The transfer/reconciliation foundations use attempt-specific Stripe idempotency keys and signed webhook confirmation. Ambiguous outcomes remain processing and must be reconciled before retry. A referee without an eligible connected account cannot receive a transfer; the entitlement remains visible for later action.
 
@@ -43,7 +43,7 @@ Do not place Stripe secret keys or webhook signing secrets in Vite variables, br
 ## Stripe Dashboard test-mode configuration
 
 1. Enable Connect for the Open Play platform account.
-2. Use UK domestic connected accounts with the approved recipient/Express onboarding configuration.
+2. Use UK domestic Accounts v1 connected accounts with controller properties: `controller.stripe_dashboard.type=express`, `controller.fees.payer=application`, and `controller.losses.payments=application`; request `capabilities.transfers`. This preserves separate platform charges and later transfers, which the current Accounts v2 preview does not support.
 3. Create a dedicated test-mode webhook endpoint:
    `https://<project-ref>.supabase.co/functions/v1/referee-connect-webhook`
 4. Subscribe only to the connected-account and transfer lifecycle events that the deployed handler explicitly verifies and processes. Confirm the exact event list against the handler before enabling the endpoint; do not assume an event is supported because it appears in an older checklist.
