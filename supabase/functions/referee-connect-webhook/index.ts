@@ -68,6 +68,7 @@ Deno.serve(async(req)=>{
           p_charges_enabled:!!object.charges_enabled,
           p_requirements_due:object.requirements??{},
           p_disabled_reason:object.requirements?.disabled_reason??null,
+          p_stripe_event_created_at:new Date(event.created*1000).toISOString(),
         });
         if(error)throw new Error(error.message);
       }
