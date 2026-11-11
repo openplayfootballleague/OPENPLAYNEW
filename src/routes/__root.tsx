@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import "../styles.css";
+import { BottomNavigation } from "../components/bottom-navigation";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -43,6 +44,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
       </head>
       <body>
         {children}
+        <BottomNavigation />
         <Scripts />
       </body>
     </html>
