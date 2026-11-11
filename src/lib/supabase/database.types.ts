@@ -1648,7 +1648,7 @@ export type Database = {
         Returns: undefined
       }
       get_my_player_motm_awards: {
-        Args: { p_season_id: string }
+        Args: { p_season_id?: string | null }
         Returns: Json
       }
       get_public_season_club_leaders: {
