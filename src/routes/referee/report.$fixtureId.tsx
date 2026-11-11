@@ -145,11 +145,6 @@ function RefereeMatchReportPage() {
       setError("Enter a valid whole-number score for both teams.");
       return;
     }
-    if (homeScorers.length !== home || awayScorers.length !== away ||
-        homeScorers.some((id) => !id) || awayScorers.some((id) => !id)) {
-      setError("Select one goalscorer for every goal before submitting.");
-      return;
-    }
     if (cards.some((card) => card.recipient_type === "registered_player" && !card.competition_player_id)) {
       setError("Choose the registered player for each player card.");
       return;
@@ -164,8 +159,8 @@ function RefereeMatchReportPage() {
       p_away_score: away,
       p_home_substitute_appearances: homeSubs,
       p_away_substitute_appearances: awaySubs,
-      p_home_scorers: homeScorers,
-      p_away_scorers: awayScorers,
+      p_home_scorers: homeScorers.filter(Boolean),
+      p_away_scorers: awayScorers.filter(Boolean),
       p_disciplinary_events: cards.map((card) => ({
         season_team_id: card.season_team_id,
         recipient_type: card.recipient_type,
@@ -191,8 +186,8 @@ function RefereeMatchReportPage() {
         version: (current.report?.version ?? 0) + 1,
         home_score: home,
         away_score: away,
-        home_scorers: homeScorers,
-        away_scorers: awayScorers,
+        home_scorers: homeScorers.filter(Boolean),
+        away_scorers: awayScorers.filter(Boolean),
         home_substitute_appearances: homeSubs,
         away_substitute_appearances: awaySubs,
         disciplinary_events: cards.map((card) => ({
@@ -260,18 +255,19 @@ function RefereeMatchReportPage() {
                 ))}</div>
               </div>
 
-              <div className="hub-section-heading"><span className="hub-kicker">GOALSCORERS</span></div>
+              <div className="hub-section-heading"><span className="hub-kicker">GOALSCORERS · OPTIONAL</span></div>
+              <p className="form-note">Record only confirmed scorers who appeared. Leave a goal unassigned when the scorer is unknown; the final score can still be submitted.</p>
               {Array.from({ length: Math.max(0, Math.min(30, Number(homeScore) || 0)) }, (_, index) => (
                 <label key={"home-goal-"+index}>{fixture.home_team_name} · Goal {index + 1}
-                  <select required value={homeScorers[index] ?? ""} disabled={!canEdit} onChange={(event) => setHomeScorers((current) => current.map((id, i) => i === index ? event.target.value : id))}>
-                    <option value="">Choose goalscorer</option>{homeScorerOptions.map((player) => <option key={player.competition_player_id} value={player.competition_player_id}>{player.full_name}</option>)}
+                  <select value={homeScorers[index] ?? ""} disabled={!canEdit} onChange={(event) => setHomeScorers((current) => current.map((id, i) => i === index ? event.target.value : id))}>
+                    <option value="">Not recorded</option>{homeScorerOptions.map((player) => <option key={player.competition_player_id} value={player.competition_player_id}>{player.full_name}</option>)}
                   </select>
                 </label>
               ))}
               {Array.from({ length: Math.max(0, Math.min(30, Number(awayScore) || 0)) }, (_, index) => (
                 <label key={"away-goal-"+index}>{fixture.away_team_name} · Goal {index + 1}
-                  <select required value={awayScorers[index] ?? ""} disabled={!canEdit} onChange={(event) => setAwayScorers((current) => current.map((id, i) => i === index ? event.target.value : id))}>
-                    <option value="">Choose goalscorer</option>{awayScorerOptions.map((player) => <option key={player.competition_player_id} value={player.competition_player_id}>{player.full_name}</option>)}
+                  <select value={awayScorers[index] ?? ""} disabled={!canEdit} onChange={(event) => setAwayScorers((current) => current.map((id, i) => i === index ? event.target.value : id))}>
+                    <option value="">Not recorded</option>{awayScorerOptions.map((player) => <option key={player.competition_player_id} value={player.competition_player_id}>{player.full_name}</option>)}
                   </select>
                 </label>
               ))}
