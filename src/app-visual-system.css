@@ -346,3 +346,106 @@
   .notice-page.finance-page .finance-summary-grid,
   .notice-page.analytics-page .analytics-stat-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
+
+
+/* Extend the approved Open Play finish to messaging, moderation, retention and gallery workspaces. */
+.messaging-panel,.admin-messaging-panel {
+  max-width:1180px!important;
+  border:1px solid var(--op-line)!important;
+  border-radius:18px!important;
+  background:#090909!important;
+  color:#f5f5f5!important;
+}
+.messaging-panel .hub-top,.admin-messaging-panel .hub-top { border-bottom-color:var(--op-line); }
+.messaging-layout { gap:14px!important; }
+.messaging-sidebar,.messaging-thread,.messaging-conversation-list,.messaging-blocked-list {
+  min-width:0;
+  border:1px solid var(--op-line)!important;
+  border-radius:13px!important;
+  background:#111!important;
+  color:#eee!important;
+}
+.messaging-list-heading,.messaging-thread-header,.messaging-conversation-top {
+  border-color:var(--op-line)!important;
+  color:#f5f5f5!important;
+}
+.messaging-conversation-list button,.messaging-conversation-list a,
+.messaging-sidebar button,.messaging-sidebar a {
+  border-color:#292929!important;
+  color:#ddd!important;
+}
+.messaging-conversation-list button[aria-current="true"],
+.messaging-conversation-list button.active,
+.messaging-sidebar button.active {
+  border-color:#744020!important;
+  background:#24170f!important;
+}
+.messaging-message-list { background:#090909!important; }
+.messaging-message,.messaging-message-bubble {
+  border:1px solid #303030!important;
+  border-radius:12px!important;
+  background:#191919!important;
+  color:#f4f4f4!important;
+}
+.messaging-message.own,.messaging-message-bubble.own {
+  border-color:#693b20!important;
+  background:#27180f!important;
+}
+.messaging-composer textarea,.messaging-composer input,
+.messaging-inline-form input,.messaging-inline-form select,
+.messaging-recipient input,.messaging-report textarea {
+  border:1px solid #3a3a3a!important;
+  border-radius:10px!important;
+  background:#151515!important;
+  color:#f5f5f5!important;
+}
+.messaging-composer button,.messaging-moderation-actions button,
+.messaging-broadcast-form button {
+  min-height:40px;
+  border-radius:999px!important;
+}
+.messaging-report-card,.admin-record,.admin-record-list,
+.account-security-section {
+  border:1px solid var(--op-line)!important;
+  border-radius:13px!important;
+  background:#111!important;
+  color:#eee!important;
+}
+.admin-record-list { display:grid; gap:10px; }
+.admin-record { padding:14px!important; }
+.admin-record p,.account-security-section p { color:#aaa; line-height:1.6; }
+.admin-record strong,.account-security-section h2 { color:#f5f5f5; }
+.admin-action-row { flex-wrap:wrap; gap:9px; }
+.public-gallery-page { min-height:100svh; padding-bottom:calc(90px + env(safe-area-inset-bottom,0px)); background:#050505!important; color:#f5f5f5!important; }
+.public-gallery-header { border-bottom:1px solid #292929!important; background:#090909!important; }
+.public-gallery-content { width:min(100% - 28px,1240px); margin-inline:auto; }
+.public-gallery-toolbar,.public-gallery-group {
+  border:1px solid var(--op-line)!important;
+  border-radius:14px!important;
+  background:#101010!important;
+}
+.public-gallery-filter button,.public-gallery-toolbar button {
+  border:1px solid #393939!important;
+  border-radius:999px!important;
+  background:#171717!important;
+  color:#ddd!important;
+}
+.public-gallery-filter button.active,.public-gallery-toolbar button.active {
+  border-color:#75401f!important;
+  background:#2b1a10!important;
+  color:#fff!important;
+}
+.public-gallery-card {
+  overflow:hidden;
+  border:1px solid #303030!important;
+  border-radius:13px!important;
+  background:#111!important;
+}
+.public-gallery-card-copy { color:#ddd!important; }
+.admin-record-list button,.admin-action-row button { border-radius:999px; }
+@media(max-width:760px) {
+  .messaging-layout { grid-template-columns:minmax(0,1fr)!important; }
+  .messaging-sidebar { max-height:260px; overflow:auto; }
+  .messaging-panel,.admin-messaging-panel { padding:14px!important; border-radius:13px!important; }
+  .public-gallery-content { width:min(100% - 18px,1240px); }
+}
