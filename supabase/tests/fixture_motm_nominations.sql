@@ -221,7 +221,7 @@ begin
   where leaders.competition_player_id=v_home_teammate_identity
     and leaders.season_team_id=v_home_season_team
     and leaders.motm_awards=1
-    and leaders.appearances=1;
+    and leaders.appearances=2;
   if v_count<>1 then raise exception 'Public Club Leaders did not reflect the corrected MOTM and appearance totals'; end if;
 end;
 $fixture_motm$;
