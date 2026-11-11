@@ -28,6 +28,7 @@ function JoinPage() {
   const [error,setError]=useState("");
   const [message,setMessage]=useState("");
   const [busy,setBusy]=useState(false);
+  const [recruitmentEnabled,setRecruitmentEnabled]=useState<boolean|null>(null);
 
   async function refreshMyRequests(){
     const {data,error:requestError}=await getSupabaseClient().rpc("get_my_team_request_statuses");
@@ -40,7 +41,10 @@ function JoinPage() {
     let alive=true;
     async function load(){
       const {data:{session:current}}=await supabase.auth.getSession();
+      const {data:recruitmentStatus,error:recruitmentError}=await supabase.rpc("get_public_team_recruitment_status");
       if(!alive)return;
+      setRecruitmentEnabled(recruitmentError?false:recruitmentStatus===true);
+      if(recruitmentError)setError("Unable to check team recruitment availability. Please try again shortly.");
       setSession(current);
       if(current){
         const {data:playerData}=await supabase.from("players").select("registration_status,is_banned").eq("user_id",current.user.id).maybeSingle();
@@ -120,8 +124,8 @@ function JoinPage() {
     <PlayerCompetitionSelector context={competition}/>
     {competition.error&&<p className="form-error" role="alert">{competition.error}</p>}
     {error&&<p className="form-error" role="alert">{error}</p>}{message&&<p className="form-note" role="status">{message}</p>}
-    <div className="auth-mode-switch"><button type="button" className={mode==="join"?"active":""} onClick={()=>{setMode("join");setError("");setMessage("");}}>JOIN A TEAM</button><button type="button" className={mode==="register"?"active":""} onClick={()=>{capture("team_registration_started",{feature:"team_registration"});setMode("register");setError("");setMessage("");}}>REGISTER A TEAM</button></div>
-    {competition.loading?<p className="form-note">Loading locations and seasons…</p>:!registrationOpen?<p className="form-note">There is no public season currently accepting registrations for this location. Choose another location or check back when registration opens.</p>:<>
+    {recruitmentEnabled&&<div className="auth-mode-switch"><button type="button" className={mode==="join"?"active":""} onClick={()=>{setMode("join");setError("");setMessage("");}}>JOIN A TEAM</button><button type="button" className={mode==="register"?"active":""} onClick={()=>{capture("team_registration_started",{feature:"team_registration"});setMode("register");setError("");setMessage("");}}>REGISTER A TEAM</button></div>}
+    {competition.loading||recruitmentEnabled===null?<p className="form-note">Checking recruitment availability…</p>:!recruitmentEnabled?<p className="form-note">Team recruitment is temporarily paused by Open Play. You can still view public fixtures, results and league tables. Please check back later.</p>:!registrationOpen?<p className="form-note">There is no public season currently accepting registrations for this location. Choose another location or check back when registration opens.</p>:<>
       <p className="form-note">Registration is open for {selectedSeason?.name}.</p>
       {mode==="join"?<form className="auth-form" onSubmit={submitJoin}>
         <label>Team<select required value={teamId} onChange={e=>setTeamId(e.target.value)}><option value="">Choose a team</option>{teams.map(team=><option key={team.id} value={team.id}>{team.name}</option>)}</select></label>
