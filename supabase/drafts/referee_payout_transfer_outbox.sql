@@ -9,6 +9,7 @@ create table public.referee_payout_transfer_jobs (
   attempts integer not null default 0 check(attempts>=0),
   available_at timestamptz not null default now(),
   locked_at timestamptz,
+  first_attempt_at timestamptz,
   lock_token uuid,
   last_error text,
   created_at timestamptz not null default now(),
@@ -45,6 +46,7 @@ begin
       set status='processing',
           locked_at=coalesce(locked_at,now()),
           lock_token=coalesce(lock_token,gen_random_uuid()),
+          first_attempt_at=case when status='failed' then now() else coalesce(first_attempt_at,now()) end,
           updated_at=now()
       where payout_id=new.id and status in ('queued','failed');
     elsif new.status='transferred' then
@@ -88,7 +90,7 @@ begin
       last_error='Recovered expired transfer lease for idempotent reconciliation',updated_at=now()
   where job.status='processing'
     and job.locked_at<now()-interval '5 minutes'
-    and job.locked_at>now()-interval '23 hours'
+    and job.first_attempt_at>now()-interval '23 hours'
     and exists(
       select 1 from public.referee_report_payouts payout
       where payout.id=job.payout_id
@@ -108,7 +110,7 @@ begin
       and job.available_at<=now()
       and (payout.status in ('pending_connect','failed') or
         (payout.status='processing' and payout.processing_started_at<now()-interval '5 minutes'
-          and payout.processing_started_at>now()-interval '23 hours'))
+          and job.first_attempt_at>now()-interval '23 hours'))
       and account.onboarding_status='enabled'
       and account.transfers_enabled=true
       and payout.stripe_transfer_id is null
@@ -118,6 +120,7 @@ begin
   )
   update public.referee_payout_transfer_jobs job
   set status='processing',attempts=job.attempts+1,locked_at=now(),
+      first_attempt_at=coalesce(job.first_attempt_at,now()),
       lock_token=gen_random_uuid(),last_error=null,updated_at=now()
   from candidates
   where job.id=candidates.id
