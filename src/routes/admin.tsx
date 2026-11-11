@@ -272,7 +272,7 @@ function AdminDashboardPage(){
   </section> : null}
   <section id="admin-settings" className="admin-queue admin-settings">
    <div className="hub-section-heading"><span className="hub-kicker">SETTINGS &amp; FEATURE MANAGEMENT</span><span>Available controls only</span></div>
-   <p className="form-note">Manage platform-wide controls here. Feature changes are permission checked and recorded in the audit history.</p>
+   <p className="form-note">{isGlobalAdmin?"Manage platform-wide controls here. Feature changes are permission checked and recorded in the audit history.":"Platform-wide feature controls are restricted to global administrators."}</p>
    {isGlobalAdmin&&<section className="admin-setup-form admin-feature-management">
     <div className="hub-section-heading"><span className="hub-kicker">LIVE FEATURE CONTROLS</span><span>{platformFlagsLoading?"Loading…":platformFlags.length+" controls"}</span></div>
     <div className="admin-feature-status-list">
