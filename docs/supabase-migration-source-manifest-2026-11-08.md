@@ -133,7 +133,7 @@ The consolidation also carries five forward-only security migrations from the in
 The current development integration adds five further canonical, timestamped migration sources after the existing 99-version hosted baseline and the previously declared pending migrations:
 
 - `20261111190000_team_weekly_payment_workflow.sql` — team-level weekly fixture obligations, deadlines, refunds and ledger state.
-- `20261111191000_weather_gameweek_postponement.sql` — whole-gameweek postponement, replacement scheduling and refund reconciliation.
+- `20261111191000_weather_gameweek_postponements.sql` — whole-gameweek postponement, replacement scheduling and refund reconciliation.
 - `20261111192000_referee_connect_payouts.sql` — Stripe Connect account readiness and approved referee payout obligations.
 - `20261111193000_referee_payout_transfer_outbox.sql` — durable, leased and idempotent transfer jobs with a Vault-backed scheduler.
 - `20261111194000_secure_messaging_platform.sql` — member conversations, team/support messaging, broadcasts and moderation.
