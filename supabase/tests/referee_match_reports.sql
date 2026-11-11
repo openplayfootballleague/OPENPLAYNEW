@@ -273,6 +273,16 @@ begin
   end if;
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  select count(*) into v_count
+  from public.admin_list_disciplinary_suspensions(v_location)
+  where competition_player_id=v_home_identity
+    and disciplinary_strikes=3 and last_fixture_id=v_fixture_one;
+  execute 'reset role';
+  if v_count<>1 then
+    raise exception 'Location-scoped disciplinary return queue did not expose the suspended player to the permitted administrator';
+  end if;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
   select count(*) into v_count from public.admin_list_referee_report_payouts('pending_connect',v_location)
     where report_id=v_report_one and gross_allocation_pence=2200 and referee_net_pence=2200 and status='pending_connect';
   execute 'reset role';
