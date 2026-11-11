@@ -95,6 +95,12 @@ begin
   values(v_fixture,v_away_season_team,v_away_captain,true,now())
   returning id into v_away_sheet;
 
+  -- The later fixture cannot accept captain sheets until the earlier required
+  -- fixture is completed, matching the production next-fixture guard.
+  update public.fixtures set status='completed' where id=v_fixture;
+  insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
+  values(v_fixture,1,0,now(),v_admin);
+
   perform set_config('request.jwt.claim.sub',v_home_captain::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_home_captain)::text,true);
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
@@ -106,6 +112,7 @@ begin
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked,submitted_at)
   values(v_late_fixture,v_away_season_team,v_away_captain,true,now())
   returning id into v_late_away_sheet;
+
 
   insert into public.fixture_team_sheet_players(team_sheet_id,user_id,role)
   values
@@ -119,11 +126,10 @@ begin
     (v_late_away_sheet,v_away_captain,'starter'),
     (v_late_away_sheet,v_away_teammate,'starter');
 
-  -- Team sheets must be submitted while the fixture is still scheduled and in the future.
-  -- Then close both fixtures and attach their confirmed results for the MOTM workflow.
-  update public.fixtures set status='completed' where id in (v_fixture,v_late_fixture);
+  -- Close the later fixture after both sheets have been submitted.
+  update public.fixtures set status='completed' where id=v_late_fixture;
   insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
-  values(v_fixture,1,0,now(),v_admin),(v_late_fixture,0,0,now(),v_admin);
+  values(v_late_fixture,0,0,now(),v_admin);
 
   -- Mirror the official result workflow: starters are confirmed appearances;
   -- the named substitute remains unplayed and must not be eligible.
