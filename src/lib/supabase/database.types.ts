@@ -3439,7 +3439,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-    }
       admin_set_platform_feature_flag: {
         Args: { p_enabled: boolean; p_feature_key: string; p_reason: string }
         Returns: Database["public"]["Tables"]["platform_feature_flags"]["Row"]
@@ -3461,6 +3460,7 @@ export type Database = {
           updated_by: string | null
         }[]
       }
+    }
     Enums: {
       competition_format: "six_a_side" | "seven_a_side"
       fixture_status:
