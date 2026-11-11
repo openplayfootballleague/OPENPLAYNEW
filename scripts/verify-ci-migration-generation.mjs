@@ -10,6 +10,7 @@ const expectedMigrations = [
   "referee_approved_report_corrections",
   "team_weekly_payment_workflow",
   "weather_gameweek_postponements",
+  "admin_disciplinary_return_queue",
   "referee_approved_report_correction_options",
   "referee_connect_payouts",
   "referee_payout_transfer_outbox",
