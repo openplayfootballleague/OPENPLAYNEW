@@ -8,7 +8,7 @@ type PublicTeam={
   team_name:string;
   season_id:string;
   season_name:string;
-  starts_on:string;
+  starts_on:string|null;
   primary_colour:string|null;
   secondary_colour:string|null;
   instagram_profile_url:string|null;
