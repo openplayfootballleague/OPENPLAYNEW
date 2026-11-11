@@ -3,13 +3,27 @@ import { readFileSync } from "node:fs";
 const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
 const lines = workflow.split(/\r?\n/);
 const errors = [];
+const expectedMigrations = [
+  "referee_application_workflow",
+  "referee_fixture_assignments",
+  "referee_match_reports",
+  "referee_approved_report_corrections",
+  "team_weekly_payment_workflow",
+  "weather_gameweek_postponement",
+  "referee_approved_report_correction_options",
+  "referee_connect_payouts",
+  "referee_payout_transfer_outbox",
+  "secure_messaging_platform",
+];
 let checked = 0;
+const foundMigrations = [];
 
 for (let index = 0; index < lines.length; index += 1) {
   const command = lines[index].match(/supabase migration new ([a-z0-9_]+)(.*)$/);
   if (!command) continue;
 
   const name = command[1];
+  foundMigrations.push(name);
   const suffix = command[2].trim();
   const next = lines[index + 1]?.trim() ?? "";
   const after = lines[index + 2]?.trim() ?? "";
@@ -30,6 +44,8 @@ for (let index = 0; index < lines.length; index += 1) {
 }
 
 if (checked === 0) errors.push("No Supabase CLI migration-generation steps were found.");
+for (const name of expectedMigrations) if (!foundMigrations.includes(name)) errors.push(`Missing migration-generation step: ${name}`);
+for (const name of foundMigrations) if (!expectedMigrations.includes(name)) errors.push(`Unexpected migration-generation step: ${name}`);
 if (errors.length > 0) {
   for (const error of errors) console.error(`::error::${error}`);
   process.exit(1);
