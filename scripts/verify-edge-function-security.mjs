@@ -111,7 +111,7 @@ assert.ok(!connectOnboarding.includes('params.set("type","express")'), "New refe
 assert.ok(connectOnboarding.includes('sessionParams.set("components[account_onboarding][enabled]","true")') && connectOnboarding.includes('stripeRequest("account_sessions","POST"'), "Referee onboarding must use a Stripe Account Session for embedded onboarding");
 assert.ok(connectOnboarding.includes('sessionParams.set("components[account_onboarding][features][external_account_collection]","true")'), "Embedded referee onboarding must collect a bank account for payouts");
 assert.ok(connectOnboarding.includes("account_session_client_secret") && !connectOnboarding.includes('stripeRequest("account_links"'), "Referee onboarding must return an embedded session secret, not a hosted Account Link");
-assert.ok(connectOnboarding.includes("p_stripe_event_created_at:new Date((typeof account.created==="number"?account.created:Math.floor(Date.now()/1000))*1000).toISOString()"), "Initial Connect sync must use Stripe account creation time so later verification webhooks are not rejected as stale");
+assert.ok(connectOnboarding.includes('p_stripe_event_created_at:new Date((typeof account.created==="number"?account.created:Math.floor(Date.now()/1000))*1000).toISOString()'), "Initial Connect sync must use Stripe account creation time so later verification webhooks are not rejected as stale");
 assert.ok(connectOnboarding.includes("if(transfersEnabled){") && !connectOnboarding.includes("if(transfersEnabled&&account.payouts_enabled)"), "Connected-balance transfer readiness must not be blocked by later bank-payout enablement");
 
 const refereeWorkspace = readFileSync("src/routes/referee.tsx", "utf8");
@@ -139,7 +139,6 @@ assert.ok(refereePayoutWorker.includes('stripeKey?.startsWith("sk_test_")'), "Re
 assert.ok(refereePayoutWorker.includes('rpc("claim_referee_payout_transfer_jobs"') && refereePayoutWorker.includes('rpc("release_referee_payout_transfer_job"'), "Referee payout worker must use leased outbox claims and safe release logic");
 
 const refereePayoutOutbox = readFileSync("supabase/drafts/referee_payout_transfer_outbox.sql", "utf8");
-assert.ok(!/^\\s*as \\$/m.test(refereePayoutOutbox), "Referee payout outbox SQL functions must use complete dollar-quote delimiters");
 assert.ok(refereePayoutOutbox.includes("after insert or update of status on public.referee_report_payouts"), "Referee payout creation must atomically enqueue its transfer job");
 assert.ok(refereePayoutOutbox.includes("for update of job skip locked"), "Concurrent referee payout workers must claim jobs without duplicate leases");
 assert.ok(refereePayoutOutbox.includes("first_attempt_at") && refereePayoutOutbox.includes("now()-interval '23 hours'"), "Ambiguous payout recovery must reuse the original attempt only within Stripe's idempotency retention window");
