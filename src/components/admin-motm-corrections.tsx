@@ -26,7 +26,7 @@ export function AdminMotmCorrections({locationId}:{locationId:string}){
       if(rpcError)throw new Error(rpcError.message);
       const items=(data??[]) as Nomination[];
       setRows(items);
-      setSelected(current=>Object.fromEntries(items.map(item=>[item.nomination_id,current[item.nomination_id]??item.competition_player_id])));
+      setSelected(Object.fromEntries(items.map(item=>[item.nomination_id,item.competition_player_id])));
     }catch(cause){setRows([]);setError(cause instanceof Error?cause.message:"Unable to load Man of the Match nominations.");}
     finally{setLoading(false);}
   },[locationId]);
