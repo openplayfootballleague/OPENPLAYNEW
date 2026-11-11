@@ -33,7 +33,7 @@ select
       and pg_get_functiondef('public.get_public_season_club_leaders(uuid)'::regprocedure) ilike '%f.season_id=p_season_id%'
       and pg_get_functiondef('public.get_public_season_club_leaders(uuid)'::regprocedure) ilike '%f.status=''completed''%'
       and pg_get_functiondef('public.get_public_season_club_leaders(uuid)'::regprocedure) ilike '%cpi.counts_for_statistics is true%'
-      and pg_get_functiondef('public.get_public_season_club_leaders(uuid)'::regprocedure) !~* '\\m(insert|update|delete|truncate)\\M')
+      and pg_get_functiondef('public.get_public_season_club_leaders(uuid)'::regprocedure) !~* '(insert[[:space:]]+into|update[[:space:]]+|delete[[:space:]]+from|truncate[[:space:]]+)')
   ) as public_season_club_leaders_is_read_only_and_published_only,
   not exists (
     select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
