@@ -106,6 +106,18 @@ type AdminReportOptions = {
   home_players: AdminReportPlayer[];
   away_players: AdminReportPlayer[];
 };
+type RefereePayoutTransferHistory = {
+  attempt_number:number;status:string;amount_pence:number;stripe_transfer_id:string|null;
+  failure_reason:string|null;created_at:string;
+};
+type RefereeMilestoneReward = {
+  reward_id:string;referee_user_id:string|null;referee_name:string;milestone_number:number;
+  approved_games:number;amount_pence:number;
+  status:"pending_connect"|"processing"|"transferred"|"failed"|"cancelled";
+  stripe_transfer_id:string|null;failure_reason:string|null;transfer_attempts:number;
+  connect_status:"onboarding_required"|"verification_pending"|"enabled"|"restricted";
+  transfers_enabled:boolean;payouts_enabled:boolean;created_at:string;transferred_at:string|null;
+};
 type RefereePayoutObligation = {
   payout_id: string;
   report_id: string;
@@ -122,8 +134,13 @@ type RefereePayoutObligation = {
   deductions_pence: number;
   referee_net_pence: number;
   open_play_top_up_pence: number;
-  status: "pending_connect" | "transferred" | "failed" | "cancelled";
+  status: "pending_connect" | "processing" | "transferred" | "failed" | "cancelled";
   stripe_transfer_id: string | null;
+  failure_reason: string | null;
+  transfer_attempts: number;
+  connect_status: "onboarding_required" | "verification_pending" | "enabled" | "restricted";
+  transfers_enabled: boolean;
+  payouts_enabled: boolean;
   created_at: string;
   transferred_at: string | null;
 };
@@ -160,8 +177,12 @@ function AdminRefereesPage() {
   const [reportsLoading, setReportsLoading] = useState(false);
   const [reportReasons, setReportReasons] = useState<Record<string, string>>({});
   const [payouts, setPayouts] = useState<RefereePayoutObligation[]>([]);
+  const [milestoneRewards, setMilestoneRewards] = useState<RefereeMilestoneReward[]>([]);
+  const [milestoneRewardsLoading, setMilestoneRewardsLoading] = useState(false);
+  const [payoutHistoryOpen, setPayoutHistoryOpen] = useState("");
+  const [payoutHistory, setPayoutHistory] = useState<Record<string,RefereePayoutTransferHistory[]>>({});
   const [payoutsLoading, setPayoutsLoading] = useState(false);
-  const [payoutStatusFilter, setPayoutStatusFilter] = useState("pending_connect");
+  const [payoutStatusFilter, setPayoutStatusFilter] = useState("all");
   const [reportableFixtures, setReportableFixtures] = useState<AdminReportableFixture[]>([]);
   const [reportableFixturesLoading, setReportableFixturesLoading] = useState(false);
   const [selectedAdminReportFixtureId, setSelectedAdminReportFixtureId] = useState("");
@@ -252,9 +273,8 @@ function AdminRefereesPage() {
   const loadPayouts = useCallback(async () => {
     setPayoutsLoading(true);
     const rpc = getSupabaseClient() as unknown as RpcClient;
-    const result = await rpc.rpc("admin_list_referee_report_payouts", {
+    const result = await rpc.rpc("admin_list_referee_report_payouts_connect", {
       p_status: payoutStatusFilter,
-      p_location_id: null,
     });
     if (result.error) {
       setError(result.error.message);
@@ -266,6 +286,57 @@ function AdminRefereesPage() {
   }, [payoutStatusFilter]);
 
   useEffect(() => { void loadPayouts(); }, [loadPayouts]);
+
+  const loadMilestoneRewards = useCallback(async () => {
+    setMilestoneRewardsLoading(true);
+    const rpc = getSupabaseClient() as unknown as RpcClient;
+    const result = await rpc.rpc("admin_list_referee_milestone_rewards_connect", { p_status: "all" });
+    if (result.error) {
+      setError(result.error.message);
+      setMilestoneRewards([]);
+    } else {
+      setMilestoneRewards((result.data ?? []) as RefereeMilestoneReward[]);
+    }
+    setMilestoneRewardsLoading(false);
+  }, []);
+
+  useEffect(() => { void loadMilestoneRewards(); }, [loadMilestoneRewards]);
+
+  async function togglePayoutHistory(payoutType:"match_report"|"milestone",payoutId:string){
+    const key=`${payoutType}:${payoutId}`;
+    if(payoutHistoryOpen===key){setPayoutHistoryOpen("");return;}
+    const rpc=getSupabaseClient() as unknown as RpcClient;
+    const {data,error:historyError}=await rpc.rpc("admin_get_referee_payout_transfer_history",{
+      p_payout_type:payoutType,p_payout_id:payoutId,
+    });
+    if(historyError){setError(historyError.message);return;}
+    setPayoutHistory((current)=>({...current,[key]:(data??[]) as RefereePayoutTransferHistory[]}));
+    setPayoutHistoryOpen(key);
+  }
+
+  async function sendRefereePayout(payoutType: "match_report" | "milestone", payoutId: string) {
+    setBusy(`referee-payout:${payoutId}`);
+    setError("");
+    setNotice("");
+    const supabase = getSupabaseClient() as unknown as {
+      functions: { invoke(name: string, options?: Record<string, unknown>): Promise<{data: any; error: {message: string} | null}> };
+    };
+    const {data,error:transferError}=await supabase.functions.invoke("pay-referee-payout",{
+      body:{payout_type:payoutType,payout_id:payoutId},
+    });
+    setBusy("");
+    if(transferError){
+      setError(data?.error ?? transferError.message);
+      await Promise.all([loadPayouts(),loadMilestoneRewards()]);
+      return;
+    }
+    if(data?.status==="processing"){
+      setNotice("Stripe created the transfer. The payout is awaiting signed webhook reconciliation; do not retry it.");
+    }else{
+      setNotice("Stripe confirmed the referee transfer successfully.");
+    }
+    await Promise.all([loadPayouts(),loadMilestoneRewards()]);
+  }
 
   const loadReportableFixtures = useCallback(async () => {
     setReportableFixturesLoading(true);
@@ -471,10 +542,31 @@ function AdminRefereesPage() {
       setError(result.error.message);
       return;
     }
-    setNotice(decision === "approved"
-      ? "Match report approved. The official result, disciplinary events and team fines have been recorded."
-      : "Match report returned to the referee with your review reason.");
-    await Promise.all([loadReports(), loadApprovedReports()]);
+    if(decision==="approved"){
+      // Trigger the report's one-time Stripe transfer immediately after the
+      // approval transaction succeeds. The payout claim is locked/idempotent;
+      // ambiguous Stripe outcomes stay processing for webhook reconciliation.
+      const supabase=getSupabaseClient() as unknown as {
+        functions:{invoke(name:string,options?:Record<string,unknown>):Promise<{data:any;error:{message:string}|null}>};
+      };
+      const {data:transferData,error:transferError}=await supabase.functions.invoke("pay-referee-payout",{
+        body:{payout_type:"match_report",report_id:report.report_id},
+      });
+      if(transferError){
+        setNotice("Match report approved and result published. The automatic referee transfer could not be confirmed ("+
+          (transferData?.error??transferError.message)+"). Check the payout queue before any retry.");
+      }else if(transferData?.status==="processing"){
+        setNotice("Match report approved and result published. The referee transfer is still processing and must be reconciled before any retry. Do not retry yet.");
+      }else if(transferData?.success===true&&transferData?.status==="transferred"){
+        setNotice("Match report approved and result published. The referee's approved payment transfer was confirmed by Stripe.");
+      }else{
+        setNotice("Match report approved and result published. The referee payment requires attention: "+
+          (transferData?.error??"Stripe did not confirm a transfer.")+" Check Connect readiness and the payout queue.");
+      }
+    }else{
+      setNotice("Match report returned to the referee with your review reason.");
+    }
+    await Promise.all([loadReports(),loadApprovedReports(),loadPayouts()]);
   }
 
   async function decide(application: RefereeApplication, decision: "approved" | "rejected") {
@@ -788,13 +880,14 @@ function AdminRefereesPage() {
             <span className="hub-kicker">MATCH REPORT PAYOUT OBLIGATIONS</span>
             <select aria-label="Filter referee payouts" value={payoutStatusFilter} onChange={(event) => setPayoutStatusFilter(event.target.value)}>
               <option value="pending_connect">Pending Connect</option>
+              <option value="processing">Processing</option>
               <option value="transferred">Transferred</option>
               <option value="failed">Failed</option>
               <option value="cancelled">Cancelled</option>
               <option value="all">All statuses</option>
             </select>
           </div>
-          <p>Read-only location-scoped payout records created by approved referee match reports. Milestone rewards are tracked separately and are not included in this view. A pending obligation is not a payment; transfer status must only change after Stripe Connect confirmation and webhook reconciliation.</p>
+          <p>Location-scoped referee match payments. Transfers are test-mode only. A transfer can be sent when Stripe confirms the referee account has transfers enabled; bank-payout enablement is separate and does not block a transfer into the connected Stripe balance; failed transfers can be retried, while processing transfers must be reconciled before another attempt.</p>
           {payoutsLoading ? <p className="form-note">Loading referee payout obligations…</p> : payouts.length === 0 ? (
             <p className="form-note">No referee payout obligations match this status for your permitted locations.</p>
           ) : payouts.map((payout) => (
@@ -806,11 +899,60 @@ function AdminRefereesPage() {
                 <small>{new Date(payout.scheduled_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })} · Created {new Date(payout.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</small>
                 <small>Gross {formatPence(payout.gross_allocation_pence)} · Deductions {formatPence(payout.deductions_pence)} · Referee net {formatPence(payout.referee_net_pence)} · Open Play top-up {formatPence(payout.open_play_top_up_pence)}</small>
                 {payout.stripe_transfer_id && <small>Stripe transfer reference: {payout.stripe_transfer_id}</small>}
+                <small>Connect: {payout.connect_status.replaceAll("_"," ")} · Transfers {payout.transfers_enabled ? "enabled" : "disabled"} · Bank payouts {payout.payouts_enabled ? "enabled" : "disabled"} · Attempts {payout.transfer_attempts}</small>
+                {payout.failure_reason && <small>Last transfer failure: {payout.failure_reason}</small>}
+                {payout.status==="processing" && <small>Transfer processing — do not retry until Stripe reconciliation completes.</small>}
                 {payout.transferred_at && <small>Transfer confirmed {new Date(payout.transferred_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</small>}
+                {(payout.status==="pending_connect"||payout.status==="failed")&&payout.connect_status==="enabled"&&payout.transfers_enabled&&(
+                  <button type="button" disabled={busy===`referee-payout:${payout.payout_id}`} onClick={()=>void sendRefereePayout("match_report",payout.payout_id)}>
+                    {busy===`referee-payout:${payout.payout_id}`?"SENDING…":payout.status==="failed"?"RETRY REFEREE TRANSFER":"SEND REFEREE PAYMENT"}
+                  </button>
+                )}
+                <button type="button" className="admin-inline-action" onClick={()=>void togglePayoutHistory("match_report",payout.payout_id)}>
+                  {payoutHistoryOpen===`match_report:${payout.payout_id}`?"HIDE TRANSFER HISTORY":"VIEW TRANSFER HISTORY"}
+                </button>
+                {payoutHistoryOpen===`match_report:${payout.payout_id}`&&(
+                  <div className="form-note">{(payoutHistory[`match_report:${payout.payout_id}`]??[]).map((attempt)=>(
+                    <p key={attempt.attempt_number}>Attempt {attempt.attempt_number} · {attempt.status.toUpperCase()} · {formatPence(attempt.amount_pence)} · {attempt.stripe_transfer_id??"No transfer ID"}{attempt.failure_reason? ` · ${attempt.failure_reason}`:""}</p>
+                  ))}</div>
+                )}
               </div>
             </article>
           ))}
           <button type="button" disabled={payoutsLoading} onClick={() => void loadPayouts()}>REFRESH PAYOUT OBLIGATIONS</button>
+        </section>
+        <section className="hub-memberships">
+          <div className="hub-section-heading"><span className="hub-kicker">REFEREE MILESTONE REWARDS · CONNECT</span><span className="hub-count">{milestoneRewards.length}</span></div>
+          <p>Milestone rewards are separate £50 transfers for each approved 50-game milestone. The same verified Stripe Connect account and transfer safeguards apply.</p>
+          {milestoneRewardsLoading ? <p className="form-note">Loading milestone rewards…</p> : milestoneRewards.length===0 ? (
+            <p className="form-note">No referee milestone rewards are currently recorded.</p>
+          ) : milestoneRewards.map((reward)=>(
+            <article className="admin-queue-row" key={reward.reward_id}>
+              <div>
+                <strong>{reward.referee_name} · {formatPence(reward.amount_pence)} · Milestone {reward.milestone_number}</strong>
+                <span>{reward.approved_games} approved games · {reward.status.replaceAll("_"," ").toUpperCase()}</span>
+                <small>Connect: {reward.connect_status.replaceAll("_"," ")} · Transfers {reward.transfers_enabled?"enabled":"disabled"} · Bank payouts {reward.payouts_enabled?"enabled":"disabled"} · Attempts {reward.transfer_attempts}</small>
+                {reward.failure_reason&&<small>Last transfer failure: {reward.failure_reason}</small>}
+                {reward.stripe_transfer_id&&<small>Stripe transfer reference: {reward.stripe_transfer_id}</small>}
+                {reward.transferred_at&&<small>Transfer confirmed {new Date(reward.transferred_at).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"})}</small>}
+                {reward.status==="processing"&&<small>Transfer processing — do not retry until Stripe reconciliation completes.</small>}
+                {(reward.status==="pending_connect"||reward.status==="failed")&&reward.connect_status==="enabled"&&reward.transfers_enabled&&(
+                  <button type="button" disabled={busy===`referee-payout:${reward.reward_id}`} onClick={()=>void sendRefereePayout("milestone",reward.reward_id)}>
+                    {busy===`referee-payout:${reward.reward_id}`?"SENDING…":reward.status==="failed"?"RETRY MILESTONE TRANSFER":"SEND MILESTONE REWARD"}
+                  </button>
+                )}
+                <button type="button" className="admin-inline-action" onClick={()=>void togglePayoutHistory("milestone",reward.reward_id)}>
+                  {payoutHistoryOpen===`milestone:${reward.reward_id}`?"HIDE TRANSFER HISTORY":"VIEW TRANSFER HISTORY"}
+                </button>
+                {payoutHistoryOpen===`milestone:${reward.reward_id}`&&(
+                  <div className="form-note">{(payoutHistory[`milestone:${reward.reward_id}`]??[]).map((attempt)=>(
+                    <p key={attempt.attempt_number}>Attempt {attempt.attempt_number} · {attempt.status.toUpperCase()} · {formatPence(attempt.amount_pence)} · {attempt.stripe_transfer_id??"No transfer ID"}{attempt.failure_reason? ` · ${attempt.failure_reason}`:""}</p>
+                  ))}</div>
+                )}
+              </div>
+            </article>
+          ))}
+          <button type="button" disabled={milestoneRewardsLoading} onClick={()=>void loadMilestoneRewards()}>REFRESH MILESTONE REWARDS</button>
         </section>
         <Link className="auth-switch" to="/admin">Back to Admin Dashboard</Link>
       </section>

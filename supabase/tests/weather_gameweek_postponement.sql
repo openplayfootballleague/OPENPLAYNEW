@@ -2,9 +2,10 @@
 -- Runs only against the disposable local Supabase database created by CI.
 do $weather_postponement$
 declare
-  v_admin constant uuid:='97000000-0000-4000-8000-000000000001';
-  v_home_captain constant uuid:='97000000-0000-4000-8000-000000000002';
-  v_away_captain constant uuid:='97000000-0000-4000-8000-000000000003';
+  v_admin constant uuid:='98000000-0000-4000-8000-000000000001';
+  v_finance_admin constant uuid:='99000000-0000-4000-8000-000000000001';
+  v_home_captain constant uuid:='98000000-0000-4000-8000-000000000002';
+  v_away_captain constant uuid:='98000000-0000-4000-8000-000000000003';
   v_home_identity uuid:=gen_random_uuid();
   v_away_identity uuid:=gen_random_uuid();
   v_location uuid;
@@ -36,10 +37,12 @@ begin
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
   values
     (v_admin,'authenticated','authenticated','ci-weather-admin@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    (v_finance_admin,'authenticated','authenticated','ci-weather-finance-admin@openplay.invalid','','{}'::jsonb,now(),now(),now()),
     (v_home_captain,'authenticated','authenticated','ci-weather-home@openplay.invalid','','{}'::jsonb,now(),now(),now()),
     (v_away_captain,'authenticated','authenticated','ci-weather-away@openplay.invalid','','{}'::jsonb,now(),now(),now());
 
-  insert into public.user_roles(user_id,role,granted_by) values(v_admin,'admin',v_admin);
+  insert into public.user_roles(user_id,role,granted_by) values(v_admin,'league_admin',v_admin);
+insert into public.user_roles(user_id,role,granted_by) values(v_finance_admin,'admin',v_finance_admin);
   insert into public.competition_player_identities(id,display_name,counts_for_statistics)
   values
     (v_home_identity,'Weather Home Captain',true),
@@ -54,6 +57,8 @@ begin
       'ci-weather-away@openplay.invalid',date '1990-04-12','registered',false,true);
   select id into v_location from public.locations where is_active=true order by created_at limit 1;
   if v_location is null then raise exception 'Expected an active location from earlier regressions'; end if;
+  insert into public.location_admin_assignments(user_id,location_id,assigned_by)
+  values(v_admin,v_location,v_admin);
 
   insert into public.leagues(location_id,name,slug,is_published)
   values(v_location,'CI Weather League','ci-weather-league',false) returning id into v_league;
@@ -166,10 +171,13 @@ begin
         and entry_type='credit')<>1 then
     raise exception 'Weather refund must record both the cash refund and the matching fee waiver';
   end if;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_finance_admin::text,true);
   if (select team_balance_pence from public.get_finance_ledger(v_season,v_home_season_team)
       where fixture_id=v_weather_fixture and entry_type='credit' limit 1)<>0 then
     raise exception 'Paid home team balance was not reconciled after the weather refund';
   end if;
+  execute 'reset role';
   if (select status from public.team_fixture_payment_obligations where id=v_away_obligation)<>'weather_cancelled' then
     raise exception 'An unpaid team was not released from its original fee obligation';
   end if;
@@ -178,10 +186,13 @@ begin
         and entry_type='credit' and reference='weather-waiver:'||v_away_obligation::text)<>1 then
     raise exception 'Unpaid weather-cancelled fee was not waived in the finance ledger';
   end if;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_finance_admin::text,true);
   if (select team_balance_pence from public.get_finance_ledger(v_season,v_away_season_team)
       where fixture_id=v_weather_fixture and entry_type='credit' limit 1)<>0 then
     raise exception 'Unpaid team balance was not cleared after weather cancellation';
   end if;
+  execute 'reset role';
   if exists(select 1 from public.team_payment_strikes
       where obligation_id in (v_home_obligation,v_away_obligation)) then
     raise exception 'Weather postponement must not create payment strikes';

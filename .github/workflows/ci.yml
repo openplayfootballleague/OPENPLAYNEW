@@ -39,7 +39,9 @@ jobs:
         with:
           deno-version: v2.x
       - name: Type-check Supabase Edge Functions
-        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts supabase/functions/player-account-retention/index.ts supabase/functions/create-team-fixture-checkout/index.ts supabase/functions/team-stripe-webhook/index.ts supabase/functions/process-team-payment-deadlines/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts supabase/functions/player-account-retention/index.ts supabase/functions/create-referee-connect-account/index.ts supabase/functions/pay-referee-payout/index.ts supabase/functions/referee-connect-webhook/index.ts supabase/functions/create-team-fixture-checkout/index.ts supabase/functions/team-stripe-webhook/index.ts supabase/functions/process-team-payment-deadlines/index.ts supabase/functions/process-referee-payout-queue/index.ts
+      - name: Test Stripe Connect webhook signature verification
+        run: deno test --node-modules-dir=auto supabase/functions/referee-connect-webhook/signature_test.ts
       - name: Run domain tests
         run: npm test
       - name: Type-check and build
@@ -171,6 +173,49 @@ jobs:
           path: supabase/migrations/*_referee_approved_report_correction_options.sql
           if-no-files-found: error
           retention-days: 1
+      - name: Generate referee Connect payout migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_connect_payouts.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new referee_connect_payouts < supabase/drafts/referee_connect_payouts.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_connect_payouts.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_connect_payouts.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\\n' "$migration_file"
+      - name: Preserve CLI-generated referee Connect migration
+        uses: actions/upload-artifact@v4
+        with:
+          name: referee-connect-payouts-migration
+          path: supabase/migrations/*_referee_connect_payouts.sql
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Generate referee payout transfer outbox migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_payout_transfer_outbox.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new referee_payout_transfer_outbox < supabase/drafts/referee_payout_transfer_outbox.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_payout_transfer_outbox.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_payout_transfer_outbox.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
+      - name: Preserve CLI-generated referee payout transfer outbox migration
+        uses: actions/upload-artifact@v4
+        with:
+          name: referee-payout-transfer-outbox-migration
+          path: supabase/migrations/*_referee_payout_transfer_outbox.sql
+          if-no-files-found: error
+          retention-days: 1
       - name: Preserve CLI-generated referee migrations for review
         uses: actions/upload-artifact@v4
         with:
@@ -248,6 +293,11 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_match_reports.sql
+
+      - name: Verify Stripe Connect referee onboarding and payout transfers
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_connect_payouts.sql
 
       - name: Verify team weekly payment deadlines, strikes, cancellation and refund ledger
         env:

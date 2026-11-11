@@ -48,6 +48,22 @@ verify_jwt = false
 # Stripe authenticates requests with the verified stripe-signature header.
 verify_jwt = false
 
+[functions.create-referee-connect-account]
+# Authenticated active referees create or refresh their Stripe embedded Account Session.
+verify_jwt = true
+
+[functions.pay-referee-payout]
+# Finance administrators initiate test-mode transfers through the scoped payout RPC.
+verify_jwt = true
+
+[functions.referee-connect-webhook]
+# Stripe authenticates Connect events with the verified stripe-signature header.
+verify_jwt = false
+
+[functions.process-referee-payout-queue]
+# Protected by REFEREE_PAYOUT_CRON_SECRET and service-role worker credentials.
+verify_jwt = false
+
 [functions.create-team-fixture-checkout]
 # Captains must authenticate; the RPC re-checks active captain membership.
 verify_jwt = true
