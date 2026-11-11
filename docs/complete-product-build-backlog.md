@@ -114,3 +114,16 @@ The authoritative Stage 1 scope and live completion checklist is maintained in [
 ### Stage 1 permission audit update — 8 November 2026
 
 A read-only catalog audit of the deployed Supabase project is recorded in `docs/stage-1-account-foundations.md` (commit `c2f8df496fcbd2d9fc12b71116004788ecbd5a30`). It confirms owner/admin read boundaries and SELECT-only authenticated grants for `user_roles`, `profiles`, `players` and `team_memberships`, and deny-all/no client grants for `audit_log`. It also identified deployed-policy/migration-source drift in `season_teams`; this must be reconciled against the applied migration ledger before any corrective migration is authored. No hosted changes were made. CI has not yet produced a run/status for the latest docs commit. Stage 1 remains in progress.
+
+
+## Player Hub verified statistics — implementation update (11 November 2026)
+
+Implemented on `integration/complete-product-build-visual-referee-2026-11-11`:
+- Added forward-only migration `20261111201000_player_self_service_statistics.sql` and the typed `get_my_player_statistics(uuid)` RPC.
+- The RPC derives the signed-in player's own statistics from their permanent competition identity. It requires an active registered, non-banned account, a statistics-enabled non-anonymised identity and a published season. It counts only actual appearances from locked team sheets, goals from confirmed results and non-voided goal records.
+- Season and career totals include appearances, starts, substitute appearances, goals, goals per game, goalkeeper appearances and goalkeeper clean sheets. Career totals follow the permanent competition identity across club transfers.
+- Added the statistics panel to Player Hub with responsive cards, season/career totals, loading/error states and an explicit disclosure that assists and Man of the Match are not shown until their audited capture workflows are implemented.
+- Added SQL regression assertions for verified season totals, anonymous EXECUTE denial and career totals across a club transfer; added static source assertions for identity, locked-sheet, confirmed-result, non-voided-goal and grant rules.
+- Updated generated Supabase function types and the expected pending migration manifest.
+
+Verification: source files and the migration manifest were re-fetched from the branch and the expected implementation markers were confirmed. GitHub Actions Build verification run `43097186184` and Analytics browser acceptance run `43097186187` were created for the latest implementation head `2ce3403734961ac6bb83b90ee396cbd9a2f28487`, but both were still queued at the last check. The SQL regression has not yet been executed in an isolated PostgreSQL replay in this session. Therefore this work is **implemented; automated and database verification pending**, not signed off. No hosted migration, merge or deployment was performed.
