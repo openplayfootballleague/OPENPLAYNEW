@@ -126,12 +126,14 @@ begin
 
   -- The service worker cannot claim a payout until Stripe has enabled transfers.
   execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
   if exists(select 1 from public.claim_referee_payout_transfer_jobs(10)) then
     raise exception 'The payout worker claimed a referee account before transfer capability was active';
   end if;
   execute 'reset role';
 
   execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
   select job_id,lock_token into v_job_id,v_job_token
   from public.claim_referee_payout_transfer_jobs(10);
   if v_job_id is null or v_job_token is null then
