@@ -178,7 +178,7 @@ begin
   begin
     perform public.admin_correct_fixture_motm_nomination(v_nomination_id,v_away_captain_identity,'Invalid opposing player correction');
   exception when others then
-    v_denied:=sqlerrm like '%same team’s locked sheet%';
+    v_denied:=sqlerrm like '%nominated team’s locked sheet%';
   end;
   if not v_denied then raise exception 'Admin correction accepted a player from the opposing team'; end if;
 
