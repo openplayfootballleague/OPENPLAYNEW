@@ -52,14 +52,14 @@ begin
     raise exception 'Checkout claim must remain available at the exact grace-end timestamp';
   end if;
 
-  -- Cancellation must occur strictly after grace end, not at the exact
-  -- boundary where a webhook may still confirm an eligible payment.
-  if position('p_as_of>v_obligation.grace_ends_at' in regexp_replace(lower(pg_get_functiondef(
+  -- The unpaid obligation must default at the exact grace-end boundary.
+  -- A delayed provider webhook is handled by the admin_review branch above.
+  if position('p_as_of>=v_obligation.grace_ends_at' in regexp_replace(lower(pg_get_functiondef(
     'public.process_team_fixture_payment_deadlines(timestamptz)'::regprocedure
-  )), '[[:space:]]+', '', 'g'))=0 or position('v_obligation.status=''grace_period''andp_as_of<=v_obligation.grace_ends_at' in regexp_replace(lower(pg_get_functiondef(
+  )), '[[:space:]]+', '', 'g'))=0 or position('updatepublic.team_fixture_payment_obligationssetstatus=''defaulted''' in regexp_replace(lower(pg_get_functiondef(
     'public.process_team_fixture_payment_deadlines(timestamptz)'::regprocedure
   )), '[[:space:]]+', '', 'g'))=0 then
-    raise exception 'Grace-end cancellation must be race-safe at the exact boundary';
+    raise exception 'Unpaid team must default at the exact grace-end boundary';
   end if;
 
   -- Match the shared payment policy: a provider-confirmed payment exactly at
