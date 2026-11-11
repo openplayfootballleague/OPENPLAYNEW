@@ -1026,6 +1026,35 @@ export type Database = {
           },
         ]
       }
+      platform_feature_flags: {
+        Row: {
+          enabled: boolean
+          feature_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          enabled: boolean
+          feature_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          feature_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_feature_flags_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       players: {
         Row: {
           guardian_consent_previous_status: Database["public"]["Enums"]["player_registration_status"] | null
@@ -3419,6 +3448,19 @@ export type Database = {
         }
       }
     }
+      admin_set_platform_feature_flag: {
+        Args: { p_enabled: boolean; p_feature_key: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["platform_feature_flags"]["Row"]
+      }
+      get_admin_platform_feature_flags: {
+        Args: never
+        Returns: {
+          enabled: boolean
+          feature_key: string
+          updated_at: string
+          updated_by: string | null
+        }[]
+      }
     Enums: {
       competition_format: "six_a_side" | "seven_a_side"
       fixture_status:
