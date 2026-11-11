@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 
@@ -14,15 +15,15 @@ function SignUpPage() {
     if(password!==confirm){setError("Your passwords do not match.");return;}
     setBusy(true);
     try {
-      const {data,error:authError}=await getSupabaseClient().auth.signUp({email:email.trim(),password,options:{emailRedirectTo:window.location.origin+"/player"}});
+      const {data,error:authError}=await getSupabaseClient().auth.signUp({email:email.trim(),password,options:{emailRedirectTo:window.location.origin+"/register-player"}});
       if(authError) throw authError;
-      if(data.session) await navigate({to:"/player"});
+      if(data.session) await navigate({to:"/register-player"});
       else setMessage("Your account request is in. Check your inbox to verify your email before signing in. Creating an account does not register you as a player or make you a captain.");
     } catch(cause){setError(cause instanceof Error?cause.message:"Unable to create your account. Please try again.");}
     finally{setBusy(false);}
   }
-  return <main className="notice-page"><section className="notice-panel auth-panel">
-    <Link className="notice-brand" to="/">OPEN PLAY</Link><p className="eyebrow eyebrow-dark">JOIN THE COMMUNITY</p>
+  return <main className="notice-page player-facing"><section className="notice-panel auth-panel">
+    <Link className="notice-brand" to="/player"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link><p className="eyebrow eyebrow-dark">JOIN THE COMMUNITY</p>
     <h1>Create<br/><em>account.</em></h1><p>Start with your account. You can register as a player separately after verifying your email.</p>
     <form className="auth-form" onSubmit={submit}>
       <label>Email address<input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label>
@@ -31,5 +32,5 @@ function SignUpPage() {
       {error&&<p className="form-error" role="alert">{error}</p>}{message&&<p className="form-success" role="status">{message}</p>}
       <button className="button" type="submit" disabled={busy}>{busy?"CREATING ACCOUNT…":"CREATE ACCOUNT"} <span aria-hidden="true">↗</span></button>
     </form><p className="auth-switch">Already registered? <Link to="/sign-in">Sign in</Link></p>
-  </section></main>;
+  </section><PlayerBottomNavigation /></main>;
 }

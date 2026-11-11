@@ -1,11 +1,14 @@
 # Open Play — Continuous Development Status
 
-**Last verified:** 7 November 2026, 23:36 UTC  
+**Last verified:** 8 November 2026, 00:22 UTC  
 **Repository:** `openplayfootballleague/OPENPLAYNEW`  
 **Supabase project:** `ghnrsysvrlgkjmdlwdmp` — Open Play New only  
-**Applied database migrations:** 66
+**Applied database migrations:** 69
 
 ## Implemented in this repository and Supabase project
+
+> **Latest session update (8 November 2026, 00:18 UTC):** Hardened Stripe webhook duplicate-delivery handling. Added `processing_started_at` and an index to `stripe_webhook_events`; the migration is applied to the isolated development database. The webhook now atomically claims unprocessed events, returns a retryable HTTP 409 when another worker holds the five-minute lease, releases the lease after recorded processing failures, and clears it on success. The updated `stripe-webhook` is deployed to the development project as ACTIVE version 3 (`verify_jwt=false`). Current CI runs [42428637941](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42428637941) and [42428645678](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42428645678) were triggered by the migration and function commits and are being verified. No signed Stripe event has yet been replayed against the configured endpoint; secrets and webhook registration remain unconfigured.
+
 
 ### Accounts, registration and access control
 - Sign-in returns users to the Player Hub; password-reset emails use the dedicated reset-password route; creating an account does not silently register a player.
@@ -50,8 +53,20 @@
 - Added an append-only team finance ledger for charges, payments received, fines, refunds and credits, with integer-pence amounts, optional fixture/due-date links, manual payment method/reference and internal notes.
 - Finance read/write RPCs require `has_finance_access()` (platform admins or finance admins). The ledger table has RLS enabled, an explicit deny-all direct-client policy and no direct table grants.
 - Finance entries are audit logged and cannot be edited/deleted; corrections must be recorded as additional entries. Refunds reverse a prior receipt and increase the amount outstanding; credits reduce it. Team overpayments do not offset another team's debt.
-- Added an Admin Dashboard link to the new Finance Ledger page, with season/team filters, summary totals and manual entry form. No card processing, Stripe integration or automatic payment collection has been added.
+- Added an Admin Dashboard link to the Finance Ledger page, with season/team filters, summary totals and manual entry form. The original manual ledger remains append-only and separate from Stripe-backed player payments.
 - Database remains empty: finance ledger contains 0 rows. Finance role acceptance testing needs an owner-approved test identity; do not grant finance roles or create accounts without approval.
+
+### Finance v2 — Stripe test-mode player fixture payments
+- Extended the existing `payment_records` table (no duplicate ledger) with player ownership, refund totals, Stripe fee/net fields, webhook event timestamps and checkout retry counter. Added the `partially_refunded` payment status in its own earlier migration so PostgreSQL commits the enum before dependent functions use it.
+- Server-side `create_player_fixture_payment` uses `auth.uid()`, requires an approved/non-banned player and active membership in one of the fixture's teams, checks the fixture is payable, reads the season/gameweek player fee from `season_fee_configs`, and snapshots the amount. The browser cannot supply the amount.
+- Added `admin_set_player_fixture_fee` for finance roles, with effective gameweek, validation and audit logging. Existing team fee settings are preserved when a player fee is added.
+- Added `get_my_fixture_payments` for a player's own history and `get_admin_stripe_payments` for finance-authorised reporting. Direct payment-table writes are revoked from clients; authenticated users retain SELECT subject to the existing finance/captain RLS policy; the service role has explicit backend CRUD privileges.
+- Added hosted Checkout Edge Function `create-player-checkout` (ACTIVE, version 1, JWT required). It accepts fixture/team IDs only, authenticates the player, reads the server-created amount and refuses any Stripe secret not prefixed `sk_test_`.
+- Added `stripe-webhook` Edge Function (ACTIVE, version 2, JWT disabled because Stripe calls it directly). It verifies timestamped HMAC signatures, rejects live-mode events, records/retries event IDs, updates paid/failed/cancelled/refund states, and fetches Stripe balance transactions to record processing fees and net proceeds.
+- The Finance page includes the Stripe payment register and season-specific player fee settings. General Player Hub payment controls have been removed. The Captain Hub currently has no Stripe payment action UI; captain-only payment presentation and the correct payer model must be settled before checkout can be enabled. Checkout success is not treated as proof of payment; only the verified webhook changes payment state.
+- GitHub PR [#6](https://github.com/openplayfootballleague/OPENPLAYNEW/pull/6) remains open/draft and unmerged. Stripe secrets are not committed. No test-mode secret key, webhook signing secret or confirmed app origin has been configured in Supabase Edge Function secrets. No Stripe webhook endpoint has been registered yet.
+- Verification: current PR head `b37852cb6509d86d02e16487effdee23ce7a3343` passed full CI run [42428405414](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/42428405414). Earlier SQL smoke checks confirmed unauthenticated payment creation is rejected, unauthenticated finance access is false, own-history RPC returns zero rows when unauthenticated, and finance-only RPCs reject unauthorised calls. These are not substitutes for authenticated end-to-end checkout/refund tests.
+- No Auth users, players, teams, fixtures, payment records or webhook events have been created. The user explicitly authorised disposable test accounts and Stripe test-mode testing, but the available Supabase connector exposes neither Auth Admin user creation/deletion nor Edge Function secret management. These actions must use an approved Supabase Dashboard/CLI path before full end-to-end testing.
 
 ### Administrator help and guided walkthrough
 - Added a platform-admin-only operations guide at `/admin-help`, linked from the Admin Dashboard.
@@ -115,13 +130,13 @@ Separate Open Play reports in the Library document substantial Stage 2–4 work 
 ## Remaining launch blockers
 
 1. Complete browser acceptance tests for player detail, correction, ban/unban, genuine classification, player transfers, finance ledger, admin audit history and the help walkthrough.
-2. Obtain an owner-approved non-production test identity, an approved admin test identity and an accessible mailbox. Do not self-appoint an administrator or create test accounts without authorization.
+2. The owner has authorised disposable non-production test identities and their removal after testing. Use a secure Supabase Auth Admin mechanism; current connector tooling cannot create/delete Auth users, so use the Dashboard/CLI once an authorised path is available. Do not self-appoint an administrator.
 3. Test the complete sign-up, email verification, sign-in, password reset, player registration, team registration, membership request and captain approval journey.
 4. Test saved team-sheet drafts, goalkeeper selection, final submission/locking, admin amendment and result publication/correction with realistic test fixtures.
 5. Configure Resend and Twilio credentials, verify sender/domain and SMS sender configuration, then test consent, delivery, failure, retry, hold, unconfirmed and opt-out handling with approved test recipients. The Supabase Vault currently contains no secrets; provider credentials and the service-role invocation secret are not configured.
 6. Configure the Resend/Twilio Edge Function secrets and the two Supabase Vault invocation secrets, run controlled delivery tests, then obtain explicit owner approval to enable the minute-level dispatch job. The schedule is implemented but remains inactive by default.
 7. Test 24-hour and 3-hour reminders with fixtures and users; verify rescheduling/cancellation invalidates stale reminders. Test the transfer request/approval/rejection flow with two approved teams in one test season.
-8. Finish remaining admin operations and the full matchday lifecycle. The admin help guide and step-by-step walkthrough are now implemented; contextual in-dashboard tours beyond the help page remain optional. Obtain owner approval on whether online card payments are in scope; the current finance v1 is manual record keeping only. Complete finance-role acceptance, reconciliation/refund controls and comprehensive security testing.
+8. Finish remaining admin operations and the full matchday lifecycle. The admin help guide and step-by-step walkthrough are implemented. Stripe Checkout foundations and player/finance UI are now present in PR #6, but test-mode secrets, webhook registration, end-to-end checkout/refund tests, admin refund controls and payout reconciliation remain outstanding. Complete finance-role acceptance and comprehensive security testing.
 9. Merge/reconcile the PWA and official OP branding changes, then complete real-device install/cache testing.
 10. Owner-verify Bideford league, season, venue, team and fixture data before any production seeding. Bideford is the only launch location; Barnstaple and Torrington remain inactive.
 11. Configure production environment variables, Auth redirects, email confirmation, hosting and monitoring. Production deployment has not occurred; CI has only run a Cloudflare Worker dry run.
@@ -129,3 +144,342 @@ Separate Open Play reports in the Library document substantial Stage 2–4 work 
 ## Next execution priority
 
 Complete approved finance-role, audit-history, admin-help and player-database acceptance tests. Continue with the full matchday lifecycle and authenticated end-to-end tests. Keep production deployment blocked until the owner-approved test identities, provider configuration, real Bideford data and launch checks are complete.
+
+
+## 8 November 2026 — player-facing visual foundation progress
+
+- Added the permanent visual authority and implementation/acceptance specification at `docs/player-facing-visual-design-master-specification.md` (commit `7eea1bf21a2ac81e38b547e410b033d22668dbd6`).
+- Added the `player-facing` scope to Player Hub, Captain Hub, Match Centre, Teams, Join, sign-in, sign-up, player registration and password-reset routes. This allows the new visual system to be isolated from the public marketing site and Admin Dashboard.
+- Added Oswald and Inter font loading and scoped player-facing design tokens: black/charcoal surfaces, white/grey text, #FF6500 accent, dark cards/inputs and orange focus outlines. Existing global typography and public/admin styles were not globally replaced.
+- Verified GitHub Actions success for route commits `5930acd1`, `455d5f6b`, `a4261916`, `2191d68d` and stylesheet commit `dab8a4cc`. Workflow runs: `42429035522`, `42429042008`, `42429048694`, `42429059233`, `42429074635` respectively. These are build/typecheck CI results, not visual/browser acceptance.
+- Retrieved and visually inspected the Library asset named `Connected Orange OP Monogram.png`. It is the orange connected OP mark on black and is a candidate source for the official asset. It is not yet committed to the repository. The repository tree currently contains only `public/favicon.svg` among image assets; therefore do not point UI code at a nonexistent logo path or substitute a recreated mark. Next asset task is to transfer the exact original bytes into the repository using a supported binary upload route, then implement the shared clickable logo header. The image source is the Library asset, not a newly generated logo.
+- Remaining visual work: shared header and bottom navigation, standardised reusable cards/buttons/tables/status components, route-by-route styling, mobile/tablet/desktop screenshot review, exact logo integration, and functional regression testing.
+- Team badge upload/background removal/quality-review workflow remains unimplemented. Do not publish low-confidence processed badges.
+- Stripe work remains test-mode only; captain payer semantics are unresolved and checkout remains unavailable until the payer model is decided.
+- Admin Dashboard remains excluded from player-facing visual CSS scope.
+
+
+## 8 November 2026 — route-state styling consistency
+
+- Audited all player-facing route render states and found secondary/error/empty/loading branches in Join, Captain Hub, player registration and password reset that still used the unscoped `notice-page` class. This meant those states could fall back to the legacy light panel instead of the approved dark player-facing system.
+- Updated every `notice-page` main element in those four routes to include `player-facing`. This is CSS scoping only; no route guards, data access, workflows or business logic changed.
+- Verified by refetching all four source files: Join has 4 scoped main states, Captain Hub 2, player registration 3 and password reset 2; none of these files retains an unscoped `notice-page` main.
+- GitHub Actions build verification runs 42429529130 and 42429537132 were still in progress at the time of this update. Do not count these changes as CI-passed until those runs complete successfully.
+- The previous visual-foundation build run 42429350785 completed successfully. This does not substitute for browser/device visual acceptance.
+
+
+## 8 November 2026 — player-facing component styling expansion
+
+- Extended the scoped player-facing design system to cover match rows and scores, public team-directory cards, captain request and availability rows, fixture selection controls, league tables, form validation states, and disabled/selected button states.
+- Added responsive table handling and mobile panel adjustments. Styling is scoped under `.player-facing`; public marketing pages, Finance and Admin Dashboard are not intentionally restyled.
+- This is presentation-only CSS. No business logic, permissions, routes, Supabase policies or payment behaviour changed.
+- Prior route-state consistency commits all passed GitHub Actions: runs 42429529130 (Captain Hub), 42429537132 (password reset), and 42429580279 (status documentation).
+- CSS expansion commit: `559fef809eb4f94f066691de1aad237980a15173`. CI status for this exact commit must be checked before treating it as verified.
+- The exact official logo and shared navigation remain blocked on safe transfer of the supplied binary asset. No substitute logo or fabricated icon package was introduced.
+
+
+## 8 November 2026 — shared player bottom navigation
+
+- Added `src/components/player-bottom-navigation.tsx`, a shared four-destination navigation component (Player Hub, Match Centre, Teams, Join Open Play). It uses inline accessible SVG icons and TanStack Router links; no new icon dependency was introduced.
+- Integrated the shared navigation into Player Hub, Captain Hub, Match Centre, Teams and Join Open Play.
+- Added fixed safe-area-aware mobile navigation styling and a centered compact desktop navigation treatment. Main page bottom padding is increased only when the navigation is present.
+- The navigation is also being added to sign-in, sign-up, player-registration and password-reset flows; these route updates were made during this execution session and require CI confirmation.
+- The user supplied the exact connected orange OP mark again in this session (1254×1254 RGBA PNG, 459,212 bytes). It is confirmed as the canonical logo reference. The asset is not yet in the Git repository: the available GitHub binary blob API accepts base64 text but this execution environment does not expose the local uploaded file bytes to that connector action. No lossy recreation or external-host substitution was made.
+- The bottom-navigation component commit `fa5418a9377479ece2637c9e8da90211b44ea861` passed CI run 42429786708. The first route integrations passed CI runs 42429794337 (Teams), 42429804062 (Captain Hub) and the initial CSS run was pending at time of writing. Remaining route/style CI runs: 42429813808, 42429821498 and 42429828850; confirm before declaring the entire navigation change green.
+- Browser-based visual acceptance has not yet been performed. Public marketing homepage and Admin Dashboard remain unchanged.
+
+
+## 8 November 2026 — navigation CI and database advisor review
+
+- Confirmed the documentation commit for the shared navigation passed CI run 42429873263.
+- Completed the shared navigation integration on sign-in, sign-up, player-registration and password-reset routes. Latest commits: `191c6689f58fed8bb5f7cbf65df304949d3b7830` and `1b1b534043b161b90c6c318861b80e489e148348`. These final two route commits are awaiting their own CI runs at the time of this update.
+- Supabase security and performance advisors were run against development project `ghnrsysvrlgkjmdlwdmp`.
+- Security advisor reported 63 SECURITY DEFINER functions executable by authenticated users. Inspection of representative definitions confirms they include explicit in-function authorization checks (e.g. `has_platform_role()`, `has_finance_access()`, `is_active_team_captain()`, or `auth.uid()` ownership checks); the linter warning is not by itself proof of an authorization bypass. Anonymous execution was false for the inspected function set. A full per-function authorization review is still required before production.
+- Performance advisor reports multiple permissive RLS policies on 15 tables and 51 unused indexes. These are review candidates, not safe automatic cleanup: several permissive policies deliberately combine admin management with player/captain access, and unused indexes may be useful under real workload. No policies or indexes were changed.
+- A first attempt to call the advisor without its required `type` parameter failed validation and made no database changes; both subsequent typed advisor calls succeeded.
+- No production configuration, live payments, or production data were changed.
+
+
+## 8 November 2026 — notification function execution hardening
+
+- Investigated the Supabase security advisor's SECURITY DEFINER warnings by querying all 78 public SECURITY DEFINER functions in the development project.
+- Confirmed none of the 78 inspected functions were executable by the `anon` role. Fifteen notification dispatch/trigger functions were nevertheless callable by `authenticated` without user-facing authorization checks; these are internal worker, scheduler, enqueue-helper, and database-trigger functions.
+- Added migration `20261108040000_restrict_notification_internal_function_execution.sql` and applied it successfully to development. It revokes EXECUTE from PUBLIC, anon and authenticated for the 15 internal notification functions, preserving existing service_role grants on the worker RPCs.
+- Post-migration privilege query verified all 15 are no longer executable by anon or authenticated. Service-role access remains enabled where it was already granted for the worker RPCs. Database trigger functions remain attached to their triggers.
+- No production changes. No user notifications were dispatched during this permission change.
+- CI for the navigation route changes and preceding documentation commits is green (runs 42429967967 and 42429943236 both successful). The security migration has been applied to dev; CI for its repository migration commit is pending.
+- Remaining security review: the other SECURITY DEFINER functions need per-function verification of authorization semantics, and the full RLS policy set still needs review.
+
+
+## 8 November 2026 — public table privilege hardening
+
+- Completed a direct privilege/RLS inventory of all 24 public application tables and 50 public RLS policies in the development database. RLS was enabled on all 24 inspected tables.
+- The inventory exposed a separate high-priority issue: the Supabase default table grants included `TRUNCATE`, `REFERENCES` and `TRIGGER` privileges for anon/authenticated on public application tables. These privileges are not constrained by row-level security in the same way as ordinary row operations; in particular, TRUNCATE bypasses row policies.
+- Added and applied migration `20261108043000_revoke_client_table_bypass_privileges.sql`. It revokes those three privileges from anon and authenticated on all existing public tables and updates the postgres role's default privileges in the public schema to prevent them being reintroduced for future tables.
+- Verified with `has_table_privilege` across all public tables: zero tables remain where anon or authenticated can TRUNCATE, declare REFERENCES, or create TRIGGER privileges.
+- Existing SELECT/INSERT/UPDATE/DELETE grants were not changed; row access remains controlled by the existing RLS policies. No application feature permissions were broadened.
+- The earlier notification internal-function permission migration is also applied and verified. Its CI run 42430099570 passed. The follow-up documentation CI run is still pending at the time of this entry.
+- This is development-project hardening only. The same migrations must be reviewed and applied through the production release process after staging/acceptance verification; production was not modified.
+
+
+## 8 November 2026 — repeatable database security assertions
+
+- Added `supabase/tests/security_privilege_assertions.sql` with executable assertions that: every public application table has RLS enabled; anon/authenticated have no TRUNCATE, REFERENCES or TRIGGER privileges on public tables; anon cannot execute public SECURITY DEFINER functions; and authenticated cannot execute the 15 internal notification worker/trigger functions.
+- Executed the assertions against development immediately after the privilege migrations. Result: `security privilege assertions passed`.
+- These are explicit database regression assertions, not a substitute for full user-role integration testing. Authenticated SECURITY DEFINER functions that remain callable must continue to be reviewed for their in-function ownership/role checks.
+
+
+## 8 November 2026 — follow-up verification and authorization review
+
+- Confirmed GitHub Actions runs 42430240761 (table privilege migration), 42430255406 (security-hardening documentation), 42430282251 (security assertion file) and 42430288933 (follow-up documentation) all completed successfully.
+- Re-ran Supabase security advisor after restricting internal notification execution and table-level client privileges. It continues to report 63 authenticated-executable SECURITY DEFINER functions. These are largely deliberate user-facing/admin RPCs, and the advisor warning is intentionally retained for review rather than suppressed.
+- Inspected the sensitive team-management functions `resolve_team_membership_request`, `set_team_squad_number`, `save_team_sheet_draft` and `submit_team_sheet`. They validate authenticated actor identity and require platform-admin or active-captain rights scoped to the relevant team; team-sheet writes additionally validate fixture participation, roster membership, player eligibility, duplicate selection, goalkeeper selection, and lock state.
+- Inspected admin player register, finance ledger/summary, Stripe ledger and admin team-sheet read RPCs. They check platform or finance roles before returning privileged records.
+- The remaining 63 SECURITY DEFINER functions still need an exhaustive structured authorization and data-minimization review; this targeted inspection is not a blanket sign-off.
+- The user-uploaded canonical orange connected OP logo is present in the current working container and visually confirmed. The repository connector does not provide a direct binary-file bridge from that local path into GitHub; only UTF-8 file writes and base64 text blobs are available. No substitute logo was committed.
+- No production changes, no test users or payment records seeded, and no live Stripe configuration.
+
+
+## 8 November 2026 — payment creation concurrency hardening
+
+- Review of the 63 authenticated-executable SECURITY DEFINER RPCs found the payment-record creation path relied on a SELECT FOR UPDATE of a possibly absent row. The partial unique index prevented duplicate records, but concurrent first-time requests could still race and return a uniqueness error rather than the existing pending payment.
+- Added and applied `20261108050000_serialize_player_fixture_payment_creation.sql`. It acquires a transaction-scoped advisory lock keyed by the authenticated player and fixture before checking/creating the payment record. The existing partial unique index remains the final integrity guard.
+- Verified the deployed development function definition contains `pg_advisory_xact_lock`; anon execution remains false and authenticated execution remains true, with the function's own authenticated-membership validation retained.
+- Reworked `supabase/tests/security_privilege_assertions.sql` into a plain SQL result set to avoid procedural-block delimiter ambiguity in the SQL execution runner. Executed it successfully; all five assertions returned true, including the payment-creation serialization check.
+- The full 63-function review is still open. This pass specifically validated captain-scoped team sheet and membership functions, finance/admin read RPCs, and player payment ownership. No claim of exhaustive authorization sign-off is made.
+
+
+## 8 November 2026 — self-service profile column security
+
+- The RLS review found that the `profiles_update_self_or_admin` policy restricted row ownership but the authenticated role had table-wide UPDATE permission. This meant a user could bypass the Player Hub form and directly change DOB and emergency-contact fields that the approved self-service UI intentionally does not expose.
+- Added and applied `20261108060000_limit_self_service_profile_update_columns.sql`. It removes table-wide UPDATE from authenticated and grants column-level UPDATE only for first_name, last_name, display_name, phone, preferred_position and avatar_path. Admin corrections continue through SECURITY DEFINER admin RPCs.
+- Verified all six intended self-service columns return true for UPDATE privilege; date_of_birth, emergency_contact_name and emergency_contact_phone return false; table-wide UPDATE returns false.
+- Extended `supabase/tests/security_privilege_assertions.sql` with a sixth assertion for this exact column boundary. Executed against development; all six result columns returned true.
+- Reviewed the corresponding Player Hub save and avatar-upload code: it writes only the permitted profile columns. No change to the UI was needed.
+- This is a development-only security change; production migration remains gated by the release process.
+
+
+## 8 November 2026 — captain-scoped payment action and RPC review
+
+- Extended the targeted review to all 63 authenticated-executable public SECURITY DEFINER RPCs. No functions were found without an actor/role/ownership check pattern. This is a static definition review; the Supabase advisor warning remains until every function is proven with role-based integration tests.
+- Inspected the captain-facing read RPCs: `get_captain_dashboard`, `get_captain_fixtures`, `get_captain_availability` and `get_captain_team_sheet`. Their result queries are scoped to active captain memberships owned by `auth.uid()`; squad and availability details are limited to those teams. The payment history RPC is restricted to `player_user_id = auth.uid()`.
+- Found an important mismatch with the agreed product rule: although the Player Hub payment UI had been removed, `create_player_fixture_payment` still allowed any active team member to create a payment record by calling the RPC directly.
+- Added and applied `20261108070000_require_captain_for_fixture_payment_actions.sql`. The RPC now requires `is_active_team_captain(p_season_team_id)` before it creates or returns a fixture payment. The existing auth check, fixture/team validation, server-side fee lookup and advisory concurrency lock remain.
+- Verified development function definition contains the active-captain guard; anon execution remains false; authenticated RPC execution remains true but is constrained by the server-side guard.
+- Extended the repeatable SQL security assertions to include the captain-only payment guard. Executed against development: all seven assertions returned true.
+- This gates ordinary players from directly creating payment records; it does not decide whether captains pay individually or for a whole team. Checkout UI and end-to-end payment remain gated pending that payer-model decision.
+
+
+## 8 November 2026 — avatar storage and latest security checks
+
+- Inspected Supabase Storage configuration and object policies for the existing Player Hub avatar upload.
+- Verified the `profile-avatars` bucket is public-read, has a 5 MiB file limit, and permits only JPEG, PNG and WebP. Owner-scoped insert/update/delete policies restrict writes to the authenticated user's own `<uid>/...` path; a public-read policy supports rendering avatar URLs.
+- Ran four direct storage configuration assertions; all returned true. No storage policy changes were needed.
+- The captain-only fixture-payment migration and its updated security regression assertion are applied and verified in development. This enforces the existing Match Day / Club captain-only access rule at the RPC layer, not just in UI.
+- CI runs for the captain payment migration, its security assertion update, and the profile permission migration/documentation are being checked separately; no pending run is being marked passed prematurely.
+
+
+## 8 November 2026 — team membership approval and assignment concurrency
+
+- Extended the SECURITY DEFINER review to the membership lifecycle. Found that `resolve_team_membership_request` previously activated a pending membership without rechecking the player's current registration/ban status or whether they had become active in another team in the same season since the request was submitted.
+- Added and applied `20261108080000_validate_team_membership_approval.sql`. Approval now revalidates approved team, open/active season, registered and non-banned player, and no other active team membership in the same season. A transaction-scoped advisory lock keyed by player and season serializes competing approvals.
+- Found the same check-then-insert race in admin assignment: two administrators acting concurrently could assign the same player to different teams in one season after both saw no existing active membership.
+- Added and applied `20261108090000_serialize_admin_player_team_assignment.sql`. Admin assignment now validates eligible player/team/season and uses the same player/season advisory lock before checking other active memberships.
+- Verified both development function definitions contain the locks and eligibility checks. Extended the SQL security assertions to cover both paths; all nine assertions returned true.
+- CI for the captain payment and its preceding migrations completed successfully. Latest membership-approval and admin-assignment migrations plus their assertion/docs updates are queued/running and will be checked before claiming CI success.
+
+
+## 8 November 2026 — transfer and team registration lifecycle hardening
+
+- Found a related race in admin transfer approval: it could move a player to a destination team while another concurrent admin assignment or membership approval created a second active membership in the same season.
+- Added and applied `20261108100000_serialize_transfer_approval.sql`. Transfer approval now shares the player/season advisory lock used by team membership approval and admin assignment, validates source membership ownership and source team consistency, explicitly checks destination and season existence, and refuses to transfer a player with another active membership. Existing locked-upcoming-team-sheet protection is retained.
+- Found that team registration approval appointed the proposed captain without rechecking current player eligibility or existing active membership in another team. Added and applied `20261108110000_validate_team_registration_captain_approval.sql`. It now requires an open registration season, a registered/non-banned applicant, and no active membership in another team in that season, under the same player/season advisory lock.
+- Extended the repeatable database assertions to 11 checks. Executed against development; all 11 returned true.
+- CI for membership approval, admin assignment, transfer approval and team registration changes is being monitored; no in-progress run is being described as passed.
+
+
+## 8 November 2026 — captain handover implemented end-to-end
+
+- Completed the captain lifecycle review and found no existing public captain-handover RPC, despite other workflows requiring a replacement captain before removal or transfer.
+- Added `20261108120000_add_secure_captain_handover.sql` and applied it to development. The new RPC requires an authenticated active captain, locks the team handover, validates the replacement as an active team member and registered/non-banned player, updates captain status transactionally, and writes an audit record plus notifications for both affected users.
+- Added `20261108121000_restrict_captain_handover_execute.sql`; verified anonymous execution is false and authenticated execution is true.
+- Added a "Make captain" action to each eligible active non-captain squad member in the Captain Hub. The action confirms the transfer of responsibility, calls the guarded RPC, reloads the captain data and reports success/failure.
+- Extended the repeatable SQL security assertions to 12 checks. All 12 returned true in development.
+- The feature has not yet been exercised with real authenticated test accounts because no disposable test-user creation/deletion workflow is currently available through the connected services. CI is required to confirm frontend compilation.
+
+
+## 8 November 2026 — captain handover type correction and uniqueness verification
+
+- The first Captain Hub build exposed a generated Supabase TypeScript schema gap: the new `handover_team_captain` RPC was deployed but absent from `Database.Functions`. The frontend call therefore failed TypeScript validation. The Edge Function type-check and all 32 existing domain tests had passed; the application build failed only at this missing function type.
+- Updated `src/lib/supabase/database.types.ts` with the exact RPC argument and `team_memberships` return shape, including the set-return options. This keeps the typed Supabase client intact rather than weakening it with casts.
+- Verified the development database already has the unique partial index `team_memberships_one_active_captain` on active captain memberships per team. The new handover RPC also takes a per-team advisory lock; both layers protect against two simultaneous active captains.
+- The corrected frontend build is queued for CI verification. No authenticated browser test accounts have been created.
+
+
+## 8 November 2026 — verification follow-up
+
+- Corrected generated Supabase RPC typing for captain handover in commit `629b731e4a49459fa69d863ab59e5b13b53dfb5f`.
+- CI for the type correction passed: run `42431735780`.
+- CI for the documentation update passed: run `42431750576`.
+- Both successful runs include Edge Function type-check, all 32 domain tests, Vite client/server builds and TypeScript validation.
+- Reviewed player transfer cancellation, player transfer request, team membership request/approval and captain handover database definitions. No new unauthorised state mutation was identified in this focused review; the approval paths serialize membership changes and the transfer cancellation is scoped to the requesting user and pending request.
+- The Supabase security advisor reports the expected general warning for SECURITY DEFINER RPCs exposed to authenticated users. These functions intentionally serve signed-in application workflows and are expected to enforce role/ownership checks internally; the warning is not itself proof of a privilege bypass. Continue function-by-function permission review rather than blanket-revoking authenticated execution.
+- Development database contains no seeded player/team/fixture records, so live authenticated workflow testing remains outstanding. No test users or production data were created.
+- The canonical supplied OP PNG remains available in the working file area but has not been committed to the repository; the available GitHub connector accepts text/base64 content and the current runtime has no GitHub CLI. Do not use a substitute logo.
+
+
+## 8 November 2026 — continuous execution security and CI verification
+
+- Reconnected to the dedicated `OPENPLAYNEW` repository and development Supabase project `ghnrsysvrlgkjmdlwdmp`. The live development migration ledger currently contains 97 applied records (the earlier 69-migration count in PR #6 is historical and superseded).
+- Re-executed the repository's repeatable SQL security assertion suite against the connected development database. All 17 returned assertions passed.
+- The assertions cover: RLS on all public tables; no anon/authenticated TRUNCATE, REFERENCES or TRIGGER privileges; no anon execution of public SECURITY DEFINER functions; no authenticated execution of internal notification worker/trigger functions; serialized fixture-payment creation; captain-only fixture-payment actions; membership/transfer/team-registration eligibility and concurrency; audited captain handover; private RPC-controlled gallery; restricted global-admin controls; RPC-only location-admin assignments; contextual location scoping for admin reads and mutations; and restricted self-service profile update columns.
+- Follow-up structural inventory found 79 public SECURITY DEFINER functions executable by `authenticated`, zero executable by `anon`, and zero authenticated-executable definitions lacking the expected actor/role/ownership guard patterns (`auth.uid()`, platform/finance role helpers, active-captain helper, or location-scope helpers). This is a static source-pattern screen, not proof of semantic correctness for every branch; authenticated role-based integration testing remains outstanding.
+- Investigated the three security-advisor `rls_enabled_no_policy` INFO findings: `admin_context_preferences`, `gallery_items`, and `location_admin_assignments`. All three have RLS enabled, zero policies, and no anon/authenticated SELECT/INSERT/UPDATE/DELETE table privileges. They are intentionally RPC-only; the advisor INFO finding is therefore not a direct-client exposure.
+- Verified current PR #6 head `bba419b5c22cdfc12c0ccbf251bcaa5d84102bc9` has a completed successful GitHub Actions build check (run 42434319995). CI includes Deno Edge Function type-check, domain tests, TypeScript/build and Cloudflare Worker dry-run. This is CI verification only, not browser or authenticated workflow acceptance.
+- PR #6 remains open as draft. No PR was merged, no production deployment was performed, no live Stripe configuration was enabled, and no test users or fictional league data were created.
+- Current blockers remain: authenticated end-to-end acceptance needs an approved test-account and Edge Function secret-management path; Stripe test secrets/webhook registration and payer-model acceptance are unresolved; official OP source PNG transfer into GitHub remains blocked by the available text-only GitHub file write route; real-device PWA and visual checks are outstanding.
+
+
+## 8 November 2026 — player location and season context
+
+- Added a shared player-facing location/season context selector. It reads only active locations, published leagues and public seasons in registration-open, active or completed states through the existing Supabase RLS policies.
+- The selector defaults to the first active location when no preference exists, prefers a registration-open season and then an active season, and persists the player's selection locally across player-facing routes.
+- Added the selector to Player Hub, Match Centre, Team Directory and Join / Register. Match Centre and Team Directory now query only the selected season; Join / Register submits against the selected season and permits applications only while that season is in registration-open status.
+- Player Hub now scopes memberships, upcoming fixtures and transfer destinations to the selected season. Existing player identity, captain and membership permissions remain unchanged.
+- Added responsive styling and consistent location-pin / calendar icons.
+- Added four unit tests for default season selection (registration-open priority, active fallback, completed fallback and empty seasons).
+- The admin competition setup already contains the create-location workflow. No new location row was seeded: the connected database currently has zero locations, and the prior release-safety decision intentionally left location data empty. The selector therefore displays an explicit empty-state message until Bideford is configured and activated through the approved admin workflow.
+- An initial CI build exposed an incorrect relative Supabase client import in the new shared context module. The import was corrected in commit `d7905cba70258bdb711339a738f8ec3bd7ee4fe4`. Full CI verification of the corrected final head is pending.
+
+
+---
+
+## Execution update — 8 November 2026, 02:00 UTC
+
+**Development project:** `ghnrsysvrlgkjmdlwdmp` (Open Play New only)  
+**Repository:** `openplayfootballleague/OPENPLAYNEW`
+
+### Verified current database state
+
+- Applied migrations: **97** (the earlier count of 69 in this report is superseded).
+- Public base tables: 30; all 30 have RLS enabled.
+- Auth users: 0; assigned user roles: 0; location records: 0. The development database is intentionally unseeded, so signed-in browser acceptance cannot yet be completed.
+- The first-release Bideford location-policy migration (`20261107225453`) is recorded as applied. No location row was created or activated during this session.
+- `admin_set_location_active(uuid,boolean,text)` is present. The current deployed database definition includes both location-scope enforcement and platform-role validation; anonymous EXECUTE is denied and authenticated EXECUTE is granted.
+- `admin_context_preferences`, `gallery_items` and `location_admin_assignments` are RLS-enabled, have no direct client SELECT/INSERT grants, and have zero table policies. This is intentional RPC-only access, not an exposed table. Do not add broad policies to silence the generic linter warning.
+
+### Security regression suite
+
+Executed the repository's `supabase/tests/security_privilege_assertions.sql` against the development database. **All 17 assertions returned true**, including:
+
+- RLS enabled on all public tables and no client TRUNCATE/REFERENCES/TRIGGER bypass privileges.
+- No anonymous execution of SECURITY DEFINER functions.
+- No authenticated execution of internal notification worker functions.
+- Fixture payment creation is serialized and requires an active captain.
+- Membership approval, team registration, admin team assignment and transfer approval enforce eligibility and concurrency constraints.
+- Captain handover is authenticated-captain-only and audited.
+- Gallery storage is private and RPC-controlled.
+- Global-admin controls, location assignments, contextual admin reads and location-scoped mutations are restricted.
+- Self-service profile update columns exclude date of birth and emergency-contact fields.
+
+Additional static inspection found 79 SECURITY DEFINER functions callable by authenticated users: 78 contain an `auth.uid()` check and the remaining function contains an explicit role check. No callable function was found without either an authentication check or one of the recognised role/location/captain guards. This is a source-level audit, not a substitute for authenticated negative/positive tests.
+
+### Pull request verification
+
+- PR #6 (`feat/stripe-test-checkout-lifecycle`) remains open, draft and unmerged. Latest observed head: `f09481620c8e90759ca3dac872a3477efa586a01`. CI run **42435790150** passed: Edge Function type-check, domain tests, application type-check/build and Cloudflare Worker dry-run.
+- PR #7 (`fix/restore-bideford-location-policy-source-2026-11-08`) remains open, draft and unmerged. CI run **42435893691** passed the same workflow. It restores the already-applied Bideford policy migration source and adds guarded admin activation/deactivation controls plus dashboard Needs Attention links. No browser/admin acceptance is claimed.
+- PR #7's activation UI requires a reason of at least five characters and an explicit confirmation checkbox. Server-side rules enforce Bideford-only activation, a single active first-release location, and safe deactivation. The UI offers no activation action for future locations.
+- No pull request was merged and no deployment was performed.
+
+### Remaining blockers
+
+1. Create disposable authenticated test identities and assign test roles using an approved Supabase Auth Admin path. The connected Supabase tooling available in this session does not expose Auth Admin user creation/deletion.
+2. Run signed-in browser acceptance for global admin and location admin, including denied cross-location access and Bideford activation/deactivation validation.
+3. Configure Stripe test secrets and register a test webhook endpoint through an approved secret-management path; replay signed test events and verify duplicate delivery, lease expiry/retry and refund lifecycle. Do not use live credentials.
+4. Complete the outstanding admin information architecture and overview work described in `docs/admin-dashboard-location-season-analytics-master-specification.md`; current context selector and contextual RPCs do not complete the full 15-section admin specification.
+5. Finish public-facing Gallery browsing and grouping/album workflow, then test private unpublished previews and public published images.
+6. Verify all user-facing workflows on a seeded development dataset, then stage and separately verify production deployment.
+
+### Next execution priority
+
+Use the available approved Auth Admin path to provision disposable development-only global-admin and location-admin identities, then execute authenticated browser acceptance. If that capability remains unavailable, continue with the independent admin information-architecture and gallery backlog without weakening authentication or access controls.
+
+
+## Session update — 8 November 2026, 02:02 UTC
+
+The earlier status snapshot above is historical (its 69-migration count and Stripe acceptance description are superseded by later live checks and PR work). Current verified notes:
+
+- Hosted Supabase migration ledger was re-read: 97 applied records. Current branch has 92 migration SQL files; the union of inspected branches contains 128 distinct filenames. Six exact applied migration sources remain unrecovered: `fixture_player_appearance_tracking`, `finance_options_for_finance_roles`, `finance_summary_team_balance_rollup`, `audit_log_explicit_deny_policy`, `fixture_goal_records_explicit_deny_policy`, and `20261108190000_location_admin_assignments`. Do not fabricate these sources or alter the live migration ledger.
+- Checkout retry is implemented using a compare-and-set claim on payment status, attempt counter and prior Checkout session ID. The Stripe idempotency key includes the attempt number. An open session is reused; an expired or failed attempt can be advanced without allowing two callers to claim the same attempt.
+- Webhook payment settlement now uses compare-and-set predicates on the captured payment status, attempt, Checkout session and last Stripe event timestamp. This prevents a delayed webhook from overwriting a newer retry attempt. A concurrent state change releases the event lease and returns HTTP 409 for retry.
+- Checkout no longer tells the player a completed Stripe session is paid until the webhook has updated the authoritative payment ledger.
+- Finance Stripe payment table now displays gross amount, status, refunded amount, Stripe fee, net proceeds and paid date. Fee/net values come from verified balance-transaction webhook reconciliation; they remain blank until received.
+- CI run `42436746697` passed on commit `c8df25d33f9d858f6c97744229fd1a42b775cee4`: Deno Edge Function type-check, Vitest domain tests, TypeScript/build and Cloudflare Worker dry-run. The newer finance-table commit `d15f48f59e3693c517a139ea0cb54920696a477c` has its own CI run `42436764026` in progress at the time of this update.
+- CI attempts `42436591172`, `42436617056`, `42436636643`, `42436676396`, `42436717709`, and `42436738527` failed on intermediate nullability/scope/type issues; fixes were committed subsequently. Do not describe these intermediate runs as passed.
+- Outstanding Stripe acceptance: configure test-only secrets and test webhook endpoint; exercise test Checkout success/cancel/expiry/async failure/retry, charge-only and duplicate/concurrent/out-of-order webhooks, refunds, fee reconciliation and cross-user denial. Admin refund initiation and payout-level reconciliation remain unimplemented. No test credentials, accounts, fixture records, Stripe sessions or live payments were created in this session.
+- Current PR #6 remains draft/unmerged: https://github.com/openplayfootballleague/OPENPLAYNEW/pull/6. Current PR #7 remains draft/unmerged: https://github.com/openplayfootballleague/OPENPLAYNEW/pull/7. PR #7 restores the missing Bideford policy migration source and ports admin activation controls/navigation; its latest checked build passed. Browser/admin acceptance remains outstanding.
+- Read-only location policy spot-check confirmed zero location rows in the designated Supabase project, a Bideford-only active-town constraint, a single-active-location unique index, and admin RPC permissions. Bideford must be created and activated by an authorised administrator before first-release use; no live rows were changed.
+
+### Immediate next actions
+1. Confirm CI for current PR #6 head `d15f48f59e3693c517a139ea0cb54920696a477c`.
+2. Implement finance-admin refund initiation safely with idempotent server-side reservations and audit logging; do not expose refunds until tested in Stripe test mode.
+3. Design and implement payout-level reconciliation against Stripe payout and balance-transaction records, preserving the existing append-only finance ledger.
+4. Recover the six original migration files from an authoritative archive/export or source backup.
+5. Complete browser acceptance for PR #7 admin controls and PR #1 PWA install/offline behavior.
+
+
+---
+
+## Continuous execution update — 8 November 2026, 02:15 UTC
+
+### Completed in this execution window
+
+**Admin Settings overview**
+- Replaced the disabled Settings & Feature Management navigation entry with a working section.
+- Added role-aware links to existing competition setup, fixture operations, finance, gallery, communications, location assignments and audit workspaces.
+- Explicitly labels feature flags, branding, role creation and advanced rules as unavailable rather than exposing non-functional controls.
+- Static navigation check found no broken in-page anchor targets.
+
+**Public Gallery**
+- Added the public `/gallery` route and homepage navigation link.
+- Added location-grouped gallery presentation and a location filter.
+- Added four unit tests covering grouping, location filtering, empty galleries and exclusion of items outside the active-location list.
+- Added a public Edge Function that only reads published items belonging to active locations, creates short-lived signed image URLs from the private `open-play-gallery` bucket, and never returns raw storage object paths.
+- The function accepts GET/OPTIONS only, validates optional location IDs, caps each response at 48 items, and returns no-store responses.
+- Added the new function to the CI Deno type-check command.
+- Deployed to the **development** project only. Latest verified function state: ACTIVE, version 3, `verify_jwt=false` by design. The public route uses `VITE_SUPABASE_PUBLISHABLE_KEY`, which is not a JWT; the endpoint is intentionally anonymous and returns only published items from active locations, using short-lived signed URLs from the private bucket. It accepts no object path or mutation input.
+- Confirmed deployed function source matches the repository branch.
+
+**Stripe webhook type safety**
+- The branch now includes the current database types for `checkout_attempt` and the private `stripe_webhook_events` table.
+- The payment snapshot needed for compare-and-set settlement is retained outside its original conditional block, removing the out-of-scope reference found by CI.
+
+### Latest verification
+
+- PR #6 head: `d15f48f59e3693c517a139ea0cb54920696a477c`; CI run **42436764026** passed.
+- Passed steps: Deno Edge Function type-check (including `public-gallery`), all domain tests, application type-check/build, and Cloudflare Worker dry-run.
+- PR #7 head: `cd9178fb39c7ced51b93f710c9be081e2b711c16`; CI run **42435993565** passed.
+- Both PRs remain open drafts and unmerged. No production deployment has occurred.
+
+### Runtime verification still outstanding
+
+- The development database currently contains no auth users, assigned roles, locations or published gallery items. Therefore, real signed-in admin acceptance and photo rendering cannot yet be demonstrated.
+- The public Gallery route's build and helper tests pass; the deployed Edge Function is active and its source is verified, but a live HTTP invocation and a real published-image response have not been verified in this session.
+- The exact canonical logo source exists in the Library as `Vivid Orange Sporty Op Monogram.png` (1254 × 1254 RGBA, 459,212 bytes). The repository currently contains a much smaller `public/open-play-logo.png` (208 × 115). The available GitHub file-edit connector only accepts text content and cannot transfer this binary asset. Do not redraw, regenerate or substitute the logo; the original binary needs an approved upload path.
+
+### Next execution priority
+
+1. Obtain an approved Auth Admin provisioning path for disposable development-only global-admin and location-admin test identities; do not insert rows directly into `auth.users`.
+2. Run authenticated positive and negative tests for global admin, location admin, cross-location denial, Bideford-only activation and deactivation safeguards.
+3. Run an end-to-end Gallery test with a real uploaded image, publish/unpublish it, and verify that unpublished objects never receive signed URLs.
+4. Complete the full Settings workspace and remaining admin information-architecture requirements; the current Settings page is an overview, not the full settings implementation.
+5. Transfer the exact canonical logo binary through an approved file-upload path.
+6. Continue remaining player, captain, finance, notification, reporting and production-readiness work. Production remains blocked until seeded acceptance, external provider configuration, regression testing and deployment checks are complete.
+
+
+### Further admin navigation verification — 8 November 2026
+
+- Added the missing **11 Player Statistics** navigation item, anchored directly to the existing verified player-statistics table within the season analytics workspace.
+- The admin navigation now contains all 15 numbered sections. A static check verified every in-page navigation target exists; no broken anchor targets were found.
+- Full Settings functionality remains incomplete; the current page is a permission-aware index into existing workspaces.
+- Finance/Stripe schema audit: `payment_records`, `finance_entries` and `stripe_webhook_events` all have RLS enabled. `stripe_webhook_events` has no client table grants and an explicit deny-all client policy. The development database enforces `livemode = false` for Stripe webhook events. Payment rows are readable only under the captain-or-finance policy; direct client writes are denied. Checkout session and payment-intent identifiers are unique, and refund totals cannot exceed the original amount.

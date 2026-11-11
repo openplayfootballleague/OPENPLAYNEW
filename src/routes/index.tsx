@@ -1,23 +1,92 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { getSupabaseClient } from "../lib/supabase/client";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
 function HomePage() {
+  const navigate = useNavigate();
+  const [checkingAccess, setCheckingAccess] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    const supabase = getSupabaseClient();
+
+    async function resolveHome(userId: string | null) {
+      if (!userId) {
+        if (alive) setCheckingAccess(false);
+        return;
+      }
+
+      const [{ data: player, error: playerError }, { data: captainMemberships, error: captainError }] =
+        await Promise.all([
+          supabase
+            .from("players")
+            .select("registration_status")
+            .eq("user_id", userId)
+            .maybeSingle(),
+          supabase
+            .from("team_memberships")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("status", "active")
+            .eq("is_captain", true)
+            .limit(1),
+        ]);
+
+      if (!alive) return;
+
+      // Fail closed to the public home if role data cannot be read. This avoids
+      // accidentally hiding the public site because of a transient query error.
+      if (!playerError && !captainError &&
+          (player?.registration_status === "registered" || (captainMemberships?.length ?? 0) > 0)) {
+        await navigate({ to: "/player", replace: true });
+        return;
+      }
+
+      setCheckingAccess(false);
+    }
+
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      void resolveHome(session?.user.id ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      void resolveHome(session?.user.id ?? null);
+    });
+
+    return () => {
+      alive = false;
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  if (checkingAccess) {
+    return (
+      <main className="notice-page" aria-live="polite">
+        <section className="notice-panel">
+          <p>Loading your Open Play home…</p>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="site-shell">
       <header className="site-header">
-        <a className="wordmark" href="/" aria-label="Open Play home">
-          <span>OPEN PLAY</span>
+        <a className="wordmark" href="/player" aria-label="Open Play Player Hub">
+          <img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/>
         </a>
         <nav className="header-nav" aria-label="Main navigation">
           <a href="/match-centre">Match centre</a>
           <a href="/teams">Leagues</a>
+          <a href="/gallery">Gallery</a>
           <a href="#about">About</a>
         </nav>
         <div className="header-actions">
-          <a className="login-link" href="/player">Player Hub</a>
+          <a className="login-link" href="/sign-in">Sign in</a>
           <a className="button button-small" href="/join">Join Open Play</a>
         </div>
       </header>
@@ -74,19 +143,19 @@ function HomePage() {
             <p>Discover a competition and get involved.</p>
           </div>
         </a>
-        <a className="feature-card feature-light" href="/player">
+        <a className="feature-card feature-light" href="/join">
           <span className="feature-index">03 / BELONG</span>
           <span className="feature-icon" aria-hidden="true">◎</span>
           <div>
-            <h3>Your player hub</h3>
-            <p>Your profile, team and season — all together.</p>
+            <h3>Join Open Play</h3>
+            <p>Find a team or register your own.</p>
           </div>
         </a>
       </section>
 
       <footer className="site-footer">
-        <a className="wordmark" href="/" aria-label="Open Play home">
-          <span>OPEN PLAY</span>
+        <a className="wordmark" href="/player" aria-label="Open Play Player Hub">
+          <img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/>
         </a>
         <span>PLAY HARD. RESPECT ALWAYS.</span>
         <span>© {new Date().getFullYear()} OPEN PLAY</span>

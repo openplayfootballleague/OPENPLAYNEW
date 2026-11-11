@@ -14,6 +14,52 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_context_preferences: {
+        Row: {
+          league_id: string | null
+          location_id: string | null
+          season_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          league_id?: string | null
+          location_id?: string | null
+          season_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          league_id?: string | null
+          location_id?: string | null
+          season_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_context_preferences_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_context_preferences_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_context_preferences_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -415,6 +461,47 @@ export type Database = {
           },
         ]
       }
+      gallery_items: {
+        Row: {
+          caption: string
+          created_at: string
+          id: string
+          is_published: boolean
+          location_id: string
+          object_path: string
+          published_at: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          caption?: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          location_id: string
+          object_path: string
+          published_at?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          caption?: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          location_id?: string
+          object_path?: string
+          published_at?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_items_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leagues: {
         Row: {
           created_at: string
@@ -452,6 +539,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "leagues_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      location_admin_assignments: {
+        Row: {
+          assigned_by: string
+          created_at: string
+          id: string
+          location_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_by: string
+          created_at?: string
+          id?: string
+          location_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string
+          created_at?: string
+          id?: string
+          location_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "location_admin_assignments_location_id_fkey"
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
@@ -646,46 +765,67 @@ export type Database = {
       payment_records: {
         Row: {
           amount_pence: number
+          amount_refunded_pence: number
+          checkout_attempt: number
           created_at: string
           currency: string
           fee_snapshot: Json
           fixture_id: string | null
           id: string
+          last_stripe_event_at: string | null
+          net_amount_pence: number | null
           paid_at: string | null
+          player_user_id: string | null
           refunded_at: string | null
           season_team_id: string
           status: Database["public"]["Enums"]["payment_status"]
           stripe_checkout_session_id: string | null
+          stripe_customer_id: string | null
+          stripe_fee_pence: number | null
           stripe_payment_intent_id: string | null
           updated_at: string
         }
         Insert: {
           amount_pence: number
+          amount_refunded_pence?: number
+          checkout_attempt?: number
           created_at?: string
           currency?: string
           fee_snapshot: Json
           fixture_id?: string | null
           id?: string
+          last_stripe_event_at?: string | null
+          net_amount_pence?: number | null
           paid_at?: string | null
+          player_user_id?: string | null
           refunded_at?: string | null
           season_team_id: string
           status?: Database["public"]["Enums"]["payment_status"]
           stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_fee_pence?: number | null
           stripe_payment_intent_id?: string | null
           updated_at?: string
         }
         Update: {
           amount_pence?: number
+          amount_refunded_pence?: number
+          checkout_attempt?: number
           created_at?: string
           currency?: string
           fee_snapshot?: Json
           fixture_id?: string | null
           id?: string
+          last_stripe_event_at?: string | null
+          net_amount_pence?: number | null
           paid_at?: string | null
+          player_user_id?: string | null
           refunded_at?: string | null
           season_team_id?: string
           status?: Database["public"]["Enums"]["payment_status"]
           stripe_checkout_session_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_fee_pence?: number | null
           stripe_payment_intent_id?: string | null
           updated_at?: string
         }
@@ -932,6 +1072,7 @@ export type Database = {
           created_at: string
           effective_from_gameweek: number
           id: string
+          player_fee_pence: number | null
           reason: string | null
           season_id: string
           team_fee_pence: number
@@ -941,6 +1082,7 @@ export type Database = {
           created_at?: string
           effective_from_gameweek?: number
           id?: string
+          player_fee_pence?: number | null
           reason?: string | null
           season_id: string
           team_fee_pence: number
@@ -950,6 +1092,7 @@ export type Database = {
           created_at?: string
           effective_from_gameweek?: number
           id?: string
+          player_fee_pence?: number | null
           reason?: string | null
           season_id?: string
           team_fee_pence?: number
@@ -1121,6 +1264,47 @@ export type Database = {
             columns: ["league_id"]
             isOneToOne: false
             referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_webhook_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          livemode: boolean
+          payment_record_id: string | null
+          processed_at: string | null
+          processing_error: string | null
+          processing_started_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id: string
+          livemode?: boolean
+          payment_record_id?: string | null
+          processed_at?: string | null
+          processing_error?: string | null
+          processing_started_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          livemode?: boolean
+          payment_record_id?: string | null
+          processed_at?: string | null
+          processing_error?: string | null
+          processing_started_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_webhook_events_payment_record_id_fkey"
+            columns: ["payment_record_id"]
+            isOneToOne: false
+            referencedRelation: "payment_records"
             referencedColumns: ["id"]
           },
         ]
@@ -1573,6 +1757,38 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_get_transfer_requests_contextual: {
+        Args: {
+          p_league_id?: string
+          p_location_id?: string
+          p_season_id?: string
+          p_status?: string
+        }
+        Returns: {
+          destination_team_id: string
+          destination_team_name: string
+          id: string
+          league_name: string
+          player_name: string
+          reason: string
+          requested_at: string
+          season_name: string
+          source_membership_id: string
+          source_team_name: string
+          status: string
+          user_id: string
+        }[]
+      }
+      admin_list_location_assignments: {
+        Args: { p_location_id?: string }
+        Returns: {
+          assigned_at: string
+          assignment_id: string
+          location_id: string
+          location_name: string
+          user_id: string
+        }[]
+      }
       admin_record_fixture_result: {
         Args: {
           p_away_score: number
@@ -1622,6 +1838,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      admin_register_gallery_item: {
+        Args: {
+          p_caption?: string
+          p_location_id: string
+          p_object_path: string
+        }
+        Returns: string
       }
       admin_remove_player_from_team: {
         Args: { p_membership_id: string; p_reason: string }
@@ -1702,6 +1926,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_search_location_admin_candidates: {
+        Args: { p_query: string }
+        Returns: {
+          display_name: string
+          email: string
+          user_id: string
+        }[]
+      }
       admin_set_fixture_status: {
         Args: {
           p_fixture_id: string
@@ -1728,6 +1960,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      admin_set_gallery_item_published: {
+        Args: { p_is_published: boolean; p_item_id: string }
+        Returns: undefined
       }
       admin_set_league_published: {
         Args: { p_is_published: boolean; p_league_id: string }
@@ -1768,6 +2004,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      admin_set_location_assignment: {
+        Args: { p_assigned: boolean; p_location_id: string; p_user_id: string }
+        Returns: undefined
       }
       admin_set_notification_dispatch_enabled: {
         Args: {
@@ -1841,6 +2081,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_set_player_fixture_fee: {
+        Args: {
+          p_effective_from_gameweek: number
+          p_player_fee_pence: number
+          p_reason: string
+          p_season_id: string
+        }
+        Returns: string
+      }
       admin_set_player_genuine: {
         Args: { p_is_genuine: boolean; p_reason: string; p_user_id: string }
         Returns: {
@@ -1904,6 +2153,14 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      assert_admin_location_context: {
+        Args: { p_location_id: string }
+        Returns: undefined
+      }
+      can_administer_location: {
+        Args: { p_location_id: string }
+        Returns: boolean
       }
       cancel_player_transfer_request: {
         Args: { p_request_id: string }
@@ -1995,6 +2252,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_player_fixture_payment: {
+        Args: { p_fixture_id: string; p_season_team_id: string }
+        Returns: {
+          already_paid: boolean
+          amount_pence: number
+          currency: string
+          payment_record_id: string
+        }[]
+      }
       dispatch_notification_worker: { Args: never; Returns: number }
       enqueue_fixture_reminders: { Args: never; Returns: number }
       enqueue_notification_event: {
@@ -2080,10 +2346,57 @@ export type Database = {
         }[]
       }
       get_admin_competition_setup: { Args: never; Returns: Json }
+      get_admin_context_preference: { Args: never; Returns: Json }
+      get_admin_contextual_fixtures: {
+        Args: {
+          p_league_id?: string
+          p_location_id?: string
+          p_season_id?: string
+        }
+        Returns: {
+          away_score: number
+          away_team_id: string
+          away_team_name: string
+          fixture_number: number
+          gameweek: number
+          home_score: number
+          home_team_id: string
+          home_team_name: string
+          id: string
+          notes: string
+          scheduled_at: string
+          season_id: string
+          season_name: string
+          status: string
+          venue_id: string
+          venue_name: string
+        }[]
+      }
       get_admin_dashboard: { Args: never; Returns: Json }
+      get_admin_dashboard_contextual: {
+        Args: {
+          p_league_id?: string
+          p_location_id?: string
+          p_season_id?: string
+        }
+        Returns: Json
+      }
       get_admin_fixture_scorer_options: {
         Args: { p_fixture_id: string }
         Returns: Json
+      }
+      get_admin_gallery_items: {
+        Args: { p_location_id?: string }
+        Returns: {
+          caption: string
+          created_at: string
+          id: string
+          is_published: boolean
+          location_id: string
+          location_name: string
+          object_path: string
+          published_at: string
+        }[]
       }
       get_admin_player_register: {
         Args: {
@@ -2105,12 +2418,77 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_admin_player_register_contextual: {
+        Args: {
+          p_league_id?: string
+          p_limit?: number
+          p_location_id?: string
+          p_offset?: number
+          p_search?: string
+          p_season_id?: string
+          p_status?: string
+        }
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          is_banned: boolean
+          is_genuine: boolean
+          phone: string
+          preferred_position: string
+          registration_status: string
+          team_names: string[]
+          user_id: string
+        }[]
+      }
       get_admin_season_statistics: {
         Args: { p_season_id: string }
         Returns: Json
       }
+      get_admin_stripe_payments: {
+        Args: { p_season_id?: string }
+        Returns: {
+          amount_pence: number
+          amount_refunded_pence: number
+          created_at: string
+          currency: string
+          fixture_id: string
+          gameweek: number
+          net_amount_pence: number
+          paid_at: string
+          payment_record_id: string
+          player_name: string
+          scheduled_at: string
+          season_id: string
+          season_name: string
+          status: Database["public"]["Enums"]["payment_status"]
+          stripe_fee_pence: number
+          team_name: string
+        }[]
+      }
       get_admin_team_sheets: {
         Args: never
+        Returns: {
+          competition_format: Database["public"]["Enums"]["competition_format"]
+          fixture_id: string
+          gameweek: number
+          is_locked: boolean
+          opponent_name: string
+          players: Json
+          roster: Json
+          scheduled_at: string
+          season_team_id: string
+          submitted_at: string
+          team_name: string
+          team_sheet_id: string
+        }[]
+      }
+      get_admin_team_sheets_contextual: {
+        Args: {
+          p_league_id?: string
+          p_location_id?: string
+          p_season_id?: string
+        }
         Returns: {
           competition_format: Database["public"]["Enums"]["competition_format"]
           fixture_id: string
@@ -2225,6 +2603,22 @@ export type Database = {
           teams_with_entries: number
         }[]
       }
+      get_my_fixture_payments: {
+        Args: never
+        Returns: {
+          amount_pence: number
+          amount_refunded_pence: number
+          created_at: string
+          currency: string
+          fixture_id: string
+          gameweek: number
+          paid_at: string
+          payment_record_id: string
+          scheduled_at: string
+          season_team_id: string
+          status: Database["public"]["Enums"]["payment_status"]
+        }[]
+      }
       get_my_notification_preferences: {
         Args: never
         Returns: {
@@ -2243,6 +2637,21 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_my_team_request_statuses: {
+        Args: never
+        Returns: {
+          created_at: string
+          is_captain: boolean
+          is_transfer_request: boolean
+          membership_id: string
+          membership_status: string
+          season_id: string
+          season_name: string
+          season_team_id: string
+          team_name: string
+          team_registration_status: string
+        }[]
       }
       get_my_transfer_destinations: {
         Args: never
@@ -2270,6 +2679,28 @@ export type Database = {
           source_team_name: string
           status: string
         }[]
+      }
+      handover_team_captain: {
+        Args: { p_new_captain_membership_id: string; p_season_team_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          is_captain: boolean
+          joined_at: string | null
+          left_at: string | null
+          season_team_id: string
+          squad_number: number | null
+          status: Database["public"]["Enums"]["membership_status"]
+          transfer_request_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_memberships"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       has_finance_access: { Args: never; Returns: boolean }
       has_platform_role: { Args: never; Returns: boolean }
@@ -2504,6 +2935,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      save_admin_context_preference: {
+        Args: {
+          p_league_id?: string
+          p_location_id?: string
+          p_season_id?: string
+        }
+        Returns: Json
+      }
       save_team_sheet_draft: {
         Args: {
           p_fixture_id: string
@@ -2620,6 +3059,7 @@ export type Database = {
         | "failed"
         | "refunded"
         | "cancelled"
+        | "partially_refunded"
       player_registration_status: "registered" | "pending_review" | "rejected"
       registration_status: "pending" | "approved" | "rejected" | "withdrawn"
       season_status:
@@ -2773,6 +3213,7 @@ export const Constants = {
         "failed",
         "refunded",
         "cancelled",
+        "partially_refunded",
       ],
       player_registration_status: ["registered", "pending_review", "rejected"],
       registration_status: ["pending", "approved", "rejected", "withdrawn"],
