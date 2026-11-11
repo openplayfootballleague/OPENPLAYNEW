@@ -189,11 +189,13 @@ as $$
   join public.teams t on t.id=st.team_id
   join public.seasons s on s.id=st.season_id
   join public.leagues l on l.id=s.league_id
+  join public.locations loc on loc.id=l.location_id
   where st.registration_status='approved'
     and s.id=p_season_id
     and s.is_public is true
     and s.status in ('registration_open','active','completed')
     and l.is_published is true
+    and loc.is_active is true
   order by st.name;
 $$;
 revoke all on function public.get_public_team_directory(uuid) from public,anon;
@@ -227,6 +229,7 @@ as $$
     and s.is_public is true
     and s.status in ('registration_open','active','completed')
     and l.is_published is true
+    and loc.is_active is true
   limit 1;
 $$;
 revoke all on function public.get_public_team_profile(uuid) from public,anon;
