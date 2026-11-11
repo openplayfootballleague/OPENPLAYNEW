@@ -21,6 +21,8 @@ declare
   v_claim jsonb;
   v_status text;
   v_rejected boolean;
+  v_job_id uuid;
+  v_job_token uuid;
 begin
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
   values
@@ -80,6 +82,12 @@ begin
     referee_net_pence,open_play_top_up_pence,status
   ) values(v_report,v_referee,2200,0,2200,0,'pending_connect')
   returning id into v_match_payout;
+  if not exists(
+    select 1 from public.referee_payout_transfer_jobs
+    where payout_id=v_match_payout and status='queued'
+  ) then
+    raise exception 'Approved referee payout was not atomically enqueued for transfer';
+  end if;
 
   insert into public.referee_milestone_rewards(
     referee_user_id,milestone_number,approved_games,amount_pence,status
@@ -114,6 +122,24 @@ begin
     v_referee,v_account_id,true,false,false,false,
     jsonb_build_object('currently_due',jsonb_build_array('external_account')),'requirements.pending',now()-interval '2 days'
   );
+  execute 'reset role';
+
+  -- The service worker cannot claim a payout until Stripe has enabled transfers.
+  execute 'set local role service_role';
+  if exists(select 1 from public.claim_referee_payout_transfer_jobs(10)) then
+    raise exception 'The payout worker claimed a referee account before transfer capability was active';
+  end if;
+  execute 'reset role';
+
+  execute 'set local role service_role';
+  select job_id,lock_token into v_job_id,v_job_token
+  from public.claim_referee_payout_transfer_jobs(10);
+  if v_job_id is null or v_job_token is null then
+    raise exception 'An eligible approved referee payout was not claimed by the outbox worker';
+  end if;
+  if not public.release_referee_payout_transfer_job(v_job_id,v_job_token,'CI worker lease release',60) then
+    raise exception 'The payout worker could not safely release an unclaimed transfer lease';
+  end if;
   execute 'reset role';
 
   execute 'set local role authenticated';
@@ -169,8 +195,9 @@ begin
     'match_report',v_match_payout,'tr_ci_referee_match_000001',v_account_id,2200,'gbp'
   );
   if v_status<>'transferred'
-     or (select status from public.referee_report_payouts where id=v_match_payout)<>'transferred' then
-    raise exception 'Match-report Stripe transfer was not recorded as transferred';
+     or (select status from public.referee_report_payouts where id=v_match_payout)<>'transferred'
+     or (select status from public.referee_payout_transfer_jobs where payout_id=v_match_payout)<>'completed' then
+    raise exception 'Match-report Stripe transfer or its durable outbox job was not recorded as completed';
   end if;
 
   -- A reversed transfer becomes retryable; the next attempt gets a new idempotency attempt number.
@@ -182,8 +209,9 @@ begin
     'match_report',v_match_payout,'tr_ci_referee_match_000001',v_account_id,2200,'gbp'
   );
   if v_status<>'reversed'
-     or (select status from public.referee_report_payouts where id=v_match_payout)<>'failed' then
-    raise exception 'A delayed transfer.created webhook incorrectly overwrote the reversal';
+     or (select status from public.referee_report_payouts where id=v_match_payout)<>'failed'
+     or (select status from public.referee_payout_transfer_jobs where payout_id=v_match_payout)<>'failed' then
+    raise exception 'A delayed transfer.created webhook incorrectly overwrote the reversal or left the outbox job open';
   end if;
   execute 'reset role';
   execute 'set local role authenticated';
