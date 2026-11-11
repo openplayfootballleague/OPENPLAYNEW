@@ -365,7 +365,7 @@ $$;
 revoke all on function public.admin_correct_fixture_motm_nomination(uuid,uuid,text) from public,anon;
 grant execute on function public.admin_correct_fixture_motm_nomination(uuid,uuid,text) to authenticated;
 
-create or replace function public.get_my_player_motm_awards(p_season_id uuid)
+create or replace function public.get_my_player_motm_awards(p_season_id uuid default null)
 returns jsonb
 language plpgsql
 stable
