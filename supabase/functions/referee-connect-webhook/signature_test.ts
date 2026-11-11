@@ -1,7 +1,13 @@
-import { assert, assertFalse } from "jsr:@std/assert@1";
 import { verifyStripeSignature } from "./signature.ts";
 
 const encoder = new TextEncoder();
+
+function assert(value: boolean, message: string): void {
+  if (!value) throw new Error(message);
+}
+function assertFalse(value: boolean, message: string): void {
+  assert(!value, message);
+}
 
 async function signatureFor(body: string, secret: string, timestamp: number): Promise<string> {
   const key = await crypto.subtle.importKey(
@@ -23,21 +29,21 @@ Deno.test("accepts a valid Stripe signature for the exact raw body", async () =>
   const now = 1_800_000_000_000;
   const timestamp = Math.floor(now / 1000);
   const header = await signatureFor(body, "whsec_test_secret", timestamp);
-  assert(await verifyStripeSignature(body, header, "whsec_test_secret", now));
+  assert(await verifyStripeSignature(body, header, "whsec_test_secret", now), "expected valid signature to pass");
 });
 
 Deno.test("rejects a body changed after Stripe signed it", async () => {
   const body = '{"id":"evt_test_1"}';
   const now = 1_800_000_000_000;
   const header = await signatureFor(body, "whsec_test_secret", Math.floor(now / 1000));
-  assertFalse(await verifyStripeSignature('{"id":"evt_test_2"}', header, "whsec_test_secret", now));
+  assertFalse(await verifyStripeSignature('{"id":"evt_test_2"}', header, "whsec_test_secret", now), "modified raw body must fail");
 });
 
 Deno.test("rejects a signature created with a different endpoint secret", async () => {
   const body = '{"id":"evt_test_1"}';
   const now = 1_800_000_000_000;
   const header = await signatureFor(body, "whsec_original", Math.floor(now / 1000));
-  assertFalse(await verifyStripeSignature(body, header, "whsec_wrong", now));
+  assertFalse(await verifyStripeSignature(body, header, "whsec_wrong", now), "wrong endpoint secret must fail");
 });
 
 Deno.test("rejects signatures outside Stripe's five-minute tolerance", async () => {
@@ -45,14 +51,14 @@ Deno.test("rejects signatures outside Stripe's five-minute tolerance", async () 
   const now = 1_800_000_000_000;
   const timestamp = Math.floor(now / 1000) - 301;
   const header = await signatureFor(body, "whsec_test_secret", timestamp);
-  assertFalse(await verifyStripeSignature(body, header, "whsec_test_secret", now));
+  assertFalse(await verifyStripeSignature(body, header, "whsec_test_secret", now), "stale signature must fail");
 });
 
 Deno.test("rejects malformed timestamps and missing v1 signatures", async () => {
   const now = 1_800_000_000_000;
-  assertFalse(await verifyStripeSignature("{}", "t=1e3,v1=abcd", "whsec_test_secret", now));
-  assertFalse(await verifyStripeSignature("{}", "t=1800000000", "whsec_test_secret", now));
-  assertFalse(await verifyStripeSignature("{}", "", "whsec_test_secret", now));
+  assertFalse(await verifyStripeSignature("{}", "t=1e3,v1=abcd", "whsec_test_secret", now), "malformed timestamp must fail");
+  assertFalse(await verifyStripeSignature("{}", "t=1800000000", "whsec_test_secret", now), "missing v1 signature must fail");
+  assertFalse(await verifyStripeSignature("{}", "", "whsec_test_secret", now), "missing header must fail");
 });
 
 Deno.test("accepts any valid v1 signature when Stripe sends multiple signatures", async () => {
@@ -61,5 +67,5 @@ Deno.test("accepts any valid v1 signature when Stripe sends multiple signatures"
   const timestamp = Math.floor(now / 1000);
   const valid = await signatureFor(body, "whsec_test_secret", timestamp);
   const header = valid.replace(",v1=", ",v1=" + "0".repeat(64) + ",v1=");
-  assert(await verifyStripeSignature(body, header, "whsec_test_secret", now));
+  assert(await verifyStripeSignature(body, header, "whsec_test_secret", now), "one valid v1 signature must pass among multiple signatures");
 });
