@@ -14,7 +14,6 @@ type PortalState = {
 const items = [
   { to: "/referee" as const, label: "Home", icon: "home" },
   { to: "/match-centre" as const, label: "Match Centre", icon: "match" },
-  { to: "/teams" as const, label: "Teams", icon: "teams" },
   { to: "/referee/matchday" as const, label: "Matchday", icon: "whistle" },
   { to: "/more" as const, label: "More", icon: "more" },
 ];
@@ -57,7 +56,7 @@ export function RefereeBottomNavigation() {
     return () => { alive = false; };
   }, []);
 
-  if (membership !== "active") return <PlayerBottomNavigation />;
+  if (membership !== "active" || !pathname.startsWith("/referee")) return <PlayerBottomNavigation />;
 
   return (
     <nav className="player-bottom-nav" aria-label="Referee navigation">
