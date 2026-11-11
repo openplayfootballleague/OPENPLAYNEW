@@ -44,6 +44,14 @@ begin
     raise exception 'Anonymous users must not execute feature-management RPCs';
   end if;
 
+  if has_function_privilege('anon','public.is_platform_feature_enabled(text)','EXECUTE')
+     or has_function_privilege('authenticated','public.is_platform_feature_enabled(text)','EXECUTE')
+     or has_function_privilege('anon','public.enforce_team_recruitment_feature_flag()','EXECUTE')
+     or has_function_privilege('authenticated','public.enforce_announcement_feature_flag()','EXECUTE')
+     or has_function_privilege('authenticated','public.enforce_announcement_message_feature_flag()','EXECUTE') then
+    raise exception 'Internal feature enforcement functions must not be callable through the Data API';
+  end if;
+
   if not has_function_privilege('authenticated','public.admin_set_platform_feature_flag(text,boolean,text)','EXECUTE')
      or not has_function_privilege('authenticated','public.get_admin_platform_feature_flags()','EXECUTE') then
     raise exception 'Authenticated role must be able to call the permission-checked feature RPCs';
