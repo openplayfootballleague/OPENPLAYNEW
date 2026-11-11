@@ -471,3 +471,83 @@ body { padding-bottom: calc(76px + env(safe-area-inset-bottom)); background: #10
   .site-footer > span:nth-child(2) { order: 3; width: 100%; }
   .more-page { padding: 48px 22px 100px; }
 }
+
+
+/* Player-facing visual system; admin remains a separate light-workspace design. */
+.player-surface {
+  background: #0d100e;
+  color: #f7f6f1;
+  padding: clamp(18px, 4vw, 56px) clamp(14px, 4vw, 48px) 110px;
+  place-items: start center;
+}
+.player-surface .notice-panel {
+  width: min(100%, 1080px);
+  background: #171c19;
+  color: #f7f6f1;
+  border: 1px solid #303a33;
+  border-radius: 16px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.2);
+}
+.player-surface .notice-brand { color: #ff6b2c; margin-bottom: 30px; }
+.player-surface .eyebrow, .player-surface .hub-kicker { color: #ff854d; }
+.player-surface .notice-panel h1 { font-family: "Oswald", sans-serif; }
+.player-surface .notice-panel > p:not(.eyebrow),
+.player-surface .hub-empty p,
+.player-surface .hub-profile p,
+.player-surface .hub-email,
+.player-surface .form-note,
+.player-surface .auth-switch { color: #aeb7ae; }
+.player-surface .hub-empty,
+.player-surface .hub-profile,
+.player-surface .hub-memberships,
+.player-surface .match-fixtures,
+.player-surface .admin-queue {
+  background: #202822;
+  color: #f7f6f1;
+  border: 1px solid #364138;
+  border-radius: 12px;
+}
+.player-surface .hub-team-row,
+.player-surface .match-row,
+.player-surface .league-table td,
+.player-surface .league-table th,
+.player-surface .directory-team,
+.player-surface .fixture-pick {
+  border-color: #3b473e;
+}
+.player-surface .hub-kicker,
+.player-surface .match-meta,
+.player-surface .league-table th,
+.player-surface .directory-team span,
+.player-surface .fixture-pick small { color: #b0b9b0; }
+.player-surface .fixture-pick span { color: #f7f6f1; }
+.player-surface .auth-form label { color: #e0e6dc; }
+.player-surface .auth-form input,
+.player-surface .auth-form select,
+.player-surface .auth-form textarea,
+.player-surface select {
+  background: #111712;
+  border: 1px solid #465148;
+  border-radius: 8px;
+  color: #f7f6f1;
+  min-width: 0;
+}
+.player-surface button:not(.button),
+.player-surface .auth-text-button { color: #ff965f; }
+.player-surface .button { border-radius: 8px; }
+.player-surface :is(h1,h2,h3) { font-family: "Oswald", sans-serif; }
+.player-surface :is(a,button,input,select,textarea):focus-visible,
+.bottom-navigation-item:focus-visible { outline: 2px solid #ff854d; outline-offset: 3px; }
+.player-surface .hub-top,
+.player-surface .hub-team-row,
+.player-surface .match-score { min-width: 0; }
+.player-surface .hub-top { gap: 16px; flex-wrap: wrap; }
+.player-surface .table-scroll { max-width: 100%; }
+@media (max-width: 600px) {
+  .player-surface { padding: 14px 12px 110px; }
+  .player-surface .notice-panel { padding: 24px 18px; border-radius: 12px; }
+  .player-surface .hub-empty,
+  .player-surface .hub-profile,
+  .player-surface .hub-memberships,
+  .player-surface .match-fixtures { padding: 16px; }
+}
