@@ -71,6 +71,7 @@ begin
      or position('approved' in v_directory)=0
      or position('is_public' in v_directory)=0
      or position('is_published' in v_directory)=0
+     or position('is_active' in v_directory)=0
      or position('registration_open' in v_directory)=0 then
     raise exception 'Public directory must expose only approved teams in published public registration-open/active/completed seasons';
   end if;
@@ -78,7 +79,8 @@ begin
     raise exception 'Public team directory must not expose creator identity';
   end if;
   if position('registration_status' in v_profile)=0 or position('is_public' in v_profile)=0
-     or position('is_published' in v_profile)=0 then
+     or position('is_published' in v_profile)=0
+     or position('is_active' in v_profile)=0 then
     raise exception 'Public team profile must enforce the same published-season boundary';
   end if;
 
