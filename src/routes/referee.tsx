@@ -1,7 +1,50 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 import { getSupabaseClient } from "../lib/supabase/client";
+
+type StripeConnectElement = HTMLElement & {
+  setOnExit?: (callback: () => void) => void;
+  setOnLoadError?: (callback: (event: { error?: { message?: string } }) => void) => void;
+};
+type StripeConnectInstance = {
+  create: (component: "account-onboarding") => StripeConnectElement;
+  logout: () => void;
+};
+type StripeConnectGlobal = {
+  init: (options: {
+    publishableKey: string;
+    fetchClientSecret: () => Promise<string>;
+    locale: "en-GB";
+    appearance: { variables: { colorPrimary: string } };
+  }) => StripeConnectInstance;
+};
+declare global {
+  interface Window { StripeConnect?: StripeConnectGlobal }
+}
+let stripeConnectScriptPromise: Promise<StripeConnectGlobal> | null = null;
+function loadStripeConnect(): Promise<StripeConnectGlobal> {
+  const existing = window.StripeConnect;
+  if (existing?.init) return Promise.resolve(existing);
+  if (stripeConnectScriptPromise) return stripeConnectScriptPromise;
+  const pending = new Promise<StripeConnectGlobal>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://connect-js.stripe.com/v1.0/connect.js";
+    script.async = true;
+    script.onload = () => {
+      const loaded = window.StripeConnect;
+      if (loaded?.init) resolve(loaded);
+      else reject(new Error("Stripe Connect loaded without its initialisation API."));
+    };
+    script.onerror = () => reject(new Error("Unable to load Stripe's secure onboarding component."));
+    document.head.appendChild(script);
+  }).catch((error: unknown) => {
+    stripeConnectScriptPromise = null;
+    throw error;
+  });
+  stripeConnectScriptPromise = pending;
+  return pending;
+}
 
 type RpcError = { message: string };
 type RpcClient = {
@@ -71,6 +114,8 @@ function RefereePage() {
   const [connectStatus, setConnectStatus] = useState<RefereeConnectStatus | null>(null);
   const [connectLoading, setConnectLoading] = useState(false);
   const [connectBusy, setConnectBusy] = useState(false);
+  const [connectClientSecret, setConnectClientSecret] = useState<string | null>(null);
+  const connectContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -144,18 +189,81 @@ function RefereePage() {
     const {data,error:connectError}=await supabase.functions.invoke("create-referee-connect-account");
     setConnectBusy(false);
     if(connectError){setError(connectError.message);return;}
-    if(data?.onboarding_url){
-      window.location.assign(data.onboarding_url);
+    if(data?.connected){
+      const rpc=getSupabaseClient() as unknown as RpcClient;
+      const refreshed=await rpc.rpc("get_my_referee_connect_status");
+      if(refreshed.error)setError(refreshed.error.message);
+      else setConnectStatus(refreshed.data as RefereeConnectStatus);
+      setNotice("Your Stripe Connect account is verified and ready for referee transfers.");
       return;
     }
-    const rpc=getSupabaseClient() as unknown as RpcClient;
-    const refreshed=await rpc.rpc("get_my_referee_connect_status");
-    if(refreshed.error)setError(refreshed.error.message);
-    else setConnectStatus(refreshed.data as RefereeConnectStatus);
-    setNotice(data?.connected
-      ? "Your Stripe Connect account is verified and ready for referee payouts."
-      : "Stripe has refreshed your account status. Complete any outstanding verification steps to enable payouts.");
+    if(typeof data?.account_session_client_secret==="string"){
+      setConnectClientSecret(data.account_session_client_secret);
+      return;
+    }
+    setError("Stripe did not provide an embedded onboarding session. Please try again.");
   }
+
+  useEffect(() => {
+    if (!connectClientSecret) return;
+    let cancelled = false;
+    let onboardingElement: StripeConnectElement | null = null;
+    async function mountEmbeddedOnboarding() {
+      const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+      if (!publishableKey || !publishableKey.startsWith("pk_test_")) {
+        setError("Add the Stripe test publishable key to VITE_STRIPE_PUBLISHABLE_KEY before opening embedded onboarding.");
+        return;
+      }
+      try {
+        const stripeConnect = await loadStripeConnect();
+        const supabase = getSupabaseClient() as unknown as {
+          functions: { invoke(name: string, options?: Record<string, unknown>): Promise<{data: any; error: {message: string} | null}> };
+        };
+        let firstSecret: string | null = connectClientSecret;
+        const instance = stripeConnect.init({
+          publishableKey,
+          locale: "en-GB",
+          appearance: { variables: { colorPrimary: "#ff6b35" } },
+          fetchClientSecret: async () => {
+            if (firstSecret) {
+              const secret = firstSecret;
+              firstSecret = null;
+              return secret;
+            }
+            const {data,error:sessionError}=await supabase.functions.invoke("create-referee-connect-account");
+            if(sessionError) throw new Error(sessionError.message);
+            if(typeof data?.account_session_client_secret!=="string") {
+              throw new Error("Stripe did not return a refreshed onboarding session.");
+            }
+            return data.account_session_client_secret;
+          },
+        });
+        if(cancelled || !connectContainerRef.current) return;
+        onboardingElement = instance.create("account-onboarding");
+        onboardingElement.setOnExit?.(() => {
+          setConnectClientSecret(null);
+          const rpc=getSupabaseClient() as unknown as RpcClient;
+          void rpc.rpc("get_my_referee_connect_status").then(({data,error:statusError}) => {
+            if(statusError) setError(statusError.message);
+            else setConnectStatus(data as RefereeConnectStatus);
+          });
+          setNotice("You have left Stripe onboarding. Your verification status will update when Stripe confirms your details.");
+        });
+        onboardingElement.setOnLoadError?.((event) => {
+          if(event.error?.message) setError(event.error.message);
+        });
+        connectContainerRef.current.replaceChildren(onboardingElement);
+      } catch (loadError) {
+        if(!cancelled) setError(loadError instanceof Error ? loadError.message : "Unable to open Stripe onboarding.");
+      }
+    }
+    void mountEmbeddedOnboarding();
+    return () => {
+      cancelled = true;
+      onboardingElement?.remove();
+      if(connectContainerRef.current) connectContainerRef.current.replaceChildren();
+    };
+  }, [connectClientSecret]);
 
   function updateAvailability(index: number, key: keyof AvailabilitySlot, value: string) {
     setAvailability((current) => current.map((slot, slotIndex) =>
@@ -248,12 +356,14 @@ function RefereePage() {
                   <>
                     <p className="form-note" role="status">
                       {connectStatus.onboarding_status === "enabled"
-                        ? "Verified · Transfers and bank payouts are enabled."
+                        ? connectStatus.payouts_enabled
+                          ? "Verified · Open Play transfers and Stripe bank payouts are enabled."
+                          : "Verified · Open Play can transfer match fees to your Stripe balance. Bank payouts are not enabled yet."
                         : connectStatus.onboarding_status === "verification_pending"
-                          ? "Details submitted · Stripe verification is still in progress."
+                          ? "Details submitted · Stripe is still reviewing your transfer eligibility."
                           : connectStatus.onboarding_status === "restricted"
-                            ? "Restricted · Stripe requires further action before payouts can be enabled."
-                            : "Not connected · Complete Stripe Express onboarding to receive payouts."}
+                            ? "Restricted · Stripe requires further action before Open Play transfers can be made."
+                            : "Not connected · Complete Stripe Express onboarding to receive match-fee transfers."}
                     </p>
                     {connectStatus.disabled_reason && <p className="form-note">Stripe requirement: {connectStatus.disabled_reason}</p>}
                     {(connectStatus.requirements_due?.currently_due?.length ?? 0) > 0 && (
@@ -264,6 +374,11 @@ function RefereePage() {
                 <button type="button" disabled={connectBusy || connectLoading} onClick={() => void startOrRefreshConnectOnboarding()}>
                   {connectBusy ? "CONNECTING…" : connectStatus?.onboarding_status === "enabled" ? "REFRESH PAYOUT STATUS" : connectStatus?.onboarding_status === "verification_pending" ? "CONTINUE STRIPE VERIFICATION" : "CONNECT PAYOUT ACCOUNT"}
                 </button>
+                {connectClientSecret && (
+                  <div className="referee-connect-onboarding" ref={connectContainerRef} aria-label="Secure Stripe account onboarding">
+                    <p className="form-note" role="status">Loading Stripe's secure onboarding form…</p>
+                  </div>
+                )}
                 <p className="form-note">Payout transfers are currently restricted to Stripe test mode while Open Play completes platform acceptance testing.</p>
               </section>
               </>
