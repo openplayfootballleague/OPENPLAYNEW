@@ -130,8 +130,18 @@ begin
   where conversation_id=v_direct;
   if coalesce(v_unread,0)<>0 then raise exception 'Sender should not have unread messages'; end if;
 
+  -- Authenticated members must not be able to write participant read receipts directly.
+  v_failed:=false;
+  begin
+    update public.message_conversation_participants
+    set last_read_at=now()-interval '1 minute'
+    where conversation_id=v_direct and user_id=v_player_b;
+  exception when insufficient_privilege then
+    v_failed:=true;
+  end;
+  if not v_failed then raise exception 'Authenticated member could update another participant read receipt'; end if;
+
   -- Seed the recipient's prior read timestamp as a trusted test fixture.
-  -- Authenticated members must not be able to update another participant row.
   execute 'reset role';
   execute 'set local role service_role';
   update public.message_conversation_participants
