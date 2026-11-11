@@ -55,8 +55,10 @@ insert into public.user_roles(user_id,role,granted_by) values(v_finance_admin,'a
       'ci-weather-home@openplay.invalid',date '1990-04-11','registered',false,true),
     (v_away_captain,v_away_identity,'Weather Away Captain','07700900912',
       'ci-weather-away@openplay.invalid',date '1990-04-12','registered',false,true);
-  select id into v_location from public.locations where is_active=true order by created_at limit 1;
-  if v_location is null then raise exception 'Expected an active location from earlier regressions'; end if;
+  -- The weather regression must be independently replayable without relying on seed data or another test's fixtures.
+  insert into public.locations(name,slug,town,region,is_active)
+  values('Weather Test Location','ci-weather-test-location','Bideford','Devon',true)
+  returning id into v_location;
   insert into public.location_admin_assignments(user_id,location_id,assigned_by)
   values(v_admin,v_location,v_admin);
 
