@@ -782,3 +782,63 @@ body { background: #080808; color: #f5f5f5; }
   .match-score b { min-width:48px; font-size:14px; }
   .league-table th, .league-table td { padding:10px 8px; }
 }
+
+
+/* Captain Hub — roster, availability and matchday controls */
+.captain-request, .captain-roster-row, .captain-availability-fixture, .fixture-pick,
+.sheet-player, .sheet-confirm-summary {
+  border:1px solid #333; border-radius:12px; background:#202020; color:#eee;
+}
+.captain-request { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:10px; padding:14px; }
+.captain-request>div:first-child, .captain-roster-row>div:first-child { display:grid; gap:5px; min-width:0; }
+.captain-request strong, .captain-roster-row strong { color:#f5f5f5; font-size:13px; }
+.captain-request span, .captain-roster-row span { color:#999; font-size:11px; }
+.captain-actions { display:flex; flex-wrap:wrap; align-items:center; gap:9px; }
+.captain-actions button, .captain-squad-edit button {
+  min-height:36px; padding:0 14px; border:1px solid #454545; border-radius:999px;
+  background:#292929; color:#eee; font-size:11px; font-weight:700; cursor:pointer;
+}
+.captain-actions button.reject { border-color:#63362a; background:#34201b; color:#ff9875; }
+.captain-actions button.button { border:0; background:var(--orange); color:#111; }
+.captain-actions button:disabled { opacity:.45; cursor:not-allowed; }
+.captain-roster-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:9px; padding:12px 14px; }
+.captain-squad-edit { display:flex; align-items:center; gap:8px; }
+.captain-squad-edit input { width:62px; min-height:36px; border:1px solid #414141; border-radius:9px; background:#171717; color:#fff; text-align:center; }
+.captain-squad-edit button { min-height:34px; color:var(--orange); }
+.captain-availability-fixture { margin-top:12px; padding:15px; }
+.captain-availability-fixture>.hub-section-heading { align-items:flex-start; flex-direction:column; gap:6px; margin-bottom:12px; }
+.captain-availability-fixture .hub-section-heading strong { color:#eee; font-size:13px; }
+.captain-availability-fixture .hub-section-heading small { color:#999; font-size:11px; }
+.captain-availability-fixture .hub-team-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid #333; }
+.captain-availability-fixture .hub-team-row>div { display:grid; gap:4px; }
+.captain-availability-fixture .hub-team-row strong { color:#eee; font-size:12px; }
+.captain-availability-fixture .hub-team-row span { color:#999; font-size:11px; }
+.captain-availability-fixture .hub-team-row .status-active { color:#35c875; }
+.captain-availability-fixture .hub-team-row .status-pending { color:#ff9875; }
+.captain-availability-fixture .hub-team-row .status-unanswered { padding:5px 9px; border-radius:999px; background:#303030; color:#aaa; }
+.fixture-pick { display:grid; width:100%; gap:7px; margin-top:9px; padding:14px; text-align:left; cursor:pointer; }
+.fixture-pick span { color:#f5f5f5; font-size:12px; font-weight:700; }
+.fixture-pick small { color:#999; font-size:11px; }
+.fixture-pick.selected { border-color:#a74b27; background:#2b1c16; box-shadow:inset 3px 0 var(--orange); }
+.team-sheet-form { gap:14px; }
+.team-sheet-form h2 { margin:0; color:#fff; font-size:21px; }
+.sheet-counts { display:flex; justify-content:space-between; gap:12px; color:#aaa; font-size:11px; font-weight:700; }
+.sheet-player { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px; }
+.sheet-player>span { display:grid; gap:5px; color:#eee; font-size:12px; font-weight:600; }
+.sheet-player small { color:#999; font-size:10px; font-weight:400; }
+.sheet-player>div { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:10px; }
+.sheet-player label { display:inline-flex; align-items:center; gap:4px; color:#bbb; font-size:10px; white-space:nowrap; }
+.sheet-player input, .sheet-confirm-check input { accent-color:var(--orange); }
+.sheet-confirm-summary { display:grid; gap:12px; padding:15px; }
+.sheet-confirm-summary p { margin:0; color:#ccc; font-size:12px; line-height:1.6; }
+.sheet-confirm-summary strong { color:#fff; }
+.sheet-confirm-check { display:flex; align-items:flex-start; gap:9px; color:#ddd; font-size:11px; line-height:1.5; }
+.sheet-confirm-check input { margin-top:2px; }
+@media(max-width:620px) {
+  .captain-request, .captain-roster-row { align-items:flex-start; flex-direction:column; }
+  .captain-actions { width:100%; }
+  .captain-actions button { flex:1; }
+  .captain-squad-edit { width:100%; justify-content:flex-start; }
+  .sheet-player { align-items:flex-start; flex-direction:column; }
+  .sheet-player>div { justify-content:flex-start; }
+}
