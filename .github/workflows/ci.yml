@@ -410,7 +410,7 @@ jobs:
       - name: Install locked application dependencies
         run: npm ci --no-audit --no-fund
       - name: Install isolated Playwright test runner
-        run: npm install --no-save --package-lock=false @playwright/test@1.55.0
+        run: mkdir -p /tmp/openplay-playwright && npm install --prefix /tmp/openplay-playwright --no-save --package-lock=false @playwright/test@1.56.1 && mkdir -p node_modules/@playwright node_modules/.bin && ln -sfn /tmp/openplay-playwright/node_modules/@playwright/test node_modules/@playwright/test && ln -sfn /tmp/openplay-playwright/node_modules/playwright node_modules/playwright && ln -sfn /tmp/openplay-playwright/node_modules/playwright-core node_modules/playwright-core && ln -sfn /tmp/openplay-playwright/node_modules/.bin/playwright node_modules/.bin/playwright
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Use the browser runner's supported local workerd compatibility date
