@@ -90,7 +90,7 @@ begin
   execute 'set local role service_role';
   perform public.sync_referee_connect_account(
     v_referee,v_account_id,true,false,false,false,
-    jsonb_build_object('currently_due',jsonb_build_array('external_account')),'requirements.pending'
+    jsonb_build_object('currently_due',jsonb_build_array('external_account')),'requirements.pending',now()-interval '3 days'
   );
   execute 'reset role';
   execute 'set local role authenticated';
