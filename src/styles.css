@@ -382,3 +382,18 @@ a { color: inherit; text-decoration: none; }
 .notification-dispatch-control .admin-genuine-form > button { margin-top:12px; }
 .notification-dispatch-control .sheet-confirm-check { display:flex; align-items:flex-start; gap:9px; margin-top:12px; color:#45463f; font-size:11px; line-height:1.5; }
 .notification-dispatch-control .sheet-confirm-check input { flex:0 0 auto; margin-top:2px; }
+
+
+/* Admin location and season workspace selector */
+.admin-workspace-switcher{display:grid;grid-template-columns:minmax(150px,1fr) minmax(170px,1fr) minmax(170px,1fr) auto;align-items:end;gap:12px;margin:22px 0 26px;padding:18px;background:#171c18;color:#f5f3ec;border-left:3px solid var(--orange)}
+.admin-workspace-heading{display:grid;gap:7px;align-self:center}
+.admin-workspace-heading .hub-kicker{color:#aaa99f}
+.admin-workspace-heading strong{font-family:"Barlow Condensed",sans-serif;font-size:27px;line-height:1;text-transform:uppercase}
+.admin-workspace-switcher label{display:grid;gap:7px;color:#c8c7bd;font-size:9px;font-weight:800;letter-spacing:.1em}
+.admin-workspace-switcher select{width:100%;min-height:43px;padding:9px 11px;border:1px solid #4a4d45;border-radius:0;background:#242a24;color:#f5f3ec;font:inherit;font-size:12px}
+.admin-workspace-switcher select:focus{outline:2px solid var(--orange);outline-offset:2px}
+.admin-workspace-switcher>button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:43px;padding:0 14px;border:0;background:var(--orange);color:#171713;font-size:9px;font-weight:900;letter-spacing:.06em;white-space:nowrap;cursor:pointer}
+.admin-workspace-switcher>button span{font-size:16px}
+.admin-workspace-switcher>button:hover{background:#ff8250}
+@media(max-width:760px){.admin-workspace-switcher{grid-template-columns:1fr 1fr}.admin-workspace-heading{grid-column:1/-1}.admin-workspace-switcher>button{grid-column:1/-1;width:100%}}
+@media(max-width:420px){.admin-workspace-switcher{grid-template-columns:1fr;padding:15px}.admin-workspace-heading{grid-column:auto}.admin-workspace-switcher>button{grid-column:auto}}
