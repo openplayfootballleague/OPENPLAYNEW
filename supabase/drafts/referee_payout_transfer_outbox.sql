@@ -69,6 +69,7 @@ $$;
 create trigger referee_report_payout_transfer_job_sync
 after insert or update of status on public.referee_report_payouts
 for each row execute function public.sync_referee_report_payout_transfer_job();
+revoke all on function public.sync_referee_report_payout_transfer_job() from public,anon,authenticated;
 
 create or replace function public.claim_referee_payout_transfer_jobs(p_limit integer default 10)
 returns table(job_id uuid,payout_id uuid,lock_token uuid)
