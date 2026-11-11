@@ -29,6 +29,20 @@ begin
     raise exception 'Anonymous users must not execute feature-management RPCs';
   end if;
 
+  if not has_function_privilege('authenticated','public.admin_set_platform_feature_flag(text,boolean,text)','EXECUTE')
+     or not has_function_privilege('authenticated','public.get_admin_platform_feature_flags()','EXECUTE') then
+    raise exception 'Authenticated role must be able to call the permission-checked feature RPCs';
+  end if;
+
+  if not exists (
+    select 1 from pg_catalog.pg_trigger
+    where tgname='enforce_team_recruitment_feature_flag' and not tgisinternal
+  ) then raise exception 'Team recruitment enforcement trigger is missing'; end if;
+  if not exists (
+    select 1 from pg_catalog.pg_trigger
+    where tgname='enforce_announcement_feature_flag' and not tgisinternal
+  ) then raise exception 'Announcement enforcement trigger is missing'; end if;
+
   select public.is_platform_feature_enabled('team_recruitment') into v_enabled;
   if not v_enabled then raise exception 'Recruitment must be enabled by default'; end if;
   select public.is_platform_feature_enabled('announcements') into v_enabled;
