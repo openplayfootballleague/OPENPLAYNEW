@@ -3236,6 +3236,17 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_get_team_social_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          instagram_handle: string | null
+          instagram_profile_url: string | null
+          location_name: string
+          season_name: string
+          season_team_id: string
+          team_name: string
+        }[]
+      }
       get_captain_team_social_profiles: {
         Args: Record<PropertyKey, never>
         Returns: {
