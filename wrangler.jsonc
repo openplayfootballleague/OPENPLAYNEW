@@ -16,5 +16,6 @@
   "observability": {
     "enabled": true
   },
-  "previews": {}
+  "previews": {},
+  "preview_urls": true
 }
