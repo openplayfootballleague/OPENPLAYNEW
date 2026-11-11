@@ -1,0 +1,39 @@
+-- Platform feature-management permissions and enforcement boundaries.
+begin;
+
+do $$
+declare
+  v_enabled boolean;
+  v_count integer;
+begin
+  if not exists (
+    select 1 from pg_catalog.pg_class c
+    join pg_catalog.pg_namespace n on n.oid=c.relnamespace
+    where n.nspname='public' and c.relname='platform_feature_flags' and c.relrowsecurity
+  ) then raise exception 'Platform feature flags must have RLS enabled'; end if;
+
+  select count(*) into v_count
+  from public.platform_feature_flags
+  where feature_key in ('team_recruitment','announcements') and enabled is true;
+  if v_count<>2 then raise exception 'Both feature flags must default to enabled'; end if;
+
+  if has_table_privilege('anon','public.platform_feature_flags','SELECT')
+     or has_table_privilege('authenticated','public.platform_feature_flags','SELECT')
+     or has_table_privilege('anon','public.platform_feature_flags','UPDATE')
+     or has_table_privilege('authenticated','public.platform_feature_flags','UPDATE') then
+    raise exception 'Feature flags must be accessed only through authorised RPCs';
+  end if;
+
+  if has_function_privilege('anon','public.admin_set_platform_feature_flag(text,boolean,text)','EXECUTE')
+     or has_function_privilege('anon','public.get_admin_platform_feature_flags()','EXECUTE') then
+    raise exception 'Anonymous users must not execute feature-management RPCs';
+  end if;
+
+  select public.is_platform_feature_enabled('team_recruitment') into v_enabled;
+  if not v_enabled then raise exception 'Recruitment must be enabled by default'; end if;
+  select public.is_platform_feature_enabled('announcements') into v_enabled;
+  if not v_enabled then raise exception 'Announcements must be enabled by default'; end if;
+end;
+$$;
+
+rollback;
