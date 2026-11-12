@@ -1506,3 +1506,23 @@ a { color: inherit; text-decoration: none; }
   .team-registration-review > div { align-items: flex-start; flex-direction: column; gap: 5px; }
   .team-registration-review strong { text-align: left; }
 }
+
+
+/* Admin review of submitted team applications */
+.admin-team-application-row { align-items: flex-start; }
+.admin-team-application-heading { display: grid; flex: 1; min-width: 0; gap: 7px; }
+.admin-team-application-details { margin-top: 7px; }
+.admin-team-application-details summary { display: inline-flex; padding: 7px 0; color: #e96831; font-size: 10px; font-weight: 800; letter-spacing: .1em; cursor: pointer; }
+.admin-team-application-details-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px 18px; padding: 14px; border: 1px solid #393d35; background: #171a16; }
+.admin-team-application-details-grid > div { display: grid; min-width: 0; gap: 5px; }
+.admin-team-application-details-grid span { color: #a7a99e; font-size: 9px; font-weight: 800; letter-spacing: .1em; }
+.admin-team-application-details-grid strong, .admin-team-application-details-grid a { color: #f4f3ec; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+.admin-team-application-details-grid a { color: #ff8a53; }
+.admin-team-application-extra { grid-column: 1 / -1; padding-top: 8px; border-top: 1px solid #393d35; }
+.admin-team-application-extra p { margin: 0; color: #e2e1d9; font-size: 12px; line-height: 1.6; white-space: pre-wrap; }
+.admin-team-application-crest { width: 82px; height: 82px; margin-top: 12px; padding: 7px; object-fit: contain; background: #f5f3ed; }
+@media (max-width: 680px) {
+  .admin-team-application-row { flex-direction: column; }
+  .admin-team-application-details-grid { grid-template-columns: 1fr; }
+  .admin-team-application-extra { grid-column: auto; }
+}
