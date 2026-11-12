@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useRequiredSession } from "../lib/auth/use-required-session";
 import { getSupabaseClient } from "../lib/supabase/client";
@@ -31,7 +32,11 @@ type MessageReport = {
 
 export const Route = createFileRoute("/admin-messages")({ component: AdminMessagesPage });
 
-function AdminMessagesPage() {
+function AdminMessagesPage(){
+ return <AuthenticatedSessionBoundary label="ADMIN MESSAGES"><AdminMessagesWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function AdminMessagesWorkspace() {
   const authStatus = useRequiredSession();
   const [loading, setLoading] = useState(true);
   const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
