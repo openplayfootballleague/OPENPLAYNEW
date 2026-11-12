@@ -11,6 +11,7 @@ declare
   v_team uuid;
   v_season_team uuid;
   v_membership uuid;
+  v_approved_membership uuid;
   v_request uuid;
   v_error text;
 begin
@@ -60,6 +61,7 @@ begin
 
   select id into v_membership from public.team_memberships
   where season_team_id=v_season_team and user_id=v_player;
+  v_approved_membership:=v_membership;
 
   -- A player cannot submit a captain request or act on another player's request.
   perform set_config('request.jwt.claim.sub',v_player::text,true);
@@ -156,7 +158,7 @@ begin
   end if;
 
   if not exists(select 1 from public.audit_log where entity_type='team_membership' and entity_id=v_membership::text and action='captain.membership_removal.cancelled')
-     or not exists(select 1 from public.audit_log where entity_type='team_membership' and entity_id=v_membership::text and action='player.membership_removal.approved') then
+     or not exists(select 1 from public.audit_log where entity_type='team_membership' and entity_id=v_approved_membership::text and action='player.membership_removal.approved') then
     raise exception 'Membership removal lifecycle audit events are missing';
   end if;
 end;
