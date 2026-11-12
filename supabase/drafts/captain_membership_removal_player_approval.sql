@@ -12,7 +12,7 @@ returns void
 language plpgsql
 security definer
 set search_path=''
-as $
+as '
 declare
   v_preferences public.notification_preferences;
   v_dedupe text;
@@ -21,35 +21,35 @@ begin
   insert into public.notification_preferences(user_id) values(p_user_id)
   on conflict(user_id) do nothing;
   select * into v_preferences from public.notification_preferences where user_id=p_user_id;
-  v_dedupe:=p_event_type||':'||coalesce(
-    p_payload->>'request_id',
-    p_payload->>'report_id',
-    p_payload->>'message_id',
-    p_payload->>'fixture_id',
-    p_payload->>'membership_id',
-    p_payload->>'season_team_id',
-    p_payload->>'conversation_id',
-    'event'
-  )||':'||p_user_id::text;
+  v_dedupe:=p_event_type||'':''||coalesce(
+    p_payload->>''request_id'',
+    p_payload->>''report_id'',
+    p_payload->>''message_id'',
+    p_payload->>''fixture_id'',
+    p_payload->>''membership_id'',
+    p_payload->>''season_team_id'',
+    p_payload->>''conversation_id'',
+    ''event''
+  )||'':''||p_user_id::text;
 
   if v_preferences.email_enabled then
     insert into public.notification_events(user_id,channel,event_type,status,payload,dedupe_key)
-    values(p_user_id,'email',p_event_type,'queued',coalesce(p_payload,'{}'::jsonb),v_dedupe||':email')
+    values(p_user_id,''email'',p_event_type,''queued'',coalesce(p_payload,''{}''::jsonb),v_dedupe||'':email'')
     on conflict(dedupe_key) where dedupe_key is not null do nothing;
   end if;
   if v_preferences.sms_enabled then
     insert into public.notification_events(user_id,channel,event_type,status,payload,dedupe_key)
-    values(p_user_id,'sms',p_event_type,'queued',coalesce(p_payload,'{}'::jsonb),v_dedupe||':sms')
+    values(p_user_id,''sms'',p_event_type,''queued'',coalesce(p_payload,''{}''::jsonb),v_dedupe||'':sms'')
     on conflict(dedupe_key) where dedupe_key is not null do nothing;
   end if;
   if v_preferences.in_app_enabled then
     insert into public.notification_events(user_id,channel,event_type,status,payload,dedupe_key,sent_at)
-    values(p_user_id,'in_app',p_event_type,'sent',coalesce(p_payload,'{}'::jsonb),v_dedupe||':in_app',now())
+    values(p_user_id,''in_app'',p_event_type,''sent'',coalesce(p_payload,''{}''::jsonb),v_dedupe||'':in_app'',now())
     on conflict(dedupe_key) where dedupe_key is not null do nothing;
   end if;
 end;
-
-$;
+'
+;
 revoke all on function public.enqueue_notification_event(uuid,text,jsonb) from public,anon,authenticated;
 
 create table if not exists public.team_membership_removal_requests (
