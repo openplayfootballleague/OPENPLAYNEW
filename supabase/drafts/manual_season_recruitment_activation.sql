@@ -241,10 +241,11 @@ begin
     raise exception 'Enter a reason between 5 and 500 characters' using errcode='22023';
   end if;
 
-  select s,l.location_id into v_before,v_location_id
-  from public.seasons s join public.leagues l on l.id=s.league_id
-  where s.id=p_season_id for update of s;
+  select s.* into v_before
+  from public.seasons s where s.id=p_season_id for update;
   if not found then raise exception 'Season not found' using errcode='P0002'; end if;
+  select l.location_id into v_location_id
+  from public.leagues l where l.id=v_before.league_id;
   if not public.can_administer_location(v_location_id) then
     raise exception 'Location administrator permission required' using errcode='42501';
   end if;
@@ -295,14 +296,14 @@ begin
     raise exception 'Enter a reason between 5 and 500 characters' using errcode='22023';
   end if;
 
-  select s,l.location_id
-    into v_season,v_location_id
+  select s.* into v_season
   from public.seasons s
-  join public.leagues l on l.id=s.league_id
   where s.id=p_season_id
-  for update of s;
+  for update;
 
   if not found then raise exception 'Season not found' using errcode='P0002'; end if;
+  select l.location_id into v_location_id
+  from public.leagues l where l.id=v_season.league_id;
   if not public.can_administer_location(v_location_id) then
     raise exception 'Location administrator permission required' using errcode='42501';
   end if;
@@ -393,10 +394,11 @@ begin
     raise exception 'Enter a reason between 5 and 500 characters' using errcode='22023';
   end if;
 
-  select s,l.location_id into v_before,v_location_id
-  from public.seasons s join public.leagues l on l.id=s.league_id
-  where s.id=p_season_id for update of s;
+  select s.* into v_before
+  from public.seasons s where s.id=p_season_id for update;
   if not found then raise exception 'Season not found' using errcode='P0002'; end if;
+  select l.location_id into v_location_id
+  from public.leagues l where l.id=v_before.league_id;
   if not public.can_administer_location(v_location_id) then
     raise exception 'Location administrator permission required' using errcode='42501';
   end if;
