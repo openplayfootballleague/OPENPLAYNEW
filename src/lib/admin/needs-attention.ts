@@ -1,6 +1,6 @@
 export type NeedsAttentionTask = {
   id: string;
-  category: "Player review" | "Team application" | "Membership request" | "Missing team sheet" | "Player transfer request" | "Notification exception" | "Result needs attention" | "Fixture needs attention" | "Payment exception";
+  category: "Player review" | "Team application" | "Membership request" | "Missing team sheet" | "Player transfer request" | "Notification exception" | "Result needs attention" | "Fixture needs attention" | "Payment due" | "Payment exception";
   subject: string;
   context: string;
   createdAt: string;
@@ -120,6 +120,8 @@ export function buildNeedsAttentionTasks(input: NeedsAttentionInput, limit = 12)
 
   tasks.push(...(input.paymentObligations ?? [])
     .filter((item) =>
+      item.status === "due" ||
+      item.status === "grace_period" ||
       item.status === "defaulted" ||
       item.status === "admin_review" ||
       item.status === "paid_after_cancellation" ||
@@ -129,7 +131,7 @@ export function buildNeedsAttentionTasks(input: NeedsAttentionInput, limit = 12)
     )
     .map((item): NeedsAttentionTask => ({
       id: `payment:${item.obligation_id}`,
-      category: "Payment exception",
+      category: item.status === "due" || item.status === "grace_period" ? "Payment due" : "Payment exception",
       subject: item.team_name,
       context: `${item.season_name} · Gameweek ${item.gameweek} vs ${item.opponent_name} · ${item.status.replaceAll("_", " ")} · £${(item.amount_pence / 100).toFixed(2)}${item.refund_status ? ` · refund ${item.refund_status}` : ""}`,
       createdAt: item.deadline_at,
