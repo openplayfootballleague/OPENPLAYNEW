@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AuthenticatedSessionBoundary } from "../../components/authenticated-session-boundary";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRequiredSession } from "../../lib/auth/use-required-session";
 import { aggregateFinanceTotals, buildAnalyticsOverview, buildLocationComparisons, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup, type FinanceSummaryRow } from "../../lib/analytics/overview";
@@ -21,7 +22,11 @@ const csvCell = (value: string | number) => '"' + String(value).replaceAll('"', 
 
 export const Route = createFileRoute("/admin/analytics")({ component: AdminAnalyticsPage });
 
-function AdminAnalyticsPage() {
+function AdminAnalyticsPage(){
+ return <AuthenticatedSessionBoundary label="ADMIN ANALYTICS"><AdminAnalyticsWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function AdminAnalyticsWorkspace() {
   const authStatus = useRequiredSession();
   const navigate = useNavigate();
   const [contextReady, setContextReady] = useState(false);
