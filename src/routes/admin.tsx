@@ -135,6 +135,9 @@ function AdminDashboardPage(){
   playerReviews:data.player_reviews,
   teamApplications:data.team_applications,
   membershipRequests:data.membership_requests,
+  fixtures:contextFixtures,
+  submittedSheets:teamSheets,
+  transferRequests,
  });
  const attentionTotal=data.counts.pending_player_reviews+data.counts.pending_team_applications+data.counts.pending_membership_requests;
  return <main className="notice-page"><section id="admin-dashboard" className="notice-panel hub-panel"><Link className="notice-brand" to="/player"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link><p className="eyebrow eyebrow-dark">ADMINISTRATION</p><h1>League<br/><em>control.</em></h1><p>Needs Attention — the operational queue for Open Play.</p><nav className="admin-workspace-nav" aria-label="Administrative workspaces">
