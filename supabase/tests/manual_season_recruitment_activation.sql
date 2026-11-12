@@ -10,11 +10,17 @@ declare
   v_previous uuid;
   v_upcoming uuid;
   v_blocked uuid;
+  v_no_result uuid;
   v_home uuid;
   v_away uuid;
   v_home_team uuid;
   v_away_team uuid;
   v_fixture uuid;
+  v_blocked_home uuid;
+  v_blocked_away uuid;
+  v_blocked_home_team uuid;
+  v_blocked_away_team uuid;
+  v_blocked_fixture uuid;
   v_opened public.seasons;
   v_failed boolean;
 begin
@@ -38,6 +44,9 @@ begin
   insert into public.seasons(league_id,name,season_number,status,is_public,starts_on)
   values(v_league,'Blocked Following Season',3,'draft',false,date '2027-06-01')
   returning id into v_blocked;
+  insert into public.seasons(league_id,name,season_number,status,is_public,starts_on)
+  values(v_league,'Missing Result Season',4,'draft',false,date '2027-12-01')
+  returning id into v_no_result;
 
   insert into public.teams(created_by) values(v_admin) returning id into v_home;
   insert into public.teams(created_by) values(v_admin) returning id into v_away;
@@ -54,6 +63,18 @@ begin
   returning id into v_fixture;
   insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
   values(v_fixture,3,2,now(),v_admin);
+
+  insert into public.teams(created_by) values(v_admin) returning id into v_blocked_home;
+  insert into public.teams(created_by) values(v_admin) returning id into v_blocked_away;
+  insert into public.season_teams(team_id,season_id,name,slug,registration_status,approved_at,approved_by)
+  values
+    (v_blocked_home,v_blocked,'Blocked Home','ci-blocked-home','approved',now(),v_admin),
+    (v_blocked_away,v_blocked,'Blocked Away','ci-blocked-away','approved',now(),v_admin);
+  select id into v_blocked_home_team from public.season_teams where season_id=v_blocked and name='Blocked Home';
+  select id into v_blocked_away_team from public.season_teams where season_id=v_blocked and name='Blocked Away';
+  insert into public.fixtures(season_id,gameweek,fixture_number,home_team_id,away_team_id,venue_id,scheduled_at,status)
+  values(v_blocked,14,1,v_blocked_home_team,v_blocked_away_team,v_location,now()-interval '1 hour','completed')
+  returning id into v_blocked_fixture;
 
   v_failed:=false;
   begin
@@ -75,6 +96,13 @@ begin
   exception when sqlstate '55000' then v_failed:=true;
   end;
   if not v_failed then raise exception 'A following season opened before the previous season final fixture existed'; end if;
+
+  v_failed:=false;
+  begin
+    perform public.admin_open_season_recruitment(v_no_result,'Final fixture must have a published result');
+  exception when sqlstate '55000' then v_failed:=true;
+  end;
+  if not v_failed then raise exception 'A season opened when the previous final fixture had no published result'; end if;
 
   execute 'reset role';
 
