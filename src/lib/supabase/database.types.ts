@@ -1345,8 +1345,8 @@ export type Database = {
           league_id: string
           name: string
           registration_closes_at: string | null
-          registration_opened_at: string | null
-          registration_opened_by: string | null
+          recruitment_opened_at: string | null
+          recruitment_opened_by: string | null
           recruitment_closed_at: string | null
           recruitment_closed_by: string | null
           recruitment_status: string
@@ -1364,8 +1364,8 @@ export type Database = {
           league_id: string
           name: string
           registration_closes_at?: string | null
-          registration_opened_at?: string | null
-          registration_opened_by?: string | null
+          recruitment_opened_at?: string | null
+          recruitment_opened_by?: string | null
           recruitment_closed_at?: string | null
           recruitment_closed_by?: string | null
           recruitment_status?: string
@@ -1383,8 +1383,8 @@ export type Database = {
           league_id?: string
           name?: string
           registration_closes_at?: string | null
-          registration_opened_at?: string | null
-          registration_opened_by?: string | null
+          recruitment_opened_at?: string | null
+          recruitment_opened_by?: string | null
           recruitment_closed_at?: string | null
           recruitment_closed_by?: string | null
           recruitment_status?: string
