@@ -6,6 +6,7 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { getTeamRequestDisplay, type TeamRequestStatus } from "../lib/team-request-status";
+import { getPlayerSessionTransition } from "../lib/auth/player-session";
 
 type NotificationPreferences={email_enabled:boolean;sms_enabled:boolean;in_app_enabled:boolean};
 type PlayerNotification={id:string;event_type:string;payload:unknown;created_at:string;read_at:string|null};
@@ -110,17 +111,17 @@ function PlayerHubPage(){
 
   function handleSession(next:Session|null){
    const nextUserId=next?.user.id??null;
-   if(activeUserId===nextUserId){
+   const transition=getPlayerSessionTransition(activeUserId,nextUserId);
+   if(transition==="same-user"){
     setSession(next);
-    if(nextUserId===null&&activeUserId===null)setLoading(false);
     return;
    }
    activeUserId=nextUserId;
    requestGeneration++;
    clearPlayerData();
    setSession(next);
-   if(!next){setLoading(false);return;}
-   void loadForSession(next).catch((cause:unknown)=>{
+   if(transition==="signed-out"){setLoading(false);return;}
+   void loadForSession(next!).catch((cause:unknown)=>{
     if(!alive)return;
     setLoading(false);
     setError(cause instanceof Error?cause.message:"Unable to load your player hub.");
