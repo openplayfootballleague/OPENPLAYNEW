@@ -442,7 +442,7 @@ function JoinPage() {
                         <label>Team crest <span className="field-optional">OPTIONAL</span>
                           <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={(event) => setCrestFile(event.currentTarget.files?.[0] ?? null)} />
                         </label>
-                        <p className="form-note">PNG, JPG or SVG · Maximum 5 MB. You can add or change your crest later.</p>
+                        <p className="form-note">PNG, JPG or SVG · Maximum 5 MB. You can add or replace your crest later from your Captain Hub.</p>
                         {crestFile && <div className="team-selected-file"><span>{crestFile.name}</span><button type="button" onClick={() => setCrestFile(null)}>Remove</button></div>}
                         <fieldset className="team-registration-choice">
                           <legend>Is this a new or returning team?</legend>
