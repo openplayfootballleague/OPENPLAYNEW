@@ -62,6 +62,29 @@ create trigger enforce_season_player_recruitment_open
 before insert or update of status,season_id on public.season_registrations
 for each row execute function public.enforce_season_recruitment_open();
 
+create or replace function public.guard_season_recruitment_transition()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  if old.status::text='draft' and new.status::text='registration_open'
+     and (new.recruitment_status<>'open'
+       or new.recruitment_opened_at is null
+       or new.recruitment_opened_by is null) then
+    raise exception 'Use the audited manual recruitment activation action after the previous season has finished'
+      using errcode='55000';
+  end if;
+  return new;
+end;
+$;
+revoke all on function public.guard_season_recruitment_transition() from public,anon,authenticated;
+drop trigger if exists guard_season_recruitment_transition on public.seasons;
+create trigger guard_season_recruitment_transition
+before update of status on public.seasons
+for each row execute function public.guard_season_recruitment_transition();
+
 create or replace function public.admin_open_season_recruitment(
   p_season_id uuid,
   p_reason text
