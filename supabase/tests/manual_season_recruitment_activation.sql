@@ -151,6 +151,18 @@ begin
   end;
   if not v_failed then raise exception 'A team application was accepted for a closed upcoming season'; end if;
 
+  insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status,is_genuine,is_banned)
+  values(v_admin,'Season Recruitment Admin','+447700969991','ci-season-admin@openplay.invalid',date '1990-01-01','registered',true,false);
+  insert into public.season_teams(team_id,season_id,name,slug,registration_status,approved_at,approved_by)
+  values(v_home,v_blocked,'Closed Membership Team','ci-closed-membership-team','approved',now(),v_admin);
+  v_failed:=false;
+  begin
+    insert into public.team_memberships(season_team_id,user_id,status,is_captain)
+    values((select id from public.season_teams where slug='ci-closed-membership-team'),v_admin,'pending',false);
+  exception when sqlstate '55000' then v_failed:=true;
+  end;
+  if not v_failed then raise exception 'A future season membership was created before recruitment opened'; end if;
+
   if (select recruitment_status from public.seasons where id=v_upcoming)<>'open' then
     raise exception 'Manual activation did not persist';
   end if;
