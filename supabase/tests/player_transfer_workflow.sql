@@ -405,7 +405,7 @@ begin
     raise exception 'A second active club in the same league was incorrectly allowed across seasons';
   exception when others then
     get stacked diagnostics v_error=message_text;
-    if v_error not like 'A player can represent only one club%' then raise; end if;
+    if v_error not like 'You must leave your existing club before joining another club in the same area%' then raise; end if;
   end;
 
   -- The same player may still represent a club in a different league.
