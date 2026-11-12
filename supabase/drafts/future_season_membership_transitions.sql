@@ -826,9 +826,10 @@ begin
     end if;
     if exists(
       select 1 from public.team_memberships tm
-      join public.season_teams st on st.id=tm.season_team_id
+      join public.season_teams other_team on other_team.id=tm.season_team_id
       where tm.user_id=v_membership.user_id and tm.status='active'
-        and st.season_id=v_season.id and st.team_id is distinct from v_team.team_id
+        and other_team.season_id=v_season.id
+        and other_team.team_id <> v_team.team_id
         and tm.id is distinct from v_membership.id
     ) then
       raise exception 'The player must leave their existing club before joining another club in the same area for this season';
@@ -1113,7 +1114,7 @@ as $$
   join public.seasons s on s.id=st.season_id
   left join public.seasons barrier on barrier.id=tm.activation_after_season_id
   where auth.uid() is not null
-    and tm.user_id=auth.uid()
+    and tm.user_id = auth.uid()
     and tm.status::text<>'left'
   order by tm.created_at desc,tm.id
   limit 100;
@@ -1230,6 +1231,9 @@ begin
   select l.location_id into v_location_id from public.leagues l where l.id=v_season.league_id;
   if v_season.league_id is distinct from v_lock_league_id or v_location_id is distinct from v_lock_location_id then
     raise exception 'The team registration competition changed while the application was being resolved. Please retry';
+  end if;
+  if not public.can_administer_location(v_location_id) then
+    raise exception 'You are not assigned to this location';
   end if;
 
   if p_decision='approved' then
