@@ -18,6 +18,7 @@ const expectedMigrations = [
   "player_self_service_statistics",
   "optional_goal_attribution",
   "admin_league_admin_role_management",
+  "future_season_membership_transitions",
 ];
 let checked = 0;
 const foundMigrations = [];
