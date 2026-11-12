@@ -11,7 +11,7 @@ describe("Open Play analytics property governance", () => {
   it("keeps only allow-listed, validated, non-sensitive properties", () => {
     expect(sanitizeAnalyticsProperties({
       route_category: "player_hub",
-      feature: "player_hub",
+      ...{ feature: "player_hub" },
       device_type: "mobile",
       app_version: "1.2.3",
       competition_format: "six_a_side",
