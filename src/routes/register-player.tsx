@@ -22,7 +22,7 @@ type GuardianConsent = {
 export const Route = createFileRoute("/register-player")({ component: RegisterPlayerPage });
 
 function RegisterPlayerPage(){
- return <AuthenticatedSessionBoundary label="PLAYER REGISTRATION"><RegisterPlayerWorkspace/></AuthenticatedSessionBoundary>;
+ return <AuthenticatedSessionBoundary label="PLAYER REGISTRATION" allowSignUp><RegisterPlayerWorkspace/></AuthenticatedSessionBoundary>;
 }
 
 function RegisterPlayerWorkspace() {
