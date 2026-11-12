@@ -40,6 +40,7 @@ declare
   v_player_future_membership uuid;
   v_fixture_one uuid;
   v_fixture_two uuid;
+  v_fixture_cancelled uuid;
   v_count integer;
   v_other_area_membership uuid;
   v_error text;
@@ -247,6 +248,10 @@ begin
   insert into public.fixtures(season_id,home_team_id,away_team_id,gameweek,fixture_number,status,scheduled_at)
   values(v_previous_season,v_opponent_st,v_old_st,14,2,'postponed',now()-interval '1 hour')
   returning id into v_fixture_two;
+
+  insert into public.fixtures(season_id,home_team_id,away_team_id,gameweek,fixture_number,status,scheduled_at)
+  values(v_previous_season,v_old_st,v_opponent_st,14,3,'cancelled',now()-interval '45 minutes')
+  returning id into v_fixture_cancelled;
 
   insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
   values(v_fixture_one,2,1,now(),v_admin);
