@@ -217,6 +217,9 @@ begin
   if v_obligation.status='weather_cancelled' then
     v_status:='refund_pending';
     v_reason:='Payment completed after a weather postponement; full refund queued and no strike applied';
+  elsif v_obligation.status='defaulted' and p_paid_at<=v_obligation.grace_ends_at then
+    v_status:='admin_review';
+    v_reason:='Provider confirmed payment timestamp is within grace, but the fixture was already cancelled; administrator reconciliation required';
   elsif v_obligation.status='defaulted' then
     v_status:='paid_after_cancellation';
     v_reason:='Defaulting team settled its outstanding fee after fixture cancellation; fixture remains cancelled';

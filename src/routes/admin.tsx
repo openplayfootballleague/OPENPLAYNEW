@@ -153,6 +153,7 @@ function AdminDashboardPage(){
    </nav>
    <div className="admin-workspace-utility-nav" aria-label="Additional administrative tools">
     <a href="#admin-transfers">Transfer queue</a>
+    {(isGlobalAdmin||adminLocationId)&&<Link to="/admin-messages">Messaging &amp; moderation</Link>}
     {isGlobalAdmin&&<a href="#admin-audit">Audit history</a>}
    </div><p className="admin-finance-link"><Link to="/finance">OPEN FINANCE LEDGER <span>↗</span></Link></p><p className="admin-finance-link"><Link to="/admin-help">ADMIN HELP &amp; GUIDES <span>↗</span></Link></p>
   {error&&<p className="form-error" role="alert">{error}</p>}{notice&&<p className="form-success" role="status">{notice}</p>}

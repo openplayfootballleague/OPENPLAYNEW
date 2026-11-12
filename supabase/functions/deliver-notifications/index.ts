@@ -78,6 +78,8 @@ function renderMessage(event: EventRow): RenderedMessage {
         subject: `Open Play – match report needs an update (Gameweek ${p.gameweek ?? "fixture"})`,
         text: `Your match report for ${home} v ${away} has been returned for correction. Submitted score: ${score}. Administrator feedback: ${p.review_reason ?? "Please contact Open Play for details."} Please update and resubmit your report in the referee workspace.`,
       };
+    case "message.new":
+      return { subject: "Open Play – new message", text: "You have a new message in your Open Play inbox. Sign in to view it." };
     case "referee.report.approved":
       return {
         subject: `Open Play – match report approved (Gameweek ${p.gameweek ?? "fixture"})`,
