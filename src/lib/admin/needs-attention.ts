@@ -1,10 +1,10 @@
 export type NeedsAttentionTask = {
   id: string;
-  category: "Player review" | "Team application" | "Membership request" | "Missing team sheet" | "Player transfer request" | "Notification exception";
+  category: "Player review" | "Team application" | "Membership request" | "Missing team sheet" | "Player transfer request" | "Notification exception" | "Result needs attention";
   subject: string;
   context: string;
   createdAt: string;
-  href: "#admin-player-approvals" | "#admin-team-approvals" | "#admin-membership-requests" | "#admin-team-sheets" | "#admin-transfers" | "#admin-communications";
+  href: "#admin-player-approvals" | "#admin-team-approvals" | "#admin-membership-requests" | "#admin-team-sheets" | "#admin-transfers" | "#admin-communications" | "#admin-results";
   actionLabel: string;
 };
 
@@ -12,7 +12,7 @@ export type NeedsAttentionInput = {
   playerReviews: ReadonlyArray<{ player_id: string; full_name: string; created_at: string }>;
   teamApplications: ReadonlyArray<{ season_team_id: string; team_name: string; season_name: string; created_at: string }>;
   membershipRequests: ReadonlyArray<{ membership_id: string; team_name: string; player_name: string; created_at: string }>;
-  fixtures?: ReadonlyArray<{ id: string; season_name: string; gameweek: number; scheduled_at: string | null; status: string; home_team_id: string; away_team_id: string; home_team_name: string; away_team_name: string }>;
+  fixtures?: ReadonlyArray<{ id: string; season_name: string; gameweek: number; scheduled_at: string | null; status: string; home_team_id: string; away_team_id: string; home_team_name: string; away_team_name: string; home_score?: number | null; away_score?: number | null }>;
   submittedSheets?: ReadonlyArray<{ fixture_id: string; season_team_id: string }>;
   transferRequests?: ReadonlyArray<{ id: string; player_name: string | null; source_team_name: string; destination_team_name: string; season_name: string; requested_at: string }>;
   notifications?: ReadonlyArray<{ id: string; recipient_name: string | null; recipient_email: string | null; recipient_phone: string | null; event_type: string; status: string; created_at: string; last_error: string | null; hold_reason: string | null }>;
@@ -55,6 +55,17 @@ export function buildNeedsAttentionTasks(input: NeedsAttentionInput, limit = 12)
 
   const submittedSheetKeys = new Set((input.submittedSheets ?? []).map((sheet) => `${sheet.fixture_id}:${sheet.season_team_id}`));
   for (const fixture of input.fixtures ?? []) {
+    if (fixture.status === "completed" && (fixture.home_score == null || fixture.away_score == null)) {
+      tasks.push({
+        id: `result:${fixture.id}`,
+        category: "Result needs attention",
+        subject: `${fixture.home_team_name} vs ${fixture.away_team_name}`,
+        context: `${fixture.season_name} · Gameweek ${fixture.gameweek} · Completed fixture has no confirmed score`,
+        createdAt: fixture.scheduled_at ?? "",
+        href: "#admin-results",
+        actionLabel: "Review result",
+      });
+    }
     if (fixture.status !== "scheduled" && fixture.status !== "in_progress") continue;
     for (const side of [
       { teamId: fixture.home_team_id, teamName: fixture.home_team_name },
