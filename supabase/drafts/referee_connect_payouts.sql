@@ -414,8 +414,21 @@ begin
     if v_status not in ('processing','transferred') or (v_status='transferred' and not p_transfer_reversed) then
       raise exception 'Referee payout cannot be marked failed from its current state';
     end if;
-    if p_transfer_reversed and (p_stripe_transfer_id is null or v_transfer_id is distinct from p_stripe_transfer_id) then
-      return 'stale_reversal';
+    if p_transfer_reversed and p_stripe_transfer_id is null then
+      return 'unmatched_reversal';
+    end if;
+    if p_transfer_reversed and v_transfer_id is distinct from p_stripe_transfer_id then
+      if exists(
+        select 1 from public.referee_payout_transfer_history history
+        where history.payout_type='match_report' and history.payout_id=p_payout_id
+          and history.stripe_transfer_id=p_stripe_transfer_id and history.status='reversed'
+      ) then return 'stale_reversal'; end if;
+      update public.referee_payout_transfer_history
+      set status='reversed',failure_reason=left(coalesce(p_failure_reason,'Stripe transfer reversed'),500)
+      where payout_type='match_report' and payout_id=p_payout_id
+        and stripe_transfer_id=p_stripe_transfer_id and status='transferred';
+      if found then return 'stale_reversal'; end if;
+      return 'unmatched_reversal';
     end if;
     insert into public.referee_payout_transfer_history(
       payout_type,payout_id,referee_user_id,attempt_number,stripe_transfer_id,
@@ -438,8 +451,21 @@ begin
     if v_status not in ('processing','transferred') or (v_status='transferred' and not p_transfer_reversed) then
       raise exception 'Referee milestone cannot be marked failed from its current state';
     end if;
-    if p_transfer_reversed and (p_stripe_transfer_id is null or v_transfer_id is distinct from p_stripe_transfer_id) then
-      return 'stale_reversal';
+    if p_transfer_reversed and p_stripe_transfer_id is null then
+      return 'unmatched_reversal';
+    end if;
+    if p_transfer_reversed and v_transfer_id is distinct from p_stripe_transfer_id then
+      if exists(
+        select 1 from public.referee_payout_transfer_history history
+        where history.payout_type='milestone' and history.payout_id=p_payout_id
+          and history.stripe_transfer_id=p_stripe_transfer_id and history.status='reversed'
+      ) then return 'stale_reversal'; end if;
+      update public.referee_payout_transfer_history
+      set status='reversed',failure_reason=left(coalesce(p_failure_reason,'Stripe transfer reversed'),500)
+      where payout_type='milestone' and payout_id=p_payout_id
+        and stripe_transfer_id=p_stripe_transfer_id and status='transferred';
+      if found then return 'stale_reversal'; end if;
+      return 'unmatched_reversal';
     end if;
     insert into public.referee_payout_transfer_history(
       payout_type,payout_id,referee_user_id,attempt_number,stripe_transfer_id,
