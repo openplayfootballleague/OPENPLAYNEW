@@ -17,8 +17,7 @@ alter table public.team_memberships
   check (
     (future_approved_at is null and activation_after_season_id is null and future_activated_at is null)
     or
-    (future_approved_at is not null and activation_after_season_id is not null
-      future_activated_at is null or future_activated_at is not null)
+    (future_approved_at is not null and activation_after_season_id is not null)
   );
 
 create index if not exists team_memberships_future_activation_idx
