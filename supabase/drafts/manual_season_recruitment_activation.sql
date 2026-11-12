@@ -157,8 +157,7 @@ begin
     if new.status::text not in ('pending','active') then return new; end if;
     select s.recruitment_status,s.status::text
       into v_state,v_competition_status
-    from public.team_memberships tm
-    join public.season_teams st on st.id=tm.season_team_id
+    from public.season_teams st
     join public.seasons s on s.id=st.season_id
     where st.id=new.season_team_id;
     if not found then return new; end if;
