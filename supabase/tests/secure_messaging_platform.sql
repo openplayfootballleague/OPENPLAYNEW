@@ -186,8 +186,12 @@ begin
   values
     (gen_random_uuid(),v_direct,v_player_a,'Pagination tie A',v_cursor_at),
     (gen_random_uuid(),v_direct,v_player_a,'Pagination tie B',v_cursor_at);
-  select max(id),min(id) into v_cursor_id,v_next_id
-  from public.messages where conversation_id=v_direct and created_at=v_cursor_at;
+  select id into v_cursor_id from public.messages
+  where conversation_id=v_direct and created_at=v_cursor_at
+  order by id desc limit 1;
+  select id into v_next_id from public.messages
+  where conversation_id=v_direct and created_at=v_cursor_at
+  order by id asc limit 1;
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_player_b::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_b::text,'role','authenticated')::text,true);
