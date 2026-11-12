@@ -1596,3 +1596,68 @@ $$;
 
 revoke all on function public.admin_remove_player_from_team(uuid,text) from public,anon;
 grant execute on function public.admin_remove_player_from_team(uuid,text) to authenticated;
+
+
+-- A voluntary departure is not an ordinary join invitation. Once a player has
+-- left a different club in an area, any return to another club in that area
+-- must go through an approved player transfer. Future-season requests from a
+-- player who is still active at their current club remain unaffected; approved
+-- future memberships and transfer-linked memberships are explicitly exempt.
+create or replace function public.enforce_voluntary_departure_transfer_path()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_target_location_id uuid;
+  v_target_team_id uuid;
+  v_source_team_id uuid;
+begin
+  if new.status not in ('pending','active')
+    or new.future_approved_at is not null
+    or new.transfer_request_id is not null then
+    return new;
+  end if;
+
+  select l.location_id,st.team_id
+    into v_target_location_id,v_target_team_id
+  from public.season_teams st
+  join public.seasons s on s.id=st.season_id
+  join public.leagues l on l.id=s.league_id
+  where st.id=new.season_team_id;
+
+  if v_target_location_id is null then
+    raise exception 'Membership team must belong to a location';
+  end if;
+
+  select source_team.team_id
+    into v_source_team_id
+  from public.team_memberships source_membership
+  join public.season_teams source_team on source_team.id=source_membership.season_team_id
+  join public.seasons source_season on source_season.id=source_team.season_id
+  join public.leagues source_league on source_league.id=source_season.league_id
+  where source_membership.user_id=new.user_id
+    and source_membership.status='left'
+    and source_membership.voluntarily_left_at is not null
+    and source_league.location_id=v_target_location_id
+    and source_team.team_id is distinct from v_target_team_id
+  order by source_membership.voluntarily_left_at desc
+  limit 1;
+
+  if v_source_team_id is not null then
+    raise exception 'Use the player transfer workflow to join another club after leaving voluntarily';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists team_memberships_voluntary_departure_transfer_path on public.team_memberships;
+create trigger team_memberships_voluntary_departure_transfer_path
+before insert or update of status,season_team_id,user_id,future_approved_at,transfer_request_id
+on public.team_memberships
+for each row
+execute function public.enforce_voluntary_departure_transfer_path();
+
+revoke all on function public.enforce_voluntary_departure_transfer_path() from public,anon,authenticated;
