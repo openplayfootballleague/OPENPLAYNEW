@@ -5,8 +5,8 @@ import { getSupabaseClient } from "../lib/supabase/client";
 type NavigationMode = "viewer" | "player" | "captain";
 
 type NavigationItem = {
-  id: "home" | "match-centre" | "teams" | "club" | "matchday" | "more";
-  to: "/" | "/player" | "/match-centre" | "/teams" | "/captain" | "/more";
+  id: "home" | "match-centre" | "teams" | "join" | "club" | "matchday" | "more";
+  to: "/" | "/player" | "/match-centre" | "/teams" | "/join" | "/captain" | "/more";
   hash?: "#captain-club" | "#captain-matchday";
   label: string;
   icon: "home" | "match" | "teams" | "whistle" | "more";
@@ -22,12 +22,16 @@ function NavIcon({ name }: { name: NavigationItem["icon"] }) {
 }
 
 /** Account-aware four-tab navigation. Only active captains receive Club and Matchday tabs. */
-export function PlayerBottomNavigation() {
+export function PlayerBottomNavigation({ variant = "account" }: { variant?: "account" | "join" }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const hash = useRouterState({ select: (state) => state.location.hash });
   const [mode, setMode] = useState<NavigationMode>("viewer");
 
   useEffect(() => {
+    if (variant === "join") {
+      setMode("player");
+      return;
+    }
     let alive = true;
     let requestSequence = 0;
     const supabase = getSupabaseClient();
@@ -62,9 +66,16 @@ export function PlayerBottomNavigation() {
       requestSequence += 1;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [variant]);
 
-  const items: NavigationItem[] = mode === "captain"
+  const items: NavigationItem[] = variant === "join"
+    ? [
+        { id: "home", to: "/player", label: "Home", icon: "home" },
+        { id: "match-centre", to: "/match-centre", label: "Match Centre", icon: "match" },
+        { id: "join", to: "/join", label: "Join Open Play", icon: "teams" },
+        { id: "more", to: "/more", label: "More", icon: "more" },
+      ]
+    : mode === "captain"
     ? [
         { id: "home", to: "/player", label: "Home", icon: "home" },
         { id: "club", to: "/captain", hash: "#captain-club", label: "Club", icon: "teams" },
@@ -79,6 +90,7 @@ export function PlayerBottomNavigation() {
       ];
 
   function isActive(item: NavigationItem) {
+    if (variant === "join") return pathname === item.to;
     if (item.id === "home") return pathname === "/" || pathname === "/player";
     if (item.id === "club") return pathname === "/captain" && hash !== "#captain-matchday";
     if (item.id === "matchday") return pathname === "/captain" && hash === "#captain-matchday";
@@ -86,7 +98,7 @@ export function PlayerBottomNavigation() {
   }
 
   return (
-    <nav className="player-bottom-nav" aria-label={mode === "captain" ? "Captain navigation" : "Main navigation"}>
+    <nav className="player-bottom-nav" aria-label={variant === "join" ? "Join Open Play navigation" : mode === "captain" ? "Captain navigation" : "Main navigation"}>
       {items.map((item) => (
         <Link key={item.id} to={item.to} hash={item.hash} className={"player-bottom-nav-link" + (isActive(item) ? " active" : "")}>
           <NavIcon name={item.icon} />
