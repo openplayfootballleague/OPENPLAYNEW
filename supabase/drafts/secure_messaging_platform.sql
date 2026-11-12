@@ -342,10 +342,13 @@ $$;
 revoke all on function public.get_my_message_conversations(integer) from public,anon;
 grant execute on function public.get_my_message_conversations(integer) to authenticated;
 
+drop function if exists public.get_message_history(uuid,integer,timestamptz);
+
 create or replace function public.get_message_history(
   p_conversation_id uuid,
   p_limit integer default 50,
-  p_before timestamptz default null
+  p_before timestamptz default null,
+  p_before_id uuid default null
 )
 returns table(
   message_id uuid,
@@ -377,13 +380,17 @@ begin
   left join public.profiles p on p.id=m.sender_id
   left join public.players pl on pl.user_id=m.sender_id
   where m.conversation_id=p_conversation_id
-    and (p_before is null or m.created_at<p_before)
+    and (
+      p_before is null
+      or m.created_at<p_before
+      or (m.created_at=p_before and p_before_id is not null and m.id<p_before_id)
+    )
   order by m.created_at desc,m.id desc
   limit greatest(1,least(coalesce(p_limit,50),100));
 end;
 $$;
-revoke all on function public.get_message_history(uuid,integer,timestamptz) from public,anon;
-grant execute on function public.get_message_history(uuid,integer,timestamptz) to authenticated;
+revoke all on function public.get_message_history(uuid,integer,timestamptz,uuid) from public,anon;
+grant execute on function public.get_message_history(uuid,integer,timestamptz,uuid) to authenticated;
 
 create or replace function public.mark_message_conversation_read(p_conversation_id uuid)
 returns void
