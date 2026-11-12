@@ -1,9 +1,14 @@
 import { useEffect,useState } from "react";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { Link,createFileRoute } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 
 export const Route=createFileRoute("/admin-help")({component:AdminHelpPage});
 function AdminHelpPage(){
+ return <AuthenticatedSessionBoundary label="ADMIN HELP"><AdminHelpWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function AdminHelpWorkspace(){
  const [allowed,setAllowed]=useState<boolean|null>(null);
  const [error,setError]=useState("");
  const [tourActive,setTourActive]=useState(false);
