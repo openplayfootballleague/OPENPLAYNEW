@@ -214,3 +214,17 @@ The notification delivery Edge Function previously used the legacy `get_admin_da
 ### Checkout origin configuration correction
 
 The player checkout Edge Function still contained a fallback CORS/allowed-origin value for the retired Lovable-hosted application. Removed that fallback: `APP_ORIGIN` is now required, and checkout returns a configuration error when it is absent rather than accepting the retired host. This keeps the independent Open Play New deployment boundary intact.
+
+## Player Hub account-switch isolation correction — 12 November 2026
+
+A follow-up source review found that the Player Hub auth listener updated the session but only cleared a small subset of cached state on sign-out. It did not reload the full Player Hub dataset when a different account signed in within the same mounted page. That contradicted the earlier session-cleanup acceptance note and could leave stale profile, notification, transfer, payment, avatar or statistics data visible after an account switch.
+
+PR #116 (fix/player-hub-session-isolation-2026-11-12) corrects the route to:
+- classify same-user token refresh, account switch and sign-out transitions;
+- clear all account-specific Player Hub state before switching identities or signing out;
+- reload the full dataset for a newly authenticated user;
+- invalidate stale in-flight reads and stale failures using a request-generation guard;
+- preserve the current state on same-user token refresh; and
+- keep a visible load error rather than redirecting away when protected data could not be loaded.
+
+Unit tests cover the transition classifier. Exact-head build, domain tests, clean local Supabase replay and Chromium/PWA acceptance are pending on the latest PR head. This is a client-side isolation fix; database RPC/RLS remains authoritative. No hosted migration, production identity, merge or deployment was performed.
