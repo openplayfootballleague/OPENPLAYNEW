@@ -54,7 +54,7 @@ const globalStyles = readFileSync("src/styles.css", "utf8");
 assert.ok(globalStyles.includes('font-family: "Inter", sans-serif;') && globalStyles.includes('font-family: "Oswald", sans-serif;'), "The global Open Play typography must use Inter for body copy and Oswald for display headings");
 assert.ok(!globalStyles.includes("DM Sans") && !globalStyles.includes("Barlow Condensed"), "Legacy font families must not override the approved Inter/Oswald visual system");
 
-console.log("Open Play account-aware four-tab navigation and global typography assertions passed.");
+console.log("Open Play role-aware viewer, player and captain navigation assertions passed.");
 
 const playerHub = readFileSync("src/routes/player.tsx", "utf8");
 assert.ok(playerHub.includes('if(player?.is_banned){void navigate({to:"/register-player",replace:true});return;}'), "Banned players must be redirected away from Player Hub to the restricted registration-status screen");
