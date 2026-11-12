@@ -80,6 +80,9 @@ begin
      or (select status from public.team_membership_removal_requests where id=v_request)<>'pending' then
     raise exception 'Captain request changed membership before player approval';
   end if;
+  if not exists(select 1 from public.notification_events where user_id=v_player and event_type='team.membership_removal_requested') then
+    raise exception 'Captain removal request did not notify the affected player';
+  end if;
 
   -- Duplicate requests are blocked while the player has a pending decision.
   begin
@@ -118,6 +121,9 @@ begin
   perform set_config('request.jwt.claim.sub',v_player::text,true);
   perform public.respond_team_membership_removal(v_request,'approved',null);
 
+  if not exists(select 1 from public.notification_events where user_id=v_captain and event_type='team.membership_removal_approved') then
+    raise exception 'Player approval did not notify the requesting captain';
+  end if;
   if (select status from public.team_memberships where id=v_membership)<>'left'
      or (select voluntarily_left_at from public.team_memberships where id=v_membership) is null
      or (select left_at from public.team_memberships where id=v_membership) is null
