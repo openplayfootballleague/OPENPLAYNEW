@@ -12,9 +12,6 @@ update public.seasons
 set recruitment_status=case when status='registration_open' then 'open' else 'closed' end
 where recruitment_status='closed';
 
-update public.seasons
-set recruitment_opened_at=coalesce(recruitment_opened_at,updated_at,created_at)
-where status='registration_open' and recruitment_status='open';
 
 alter table public.seasons
   drop constraint if exists seasons_recruitment_open_actor_check;
@@ -93,7 +90,7 @@ begin
     raise exception 'Enter a reason between 5 and 500 characters' using errcode='22023';
   end if;
 
-  select s.*,l.location_id
+  select s,l.location_id
     into v_season,v_location_id
   from public.seasons s
   join public.leagues l on l.id=s.league_id
@@ -190,7 +187,7 @@ begin
     raise exception 'Enter a reason between 5 and 500 characters' using errcode='22023';
   end if;
 
-  select s.*,l.location_id into v_before,v_location_id
+  select s,l.location_id into v_before,v_location_id
   from public.seasons s join public.leagues l on l.id=s.league_id
   where s.id=p_season_id for update of s;
   if not found then raise exception 'Season not found' using errcode='P0002'; end if;
