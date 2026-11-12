@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 
@@ -16,7 +17,11 @@ type ConsentRow = {
 
 export const Route = createFileRoute("/admin/guardian-consents")({ component: GuardianConsentAdminPage });
 
-function GuardianConsentAdminPage() {
+function GuardianConsentAdminPage(){
+ return <AuthenticatedSessionBoundary label="GUARDIAN CONSENT ADMIN"><GuardianConsentAdminWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function GuardianConsentAdminWorkspace() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<ConsentRow[]>([]);
   const [reasons, setReasons] = useState<Record<string, string>>({});
