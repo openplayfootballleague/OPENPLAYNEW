@@ -102,3 +102,35 @@ These observations identify existing implementation; they do not prove end-to-en
 - No automatic membership merely because a player registered or requested to join.
 - No captain privileges before club approval.
 - No selection of players outside the approved club membership for a match sheet.
+
+
+## Future-season membership and area-level club transitions — owner-confirmed 12 November 2026
+
+### Core rules
+1. A player can hold only one active club membership in the same area/location for a given season, and only one captaincy in that area/season. Different areas remain independent.
+2. A player may request a place at a club in an upcoming season without leaving their current club immediately. That request remains a normal pending request until approved by the relevant captain or administrator.
+3. Once approved while an earlier season in that area is unfinished, the membership is recorded as an **approved future membership**. It remains non-active and cannot be used for team sheets, current-season eligibility, payments or full Captain Hub permissions.
+4. An approved future captain is shown as **Future captaincy approved**. They may approve/reject requests for that future squad through the restricted Player Hub **Future Squad Requests** panel. This does not grant current-season captain powers.
+5. Before activation, the system closes the player's active memberships in earlier seasons in that area. This is a system-managed season transition, not a voluntary early departure and not a same-season transfer.
+6. Future memberships and future captaincies activate only after every non-cancelled fixture in the preceding location season is completed and every result is confirmed. A scheduled, in-progress, postponed or completed-but-unconfirmed fixture blocks activation. Cancelled fixtures are skipped.
+7. If another active membership in the target area/season conflicts with the future membership, activation is held and the player must resolve the conflict first.
+8. A same-season move to another club in the same area requires the player to leave their existing club and complete the approved transfer workflow before the new membership becomes active.
+9. Membership and captaincy history remains attached to the relevant season club. The transition does not rewrite old appearances, results, statistics or captaincy history.
+
+### Player Hub presentation
+- Show **Approved future membership** with the name of the season that must finish before activation.
+- Show **Future captaincy approved** with the same activation explanation.
+- Show **Membership conflict** if a previously approved future membership cannot activate because another club is still active in the same area/season.
+- Future captains see only pending requests for their future team and can approve or decline them. They do not see or gain current-season matchday, finance, transfer or administrative controls.
+- Once activated, the membership appears as active and the captain gains the ordinary Captain Hub permissions for that season.
+
+### Acceptance checks
+- A current-season member can request an upcoming-season club without the request prematurely replacing their current membership.
+- A same-area, same-season second-club request is blocked while the player remains active in the existing club.
+- A future captain is appointed only after team registration approval and can manage only future membership requests before activation.
+- Future memberships remain pending until all non-cancelled fixtures in the previous location season have completed and confirmed results.
+- A postponed fixture or an unconfirmed result delays activation; a cancelled fixture does not block it.
+- The old membership is marked left before the future membership becomes active; no overlapping active clubs are possible.
+- One future captaincy per player per area/season is enforced.
+- A membership in another area is not blocked by the player's membership in this area.
+- Player and captain screens display future approval, awaiting-transition and conflict states accurately.
