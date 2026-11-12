@@ -408,7 +408,8 @@ begin
     if v_error not like 'You must leave your existing club before joining another club in the same area%' then raise; end if;
   end;
 
-  -- The same player may still represent a club in a different league.
+  -- A second league in the same location is still the same area: the
+  -- player cannot hold another active club membership there.
   insert into public.leagues(location_id,name,slug,format,is_published)
   values(v_location,'Transfer Other League','transfer-other-league','six_a_side',true)
   returning id into v_other_league;
@@ -418,6 +419,30 @@ begin
   insert into public.teams(created_by) values(v_captain_e) returning id into v_other_team;
   insert into public.season_teams(team_id,season_id,name,slug,registration_status,approved_by)
   values(v_other_team,v_other_season,'Transfer Other League Club','transfer-other-league-club','approved',v_captain_e)
+  returning id into v_other_st;
+
+  begin
+    insert into public.team_memberships(season_team_id,user_id,status,is_captain)
+    values(v_other_st,v_player_two,'active',false);
+    raise exception 'A player was incorrectly allowed a second active club in another league in the same area';
+  exception when others then
+    get stacked diagnostics v_error=message_text;
+    if v_error not like 'You must leave your existing club before joining another club in the same area%' then raise; end if;
+  end;
+
+  -- A genuinely different location remains independent.
+  insert into public.locations(name,slug,town)
+  values('Transfer Independent Location','transfer-independent-location','Barnstaple')
+  returning id into v_location;
+  insert into public.leagues(location_id,name,slug,format,is_published)
+  values(v_location,'Transfer Independent League','transfer-independent-league','six_a_side',true)
+  returning id into v_other_league;
+  insert into public.seasons(league_id,name,status,is_public)
+  values(v_other_league,'Transfer Independent Season','active',true)
+  returning id into v_other_season;
+  insert into public.teams(created_by) values(v_captain_e) returning id into v_other_team;
+  insert into public.season_teams(team_id,season_id,name,slug,registration_status,approved_by)
+  values(v_other_team,v_other_season,'Transfer Independent Club','transfer-independent-club','approved',v_captain_e)
   returning id into v_other_st;
   insert into public.team_memberships(season_team_id,user_id,status,is_captain)
   values(v_other_st,v_player_two,'active',false);
