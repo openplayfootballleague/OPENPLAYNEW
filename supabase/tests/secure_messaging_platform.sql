@@ -24,6 +24,9 @@ declare
   v_broadcast uuid;
   v_message uuid;
   v_message_two uuid;
+  v_cursor_id uuid;
+  v_next_id uuid;
+  v_cursor_at timestamptz;
   v_report uuid;
   v_count integer;
   v_unread bigint;
@@ -175,7 +178,33 @@ begin
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_player_b::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_b::text,'role','authenticated')::text,true);
-  select body into v_body from public.get_message_history(v_direct,50,null)
+
+  -- Equal timestamps must not cause older messages to disappear between pages.
+  execute 'reset role';
+  v_cursor_at:=clock_timestamp()-interval '1 day';
+  insert into public.messages(id,conversation_id,sender_id,body,created_at)
+  values
+    (gen_random_uuid(),v_direct,v_player_a,'Pagination tie A',v_cursor_at),
+    (gen_random_uuid(),v_direct,v_player_a,'Pagination tie B',v_cursor_at);
+  select max(id),min(id) into v_cursor_id,v_next_id
+  from public.messages where conversation_id=v_direct and created_at=v_cursor_at;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_player_b::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_b::text,'role','authenticated')::text,true);
+  if not exists (
+    select 1 from public.get_message_history(v_direct,1,null,null)
+    where message_id=v_cursor_id
+  ) then
+    raise exception 'Newest message was not returned as the first pagination cursor';
+  end if;
+  if not exists (
+    select 1 from public.get_message_history(v_direct,1,v_cursor_at,v_cursor_id)
+    where message_id=v_next_id
+  ) then
+    raise exception 'Message sharing a pagination timestamp was skipped';
+  end if;
+
+  select body into v_body from public.get_message_history(v_direct,50,null,null)
   where message_id=v_message;
   if v_body<>'Hello from Player A' then raise exception 'Direct message history was not returned to its participant'; end if;
 
