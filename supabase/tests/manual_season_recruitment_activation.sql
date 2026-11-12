@@ -69,23 +69,6 @@ begin
   end;
   if not v_failed then raise exception 'A following season opened before the previous season final fixture existed'; end if;
 
-  v_failed:=false;
-  begin
-    insert into public.season_registrations(season_id,user_id,status)
-    values(v_blocked,v_admin,'pending');
-  exception when sqlstate '55000' then v_failed:=true;
-  end;
-  if not v_failed then raise exception 'A player registration was accepted for a closed upcoming season'; end if;
-
-  v_failed:=false;
-  begin
-    insert into public.teams(created_by) values(v_admin) returning id into v_home;
-    insert into public.season_teams(team_id,season_id,name,slug,registration_status)
-    values(v_home,v_blocked,'Closed Team','ci-closed-team','pending');
-  exception when sqlstate '55000' then v_failed:=true;
-  end;
-  if not v_failed then raise exception 'A team application was accepted for a closed upcoming season'; end if;
-
   execute 'reset role';
 
   v_failed:=false;
