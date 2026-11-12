@@ -136,10 +136,12 @@ begin
     raise exception 'Team registration is currently paused';
   end if;
 
-  select * into v_season
-  from public.seasons
-  where id=p_season_id and status='registration_open';
-  if not found then raise exception 'This season is not accepting team registrations'; end if;
+  select s.* into v_season
+  from public.seasons s
+  join public.leagues l on l.id=s.league_id
+  where s.id=p_season_id and s.status='registration_open'
+    and s.is_public=true and l.is_published=true;
+  if not found then raise exception 'This season is not publicly accepting team registrations'; end if;
 
   select * into v_competition from public.leagues where id=v_season.league_id;
   if not found then raise exception 'The selected competition is unavailable'; end if;
@@ -269,11 +271,13 @@ begin
     pg_catalog.hashtextextended(v_user_id::text||':'||v_lock_location_id::text,0)
   );
 
-  select * into v_season
-  from public.seasons
-  where id=p_season_id and status='registration_open'
-  for share;
-  if not found then raise exception 'This season is no longer accepting team registrations'; end if;
+  select s.* into v_season
+  from public.seasons s
+  join public.leagues l on l.id=s.league_id
+  where s.id=p_season_id and s.status='registration_open'
+    and s.is_public=true and l.is_published=true
+  for share of s;
+  if not found then raise exception 'This season is no longer publicly accepting team registrations'; end if;
 
   select l.location_id into v_location_id
   from public.leagues l where l.id=v_season.league_id;
