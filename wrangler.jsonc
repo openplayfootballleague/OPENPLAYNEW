@@ -15,5 +15,6 @@
   "main": "@tanstack/react-start/server-entry",
   "observability": {
     "enabled": true
-  }
+  },
+  "previews": {}
 }
