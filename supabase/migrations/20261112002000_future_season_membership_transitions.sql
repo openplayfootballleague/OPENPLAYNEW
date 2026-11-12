@@ -1527,6 +1527,7 @@ declare
   v_before jsonb;
   v_team_name text;
   v_next_status public.membership_status;
+  v_user_id uuid;
   v_location_id uuid;
   v_league_id uuid;
 begin
@@ -1542,10 +1543,10 @@ begin
   where tm.id=p_membership_id;
   if not found then raise exception 'Team membership not found'; end if;
 
-  select tm.user_id into v_membership.user_id
+  select tm.user_id into v_user_id
   from public.team_memberships tm where tm.id=p_membership_id;
-  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_membership.user_id::text||':'||v_league_id::text,0));
-  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_membership.user_id::text||':'||v_location_id::text,0));
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_user_id::text||':'||v_league_id::text,0));
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_user_id::text||':'||v_location_id::text,0));
 
   select * into v_membership from public.team_memberships where id=p_membership_id for update;
   if not found then raise exception 'Team membership not found'; end if;
