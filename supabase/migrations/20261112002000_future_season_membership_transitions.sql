@@ -186,8 +186,10 @@ declare
   v_location_id uuid;
   v_league_id uuid;
   v_club_id uuid;
+  v_target_season_id uuid;
   v_latest_source_membership_id uuid;
   v_latest_source_team_id uuid;
+  v_latest_source_season_id uuid;
   v_has_active_same_club boolean:=false;
   v_transfer_request public.player_transfer_requests;
 begin
@@ -199,8 +201,8 @@ begin
     return new;
   end if;
 
-  select l.location_id,s.league_id,st.team_id
-    into v_location_id,v_league_id,v_club_id
+  select l.location_id,s.league_id,st.team_id,s.id
+    into v_location_id,v_league_id,v_club_id,v_target_season_id
   from public.season_teams st
   join public.seasons s on s.id=st.season_id
   join public.leagues l on l.id=s.league_id
@@ -242,15 +244,16 @@ begin
     raise exception 'You must leave your existing club before joining another club in the same area';
   end if;
 
-  select source_membership.id,source_team.team_id
-    into v_latest_source_membership_id,v_latest_source_team_id
+  select source_membership.id,source_team.team_id,source_season.id
+    into v_latest_source_membership_id,v_latest_source_team_id,v_latest_source_season_id
   from public.team_memberships source_membership
   join public.season_teams source_team on source_team.id=source_membership.season_team_id
   join public.seasons source_season on source_season.id=source_team.season_id
+  join public.leagues source_league on source_league.id=source_season.league_id
   where source_membership.user_id=new.user_id
     and source_membership.status='left'
     and source_membership.voluntarily_left_at is not null
-    and source_season.league_id=v_league_id
+    and source_league.location_id=v_location_id
   order by source_membership.voluntarily_left_at desc
   limit 1;
 
@@ -270,6 +273,7 @@ begin
   elsif new.future_approved_at is null
     and v_latest_source_team_id is not null
     and v_latest_source_team_id is distinct from v_club_id
+    and v_latest_source_season_id=v_target_season_id
     and not v_has_active_same_club then
     raise exception 'A player who voluntarily left a different club must join through an approved transfer request';
   end if;
@@ -323,7 +327,7 @@ begin
   end if;
 
   perform pg_catalog.pg_advisory_xact_lock(
-    pg_catalog.hashtextextended(new.user_id::text||':'||v_location_id::text||':'||v_season_id::text,0)
+    pg_catalog.hashtextextended(new.user_id::text||':'||v_location_id::text,0)
   );
 
   if exists(
@@ -693,7 +697,10 @@ begin
   end if;
 
   perform pg_catalog.pg_advisory_xact_lock(
-    pg_catalog.hashtextextended(v_user::text||':'||v_location_id::text||':'||v_season.id::text,0)
+    pg_catalog.hashtextextended(v_user::text||':'||v_season.league_id::text,0)
+  );
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(v_user::text||':'||v_location_id::text,0)
   );
 
   if exists(
@@ -859,8 +866,41 @@ begin
     end if;
 
     perform pg_catalog.pg_advisory_xact_lock(
+      pg_catalog.hashtextextended(v_membership.user_id::text||':'||v_season.league_id::text,0)
+    );
+    perform pg_catalog.pg_advisory_xact_lock(
       pg_catalog.hashtextextended(v_membership.user_id::text||':'||v_location_id::text,0)
     );
+
+    if v_membership.transfer_request_id is not null then
+      raise exception 'Transfer-linked memberships must be resolved through the player transfer workflow';
+    end if;
+
+    if exists(
+      select 1
+      from public.player_transfer_requests r
+      where r.user_id=v_membership.user_id
+        and r.league_id=v_season.league_id
+        and r.status='pending'
+    ) then
+      raise exception 'This player has a pending transfer request in this league';
+    end if;
+
+    if exists(
+      select 1
+      from public.team_memberships source_membership
+      join public.season_teams source_team on source_team.id=source_membership.season_team_id
+      join public.seasons source_season on source_season.id=source_team.season_id
+      join public.leagues source_league on source_league.id=source_season.league_id
+      where source_membership.user_id=v_membership.user_id
+        and source_membership.status='left'
+        and source_membership.voluntarily_left_at is not null
+        and source_league.location_id=v_location_id
+        and source_season.id=v_season.id
+        and source_team.team_id is distinct from v_team.team_id
+    ) then
+      raise exception 'Use the player transfer workflow after voluntarily leaving a different club in this season';
+    end if;
 
     if exists(
       select 1
@@ -990,6 +1030,7 @@ as $$
     and destination_season.status in ('registration_open','active')
     and request_membership.status='pending'
     and request_membership.future_approved_at is null
+    and request_membership.transfer_request_id is null
     and player.registration_status='registered'
     and player.is_banned=false
   order by destination_season.starts_on,destination_team.name,player.full_name;
@@ -1029,6 +1070,7 @@ begin
   where id=p_membership_id
     and status='pending'
     and future_approved_at is null
+    and transfer_request_id is null
   for update;
 
   if not found then
@@ -1081,8 +1123,37 @@ begin
     end if;
 
     perform pg_catalog.pg_advisory_xact_lock(
+      pg_catalog.hashtextextended(v_membership.user_id::text||':'||v_season.league_id::text,0)
+    );
+    perform pg_catalog.pg_advisory_xact_lock(
       pg_catalog.hashtextextended(v_membership.user_id::text||':'||v_location_id::text,0)
     );
+
+    if exists(
+      select 1
+      from public.player_transfer_requests r
+      where r.user_id=v_membership.user_id
+        and r.league_id=v_season.league_id
+        and r.status='pending'
+    ) then
+      raise exception 'This player has a pending transfer request in this league';
+    end if;
+
+    if exists(
+      select 1
+      from public.team_memberships source_membership
+      join public.season_teams source_team on source_team.id=source_membership.season_team_id
+      join public.seasons source_season on source_season.id=source_team.season_id
+      join public.leagues source_league on source_league.id=source_season.league_id
+      where source_membership.user_id=v_membership.user_id
+        and source_membership.status='left'
+        and source_membership.voluntarily_left_at is not null
+        and source_league.location_id=v_location_id
+        and source_season.id=v_season.id
+        and source_team.team_id is distinct from v_team.team_id
+    ) then
+      raise exception 'Use the player transfer workflow after voluntarily leaving a different club in this season';
+    end if;
 
     if exists(
       select 1
@@ -1341,6 +1412,9 @@ begin
     from public.leagues l
     where l.id=v_season.league_id;
 
+    perform pg_catalog.pg_advisory_xact_lock(
+      pg_catalog.hashtextextended(v_captain_user_id::text||':'||v_season.league_id::text,0)
+    );
     perform pg_catalog.pg_advisory_xact_lock(
       pg_catalog.hashtextextended(v_captain_user_id::text||':'||v_location_id::text,0)
     );
