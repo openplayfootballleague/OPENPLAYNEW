@@ -32,8 +32,13 @@ begin
   insert into public.user_roles(user_id,role,granted_by) values
     (v_admin,'admin',v_admin),(v_location_admin,'league_admin',v_admin);
 
-  select id into v_location from public.locations where is_active=true order by created_at limit 1;
-  if v_location is null then raise exception 'Expected an active location from earlier database regressions'; end if;
+  -- Keep this regression self-contained; never depend on another SQL test's seed data.
+  insert into public.locations(name,slug,town,region,is_active)
+  values(
+    'CI Referee Connect Location',
+    'ci-referee-connect-'||replace(gen_random_uuid()::text,'-',''),
+    'Bideford','Devon',true
+  ) returning id into v_location;
   insert into public.location_admin_assignments(user_id,location_id,assigned_by)
   values(v_location_admin,v_location,v_admin);
   insert into public.leagues(location_id,name,slug,is_published)
@@ -73,20 +78,23 @@ begin
   values(v_fixture,0,0,now(),v_admin);
   insert into public.referee_match_reports(
     fixture_id,referee_user_id,report_source,submitted_by,status,
-    home_score,away_score,reviewed_at,reviewed_by,approved_at,approved_by
+    home_score,away_score
   ) values(
-    v_fixture,v_referee,'referee',v_referee,'approved',0,0,now(),v_admin,now(),v_admin
+    v_fixture,v_referee,'referee',v_referee,'submitted',0,0
   ) returning id into v_report;
-  insert into public.referee_report_payouts(
-    report_id,referee_user_id,gross_allocation_pence,deductions_pence,
-    referee_net_pence,open_play_top_up_pence,status
-  ) values(v_report,v_referee,2200,0,2200,0,'pending_connect')
-  returning id into v_match_payout;
-  if not exists(
-    select 1 from public.referee_payout_transfer_jobs
-    where payout_id=v_match_payout and status='queued'
-  ) then
-    raise exception 'Approved referee payout was not atomically enqueued for transfer';
+
+  -- Exercise the actual administrator approval RPC: entitlement and outbox
+  -- creation must happen together, exactly once, in its transaction.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  perform public.admin_review_referee_match_report(v_report,'approved','CI approval-to-outbox regression');
+  execute 'reset role';
+
+  select id into v_match_payout from public.referee_report_payouts where report_id=v_report;
+  if v_match_payout is null
+     or (select count(*) from public.referee_report_payouts where report_id=v_report)<>1
+     or (select count(*) from public.referee_payout_transfer_jobs where payout_id=v_match_payout and status='queued')<>1 then
+    raise exception 'Administrator approval did not create exactly one £22 entitlement and one queued outbox job';
   end if;
 
   insert into public.referee_milestone_rewards(
@@ -203,6 +211,15 @@ begin
     v_rejected:=sqlerrm like '%amount does not match%';
   end;
   if not v_rejected then raise exception 'A transfer with an incorrect amount was accepted'; end if;
+  -- Reversal may arrive before transfer.created. Preserve the unmatched
+  -- reversal as unprocessed so Stripe can retry after creation is reconciled.
+  v_status:=public.record_referee_payout_transfer_failure(
+    'match_report',v_match_payout,'Reversal arrived before transfer creation',true,'tr_ci_referee_match_000001'
+  );
+  if v_status<>'unmatched_reversal'
+     or (select status from public.referee_report_payouts where id=v_match_payout)<>'processing' then
+    raise exception 'A reversal arriving before transfer creation was not retained as unmatched';
+  end if;
   v_status:=public.record_referee_payout_transfer_success(
     'match_report',v_match_payout,'tr_ci_referee_match_000001',v_account_id,2200,'gbp'
   );
