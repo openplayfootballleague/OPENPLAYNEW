@@ -133,7 +133,7 @@ declare
   v_league_id uuid;
 begin
   if v_actor is null then raise exception 'Authentication required'; end if;
-  if p_decision not in ('approved','rejected') then
+  if p_decision is null or p_decision not in ('approved','rejected') then
     raise exception 'Decision must be approved or rejected';
   end if;
   if p_reason is not null and length(btrim(p_reason))>500 then
