@@ -1,4 +1,5 @@
 import { useCallback,useEffect,useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 import { Link,createFileRoute } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
@@ -10,6 +11,33 @@ type CaptainAvailability={fixture_id:string;season_team_id:string;team_name:stri
 type CaptainTransferRequest={id:string;user_id:string;player_name:string;source_team_name:string;destination_season_team_id:string;destination_team_name:string;league_name:string;season_name:string;reason:string;status:string;requested_at:string;is_emergency:boolean;target_fixture_id:string|null};
 export const Route=createFileRoute("/captain")({component:CaptainsHubPage});
 function CaptainsHubPage(){
+ const [session,setSession]=useState<Session|null>(null);
+ const [sessionLoading,setSessionLoading]=useState(true);
+
+ useEffect(()=>{
+  let alive=true;
+  let authEventSeen=false;
+  const supabase=getSupabaseClient();
+  const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,next)=>{
+   authEventSeen=true;
+   if(alive){setSession(next);setSessionLoading(false);}
+  });
+  void supabase.auth.getSession().then(({data,error})=>{
+   if(!alive||authEventSeen)return;
+   setSession(error?null:data.session);
+   setSessionLoading(false);
+  }).catch(()=>{
+   if(alive&&!authEventSeen){setSession(null);setSessionLoading(false);}
+  });
+  return()=>{alive=false;subscription.unsubscribe();};
+ },[]);
+
+ if(sessionLoading)return <main className="notice-page player-facing"><section className="notice-panel"><p>Checking your account…</p></section></main>;
+ if(!session)return <main className="notice-page"><section className="notice-panel"><p className="eyebrow eyebrow-dark">CAPTAINS HUB</p><h1>Your squad.<br/><em>Your account.</em></h1><p>Sign in with your Open Play account to manage your club.</p><Link className="button" to="/sign-in">SIGN IN <span>↗</span></Link></section></main>;
+ return <CaptainWorkspace key={session.user.id}/>;
+}
+
+function CaptainWorkspace(){
  const capture=useOpenPlayAnalytics();
  const [rows,setRows]=useState<CaptainRow[]>([]);const [fixtures,setFixtures]=useState<CaptainFixture[]>([]);const [availability,setAvailability]=useState<CaptainAvailability[]>([]);const [transferRequests,setTransferRequests]=useState<CaptainTransferRequest[]>([]);const [transferReasons,setTransferReasons]=useState<Record<string,string>>({});const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [message,setMessage]=useState("");const [busyId,setBusyId]=useState("");const [squadEdits,setSquadEdits]=useState<Record<string,string>>({});const [selectedFixture,setSelectedFixture]=useState("");const [starters,setStarters]=useState<string[]>([]);const [subs,setSubs]=useState<string[]>([]);const [goalkeeperId,setGoalkeeperId]=useState("");const [reviewingSheet,setReviewingSheet]=useState(false);const [confirmationAccepted,setConfirmationAccepted]=useState(false);const [sheetLocked,setSheetLocked]=useState(false);const [draftSavedAt,setDraftSavedAt]=useState<string|null>(null);const [loadingDraft,setLoadingDraft]=useState(false);
  const load=useCallback(async()=>{setError("");const supabase=getSupabaseClient();const [{data,error:rpcError},{data:fixtureData,error:fixtureError},{data:availabilityData,error:availabilityError},{data:transferData,error:transferError}]=await Promise.all([supabase.rpc("get_captain_dashboard"),supabase.rpc("get_captain_fixtures"),supabase.rpc("get_captain_availability"),supabase.rpc("get_captain_transfer_requests")]);if(rpcError||fixtureError||transferError){setError(rpcError?.message??fixtureError?.message??transferError?.message??"Unable to load captain data.");setRows([]);setFixtures([]);setTransferRequests([]);}else{setRows(data??[]);setFixtures(fixtureData??[]);setTransferRequests((transferData??[]) as unknown as CaptainTransferRequest[]);}if(availabilityError){setError(availabilityError.message);setAvailability([]);}else setAvailability(availabilityData??[]);setLoading(false);},[]);
