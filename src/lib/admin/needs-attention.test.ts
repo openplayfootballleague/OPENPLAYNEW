@@ -115,6 +115,35 @@ describe("buildNeedsAttentionTasks", () => {
     expect(tasks[1].id).toBe("notification:held");
   });
 
+  it("flags completed fixtures without a confirmed score for result review", () => {
+    const tasks = buildNeedsAttentionTasks({
+      playerReviews: [],
+      teamApplications: [],
+      membershipRequests: [],
+      fixtures: [{
+        id: "fixture-result",
+        season_name: "Season 2",
+        gameweek: 7,
+        scheduled_at: "2026-11-07T19:00:00Z",
+        status: "completed",
+        home_team_id: "home",
+        away_team_id: "away",
+        home_team_name: "Northside FC",
+        away_team_name: "Town FC",
+        home_score: null,
+        away_score: null,
+      }],
+    });
+
+    expect(tasks[0]).toMatchObject({
+      id: "result:fixture-result",
+      category: "Result needs attention",
+      subject: "Northside FC vs Town FC",
+      href: "#admin-results",
+      actionLabel: "Review result",
+    });
+  });
+
   it("limits the number of displayed items and handles empty queues", () => {
     const input = {
       playerReviews: Array.from({ length: 15 }, (_, index) => ({
