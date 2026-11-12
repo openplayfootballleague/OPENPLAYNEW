@@ -406,7 +406,24 @@ begin
   v_spammer_support:=public.create_support_message_conversation('Sensitive support subject','Please remove my personal information from this support thread');
   select id into v_spammer_support_message from public.messages
   where conversation_id=v_spammer_support and sender_id=v_spammer;
-  for v_i in 1..9 loop
+  -- Five support requests are permitted per rolling day; the sixth is denied.
+  for v_i in 1..4 loop
+    perform public.create_support_message_conversation(
+      'Support quota test '||v_i,
+      'A separate support request for quota testing.'
+    );
+  end loop;
+  v_failed:=false;
+  begin
+    perform public.create_support_message_conversation(
+      'Sixth support request',
+      'This request must be rate limited.'
+    );
+  exception when others then v_failed:=true;
+  end;
+  if not v_failed then raise exception 'Daily support-request rate limit did not activate'; end if;
+  -- The five support messages count towards the same per-user message quota.
+  for v_i in 1..5 loop
     perform public.send_message(v_direct,'Rate-limit test message '||v_i);
   end loop;
   v_failed:=false;
