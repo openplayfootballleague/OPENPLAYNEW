@@ -25,11 +25,13 @@ select
   ) as no_anon_security_definer_execution_except_public_leader_rpc,
   (
     has_function_privilege('anon','public.get_public_season_club_leaders(uuid)','EXECUTE')
-    and (select p.prosecdef and p.provolatile='s'
+    and (select p.prosecdef and p.provolatile='s' and p.proconfig @> array['search_path=""']
       from pg_proc p where p.oid='public.get_public_season_club_leaders(uuid)'::regprocedure)
     and (select pg_get_functiondef('public.get_public_season_club_leaders(uuid)'::regprocedure)
       ilike '%s.is_public is true%'
       and pg_get_functiondef('public.get_public_season_club_leaders(uuid)'::regprocedure) ilike '%l.is_published is true%'
+      and pg_get_functiondef('public.get_public_season_club_leaders(uuid)'::regprocedure) ilike '%loc.is_active is true%'
+      and pg_get_functiondef('public.get_public_season_club_leaders(uuid)'::regprocedure) ilike '%st.registration_status=''approved''%'
       and pg_get_functiondef('public.get_public_season_club_leaders(uuid)'::regprocedure) ilike '%f.season_id=p_season_id%'
       and pg_get_functiondef('public.get_public_season_club_leaders(uuid)'::regprocedure) ilike '%f.status=''completed''%'
       and pg_get_functiondef('public.get_public_season_club_leaders(uuid)'::regprocedure) ilike '%cpi.counts_for_statistics is true%'
