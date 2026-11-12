@@ -52,7 +52,7 @@ begin
 
   -- Keep this regression independent of seed data and the execution order of other SQL tests.
   insert into public.locations(name,slug,town,region,is_active)
-  values('Weather Postponement Test Location','ci-weather-postponement-test-location','Bideford','Devon',true)
+  values('Weather Postponement Test Location','ci-weather-postponement-test-location','Bideford','Devon',false)
   returning id into v_location;
   insert into public.leagues(location_id,name,slug,is_published)
   values(v_location,'CI Weather Postponement League','ci-weather-postponement-league',false)
