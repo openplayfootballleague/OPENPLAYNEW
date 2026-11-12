@@ -410,5 +410,84 @@ begin
     and action='location_admin.assignment_revoked'
     and entity_type='location_admin_assignment';
   if v_count <> 1 then raise exception 'Location assignment revocation must create exactly one audit event'; end if;
+
+  -- Global admins can grant/revoke only the location-admin role. A role grant
+  -- gives no location access until an explicit assignment is made.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000005',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000005"}',true);
+  select count(*) into v_count
+  from public.admin_search_league_admin_role_candidates('ci-player-c')
+  where user_id='00000000-0000-4000-8000-000000000006' and has_league_admin is false;
+  if v_count<>1 then raise exception 'Global admin role search did not return an eligible unprivileged account'; end if;
+  select count(*) into v_count
+  from public.admin_search_league_admin_role_candidates('ci-finance-admin');
+  if v_count<>0 then raise exception 'Finance administrator account must not be eligible for league-admin role changes'; end if;
+  perform public.admin_set_league_admin_role(
+    '00000000-0000-4000-8000-000000000006',true,'Approved location administrator appointment'
+  );
+  if not exists(select 1 from public.user_roles where user_id='00000000-0000-4000-8000-000000000006' and role='league_admin') then
+    raise exception 'Global admin could not grant the league_admin role';
+  end if;
+  perform public.admin_set_location_assignment(
+    '00000000-0000-4000-8000-000000000006','00000000-0000-4000-8000-000000000010',true
+  );
+  perform public.admin_set_league_admin_role(
+    '00000000-0000-4000-8000-000000000006',false,'Administrator access no longer required'
+  );
+  execute 'reset role';
+  if exists(select 1 from public.user_roles where user_id='00000000-0000-4000-8000-000000000006' and role='league_admin')
+     or exists(select 1 from public.location_admin_assignments where user_id='00000000-0000-4000-8000-000000000006') then
+    raise exception 'Revoking league_admin must also remove every location assignment';
+  end if;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000005',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000005"}',true);
+  v_denied:=false;
+  begin
+    perform public.admin_set_location_assignment(
+      '00000000-0000-4000-8000-000000000006','00000000-0000-4000-8000-000000000010',true
+    );
+  exception when others then
+    v_denied:=sqlerrm like '%must have the league_admin role%';
+  end;
+  execute 'reset role';
+  if not v_denied then raise exception 'A user without league_admin role received a location assignment'; end if;
+  select count(*) into v_count from public.audit_log
+  where actor_user_id='00000000-0000-4000-8000-000000000005'
+    and action='role.league_admin.granted' and entity_type='user_role';
+  if v_count<>1 then raise exception 'League administrator role grant was not audited'; end if;
+  select count(*) into v_count from public.audit_log
+  where actor_user_id='00000000-0000-4000-8000-000000000005'
+    and action='role.league_admin.revoked' and entity_type='user_role';
+  if v_count<>1 then raise exception 'League administrator role revocation was not audited'; end if;
+
+  -- A global administrator cannot change their own role through this workflow.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000005',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000005"}',true);
+  v_denied:=false;
+  begin
+    perform public.admin_set_league_admin_role(
+      '00000000-0000-4000-8000-000000000005',true,'Self grant must be denied'
+    );
+  exception when others then
+    v_denied:=sqlerrm like '%cannot change their own role%';
+  end;
+  execute 'reset role';
+  if not v_denied then raise exception 'Role management allowed a global administrator to change their own role'; end if;
+
+  -- A finance administrator cannot search or mutate platform roles.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000007',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000007"}',true);
+  v_denied:=false;
+  begin
+    perform * from public.admin_search_league_admin_role_candidates('ci-player');
+  exception when others then
+    v_denied:=sqlerrm like '%Global administrator permission required%';
+  end;
+  execute 'reset role';
+  if not v_denied then raise exception 'Finance administrator was able to search global role candidates'; end if;
 end;
 $role_matrix$;

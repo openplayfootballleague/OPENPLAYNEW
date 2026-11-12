@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { ConsentAwareAnalytics } from "../components/analytics-provider";
 import "../styles.css";
+import "../app-visual-system.css";
 
 type AccountGateStatus = "checking" | "public" | "active" | "unavailable" | "blocked";
 

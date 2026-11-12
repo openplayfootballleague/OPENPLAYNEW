@@ -4,6 +4,7 @@ do $referee_connect_payouts$
 declare
   v_admin constant uuid:='97000000-0000-4000-8000-000000000001';
   v_referee constant uuid:='97000000-0000-4000-8000-000000000002';
+  v_location_admin constant uuid:='97000000-0000-4000-8000-000000000003';
   v_location uuid;
   v_league uuid;
   v_season uuid;
@@ -20,15 +21,21 @@ declare
   v_claim jsonb;
   v_status text;
   v_rejected boolean;
+  v_job_id uuid;
+  v_job_token uuid;
 begin
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
   values
     (v_admin,'authenticated','authenticated','ci-connect-admin@openplay.invalid','','{}'::jsonb,now(),now(),now()),
-    (v_referee,'authenticated','authenticated','ci-connect-referee@openplay.invalid','','{}'::jsonb,now(),now(),now());
-  insert into public.user_roles(user_id,role,granted_by) values(v_admin,'admin',v_admin);
+    (v_referee,'authenticated','authenticated','ci-connect-referee@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    (v_location_admin,'authenticated','authenticated','ci-connect-location-admin@openplay.invalid','','{}'::jsonb,now(),now(),now());
+  insert into public.user_roles(user_id,role,granted_by) values
+    (v_admin,'admin',v_admin),(v_location_admin,'league_admin',v_admin);
 
   select id into v_location from public.locations where is_active=true order by created_at limit 1;
   if v_location is null then raise exception 'Expected an active location from earlier database regressions'; end if;
+  insert into public.location_admin_assignments(user_id,location_id,assigned_by)
+  values(v_location_admin,v_location,v_admin);
   insert into public.leagues(location_id,name,slug,is_published)
   values(v_location,'CI Referee Connect League','ci-referee-connect-league',false)
   returning id into v_league;
@@ -75,17 +82,23 @@ begin
     referee_net_pence,open_play_top_up_pence,status
   ) values(v_report,v_referee,2200,0,2200,0,'pending_connect')
   returning id into v_match_payout;
+  if not exists(
+    select 1 from public.referee_payout_transfer_jobs
+    where payout_id=v_match_payout and status='queued'
+  ) then
+    raise exception 'Approved referee payout was not atomically enqueued for transfer';
+  end if;
 
   insert into public.referee_milestone_rewards(
     referee_user_id,milestone_number,approved_games,amount_pence,status
   ) values(v_referee,1,50,5000,'pending_connect')
   returning id into v_milestone_payout;
 
-  -- A connected account without payouts enabled cannot receive an admin transfer.
+  -- A connected account without transfers enabled cannot receive an admin transfer.
   execute 'set local role service_role';
   perform public.sync_referee_connect_account(
-    v_referee,v_account_id,true,true,false,false,
-    jsonb_build_object('currently_due',jsonb_build_array('external_account')),'requirements.pending'
+    v_referee,v_account_id,true,false,false,false,
+    jsonb_build_object('currently_due',jsonb_build_array('external_account')),'requirements.pending',now()-interval '3 days'
   );
   execute 'reset role';
   execute 'set local role authenticated';
@@ -96,39 +109,78 @@ begin
   exception when others then
     v_rejected:=sqlerrm like '%complete Stripe Connect verification%';
   end;
-  if not v_rejected then raise exception 'Payout was claimable before the referee enabled bank payouts'; end if;
+  if not v_rejected then raise exception 'Payout was claimable before the referee enabled transfers'; end if;
+  execute 'reset role';
+
+  -- The service worker cannot claim a payout until Stripe has enabled transfers.
+  execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
+  if exists(select 1 from public.claim_referee_payout_transfer_jobs(10)) then
+    raise exception 'The payout worker claimed a referee account before transfer capability was active';
+  end if;
   execute 'reset role';
 
   execute 'set local role service_role';
   perform public.sync_referee_connect_account(
-    v_referee,v_account_id,true,true,true,false,
-    '{}'::jsonb,null
+    v_referee,v_account_id,true,true,false,false,
+    '{}'::jsonb,null,now()-interval '1 day'
   );
+  -- A delayed account.updated event must not roll a newer Stripe readiness snapshot backwards.
+  perform public.sync_referee_connect_account(
+    v_referee,v_account_id,true,false,false,false,
+    jsonb_build_object('currently_due',jsonb_build_array('external_account')),'requirements.pending',now()-interval '2 days'
+  );
+  execute 'reset role';
+
+  execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
+  select job_id,lock_token into v_job_id,v_job_token
+  from public.claim_referee_payout_transfer_jobs(10);
+  if v_job_id is null or v_job_token is null then
+    raise exception 'An eligible approved referee payout was not claimed by the outbox worker';
+  end if;
+  if not public.release_referee_payout_transfer_job(v_job_id,v_job_token,'CI worker lease release',60) then
+    raise exception 'The payout worker could not safely release an unclaimed transfer lease';
+  end if;
   execute 'reset role';
 
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_referee::text,true);
   if public.get_my_referee_connect_status()->>'onboarding_status'<>'enabled'
-     or (public.get_my_referee_connect_status()->>'payouts_enabled')::boolean is not true then
-    raise exception 'Referee Connect status did not expose the verified payout state';
+     or (public.get_my_referee_connect_status()->>'transfers_enabled')::boolean is not true
+     or (public.get_my_referee_connect_status()->>'payouts_enabled')::boolean is not false then
+    raise exception 'Referee Connect status did not distinguish transfer readiness from bank payout readiness';
   end if;
   v_rejected:=false;
   begin
     perform public.claim_referee_payout_transfer('match_report',v_match_payout);
   exception when others then
-    v_rejected:=sqlerrm like '%Finance access required%';
+    v_rejected:=sqlerrm like '%cannot administer this referee payout location%';
   end;
   if not v_rejected then raise exception 'A referee was able to claim an administrator payout transfer'; end if;
   execute 'reset role';
 
-  -- Match-report transfer is scoped to finance admin and location, and reconciles idempotently.
+  -- Match-report transfer is scoped to the approving location admin (without requiring finance role).
   execute 'set local role authenticated';
-  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  perform set_config('request.jwt.claim.sub',v_location_admin::text,true);
   v_claim:=public.claim_referee_payout_transfer('match_report',v_match_payout);
   if v_claim->>'stripe_account_id'<>v_account_id
      or (v_claim->>'amount_pence')::integer<>2200
      or (v_claim->>'attempt')::integer<>1 then
     raise exception 'Match-report payout claim did not return the exact approved transfer details';
+  end if;
+  execute 'reset role';
+
+  -- A payout already claimed for a Stripe request must not be released as a safe retry.
+  execute 'set local role service_role';
+  perform set_config('request.jwt.claim.role','service_role',true);
+  select lock_token into v_job_token from public.referee_payout_transfer_jobs
+  where payout_id=v_match_payout;
+  if public.release_referee_payout_transfer_job(
+    (select id from public.referee_payout_transfer_jobs where payout_id=v_match_payout),
+    v_job_token,'CI must preserve ambiguous processing state',60
+  ) then
+    raise exception 'The worker released a payout whose transfer claim is already processing';
   end if;
   execute 'reset role';
 
@@ -158,8 +210,9 @@ begin
     'match_report',v_match_payout,'tr_ci_referee_match_000001',v_account_id,2200,'gbp'
   );
   if v_status<>'transferred'
-     or (select status from public.referee_report_payouts where id=v_match_payout)<>'transferred' then
-    raise exception 'Match-report Stripe transfer was not recorded as transferred';
+     or (select status from public.referee_report_payouts where id=v_match_payout)<>'transferred'
+     or (select status from public.referee_payout_transfer_jobs where payout_id=v_match_payout)<>'completed' then
+    raise exception 'Match-report Stripe transfer or its durable outbox job was not recorded as completed';
   end if;
 
   -- A reversed transfer becomes retryable; the next attempt gets a new idempotency attempt number.
@@ -171,12 +224,13 @@ begin
     'match_report',v_match_payout,'tr_ci_referee_match_000001',v_account_id,2200,'gbp'
   );
   if v_status<>'reversed'
-     or (select status from public.referee_report_payouts where id=v_match_payout)<>'failed' then
-    raise exception 'A delayed transfer.created webhook incorrectly overwrote the reversal';
+     or (select status from public.referee_report_payouts where id=v_match_payout)<>'failed'
+     or (select status from public.referee_payout_transfer_jobs where payout_id=v_match_payout)<>'failed' then
+    raise exception 'A delayed transfer.created webhook incorrectly overwrote the reversal or left the outbox job open';
   end if;
   execute 'reset role';
   execute 'set local role authenticated';
-  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  perform set_config('request.jwt.claim.sub',v_location_admin::text,true);
   v_claim:=public.claim_referee_payout_transfer('match_report',v_match_payout);
   if (v_claim->>'attempt')::integer<>2 then
     raise exception 'Reversed transfer retry did not increment the attempt number';

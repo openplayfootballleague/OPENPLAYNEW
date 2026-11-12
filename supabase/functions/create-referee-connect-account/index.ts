@@ -64,7 +64,12 @@ Deno.serve(async(req)=>{
       account=await stripeRequest(`accounts/${existing.stripe_account_id}`,"GET",stripeKey);
     }else{
       const params=new URLSearchParams();
-      params.set("type","express");
+      // Use Stripe controller properties rather than the deprecated Express account type.
+      // This retains the Express Dashboard while explicitly assigning payment-fee and
+      // negative-balance responsibility to Open Play, as required by the agreed model.
+      params.set("controller[stripe_dashboard][type]","express");
+      params.set("controller[fees][payer]","application");
+      params.set("controller[losses][payments]","application");
       params.set("country","GB");
       params.set("business_type","individual");
       if(user.email)params.set("email",user.email);
@@ -84,25 +89,34 @@ Deno.serve(async(req)=>{
       p_charges_enabled:!!account.charges_enabled,
       p_requirements_due:account.requirements??{},
       p_disabled_reason:account.requirements?.disabled_reason??null,
+      // Use Stripe's immutable account creation time as the initial event watermark.
+      // A verification webhook is necessarily newer and must be allowed to advance
+      // readiness; using local now() here can incorrectly classify it as stale.
+      p_stripe_event_created_at:new Date((typeof account.created==="number"?account.created:Math.floor(Date.now()/1000))*1000).toISOString(),
     });
     if(syncError)throw new Error(syncError.message);
 
-    if(transfersEnabled&&account.payouts_enabled){
-      return json({connected:true,onboarding_status:"enabled",payouts_enabled:true},200,headers);
+    if(transfersEnabled){
+      return json({connected:true,onboarding_status:"enabled",payouts_enabled:!!account.payouts_enabled},200,headers);
     }
 
-    const linkParams=new URLSearchParams();
-    linkParams.set("account",account.id);
-    linkParams.set("type","account_onboarding");
-    linkParams.set("return_url",`${allowedOrigin}/referee?connect=return`);
-    linkParams.set("refresh_url",`${allowedOrigin}/referee?connect=refresh`);
-    linkParams.set("collection_options[fields]","eventually_due");
-    const link=await stripeRequest("account_links","POST",stripeKey,linkParams);
+    // Create a short-lived AccountSession for Stripe's embedded account-onboarding
+    // component. The browser receives only the session client secret, never the
+    // platform secret key or connected-account ID.
+    const sessionParams=new URLSearchParams();
+    sessionParams.set("account",account.id);
+    sessionParams.set("components[account_onboarding][enabled]","true");
+    sessionParams.set("components[account_onboarding][features][external_account_collection]","true");
+    const accountSession=await stripeRequest("account_sessions","POST",stripeKey,sessionParams);
+    if(accountSession.object!=="account_session"||accountSession.account!==account.id||
+       accountSession.livemode!==false||typeof accountSession.client_secret!=="string"||
+       accountSession.client_secret.length<20){
+      throw new Error("Stripe did not return a valid test-mode embedded onboarding session");
+    }
     return json({
       connected:false,
       onboarding_status:account.details_submitted?"verification_pending":"onboarding_required",
-      onboarding_url:link.url,
-      expires_at:link.expires_at,
+      account_session_client_secret:accountSession.client_secret,
     },200,headers);
   }catch(error){
     return json({error:error instanceof Error?error.message:"Unable to start Stripe Connect onboarding"},400,headers);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
+import { AnalyticsConsentSettings } from "../components/analytics-provider";
 import { getSupabaseClient } from "../lib/supabase/client";
 
 type MoreAccess = {
@@ -102,6 +103,7 @@ function MorePage() {
         <section className="hub-memberships">
           <div className="hub-section-heading"><span className="hub-kicker">EXPLORE</span></div>
           <Link className="admin-inline-action" to="/teams">TEAMS &amp; LEAGUES <span aria-hidden="true">↗</span></Link>
+          <Link className="admin-inline-action" to="/join">JOIN OPEN PLAY <span aria-hidden="true">↗</span></Link>
           <Link className="admin-inline-action" to="/gallery">MATCHDAY GALLERY <span aria-hidden="true">↗</span></Link>
           <Link className="admin-inline-action" to="/match-centre">FIXTURES, RESULTS &amp; TABLES <span aria-hidden="true">↗</span></Link>
           <Link className="admin-inline-action" to="/referee">REFEREE APPLICATION / WORKSPACE <span aria-hidden="true">↗</span></Link>
@@ -121,8 +123,10 @@ function MorePage() {
           <p className="form-note">Your account has basic-view access. You can follow public fixtures, results and league tables. Player registration starts at age 16; team actions require an approved player registration.</p>
         ) : null}
 
+        <AnalyticsConsentSettings />
         <section className="hub-memberships">
           <div className="hub-section-heading"><span className="hub-kicker">ACCOUNT</span></div>
+          {access.signedIn && <Link className="admin-inline-action" to="/messages">MESSAGES &amp; SUPPORT <span aria-hidden="true">↗</span></Link>}
           <Link className="admin-inline-action" to="/privacy-security">PRIVACY &amp; SECURITY <span aria-hidden="true">↗</span></Link>
           {access.signedIn ? (
             <button className="auth-text-button" type="button" onClick={signOut}>SIGN OUT</button>

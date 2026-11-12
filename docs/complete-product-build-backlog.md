@@ -114,3 +114,50 @@ The authoritative Stage 1 scope and live completion checklist is maintained in [
 ### Stage 1 permission audit update — 8 November 2026
 
 A read-only catalog audit of the deployed Supabase project is recorded in `docs/stage-1-account-foundations.md` (commit `c2f8df496fcbd2d9fc12b71116004788ecbd5a30`). It confirms owner/admin read boundaries and SELECT-only authenticated grants for `user_roles`, `profiles`, `players` and `team_memberships`, and deny-all/no client grants for `audit_log`. It also identified deployed-policy/migration-source drift in `season_teams`; this must be reconciled against the applied migration ledger before any corrective migration is authored. No hosted changes were made. CI has not yet produced a run/status for the latest docs commit. Stage 1 remains in progress.
+
+
+## Player Hub verified statistics — implementation update (11 November 2026)
+
+Implemented on `integration/complete-product-build-visual-referee-2026-11-11`:
+- Added forward-only migration `20261111201000_player_self_service_statistics.sql` and the typed `get_my_player_statistics(uuid)` RPC.
+- The RPC derives the signed-in player's own statistics from their permanent competition identity. It requires an active registered, non-banned account, a statistics-enabled non-anonymised identity and a published season. It counts only actual appearances from locked team sheets, goals from confirmed results and non-voided goal records.
+- Season and career totals include appearances, starts, substitute appearances, goals, goals per game, goalkeeper appearances and goalkeeper clean sheets. Career totals follow the permanent competition identity across club transfers.
+- Added the statistics panel to Player Hub with responsive cards, season/career totals, loading/error states and an explicit disclosure that assists and Man of the Match are not shown until their audited capture workflows are implemented.
+- Added SQL regression assertions for verified season totals, anonymous EXECUTE denial and career totals across a club transfer; added static source assertions for identity, locked-sheet, confirmed-result, non-voided-goal and grant rules.
+- Updated generated Supabase function types and the expected pending migration manifest.
+
+Verification: source files and the migration manifest were re-fetched from the branch and the expected implementation markers were confirmed. GitHub Actions Build verification run `43097186184` and Analytics browser acceptance run `43097186187` were created for the latest implementation head `2ce3403734961ac6bb83b90ee396cbd9a2f28487`, but both were still queued at the last check. The SQL regression has not yet been executed in an isolated PostgreSQL replay in this session. Therefore this work is **implemented; automated and database verification pending**, not signed off. No hosted migration, merge or deployment was performed.
+
+
+### Weather postponement regression isolation — 11 November 2026
+
+Updated `supabase/tests/weather_gameweek_postponement.sql` to create its own active test location instead of selecting a location created by an earlier regression. The old test failed on a clean/reordered test run when no active location existed, despite the test's stated disposable-database scope. The new fixture uses the same explicit location columns as the self-contained feature-management regression. The location is then assigned to the synthetic admin and used for the test league, season and fixtures.
+
+Commit: `538735d64bae6eb53d915ee19fd84f9b3b0cd2e8`.
+
+Verification: source re-fetched and the dependency on pre-existing active location removed. The new commit's Build verification run `43097474686` was queued at the last check; SQL regression execution remains pending. This is a test-fixture correction, not evidence that the full weather migration or refund workflow is verified.
+
+
+### Canonical weather workflow ported to the visual integration branch — 11 November 2026
+
+Ported the stable-ID weather/gameweek implementation from the workflow branch onto the visual integration branch: stable `season_gameweeks` migration, matching draft and SQL regression, protected `admin-postpone-gameweek` Edge Function, `AdminGameweekPostponements` component, Admin route wiring, RPC types, migration manifest and function JWT configuration. Removed the competing integer-gameweek migration, draft, test, duplicate Admin form and legacy history RPC usage. The component requires explicit confirmation and a replacement kickoff at least 36 hours away; the Edge Function checks an authenticated administrator's location scope, restricts Stripe to test mode, reconciles active/completed checkout state before invoking the postponement RPC, and does not permit a live Stripe secret.
+
+Static source checks and file/draft parity checks are the next verification gate. The stable migration has not yet passed exact-head CI/local SQL replay on this branch, and no hosted migration or live payment action has been performed.
+
+
+Additional CI coverage: the canonical `admin-postpone-gameweek` Edge Function is now explicitly included in the Deno type-check command, and the security verifier asserts that inclusion. The operational and acceptance runbooks have also been ported to PR #89.
+
+
+### Disciplinary return review integrated into visual Admin — 11 November 2026
+
+Ported the location-scoped disciplinary return queue migration and Admin component from the workflow branch to PR #89. The UI lists players whose third approved straight-red strike has made them ineligible, requires a reason before approving a return, and states that permanent strike history is retained. The migration enforces administrator/location access, locks the player row during reactivation, writes an audit event and enqueues an in-app notification. The existing referee match-report SQL regression now asserts that a permitted administrator sees the suspended player in the queue; it already exercises reactivation and preservation of strike totals. CI migration generation and the expected migration manifest include this migration. Exact-head SQL replay/build verification is pending.
+
+
+### Global league-administrator role management integrated — 11 November 2026
+
+Added a global-admin-only role management workflow to complement existing location assignment controls. Eligible existing accounts can be searched; granting `league_admin` requires a reason and creates no location access by itself. Locations are assigned separately. Revoking the role first removes and audits every location assignment, then removes and audits the role. Platform-admin and finance-admin roles are protected, self-role changes are denied, and search/mutations are enforced server-side. The UI is visible only in the global-admin workspace. The existing role/RLS SQL regression now covers search eligibility, finance-role exclusion, grant, separate location assignment, revocation cleanup, audit events, self-change denial and finance-admin denial. CI migration generation and expected-pending manifest are updated; exact-head replay is pending.
+
+
+### Exact-head CI defects corrected — 11 November 2026
+
+The first clean local migration replay exposed a PostgreSQL PL/pgSQL error in `get_my_player_statistics`: a composite `public.players` row variable was included in a multi-target `INTO` list with a scalar. The migration now fetches the player composite and profile retention status in separate statements. Added the canonical player-statistics draft and explicit pinned-CLI generation/draft-parity steps for both `player_self_service_statistics` and `optional_goal_attribution`. The CI workflow also had double-escaped newline sequences in migration manifest/duplicate-version checks; these are now single shell newline escapes. Exact-head replay and build are rerunning; the earlier 146 unit tests and Deno checks passed, but do not count the previous failed build/replay as green.

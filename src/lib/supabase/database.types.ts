@@ -1026,6 +1026,27 @@ export type Database = {
           },
         ]
       }
+      platform_feature_flags: {
+        Row: {
+          enabled: boolean
+          feature_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          enabled: boolean
+          feature_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          feature_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       players: {
         Row: {
           guardian_consent_previous_status: Database["public"]["Enums"]["player_registration_status"] | null
@@ -1580,6 +1601,52 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_search_league_admin_role_candidates: {
+        Args: { p_query: string }
+        Returns: {
+          user_id: string
+          email: string | null
+          display_name: string
+          has_league_admin: boolean
+        }[]
+      }
+      admin_set_league_admin_role: {
+        Args: { p_user_id: string; p_granted: boolean; p_reason: string }
+        Returns: boolean
+      }
+      admin_list_disciplinary_suspensions: {
+        Args: { p_location_id?: string | null }
+        Returns: {
+          competition_player_id: string
+          player_name: string
+          disciplinary_strikes: number
+          last_straight_red_at: string
+          last_fixture_id: string
+          last_gameweek: number
+          last_team_name: string
+        }[]
+      }
+      admin_reactivate_disciplined_player: {
+        Args: { p_competition_player_id: string; p_reason: string }
+        Returns: undefined
+      }
+      admin_postpone_gameweek: {
+        Args: { p_gameweek_id: string; p_replacement_at: string; p_reason: string }
+        Returns: Json
+      }
+      get_admin_postponable_gameweeks: {
+        Args: { p_season_id?: string | null }
+        Returns: {
+          gameweek_id: string
+          season_id: string
+          season_name: string
+          week_number: number
+          scheduled_at: string | null
+          fixture_count: number
+          paid_team_count: number
+          location_name: string | null
+        }[]
+      }
       admin_list_player_retention_accounts: {
         Args: { p_search?: string | null }
         Returns: {
@@ -2906,6 +2973,10 @@ export type Database = {
           teams_with_entries: number
         }[]
       }
+      get_my_player_statistics: {
+        Args: { p_season_id: string }
+        Returns: Json
+      }
       get_my_fixture_payments: {
         Args: never
         Returns: {
@@ -3417,6 +3488,27 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      admin_set_platform_feature_flag: {
+        Args: { p_enabled: boolean; p_feature_key: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["platform_feature_flags"]["Row"]
+      }
+      get_public_announcement_status: {
+        Args: never
+        Returns: boolean
+      }
+      get_public_team_recruitment_status: {
+        Args: never
+        Returns: boolean
+      }
+      get_admin_platform_feature_flags: {
+        Args: never
+        Returns: {
+          enabled: boolean
+          feature_key: string
+          updated_at: string
+          updated_by: string | null
+        }[]
       }
     }
     Enums: {

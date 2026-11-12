@@ -30,6 +30,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Verify canonical migration source manifest
         run: npm run verify:migration-sources
+      - name: Verify generated migrations receive their canonical SQL drafts
+        run: npm run verify:ci-migration-generation
       - name: Verify Edge Function security configuration
         run: node scripts/verify-edge-function-security.mjs
       - name: Verify player navigation specification
@@ -39,7 +41,9 @@ jobs:
         with:
           deno-version: v2.x
       - name: Type-check Supabase Edge Functions
-        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts supabase/functions/player-account-retention/index.ts supabase/functions/create-referee-connect-account/index.ts supabase/functions/pay-referee-payout/index.ts supabase/functions/referee-connect-webhook/index.ts supabase/functions/create-team-fixture-checkout/index.ts supabase/functions/team-stripe-webhook/index.ts supabase/functions/process-team-payment-deadlines/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts supabase/functions/player-account-retention/index.ts supabase/functions/create-referee-connect-account/index.ts supabase/functions/pay-referee-payout/index.ts supabase/functions/referee-connect-webhook/index.ts supabase/functions/create-team-fixture-checkout/index.ts supabase/functions/team-stripe-webhook/index.ts supabase/functions/process-team-payment-deadlines/index.ts supabase/functions/process-referee-payout-queue/index.ts supabase/functions/admin-postpone-gameweek/index.ts
+      - name: Test Stripe Connect webhook signature verification
+        run: deno test --node-modules-dir=auto supabase/functions/referee-connect-webhook/signature_test.ts
       - name: Run domain tests
         run: npm test
       - name: Type-check and build
@@ -66,8 +70,9 @@ jobs:
           if [ -z "$migration_file" ]; then
             # Supabase CLI versions migrations to the nearest second; keep generated versions unique.
             sleep 1
-            supabase migration new referee_application_workflow < supabase/drafts/referee_application_workflow.sql
+            supabase migration new referee_application_workflow
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_application_workflow.sql' -print -quit)"
+            cp supabase/drafts/referee_application_workflow.sql "$migration_file"
           else
             diff -u supabase/drafts/referee_application_workflow.sql "$migration_file"
           fi
@@ -79,8 +84,9 @@ jobs:
           if [ -z "$migration_file" ]; then
             # Supabase CLI versions migrations to the nearest second; keep generated versions unique.
             sleep 1
-            supabase migration new referee_fixture_assignments < supabase/drafts/referee_fixture_assignments.sql
+            supabase migration new referee_fixture_assignments
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_fixture_assignments.sql' -print -quit)"
+            cp supabase/drafts/referee_fixture_assignments.sql "$migration_file"
           else
             diff -u supabase/drafts/referee_fixture_assignments.sql "$migration_file"
           fi
@@ -92,12 +98,29 @@ jobs:
           if [ -z "$migration_file" ]; then
             # Supabase CLI versions migrations to the nearest second; keep generated versions unique.
             sleep 1
-            supabase migration new referee_match_reports < supabase/drafts/referee_match_reports.sql
+            supabase migration new referee_match_reports
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_match_reports.sql' -print -quit)"
+            cp supabase/drafts/referee_match_reports.sql "$migration_file"
           else
             diff -u supabase/drafts/referee_match_reports.sql "$migration_file"
           fi
           test -n "$migration_file"
+          printf '%s\n' "$migration_file"
+      - name: Generate disciplinary return review migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_admin_disciplinary_return_queue.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            # Keep the generated timestamp unique and later than referee match reports.
+            sleep 1
+            supabase migration new admin_disciplinary_return_queue
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_admin_disciplinary_return_queue.sql' -print -quit)"
+            cp supabase/drafts/admin_disciplinary_return_queue.sql "$migration_file"
+          else
+            diff -u supabase/drafts/admin_disciplinary_return_queue.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\n' "$migration_file"
       - name: Generate approved referee report correction migration using the pinned Supabase CLI
         run: |
@@ -105,8 +128,9 @@ jobs:
           if [ -z "$migration_file" ]; then
             # Supabase CLI versions migrations to the nearest second; keep generated versions unique.
             sleep 1
-            supabase migration new referee_approved_report_corrections < supabase/drafts/referee_approved_report_corrections.sql
+            supabase migration new referee_approved_report_corrections
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_corrections.sql' -print -quit)"
+            cp supabase/drafts/referee_approved_report_corrections.sql "$migration_file"
           else
             diff -u supabase/drafts/referee_approved_report_corrections.sql "$migration_file"
           fi
@@ -118,14 +142,15 @@ jobs:
           if [ -z "$migration_file" ]; then
             # Supabase CLI versions migrations to the nearest second; keep generated versions unique.
             sleep 1
-            supabase migration new team_weekly_payment_workflow < supabase/drafts/team_weekly_payment_workflow.sql
+            supabase migration new team_weekly_payment_workflow
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_team_weekly_payment_workflow.sql' -print -quit)"
+            cp supabase/drafts/team_weekly_payment_workflow.sql "$migration_file"
           else
             diff -u supabase/drafts/team_weekly_payment_workflow.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
-          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\n' "$migration_file"
       - name: Preserve CLI-generated team payment migration for review
         uses: actions/upload-artifact@v4
@@ -136,24 +161,25 @@ jobs:
           retention-days: 1
       - name: Generate weather gameweek postponement migration using the pinned Supabase CLI
         run: |
-          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponement.sql' -print -quit)"
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponements.sql' -print -quit)"
           if [ -z "$migration_file" ]; then
             # Supabase CLI versions migrations to the nearest second; keep generated versions unique.
             sleep 1
-            supabase migration new weather_gameweek_postponement < supabase/drafts/weather_gameweek_postponement.sql
-            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponement.sql' -print -quit)"
+            supabase migration new weather_gameweek_postponements
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponements.sql' -print -quit)"
+            cp supabase/drafts/weather_gameweek_postponements.sql "$migration_file"
           else
-            diff -u supabase/drafts/weather_gameweek_postponement.sql "$migration_file"
+            diff -u supabase/drafts/weather_gameweek_postponements.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
-          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
-          printf '%s\\n' "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
       - name: Preserve CLI-generated weather postponement migration for review
         uses: actions/upload-artifact@v4
         with:
           name: weather-gameweek-postponement-migration
-          path: supabase/migrations/*_weather_gameweek_postponement.sql
+          path: supabase/migrations/*_weather_gameweek_postponements.sql
           if-no-files-found: error
           retention-days: 1
       - name: Generate approved referee report correction options migration using the pinned Supabase CLI
@@ -162,15 +188,16 @@ jobs:
           if [ -z "$migration_file" ]; then
             # Supabase CLI versions migrations to the nearest second; keep generated versions unique.
             sleep 1
-            supabase migration new referee_approved_report_correction_options < supabase/drafts/referee_approved_report_correction_options.sql
+            supabase migration new referee_approved_report_correction_options
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_approved_report_correction_options.sql' -print -quit)"
+            cp supabase/drafts/referee_approved_report_correction_options.sql "$migration_file"
           else
             diff -u supabase/drafts/referee_approved_report_correction_options.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
-          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
-          printf '%s\\n' "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
       - name: Preserve CLI-generated approved report correction options migration
         uses: actions/upload-artifact@v4
         with:
@@ -184,20 +211,43 @@ jobs:
           if [ -z "$migration_file" ]; then
             # Supabase CLI versions migrations to the nearest second; keep generated versions unique.
             sleep 1
-            supabase migration new referee_connect_payouts < supabase/drafts/referee_connect_payouts.sql
+            supabase migration new referee_connect_payouts
             migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_connect_payouts.sql' -print -quit)"
+            cp supabase/drafts/referee_connect_payouts.sql "$migration_file"
           else
             diff -u supabase/drafts/referee_connect_payouts.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
-          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
-          printf '%s\\n' "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
       - name: Preserve CLI-generated referee Connect migration
         uses: actions/upload-artifact@v4
         with:
           name: referee-connect-payouts-migration
           path: supabase/migrations/*_referee_connect_payouts.sql
+          if-no-files-found: error
+          retention-days: 1
+      - name: Generate referee payout transfer outbox migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_payout_transfer_outbox.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new referee_payout_transfer_outbox
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_payout_transfer_outbox.sql' -print -quit)"
+            cp supabase/drafts/referee_payout_transfer_outbox.sql "$migration_file"
+          else
+            diff -u supabase/drafts/referee_payout_transfer_outbox.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
+      - name: Preserve CLI-generated referee payout outbox migration
+        uses: actions/upload-artifact@v4
+        with:
+          name: referee-payout-transfer-outbox-migration
+          path: supabase/migrations/*_referee_payout_transfer_outbox.sql
           if-no-files-found: error
           retention-days: 1
       - name: Preserve CLI-generated referee migrations for review
@@ -211,13 +261,73 @@ jobs:
             supabase/migrations/*_referee_approved_report_corrections.sql
           if-no-files-found: error
           retention-days: 1
+      - name: Generate secure messaging migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_secure_messaging_platform.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new secure_messaging_platform
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_secure_messaging_platform.sql' -print -quit)"
+            cp supabase/drafts/secure_messaging_platform.sql "$migration_file"
+          else
+            diff -u supabase/drafts/secure_messaging_platform.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
+      - name: Generate player self-service statistics migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_player_self_service_statistics.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new player_self_service_statistics
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_player_self_service_statistics.sql' -print -quit)"
+            cp supabase/drafts/player_self_service_statistics.sql "$migration_file"
+          else
+            diff -u supabase/drafts/player_self_service_statistics.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
+      - name: Generate optional goal attribution migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_optional_goal_attribution.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new optional_goal_attribution
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_optional_goal_attribution.sql' -print -quit)"
+            cp supabase/drafts/optional_goal_attribution.sql "$migration_file"
+          else
+            diff -u supabase/drafts/optional_goal_attribution.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
+      - name: Generate league administrator role management migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_admin_league_admin_role_management.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new admin_league_admin_role_management
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_admin_league_admin_role_management.sql' -print -quit)"
+            cp supabase/drafts/admin_league_admin_role_management.sql "$migration_file"
+          else
+            diff -u supabase/drafts/admin_league_admin_role_management.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
       - name: Verify unique migration versions before replay
         shell: bash
         run: |
-          versions="$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\\n' | cut -c1-14 | sort)"
-          duplicates="$(printf '%s\\n' "$versions" | uniq -d)"
+          versions="$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' | cut -c1-14 | sort)"
+          duplicates="$(printf '%s\n' "$versions" | uniq -d)"
           if [ -n "$duplicates" ]; then
-            printf 'Duplicate migration version(s):\\n%s\\n' "$duplicates"
+            printf 'Duplicate migration version(s):\n%s\n' "$duplicates"
             exit 1
           fi
       - name: Replay every migration against a clean local database
@@ -292,6 +402,16 @@ jobs:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_connect_payouts.sql
 
+      - name: Verify secure messaging access, membership lifecycle, read receipts, moderation and rate limits
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/secure_messaging_platform.sql
+
+      - name: Verify global-admin platform feature controls and default state
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/platform_feature_management.sql
+
       - name: Verify team weekly payment deadlines, strikes, cancellation and refund ledger
         env:
           PGPASSWORD: postgres
@@ -300,7 +420,7 @@ jobs:
       - name: Verify whole-gameweek weather postponements, refunds and chronological renumbering
         env:
           PGPASSWORD: postgres
-        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/weather_gameweek_postponement.sql
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/weather_gameweek_postponements.sql
 
       - name: Verify age tiers and guardian consent lifecycle
         env:
@@ -372,7 +492,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Use the browser runner's supported local workerd compatibility date
         run: |
-          node -e "const fs=require('node:fs');const config=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8'));config.compatibility_date='2026-09-18';fs.writeFileSync('wrangler.jsonc',JSON.stringify(config,null,2)+'\\n');"
+          node -e "const fs=require('node:fs');const config=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8'));config.compatibility_date='2026-09-18';fs.writeFileSync('wrangler.jsonc',JSON.stringify(config,null,2)+'\n');"
       - name: Build production application with isolated Supabase test endpoint
         env:
           VITE_SUPABASE_URL: http://127.0.0.1:54321

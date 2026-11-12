@@ -21,6 +21,7 @@ export const OPEN_PLAY_ANALYTICS_EVENTS = [
   "league_table_viewed",
   "team_profile_viewed",
   "player_profile_viewed",
+  "player_statistics_viewed",
   "gallery_viewed",
   "announcement_viewed",
   "feature_opened",
@@ -69,7 +70,7 @@ const ROUTE_CATEGORIES = new Set([
 ]);
 const FEATURES = new Set([
   "player_hub", "match_centre", "team_directory", "team_registration",
-  "player_registration", "team_membership", "fixtures", "results",
+  "player_registration", "team_membership", "fixtures", "results", "player_statistics",
   "league_table", "gallery", "announcements", "location_selector",
   "season_selector", "notifications", "profile",
 ]);

@@ -10,7 +10,8 @@
     "cf-typegen": "wrangler types",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "verify:migration-sources": "node scripts/verify-migration-source-manifest.mjs"
+    "verify:migration-sources": "node scripts/verify-migration-source-manifest.mjs",
+    "verify:ci-migration-generation": "node scripts/verify-ci-migration-generation.mjs"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.46",

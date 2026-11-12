@@ -2,18 +2,20 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const navigation = readFileSync("src/components/player-bottom-navigation.tsx", "utf8");
-const expected = [
-  'to: "/" as const, label: "Home"',
-  'to: "/match-centre" as const, label: "Match Centre"',
-  'to: "/join" as const, label: "Join Open Play"',
-  'to: "/more" as const, label: "More"',
-];
-for (const item of expected) assert.ok(navigation.includes(item), `Missing required bottom navigation item: ${item}`);
-assert.equal((navigation.match(/to: "[^"]*" as const, label:/g) ?? []).length, 4, "Bottom navigation must contain exactly four tabs");
-assert.ok(navigation.includes("useRouterState") && navigation.includes("pathname === \"/player\""), "Home tab must be active on both public Home and the registered Player Hub, not every route");
+assert.ok(navigation.includes('id: "home", to: mode === "player" ? "/player" : "/"'), "Viewer Home must open public Home and registered-player Home must open Player Hub");
+assert.ok(navigation.includes('id: "match-centre", to: "/match-centre"') && navigation.includes('id: "teams", to: "/teams"'), "Viewer and registered-player navigation must include Match Centre and Teams");
+assert.ok(navigation.includes('id: "club", to: "/captain", hash: "#captain-club"') && navigation.includes('id: "matchday", to: "/captain", hash: "#captain-matchday"'), "Captain navigation must expose Club and Matchday as distinct destinations");
+assert.ok(navigation.includes('id: "home", to: "/player"') && navigation.includes('id: "more", to: "/more"'), "Captain navigation must retain Player Hub Home and More");
+assert.ok(navigation.includes('registration_status !== "registered"') && navigation.includes('.eq("is_captain", true)') && navigation.includes('setMode((captainRows ?? []).length > 0 ? "captain" : "player")'), "Navigation must derive viewer, registered-player and captain states from authorised account data");
+const captainNavBlock = navigation.match(/const items: NavigationItem\[\] = mode === "captain"\s*\?\s*\[([\s\S]*?)\]\s*:\s*\[([\s\S]*?)\];/);
+assert.ok(captainNavBlock, "Account-specific navigation arrays must be present");
+for (const [index, block] of captainNavBlock.slice(1).entries()) {
+  assert.equal((block.match(/\{ id:/g) ?? []).length, 4, index === 0 ? "Captain navigation must contain exactly four tabs" : "Viewer/player navigation must contain exactly four tabs");
+}
+assert.ok(navigation.includes('pathname === "/" || pathname === "/player"'), "Home must be active on public Home and Player Hub only");
 
 const more = readFileSync("src/routes/more.tsx", "utf8");
-for (const destination of ['to="/teams"', 'to="/gallery"', 'to="/match-centre"']) {
+for (const destination of ['to="/teams"', 'to="/join"', 'to="/gallery"', 'to="/match-centre"']) {
   assert.ok(more.includes(destination), `More page is missing public destination ${destination}`);
 }
 assert.ok(more.includes('access.player && <Link') && more.includes('to="/player"'), "Player Hub must only appear for an approved registered player");
@@ -26,23 +28,30 @@ const refereeNavigation = readFileSync("src/components/referee-bottom-navigation
 const refereeTabs = [
   'to: "/referee" as const, label: "Home"',
   'to: "/match-centre" as const, label: "Match Centre"',
-  'to: "/teams" as const, label: "Teams"',
   'to: "/referee/matchday" as const, label: "Matchday"',
   'to: "/more" as const, label: "More"',
 ];
 for (const tab of refereeTabs) assert.ok(refereeNavigation.includes(tab), "Approved referee navigation is missing " + tab);
-assert.equal((refereeNavigation.match(/to: "[^"]*" as const, label:/g) ?? []).length, 5, "Referee navigation must contain exactly five tabs");
-assert.ok(refereeNavigation.includes('portal.membership?.status === "active"') && refereeNavigation.includes("<PlayerBottomNavigation />"), "Only an active approved referee membership may switch from player navigation");
+assert.equal((refereeNavigation.match(/to: "[^"]*" as const, label:/g) ?? []).length, 4, "Referee navigation must contain exactly four tabs");
+assert.ok(refereeNavigation.includes('portal.membership?.status === "active"') && refereeNavigation.includes('!pathname.startsWith("/referee")') && refereeNavigation.includes("<PlayerBottomNavigation />"), "Only active referees inside the referee portal may switch from account-aware player navigation");
 for (const route of ["index.tsx","player.tsx","captain.tsx","join.tsx","match-centre.tsx","teams.tsx","more.tsx","referee.tsx","referee/matchday.tsx"]) {
   const source = readFileSync("src/routes/" + route, "utf8");
   assert.ok(source.includes("<RefereeBottomNavigation"), route + " must use role-aware navigation");
 }
+const captainPage = readFileSync("src/routes/captain.tsx", "utf8");
+assert.ok(captainPage.includes('id="captain-club"') && captainPage.includes('id="captain-matchday"') && captainPage.includes(">MATCHDAY</span>"), "Captain Club and Matchday tabs must land on clearly labelled workspaces");
+
 const joinPage = readFileSync("src/routes/join.tsx", "utf8");
 assert.ok(joinPage.includes('if(!player||player.registration_status!=="registered"||player.is_banned)'), "Unregistered viewer accounts must not submit team join or registration requests");
 const registrationPage = readFileSync("src/routes/register-player.tsx", "utf8");
 assert.ok(registrationPage.includes("Under-16s can browse public Open Play information but cannot register as players or join teams."), "Under-16 registration must explain the basic-view restriction");
 assert.ok(registrationPage.includes("disabled={busy||isUnderSixteen||waitingGuardianReview}"), "Under-16 player registration submission must be disabled in the interface");
-console.log("Open Play player and five-tab referee navigation assertions passed.");
+
+const globalStyles = readFileSync("src/styles.css", "utf8");
+assert.ok(globalStyles.includes('font-family: "Inter", sans-serif;') && globalStyles.includes('font-family: "Oswald", sans-serif;'), "The global Open Play typography must use Inter for body copy and Oswald for display headings");
+assert.ok(!globalStyles.includes("DM Sans") && !globalStyles.includes("Barlow Condensed"), "Legacy font families must not override the approved Inter/Oswald visual system");
+
+console.log("Open Play account-aware four-tab navigation and global typography assertions passed.");
 
 const playerHub = readFileSync("src/routes/player.tsx", "utf8");
 assert.ok(playerHub.includes('if(player?.is_banned){void navigate({to:"/register-player",replace:true});return;}'), "Banned players must be redirected away from Player Hub to the restricted registration-status screen");
@@ -95,3 +104,23 @@ const standingsSource = readFileSync("src/lib/competition/standings.ts", "utf8")
 assert.ok(standingsSource.includes("getJointFirstTeams") && standingsSource.includes("leaders.length > 1 ? leaders : []"), "Tied first-place teams must be detected without goal-difference tie-breaks");
 assert.ok(adminStats.includes("Final required:") && adminStats.includes("Schedule a final to decide the season winner"), "Admin season statistics must flag a tied first place and prompt a final");
 assert.ok(matchCentreSource.includes("Final required between") && matchCentreSource.includes("jointFirstTeams.length>1"), "Public Match Centre must disclose when a tied first place requires a final");
+
+
+const playerStatsSource = readFileSync("src/routes/player.tsx", "utf8");
+assert.ok(playerStatsSource.includes('rpc("get_my_player_statistics"') && playerStatsSource.includes("playerStats.season.stats") && playerStatsSource.includes("playerStats.career"), "Player Hub must load and display the authenticated player's verified season and career statistics");
+assert.ok(playerStatsSource.includes("Assists and Man of the Match awards are not yet included"), "Player Hub must disclose statistics that are not yet supported by audited matchday capture");
+
+const analyticsEventsSource = readFileSync("src/lib/analytics/events.ts", "utf8");
+assert.ok(analyticsEventsSource.includes('"player_statistics_viewed"') && analyticsEventsSource.includes('"player_statistics"'), "Player statistics usage must use the consent-gated, allow-listed analytics taxonomy");
+assert.ok(playerStatsSource.includes('capture("player_statistics_viewed"'), "Player Hub statistics views must be captured only through the consent-aware analytics provider");
+
+const adminResultSource = readFileSync("src/routes/admin.tsx", "utf8");
+const refereeReportSource = readFileSync("src/routes/referee/report.$fixtureId.tsx", "utf8");
+const optionalGoalMigration = readFileSync("supabase/migrations/20261111203000_optional_goal_attribution.sql", "utf8");
+assert.ok(!adminResultSource.includes("hasOneScorerPerGoal") && adminResultSource.includes("Goalscorer attribution is optional"), "Admin result entry must allow a valid score without named scorers");
+assert.ok(!refereeReportSource.includes("Select one goalscorer for every goal") && refereeReportSource.includes("GOALSCORERS · OPTIONAL"), "Referee reports must allow unattributed goals without inventing player records");
+assert.ok(optionalGoalMigration.includes("cardinality(coalesce(p_home_scorers,'{}'::uuid[]))>p_home_score") && optionalGoalMigration.includes("cardinality(coalesce(p_home_scorers,'{}'::uuid[])) > p_home_score"), "Database result and referee-report RPCs must cap scorer attribution at the official score without requiring full attribution");
+
+const playerStatsMigration = readFileSync("supabase/migrations/20261111201000_player_self_service_statistics.sql", "utf8");
+assert.ok(playerStatsMigration.includes("auth.uid()") && playerStatsMigration.includes("r.confirmed_at is not null") && playerStatsMigration.includes("ts.is_locked is true") && playerStatsMigration.includes("g.voided_at is null"), "Player statistics must be limited to the signed-in player, locked appearances, confirmed results and non-voided goals");
+assert.ok(playerStatsMigration.includes("revoke all on function public.get_my_player_statistics(uuid) from public, anon;") && playerStatsMigration.includes("grant execute on function public.get_my_player_statistics(uuid) to authenticated;"), "Player statistics RPC must be unavailable to anonymous users");

@@ -14,10 +14,11 @@ create table public.referee_connect_accounts (
     check(jsonb_typeof(requirements_due)='object'),
   disabled_reason text,
   last_synced_at timestamptz not null default now(),
+  stripe_event_created_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint referee_connect_enabled_state check (
-    onboarding_status<>'enabled' or (details_submitted and transfers_enabled and payouts_enabled)
+    onboarding_status<>'enabled' or (details_submitted and transfers_enabled)
   )
 );
 create index referee_connect_accounts_payouts_idx
@@ -128,7 +129,8 @@ create or replace function public.sync_referee_connect_account(
   p_payouts_enabled boolean,
   p_charges_enabled boolean,
   p_requirements_due jsonb,
-  p_disabled_reason text
+  p_disabled_reason text,
+  p_stripe_event_created_at timestamptz default null
 )
 returns text
 language plpgsql
@@ -162,19 +164,18 @@ begin
   v_status:=case
     when nullif(btrim(coalesce(p_disabled_reason,'')),'') is not null then 'restricted'
     when coalesce(p_details_submitted,false)
-      and coalesce(p_transfers_enabled,false)
-      and coalesce(p_payouts_enabled,false) then 'enabled'
+      and coalesce(p_transfers_enabled,false) then 'enabled'
     when coalesce(p_details_submitted,false) then 'verification_pending'
     else 'onboarding_required'
   end;
 
   insert into public.referee_connect_accounts(
     referee_user_id,stripe_account_id,onboarding_status,details_submitted,
-    transfers_enabled,payouts_enabled,charges_enabled,requirements_due,disabled_reason,last_synced_at
+    transfers_enabled,payouts_enabled,charges_enabled,requirements_due,disabled_reason,last_synced_at,stripe_event_created_at
   ) values(
     p_referee_user_id,p_stripe_account_id,v_status,coalesce(p_details_submitted,false),
     coalesce(p_transfers_enabled,false),coalesce(p_payouts_enabled,false),
-    coalesce(p_charges_enabled,false),p_requirements_due,left(p_disabled_reason,500),now()
+    coalesce(p_charges_enabled,false),p_requirements_due,left(p_disabled_reason,500),now(),coalesce(p_stripe_event_created_at,now())
   )
   on conflict(referee_user_id) do update set
     onboarding_status=excluded.onboarding_status,
@@ -184,14 +185,16 @@ begin
     charges_enabled=excluded.charges_enabled,
     requirements_due=excluded.requirements_due,
     disabled_reason=excluded.disabled_reason,
-    last_synced_at=now();
+    last_synced_at=excluded.last_synced_at,
+    stripe_event_created_at=excluded.stripe_event_created_at
+  where public.referee_connect_accounts.stripe_event_created_at < excluded.stripe_event_created_at;
 
   return v_status;
 end;
 $$;
-revoke all on function public.sync_referee_connect_account(uuid,text,boolean,boolean,boolean,boolean,jsonb,text)
+revoke all on function public.sync_referee_connect_account(uuid,text,boolean,boolean,boolean,boolean,jsonb,text,timestamptz)
   from public,anon,authenticated;
-grant execute on function public.sync_referee_connect_account(uuid,text,boolean,boolean,boolean,boolean,jsonb,text)
+grant execute on function public.sync_referee_connect_account(uuid,text,boolean,boolean,boolean,boolean,jsonb,text,timestamptz)
   to service_role;
 
 create or replace function public.claim_referee_payout_transfer(
@@ -214,14 +217,17 @@ declare
   v_attempt integer;
   v_report_id uuid;
 begin
-  if v_actor is null or not public.has_finance_access() then
-    raise exception 'Finance access required';
+  if v_actor is null then
+    raise exception 'Authentication required';
   end if;
   if p_payout_type is null or p_payout_type not in ('match_report','milestone') or p_payout_id is null then
     raise exception 'A valid referee payout type and ID are required';
   end if;
-  if p_payout_type='milestone' and not public.has_platform_role() then
-    raise exception 'Global administrator permission required for referee milestone rewards';
+  -- Match-report transfers are authorised by the same location scope as report
+  -- approval. Milestone rewards remain restricted to finance-capable global admins.
+  if p_payout_type='milestone' and
+     (not public.has_platform_role() or not public.has_finance_access()) then
+    raise exception 'Global finance administrator permission required for referee milestone rewards';
   end if;
 
   if p_payout_type='match_report' then
@@ -261,7 +267,7 @@ begin
   select * into v_account from public.referee_connect_accounts
   where referee_user_id=v_referee_user_id for update;
   if not found or v_account.onboarding_status<>'enabled'
-     or not v_account.transfers_enabled or not v_account.payouts_enabled then
+     or not v_account.transfers_enabled then
     raise exception 'The referee must complete Stripe Connect verification before receiving a payout';
   end if;
 
