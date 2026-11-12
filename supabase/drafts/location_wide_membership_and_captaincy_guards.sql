@@ -204,7 +204,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $body$
+as $
 declare
   v_location_id uuid;
 begin
@@ -233,7 +233,8 @@ begin
   end if;
   return new;
 end;
-$body$;
+
+$;
 
 drop trigger if exists player_transfer_requests_location_membership_guard on public.player_transfer_requests;
 create trigger player_transfer_requests_location_membership_guard
