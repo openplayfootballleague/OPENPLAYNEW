@@ -202,6 +202,52 @@ create trigger guard_season_recruitment_transition
 before update of status on public.seasons
 for each row execute function public.guard_season_recruitment_transition();
 
+create or replace function public.admin_publish_upcoming_season(
+  p_season_id uuid,
+  p_reason text
+)
+returns public.seasons
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_actor uuid:=auth.uid();
+  v_before public.seasons;
+  v_location_id uuid;
+  v_after public.seasons;
+begin
+  if v_actor is null then raise exception 'Authentication required' using errcode='42501'; end if;
+  if p_reason is null or length(btrim(p_reason))<5 or length(btrim(p_reason))>500 then
+    raise exception 'Enter a reason between 5 and 500 characters' using errcode='22023';
+  end if;
+
+  select s,l.location_id into v_before,v_location_id
+  from public.seasons s join public.leagues l on l.id=s.league_id
+  where s.id=p_season_id for update of s;
+  if not found then raise exception 'Season not found' using errcode='P0002'; end if;
+  if not public.can_administer_location(v_location_id) then
+    raise exception 'Location administrator permission required' using errcode='42501';
+  end if;
+  if v_before.status::text<>'draft' or v_before.recruitment_status<>'closed' then
+    raise exception 'Only a closed upcoming season can be published as coming soon' using errcode='55000';
+  end if;
+
+  update public.seasons
+  set is_public=true,updated_at=now()
+  where id=p_season_id returning * into v_after;
+
+  insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
+  values(v_actor,'season.upcoming.published','season',p_season_id::text,btrim(p_reason),
+    jsonb_build_object('is_public',v_before.is_public,'recruitment_status',v_before.recruitment_status),
+    jsonb_build_object('is_public',v_after.is_public,'recruitment_status',v_after.recruitment_status));
+
+  return v_after;
+end;
+$;
+revoke all on function public.admin_publish_upcoming_season(uuid,text) from public,anon;
+grant execute on function public.admin_publish_upcoming_season(uuid,text) to authenticated;
+
 create or replace function public.admin_open_season_recruitment(
   p_season_id uuid,
   p_reason text
