@@ -3599,6 +3599,31 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      update_my_team_crest: {
+        Args: { p_badge_path: string | null; p_season_team_id: string }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          badge_path: string | null
+          created_at: string
+          id: string
+          instagram_url: string | null
+          name: string
+          primary_colour: string | null
+          registration_status: Database["public"]["Enums"]["registration_status"]
+          season_id: string
+          secondary_colour: string | null
+          slug: string
+          team_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "season_teams"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       update_my_notification_preferences: {
         Args: {
           p_email_enabled: boolean
