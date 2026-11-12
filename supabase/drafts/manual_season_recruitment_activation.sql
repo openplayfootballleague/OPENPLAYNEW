@@ -240,25 +240,3 @@ $$;
 revoke all on function public.admin_close_season_recruitment(uuid,text) from public,anon;
 grant execute on function public.admin_close_season_recruitment(uuid,text) to authenticated;
 
-create or replace function public.get_public_season_recruitment_status(p_season_id uuid)
-returns table(
-  season_id uuid,
-  season_name text,
-  competition_status text,
-  recruitment_status text,
-  starts_on date
-)
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select s.id,s.name,s.status::text,s.recruitment_status,s.starts_on
-  from public.seasons s
-  join public.leagues l on l.id=s.league_id
-  join public.locations loc on loc.id=l.location_id
-  where s.id=p_season_id and s.is_public is true and loc.is_active is true
-  limit 1;
-$$;
-revoke all on function public.get_public_season_recruitment_status(uuid) from public;
-grant execute on function public.get_public_season_recruitment_status(uuid) to anon,authenticated;
