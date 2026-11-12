@@ -229,7 +229,7 @@ export function PlayerCompetitionSelector({ context }: { context: PlayerCompetit
         </label>
       </div>
       {(() => {
-        const selected = availableSeasons.find((season) => season.id === context.selectedSeasonId);
+        const selected = availableSeasons.find((season) => season.status === "draft") ?? availableSeasons.find((season) => season.id === context.selectedSeasonId);
         if (!selected) return null;
         const recruiting = selected.recruitment_status === "open";
         const label = recruiting
