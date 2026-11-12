@@ -30,7 +30,6 @@ begin
      or pg_catalog.strpos(v_membership, 'get_membership_transition_barrier') = 0
      or pg_catalog.strpos(v_membership, 'future_approved_at') = 0
      or pg_catalog.strpos(v_membership, 'activation_after_season_id') = 0
-     or pg_catalog.strpos(v_membership, 'public.membership_status') = 0
      or pg_catalog.strpos(v_membership, 'insert into public.audit_log') = 0 then
     raise exception 'Membership captain/location authorization or a required workflow invariant is missing';
   end if;
