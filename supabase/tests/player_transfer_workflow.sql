@@ -238,7 +238,7 @@ begin
     raise exception 'A returning player was incorrectly attached without an approved transfer';
   exception when others then
     get stacked diagnostics v_error=message_text;
-    if v_error not like 'A player who voluntarily left a different club%' then raise; end if;
+    if v_error not like 'Use the player transfer workflow%' then raise; end if;
   end;
 
   perform set_config('request.jwt.claim.sub',v_player::text,true);
