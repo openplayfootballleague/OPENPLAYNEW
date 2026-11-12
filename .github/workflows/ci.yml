@@ -51,6 +51,33 @@ jobs:
       - name: Validate Cloudflare Worker bundle (dry run only)
         run: npx wrangler deploy --dry-run
 
+  analytics-consent-browser:
+    name: PostHog consent and network acceptance
+    runs-on: ubuntu-24.04
+    needs: build
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Create isolated Playwright package workspace
+        run: mkdir -p /tmp/openplay-playwright
+      - name: Install isolated Playwright test runner
+        run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+        working-directory: /tmp/openplay-playwright
+      - name: Link isolated Playwright runner into the application workspace
+        run: mkdir -p node_modules/@playwright node_modules/.bin && ln -sfn /tmp/openplay-playwright/node_modules/@playwright/test node_modules/@playwright/test && ln -sfn /tmp/openplay-playwright/node_modules/playwright node_modules/playwright && ln -sfn /tmp/openplay-playwright/node_modules/playwright-core node_modules/playwright-core && ln -sfn /tmp/openplay-playwright/node_modules/.bin/playwright node_modules/.bin/playwright
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run consent and network acceptance tests
+        run: npx playwright test --config=playwright.analytics.config.ts
+
   database-replay:
     name: Clean Supabase migration replay and security assertions
     runs-on: ubuntu-latest
