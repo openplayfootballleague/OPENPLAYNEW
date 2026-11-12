@@ -12,7 +12,7 @@ permissions:
 # Every push creates a PR check; serialize the local Supabase database replay
 # so concurrent attempts cannot contend for the same Docker host ports.
 concurrency:
-  group: openplay-phase1-${{ github.event.pull_request.number || github.ref }}
+  group: openplay-phase1-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
