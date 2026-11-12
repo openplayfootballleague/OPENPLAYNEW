@@ -100,8 +100,10 @@ begin
 
   -- The clean CI database is replayed without seed data, so this test must
   -- provision its own location instead of depending on an existing one.
+  -- The first-release environment intentionally permits only one active
+  -- location. This isolated feature-flag fixture does not need to be active.
   insert into public.locations(name,slug,town,region,is_active)
-  values('Feature Flag Test Location','ci-feature-flag-test-location','Bideford','Devon',true)
+  values('Feature Flag Test Location','ci-feature-flag-test-location','Bideford','Devon',false)
   returning id into v_location;
   insert into public.leagues(location_id,name,slug,format,is_published)
   values(v_location,'Feature Flag Test League','ci-feature-flag-test-league','six_a_side',false) returning id into v_league;
