@@ -59,6 +59,7 @@ begin
     from public.fixtures f
     left join public.fixture_results r on r.fixture_id=f.id
     where f.season_id=p_season_id
+      and f.status<>'cancelled'
       and (f.status<>'completed' or r.fixture_id is null or r.confirmed_at is null)
   );
 end;
@@ -1158,6 +1159,8 @@ $$;
 
 revoke all on function public.resolve_future_team_membership_request(uuid,text) from public,anon;
 grant execute on function public.resolve_future_team_membership_request(uuid,text) to authenticated;
+
+drop function if exists public.get_my_team_request_statuses();
 
 create or replace function public.get_my_team_request_statuses()
 returns table(
