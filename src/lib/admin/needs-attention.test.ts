@@ -54,7 +54,7 @@ describe("buildNeedsAttentionTasks", () => {
         home_team_name: "Northside FC",
         away_team_name: "Town FC",
       }],
-      submittedSheets: [{ fixture_id: "fixture-1", season_team_id: "home" }],
+      submittedSheets: [{ fixture_id: "fixture-1", season_team_id: "home", is_locked: true }],
     });
 
     expect(tasks).toHaveLength(1);
@@ -65,6 +65,31 @@ describe("buildNeedsAttentionTasks", () => {
       href: "#admin-team-sheets",
       actionLabel: "Open team sheets",
     });
+  });
+
+  it("does not treat an unlocked draft sheet as a submitted team sheet", () => {
+    const tasks = buildNeedsAttentionTasks({
+      playerReviews: [],
+      teamApplications: [],
+      membershipRequests: [],
+      fixtures: [{
+        id: "fixture-draft",
+        season_name: "Season 2",
+        gameweek: 5,
+        scheduled_at: "2026-11-15T19:00:00Z",
+        status: "scheduled",
+        home_team_id: "home",
+        away_team_id: "away",
+        home_team_name: "Northside FC",
+        away_team_name: "Town FC",
+      }],
+      submittedSheets: [{ fixture_id: "fixture-draft", season_team_id: "home", is_locked: false }],
+    });
+
+    expect(tasks.map((task) => task.id)).toEqual([
+      "sheet:fixture-draft:home",
+      "sheet:fixture-draft:away",
+    ]);
   });
 
   it("includes pending player transfers with their direct review destination", () => {
