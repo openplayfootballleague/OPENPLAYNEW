@@ -197,6 +197,52 @@ for each row
 execute function public.enforce_one_captaincy_per_player_per_location();
 revoke all on function public.enforce_one_captaincy_per_player_per_location() from public,anon,authenticated;
 
+-- A pending transfer request is not a way around an active membership in
+-- another league at the same location.
+create or replace function public.guard_pending_transfer_request_location_membership()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_location_id uuid;
+begin
+  if new.status<>'pending' or new.user_id is null then return new; end if;
+
+  select l.location_id into v_location_id
+  from public.season_teams destination
+  join public.seasons s on s.id=destination.season_id
+  join public.leagues l on l.id=s.league_id
+  where destination.id=new.destination_season_team_id;
+
+  if v_location_id is null then raise exception 'Transfer destination must belong to a location'; end if;
+
+  if exists (
+    select 1
+    from public.team_memberships tm
+    join public.season_teams st on st.id=tm.season_team_id
+    join public.seasons s on s.id=st.season_id
+    join public.leagues l on l.id=s.league_id
+    where tm.user_id=new.user_id
+      and tm.status='active'
+      and s.status in ('registration_open','active')
+      and l.location_id=v_location_id
+  ) then
+    raise exception 'Leave your existing club in this area before requesting a transfer';
+  end if;
+  return new;
+end;
+$;
+
+drop trigger if exists player_transfer_requests_location_membership_guard on public.player_transfer_requests;
+create trigger player_transfer_requests_location_membership_guard
+before insert or update of status,destination_season_team_id,user_id
+on public.player_transfer_requests
+for each row
+execute function public.guard_pending_transfer_request_location_membership();
+revoke all on function public.guard_pending_transfer_request_location_membership() from public,anon,authenticated;
+
 -- Fail closed if the existing data already violates the newly approved area rules.
 do $$
 begin
