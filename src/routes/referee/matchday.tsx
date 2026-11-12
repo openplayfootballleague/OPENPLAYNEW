@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AuthenticatedSessionBoundary } from "../../components/authenticated-session-boundary";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RefereeBottomNavigation } from "../../components/referee-bottom-navigation";
 import { getSupabaseClient } from "../../lib/supabase/client";
@@ -12,7 +13,11 @@ type RefereeAppointment = { assignment_id: string; fixture_id: string; assignmen
 
 export const Route = createFileRoute("/referee/matchday")({ component: RefereeMatchdayPage });
 
-function RefereeMatchdayPage() {
+function RefereeMatchdayPage(){
+ return <AuthenticatedSessionBoundary label="REFEREE MATCHDAY"><RefereeMatchdayWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function RefereeMatchdayWorkspace() {
   const capture = useOpenPlayAnalytics();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
