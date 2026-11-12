@@ -1942,16 +1942,6 @@ export type Database = {
         Args: { p_reason: string; p_season_id: string }
         Returns: Database["public"]["Tables"]["seasons"]["Row"]
       }
-      get_public_season_recruitment_status: {
-        Args: { p_season_id: string }
-        Returns: {
-          competition_status: string
-          recruitment_status: string
-          season_id: string
-          season_name: string
-          starts_on: string | null
-        }[]
-      }
       admin_create_season: {
         Args: {
           p_ends_on?: string
