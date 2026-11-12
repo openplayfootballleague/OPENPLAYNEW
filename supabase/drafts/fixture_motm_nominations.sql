@@ -445,7 +445,9 @@ begin
   if not exists(
     select 1 from public.seasons s
     join public.leagues l on l.id=s.league_id
-    where s.id=p_season_id and s.is_public is true and l.is_published is true
+    join public.locations loc on loc.id=l.location_id
+    where s.id=p_season_id and s.is_public is true
+      and l.is_published is true and loc.is_active is true
   ) then raise exception 'Published season not found'; end if;
 
   return query
@@ -467,7 +469,10 @@ begin
     coalesce(max(a.appearances),0)::bigint
   from public.fixture_motm_nominations n
   join public.fixtures f on f.id=n.fixture_id and f.status='completed'
-  join public.season_teams st on st.id=n.season_team_id
+  join public.seasons s on s.id=f.season_id and s.is_public is true
+  join public.leagues l on l.id=s.league_id and l.is_published is true
+  join public.locations loc on loc.id=l.location_id and loc.is_active is true
+  join public.season_teams st on st.id=n.season_team_id and st.registration_status='approved'
   join public.competition_player_identities cpi on cpi.id=n.competition_player_id
   left join appearances a
     on a.competition_player_id=n.competition_player_id
