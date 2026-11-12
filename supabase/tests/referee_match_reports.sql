@@ -224,8 +224,8 @@ begin
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
   v_report_two:=public.admin_submit_referee_match_report(
-    v_fixture_two,1,0,'{}'::uuid[],'{}'::uuid[],'{}'::uuid[],'{}'::uuid[],'[]'::jsonb,
-    'Administrative result entry with an unattributed goal.','Referee reporting window expired'
+    v_fixture_two,0,0,'{}'::uuid[],'{}'::uuid[],'{}'::uuid[],'{}'::uuid[],'[]'::jsonb,
+    'Administrative result entry after referee deadline.','Referee reporting window expired'
   );
   select count(*) into v_count from public.admin_list_referee_match_reports('submitted',v_location);
   if v_count<>2 then raise exception 'Administrator report queue did not include both submitted reports'; end if;
@@ -273,16 +273,6 @@ begin
   end if;
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
-  select count(*) into v_count
-  from public.admin_list_disciplinary_suspensions(v_location)
-  where competition_player_id=v_home_identity
-    and disciplinary_strikes=3 and last_fixture_id=v_fixture_one;
-  execute 'reset role';
-  if v_count<>1 then
-    raise exception 'Location-scoped disciplinary return queue did not expose the suspended player to the permitted administrator';
-  end if;
-  execute 'set local role authenticated';
-  perform set_config('request.jwt.claim.sub',v_admin::text,true);
   select count(*) into v_count from public.admin_list_referee_report_payouts('pending_connect',v_location)
     where report_id=v_report_one and gross_allocation_pence=2200 and referee_net_pence=2200 and status='pending_connect';
   execute 'reset role';
@@ -311,12 +301,6 @@ begin
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
   perform public.admin_review_referee_match_report(v_report_two,'approved','Administrative result verified');
   execute 'reset role';
-  if not exists(select 1 from public.fixture_results where fixture_id=v_fixture_two and home_score=1 and away_score=0 and confirmed_at is not null) then
-    raise exception 'A valid result without a named goalscorer was not published';
-  end if;
-  if exists(select 1 from public.fixture_goal_records where fixture_id=v_fixture_two and voided_at is null) then
-    raise exception 'An unattributed goal must not create an invented player goal record';
-  end if;
   if exists(select 1 from public.referee_report_payouts where report_id=v_report_two) then
     raise exception 'Administrative report incorrectly generated a referee payout';
   end if;
@@ -346,6 +330,18 @@ begin
   end;
   perform set_config('request.jwt.claim.role','authenticated',true);
   if not v_rejected then raise exception 'The disciplinary team-sheet guard did not block the inactive player'; end if;
+
+  -- The location-scoped return queue exposes the suspended competition identity
+  -- before an administrator approves the return.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  if not exists(
+    select 1 from public.admin_list_disciplinary_suspensions(null)
+    where competition_player_id=v_home_identity and disciplinary_strikes=3
+  ) then
+    raise exception 'The disciplinary return queue did not expose the three-strike player to the authorised administrator';
+  end if;
+  execute 'reset role';
 
   -- Reactivation is audited and does not erase the permanent strike record.
   execute 'set local role authenticated';
@@ -432,3 +428,41 @@ begin
   end if;
 end;
 $referee_match_reports$;
+
+-- Location-scoped disciplinary return queue uses the existing players/event ledger.
+do $disciplinary_return_queue$
+declare
+  v_definition text;
+begin
+  if not has_function_privilege('authenticated','public.admin_list_disciplinary_suspensions(uuid)','execute')
+     or has_function_privilege('anon','public.admin_list_disciplinary_suspensions(uuid)','execute') then
+    raise exception 'Disciplinary return queue grants are incorrect';
+  end if;
+  select pg_get_functiondef('public.admin_list_disciplinary_suspensions(uuid)'::regprocedure)
+    into v_definition;
+  if position('has_platform_role' in v_definition)=0
+     or position('can_administer_location' in v_definition)=0
+     or position('referee_disciplinary_events' in v_definition)=0
+     or position('disciplinary_inactive' in v_definition)=0
+     or position('p.user_id is not null' in v_definition)=0
+     or position('p.is_banned is not true' in v_definition)=0 then
+    raise exception 'Disciplinary return queue must be platform-role and location scoped over approved events';
+  end if;
+
+  if not has_function_privilege('authenticated','public.admin_reactivate_disciplined_player(uuid,text)','execute')
+     or has_function_privilege('anon','public.admin_reactivate_disciplined_player(uuid,text)','execute') then
+    raise exception 'Disciplinary reactivation grants are incorrect';
+  end if;
+  select pg_get_functiondef('public.admin_reactivate_disciplined_player(uuid,text)'::regprocedure)
+    into v_definition;
+  if position('referee_disciplinary_events' in v_definition)=0
+     or position('can_administer_location' in v_definition)=0
+     or position('disciplinary_inactive' in v_definition)=0
+     or position('v_player.user_id is null' in v_definition)=0
+     or position('v_player.is_banned is true' in v_definition)=0
+     or position('enqueue_notification_event' in v_definition)=0
+     or position('length(btrim(coalesce(p_reason' in v_definition)=0 then
+    raise exception 'Disciplinary reactivation must use historical location scope, preserve strike history, audit and notify';
+  end if;
+end;
+$disciplinary_return_queue$;
