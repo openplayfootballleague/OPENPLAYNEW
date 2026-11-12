@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useRequiredSession } from "../lib/auth/use-required-session";
@@ -39,7 +40,11 @@ const messagingRpc = () => getSupabaseClient() as unknown as MessagingRpcClient;
 
 export const Route = createFileRoute("/messages")({ component: MessagesPage });
 
-function MessagesPage() {
+function MessagesPage(){
+ return <AuthenticatedSessionBoundary label="MESSAGES"><MessagesWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function MessagesWorkspace() {
   const authStatus = useRequiredSession();
   const [userId, setUserId] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
