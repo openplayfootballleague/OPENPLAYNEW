@@ -136,7 +136,24 @@ begin
     join public.leagues l on l.id=s.league_id
     where tm.season_team_id=st.id and tm.user_id=p_user_id and tm.status='active'
       and l.location_id=p_location_id and s.id<>p_target_season_id
-      and s.starts_on<=(select target_season.starts_on from public.seasons target_season where target_season.id=p_target_season_id)
+      and exists (
+        select 1
+        from public.seasons target_season
+        where target_season.id=p_target_season_id
+          and (
+            (
+              target_season.starts_on is not null
+              and (
+                (s.starts_on is not null and s.starts_on<target_season.starts_on)
+                or (s.starts_on is null and s.created_at<target_season.created_at)
+              )
+            )
+            or (
+              target_season.starts_on is null
+              and s.created_at<target_season.created_at
+            )
+          )
+      )
       and public.is_season_final_gameweek_confirmed(s.id)
     returning tm.id,tm.season_team_id,tm.user_id
   )
