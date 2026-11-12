@@ -89,17 +89,39 @@ begin
       'database_role', current_user
     )
   );
+
+  -- Verify both writes before the transaction can commit.
+  if not exists (
+    select 1 from public.user_roles
+    where id = v_role_id and user_id = v_target_user_id and role = 'super_admin'
+  ) then
+    raise exception 'Super Admin role post-condition failed';
+  end if;
+
+  if not exists (
+    select 1 from public.audit_log
+    where action = 'role.super_admin.bootstrapped'
+      and entity_type = 'user_role'
+      and entity_id = v_role_id::text
+      and actor_user_id is null
+  ) then
+    raise exception 'Super Admin bootstrap audit post-condition failed';
+  end if;
 end;
 $bootstrap$;
 
--- Inspect the inserted role and audit record before committing.
+commit;
+
+-- Verify the committed role and audit record after the transaction succeeds.
 select id, user_id, role, granted_by, granted_at
 from public.user_roles
 where role = 'super_admin';
 
--- Commit only after confirming the selected Auth UUID is correct.
--- Otherwise run ROLLBACK instead.
-commit;
+select action, entity_type, entity_id, reason, after_data, created_at
+from public.audit_log
+where action = 'role.super_admin.bootstrapped'
+order by created_at desc
+limit 1;
 ```
 
 The null `granted_by` and null audit `actor_user_id` are deliberate: the operator is the Supabase project owner acting through the database-owner session, not necessarily an Open Play Auth user. The audit reason and metadata record the owner-controlled SQL Editor method without falsely attributing the action to the target account. If the audit insert fails, the transaction must roll back.
