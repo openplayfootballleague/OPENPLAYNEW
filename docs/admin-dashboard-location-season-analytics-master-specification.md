@@ -192,7 +192,7 @@ H. **Season completion:** Verify fixtures/results → finalise table → reconci
 ### Manual season recruitment activation
 
 - The location header is the primary public status surface across the location's app pages. It shows **Coming Soon / Recruiting Closed** while an upcoming season is closed, then **Recruiting Open** after manual activation.
-- Admin controls provide **Keep Closed**, **Open Recruitment** and **Close Recruitment**. Opening requires a reason and a deliberate location/season-scoped Admin action.
+- Admin controls provide **Keep Closed**, **Publish Coming Soon**, **Open Recruitment** and **Close Recruitment**. Publishing makes an upcoming season publicly visible while recruitment remains closed; opening requires a reason and a deliberate location/season-scoped Admin action.
 - The server rechecks that the previous season in the same league has a final fixture marked completed and that the fixture has a published result. The scheduled date passing is not sufficient. If no prior season exists, the first season may be opened by an authorised administrator.
 - Activation and closure are transactional, permission-checked server-side and audit logged. Direct status updates must not bypass the activation RPC.
 - Opening makes normal player and team registration workflows available. Existing memberships remain tied to their original season.
