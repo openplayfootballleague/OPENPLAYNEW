@@ -55,13 +55,16 @@ Remember the last valid selection where appropriate. Revalidate it on return; if
 
 ### Season selection
 
-Location selection and season selection are separate steps. Show actual seasons with configured statuses: Upcoming, Registration Open, Active, Completed or Archived. Do not infer status from dates alone.
+Location selection and season selection are separate steps. Keep the **competition lifecycle** separate from the **recruitment state**; do not overload one status field to represent both.
 
+Competition lifecycle:
+- Draft: private setup; not publicly selectable.
+- Upcoming: may be shown as a read-only preview before the season begins.
 - Active: default for normal current competition activity.
-- Upcoming: permitted read-only preview until registration is explicitly opened.
-- Registration Open: accept only the registrations enabled by configuration.
 - Completed: historical read-only experience except authorised audited corrections.
-- Archived: retained history, never an active registration opportunity.
+- Archived: retained history, never an active competition.
+
+Recruitment state is independently one of Closed, Scheduled, Open or Closed After Opening. A season can therefore be Upcoming + Closed, Upcoming + Scheduled, Upcoming + Open, or Active + Closed. Only an Open recruitment state accepts configured player/team registrations. Do not infer recruitment state from season dates or countdown expiry; use the persisted, server-authoritative state. Preserve a compatibility migration for existing registration_open season rows so they become Upcoming + Open rather than losing their registration state.
 
 No location with no seasons or no active season should produce a broken or blank screen; explain the state and provide a safe return path.
 
@@ -193,7 +196,7 @@ H. **Season completion:** Verify fixtures/results → finalise table → reconci
 
 - An upcoming season may be visible in the selected location's app header while remaining inactive and closed to registrations. Its public status is Coming Soon / Recruiting Closed; it must not accept player registrations, team applications, join requests or create future/pending memberships.
 - When an opening date and time has been configured, the header displays a live countdown using the location's `Europe/London` timezone. The countdown is informational only; reaching zero in the browser must never open registration by itself.
-- Admin season controls provide **Keep Closed**, **Open Now**, and **Schedule Opening**. Scheduling requires an explicit date/time, a preview of the announcement, and a clear scheduled status. Admins can edit or cancel the schedule before it fires, or close recruiting after it has opened.
+- Admin season controls provide **Keep Closed**, **Open Now**, and **Schedule Opening**. Scheduling requires an explicit date/time, a preview of the announcement, and a clear scheduled status. Admins can edit or cancel the schedule before it fires, or close recruiting after it has opened. Persist recruitment state separately from competition lifecycle (do not encode registration_open as the season lifecycle status); retain the legacy transition only as a compatibility mapping during migration.
 - At the scheduled time, a trusted server-side scheduler rechecks that the selected season is still eligible, the location/league are active and the previous season's final fixture is actually completed (not merely past its scheduled date). If any prerequisite is false, registration stays closed, the schedule is marked blocked/needs attention, and authorised admins are notified; it must not silently open early.
 - A successful scheduled opening or Open Now action atomically changes the season's registration state and enqueues one notification announcement for the affected location/season audience. Use an idempotency key so retries cannot send duplicates. Do not send notifications on countdown expiry alone or on an unsuccessful state change.
 - Before scheduling or opening, show the exact message and audience. Record actor, location, season, scheduled/opened/closed timestamps, prior/new state, message version, dispatch status and failure/retry outcome in the audit/communications history. Show sent, queued and failed delivery counts where the provider supports them. Never claim delivery when only queued.
