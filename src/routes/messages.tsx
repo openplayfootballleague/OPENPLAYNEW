@@ -91,6 +91,7 @@ function MessagesPage() {
       p_conversation_id: conversationId,
       p_limit: 100,
       p_before: null,
+      p_before_id: null,
     });
     if (rpcError) {
       setError(rpcError.message);
@@ -110,6 +111,7 @@ function MessagesPage() {
       p_conversation_id: selectedId,
       p_limit: 100,
       p_before: messages[0].created_at,
+      p_before_id: messages[0].message_id,
     });
     if (rpcError) setError(rpcError.message);
     else {
