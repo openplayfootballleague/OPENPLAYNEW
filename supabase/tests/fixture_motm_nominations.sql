@@ -284,12 +284,14 @@ begin
     raise exception 'Admin correction did not preserve the corrected player and reason in the admin queue';
   end if;
 
+  -- Audit history is intentionally not directly readable by authenticated users.
+  -- Inspect it as the trusted database test role after exercising the admin RPC
+  -- under the administrator JWT context above.
+  execute 'reset role';
   select count(*) into v_count from public.audit_log
   where actor_user_id=v_admin and action='fixture.motm.corrected'
     and entity_type='fixture_motm_nomination' and entity_id=v_nomination_id::text;
   if v_count<>1 then raise exception 'MOTM admin correction was not audited'; end if;
-
-  execute 'reset role';
 
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_home_teammate::text,true);
