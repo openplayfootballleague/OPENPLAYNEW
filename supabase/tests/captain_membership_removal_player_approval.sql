@@ -68,8 +68,8 @@ begin
   where season_team_id=v_season_team and user_id=v_player;
   v_approved_membership:=v_membership;
 
-  -- A player cannot submit a captain request or act on another player's request.
-  perform set_config('request.jwt.claim.sub',v_player::text,true);
+  -- A non-captain cannot submit a removal request for another player.
+  perform set_config('request.jwt.claim.sub',v_other_player::text,true);
   begin
     perform public.request_team_membership_removal(v_membership);
     raise exception 'A non-captain was incorrectly allowed to request removal';
