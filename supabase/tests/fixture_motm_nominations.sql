@@ -274,13 +274,15 @@ begin
   perform public.admin_correct_fixture_motm_nomination(
     v_nomination_id,v_home_teammate_identity,'Corrected after referee review'
   );
-  if not exists(
-    select 1 from public.fixture_motm_nominations
-    where id=v_nomination_id
-      and competition_player_id=v_home_teammate_identity
-      and corrected_by=v_admin
-      and correction_reason='Corrected after referee review'
-  ) then raise exception 'Admin correction did not preserve its actor and reason'; end if;
+  select count(*) into v_count
+  from public.admin_list_fixture_motm_nominations(v_location) rows
+  where rows.nomination_id=v_nomination_id
+    and rows.competition_player_id=v_home_teammate_identity
+    and rows.corrected_at is not null
+    and rows.correction_reason='Corrected after referee review';
+  if v_count<>1 then
+    raise exception 'Admin correction did not preserve the corrected player and reason in the admin queue';
+  end if;
 
   select count(*) into v_count from public.audit_log
   where actor_user_id=v_admin and action='fixture.motm.corrected'
