@@ -14,7 +14,7 @@ type PlayerState = { registration_status: "registered" | "pending_review" | "rej
 export const Route = createFileRoute("/join")({ component: JoinPage });
 
 function JoinPage(){
- return <AuthenticatedSessionBoundary label="JOIN OPEN PLAY"><JoinWorkspace/></AuthenticatedSessionBoundary>;
+ return <AuthenticatedSessionBoundary label="JOIN OPEN PLAY" allowSignUp><JoinWorkspace/></AuthenticatedSessionBoundary>;
 }
 
 function JoinWorkspace() {
