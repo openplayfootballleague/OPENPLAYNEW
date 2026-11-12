@@ -150,9 +150,23 @@ begin
   if tg_table_name='season_teams' then
     if new.registration_status::text<>'pending' then return new; end if;
     v_season_id:=new.season_id;
-  else
+  elsif tg_table_name='season_registrations' then
     if new.status::text<>'pending' then return new; end if;
     v_season_id:=new.season_id;
+  else
+    if new.status::text not in ('pending','active') then return new; end if;
+    select s.recruitment_status,s.status::text
+      into v_state,v_competition_status
+    from public.team_memberships tm
+    join public.season_teams st on st.id=tm.season_team_id
+    join public.seasons s on s.id=st.season_id
+    where st.id=new.season_team_id;
+    if not found then return new; end if;
+    if v_competition_status='draft' and v_state is distinct from 'open' then
+      raise exception 'Future season memberships cannot be created before Admin opens recruitment'
+        using errcode='55000';
+    end if;
+    return new;
   end if;
 
   select s.recruitment_status,s.status::text
@@ -177,6 +191,11 @@ for each row execute function public.enforce_season_recruitment_open();
 drop trigger if exists enforce_season_player_recruitment_open on public.season_registrations;
 create trigger enforce_season_player_recruitment_open
 before insert or update of status,season_id on public.season_registrations
+for each row execute function public.enforce_season_recruitment_open();
+
+drop trigger if exists enforce_future_season_membership_recruitment_open on public.team_memberships;
+create trigger enforce_future_season_membership_recruitment_open
+before insert or update of status,season_team_id on public.team_memberships
 for each row execute function public.enforce_season_recruitment_open();
 
 create or replace function public.guard_season_recruitment_transition()
