@@ -8,9 +8,20 @@ import { AdminGameweekPostponements } from "../components/admin-gameweek-postpon
 import { AdminDisciplinarySuspensions } from "../components/admin-disciplinary-suspensions";
 import { AdminLeagueAdminRoles } from "../components/admin-league-admin-roles";
 type PlayerReview={player_id:string;full_name:string;email:string;phone:string;created_at:string;name_matched:boolean;phone_matched:boolean;email_matched:boolean};
-type TeamApplication={season_team_id:string;team_name:string;season_name:string;created_at:string};
+type TeamApplication={
+ season_team_id:string;team_name:string;season_name:string;created_at:string;
+ team_status:string|null;captain_full_name:string|null;captain_mobile:string|null;captain_whatsapp:string|null;
+ captain_whatsapp_same_as_mobile:boolean|null;captain_no_whatsapp:boolean|null;preferred_kit_colour:string|null;
+ instagram_url:string|null;badge_path:string|null;weekly_fee_accepted_pence:number|null;
+ full_season_total_accepted_pence:number|null;gameweek_count_accepted:number|null;fee_accepted_at:string|null;
+ fee_accepted_competition_id:string|null;declarations_accepted_at:string|null;declarations_version:string|null;
+ declaration_authority:boolean|null;declaration_accuracy:boolean|null;declaration_payment:boolean|null;
+ declaration_age:boolean|null;declaration_rules:boolean|null;additional_information:string|null;
+};
 type MembershipRequest={membership_id:string;team_name:string;player_name:string;created_at:string};
 type Dashboard={counts:{pending_player_reviews:number;pending_team_applications:number;pending_membership_requests:number;open_seasons:number};player_reviews:PlayerReview[];team_applications:TeamApplication[];membership_requests:MembershipRequest[]};
+const formatAdminMoney=(pence:number|null)=>pence===null?"Not recorded":new Intl.NumberFormat("en-GB",{style:"currency",currency:"GBP"}).format(pence/100);
+
 type AdminSetup={
  locations:Array<{id:string;name:string;town:string;region:string;address:string|null;is_active:boolean}>;
  leagues:Array<{id:string;location_id:string;location_name:string;name:string;format:"six_a_side"|"seven_a_side";description:string|null;is_published:boolean}>;
@@ -158,7 +169,28 @@ function AdminDashboardPage(){
    {data.player_reviews.length===0?<p className="form-note">No player identity reviews waiting.</p>:data.player_reviews.map(r=><article className="admin-queue-row" key={r.player_id}><div><strong>{r.full_name}</strong><span>{r.email} · {r.phone}</span><small>Matched: {["Name","Phone","Email"].flatMap((label,i)=>[r.name_matched,r.phone_matched,r.email_matched][i]?[label]:[]).join(", ")}</small></div><div className="captain-actions"><button disabled={busy===r.player_id} onClick={()=>act(r.player_id,()=>getSupabaseClient().rpc("resolve_player_registration_review",{p_player_id:r.player_id,p_decision:"approved",p_reason:"Identity review approved"}),"Player registration approved.")}>Approve</button><button className="reject" disabled={busy===r.player_id} onClick={()=>act(r.player_id,()=>getSupabaseClient().rpc("resolve_player_registration_review",{p_player_id:r.player_id,p_decision:"rejected",p_reason:"Identity review rejected"}),"Player registration rejected.")}>Reject</button></div></article>)}
   </section>
   <section id="admin-team-approvals" className="admin-queue"><div className="hub-section-heading"><span className="hub-kicker">TEAM APPLICATIONS</span><span>{data.team_applications.length}</span></div>
-   {data.team_applications.length===0?<p className="form-note">No team applications waiting.</p>:data.team_applications.map(r=><article className="admin-queue-row" key={r.season_team_id}><div><strong>{r.team_name}</strong><span>{r.season_name}</span></div><div className="captain-actions"><button disabled={busy===r.season_team_id} onClick={()=>act(r.season_team_id,()=>getSupabaseClient().rpc("resolve_team_registration",{p_season_team_id:r.season_team_id,p_decision:"approved",p_reason:"Team application approved"}),"Team approved and captain access activated.")}>Approve</button><button className="reject" disabled={busy===r.season_team_id} onClick={()=>act(r.season_team_id,()=>getSupabaseClient().rpc("resolve_team_registration",{p_season_team_id:r.season_team_id,p_decision:"rejected",p_reason:"Team application rejected"}),"Team application rejected.")}>Reject</button></div></article>)}
+   {data.team_applications.length===0?<p className="form-note">No team applications waiting.</p>:data.team_applications.map(r=><article className="admin-queue-row admin-team-application-row" key={r.season_team_id}>
+    <div className="admin-team-application-heading"><strong>{r.team_name}</strong><span>{r.season_name} · {r.team_status==="returning"?"Returning team":r.team_status==="new"?"New team":"Team type not recorded"}</span>
+     <details className="admin-team-application-details">
+      <summary>VIEW APPLICATION DETAILS</summary>
+      <div className="admin-team-application-details-grid">
+       <div><span>CAPTAIN</span><strong>{r.captain_full_name||"Not supplied"}</strong></div>
+       <div><span>MOBILE</span><strong>{r.captain_mobile||"Not supplied"}</strong></div>
+       <div><span>WHATSAPP</span><strong>{r.captain_no_whatsapp?"No WhatsApp":r.captain_whatsapp_same_as_mobile?"Same as mobile · "+(r.captain_mobile||"Not supplied"):r.captain_whatsapp||"Not supplied"}</strong></div>
+       <div><span>PREFERRED KIT COLOUR</span><strong>{r.preferred_kit_colour||"Not supplied"}</strong></div>
+       <div><span>WEEKLY FEE ACCEPTED</span><strong>{formatAdminMoney(r.weekly_fee_accepted_pence)}</strong></div>
+       <div><span>FULL-SEASON TOTAL</span><strong>{formatAdminMoney(r.full_season_total_accepted_pence)}</strong></div>
+       <div><span>GAMEWEEKS</span><strong>{r.gameweek_count_accepted??"Not recorded"}</strong></div>
+       <div><span>FEE ACCEPTED</span><strong>{r.fee_accepted_at?new Date(r.fee_accepted_at).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"}):"Not recorded"}</strong></div>
+       <div><span>DECLARATIONS</span><strong>{r.declarations_accepted_at?"All five accepted · "+(r.declarations_version||"version not recorded"):"Not recorded"}</strong></div>
+       <div><span>INSTAGRAM</span>{r.instagram_url?<a href={r.instagram_url} target="_blank" rel="noreferrer">Open team profile ↗</a>:<strong>Not supplied</strong>}</div>
+       <div className="admin-team-application-extra"><span>ADDITIONAL INFORMATION</span><p>{r.additional_information||"None supplied"}</p></div>
+      </div>
+      {r.badge_path&&<img className="admin-team-application-crest" src={getSupabaseClient().storage.from("team-crests").getPublicUrl(r.badge_path).data.publicUrl} alt={r.team_name+" crest"}/>}
+     </details>
+    </div>
+    <div className="captain-actions"><button disabled={busy===r.season_team_id} onClick={()=>act(r.season_team_id,()=>getSupabaseClient().rpc("resolve_team_registration",{p_season_team_id:r.season_team_id,p_decision:"approved",p_reason:"Team application approved"}),"Team approved and captain access activated.")}>Approve</button><button className="reject" disabled={busy===r.season_team_id} onClick={()=>act(r.season_team_id,()=>getSupabaseClient().rpc("resolve_team_registration",{p_season_team_id:r.season_team_id,p_decision:"rejected",p_reason:"Team application rejected"}),"Team application rejected.")}>Reject</button></div>
+   </article>)}
   </section>
   <section id="admin-membership-requests" className="admin-queue"><div className="hub-section-heading"><span className="hub-kicker">PLAYER JOIN REQUESTS</span><span>{data.membership_requests.length}</span></div>
    {data.membership_requests.length===0?<p className="form-note">No player requests waiting.</p>:data.membership_requests.map(r=><article className="admin-queue-row" key={r.membership_id}><div><strong>{r.player_name}</strong><span>{r.team_name}</span></div><div className="captain-actions"><button disabled={busy===r.membership_id} onClick={()=>act(r.membership_id,()=>getSupabaseClient().rpc("resolve_team_membership_request",{p_membership_id:r.membership_id,p_decision:"approved"}),"Player added to the team.")}>Approve</button><button className="reject" disabled={busy===r.membership_id} onClick={()=>act(r.membership_id,()=>getSupabaseClient().rpc("resolve_team_membership_request",{p_membership_id:r.membership_id,p_decision:"rejected"}),"Player request rejected.")}>Reject</button></div></article>)}
