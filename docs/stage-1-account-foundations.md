@@ -214,3 +214,9 @@ The notification delivery Edge Function previously used the legacy `get_admin_da
 ### Checkout origin configuration correction
 
 The player checkout Edge Function still contained a fallback CORS/allowed-origin value for the retired Lovable-hosted application. Removed that fallback: `APP_ORIGIN` is now required, and checkout returns a configuration error when it is absent rather than accepting the retired host. This keeps the independent Open Play New deployment boundary intact.
+
+## Captain Hub account-switch isolation correction — 12 November 2026
+
+A further route audit found that Captain Hub previously loaded privileged captain RPC data once on mount without a session-state boundary. Database RPCs remained authoritative for active-captain permission, but the mounted page did not clear its cached squad, transfer, availability, payment and team-sheet state when the signed-in account changed.
+
+PR #117 (`fix/captain-hub-session-isolation-2026-11-12`) adds an initial-session/auth-state gate and mounts the Captain workspace under the authenticated Supabase user ID as its React key. Sign-out unmounts the workspace; switching accounts remounts a fresh workspace and reloads through the existing permission-checked captain RPCs. Same-user token refreshes preserve the workspace. Build, clean database replay and Chromium/PWA acceptance are pending exact-head CI. No database changes or hosted writes were made.
