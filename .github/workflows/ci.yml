@@ -321,6 +321,21 @@ jobs:
           grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\n' "$migration_file"
+      - name: Generate manual season recruitment activation migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_manual_season_recruitment_activation.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new manual_season_recruitment_activation
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_manual_season_recruitment_activation.sql' -print -quit)"
+            cp supabase/drafts/manual_season_recruitment_activation.sql "$migration_file"
+          else
+            diff -u supabase/drafts/manual_season_recruitment_activation.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
       - name: Verify unique migration versions before replay
         shell: bash
         run: |
@@ -462,6 +477,11 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/captain_next_required_fixture_integration_regression.sql
+
+      - name: Verify manual season recruitment activation and previous-season completion gate
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/manual_season_recruitment_activation.sql
 
       - name: Verify Auth signup, email confirmation and password recovery
         shell: bash
