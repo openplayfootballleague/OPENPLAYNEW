@@ -22,6 +22,7 @@ create table if not exists public.team_registration_details (
   captain_whatsapp_same_as_mobile boolean not null default false,
   captain_no_whatsapp boolean not null default false,
   team_status text not null check (team_status in ('new','returning')),
+  preferred_kit_colour text check (preferred_kit_colour is null or char_length(preferred_kit_colour)<=40),
   weekly_fee_accepted_pence integer not null check (weekly_fee_accepted_pence >= 0),
   full_season_total_accepted_pence integer not null check (full_season_total_accepted_pence >= 0),
   gameweek_count_accepted integer not null check (gameweek_count_accepted between 1 and 52),
@@ -190,7 +191,7 @@ drop function if exists public.register_team(uuid,text,text,text);
 create or replace function public.register_team(
   p_season_id uuid,
   p_team_name text,
-  p_primary_colour text,
+  p_preferred_kit_colour text,
   p_instagram_url text,
   p_team_status text,
   p_badge_path text,
@@ -231,7 +232,7 @@ begin
   if nullif(trim(p_team_name),'') is null or char_length(trim(p_team_name))>80 then
     raise exception 'Team name must be between 1 and 80 characters';
   end if;
-  if p_primary_colour is not null and char_length(trim(p_primary_colour))>40 then
+  if p_preferred_kit_colour is not null and char_length(trim(p_preferred_kit_colour))>40 then
     raise exception 'Preferred kit colour must be 40 characters or fewer';
   end if;
   if p_team_status is null or p_team_status not in ('new','returning') then
@@ -363,14 +364,14 @@ begin
     team_id,season_id,name,slug,primary_colour,secondary_colour,
     registration_status,badge_path,instagram_url
   ) values (
-    v_team_id,p_season_id,trim(p_team_name),v_slug,nullif(trim(p_primary_colour),''),
-    null,'pending',p_badge_path,nullif(trim(p_instagram_url),'')
+    v_team_id,p_season_id,trim(p_team_name),v_slug,
+    null,null,'pending',p_badge_path,nullif(trim(p_instagram_url),'')
   )
   returning * into v_season_team;
 
   insert into public.team_registration_details(
     season_team_id,submitted_by,captain_full_name,captain_mobile,captain_whatsapp,
-    captain_whatsapp_same_as_mobile,captain_no_whatsapp,team_status,
+    captain_whatsapp_same_as_mobile,captain_no_whatsapp,team_status,preferred_kit_colour,
     weekly_fee_accepted_pence,full_season_total_accepted_pence,gameweek_count_accepted,
     fee_accepted_at,fee_accepted_by,fee_accepted_competition_id,
     declarations_accepted_at,declarations_version,
@@ -379,7 +380,7 @@ begin
   ) values (
     v_season_team.id,v_user_id,v_player.full_name,v_player.phone,v_whatsapp,
     p_captain_whatsapp_same_as_mobile,p_captain_no_whatsapp,p_team_status,
-    v_terms.weekly_fee_pence,v_terms.full_season_total_pence,v_terms.gameweek_count,
+    nullif(trim(p_preferred_kit_colour),''),v_terms.weekly_fee_pence,v_terms.full_season_total_pence,v_terms.gameweek_count,
     now(),v_user_id,v_terms.competition_id,
     now(),'team-registration-v1-2026-11-12',
     true,true,true,true,true,nullif(trim(p_additional_information),'')
@@ -475,7 +476,7 @@ begin
         'captain_whatsapp',trd.captain_whatsapp,
         'captain_whatsapp_same_as_mobile',trd.captain_whatsapp_same_as_mobile,
         'captain_no_whatsapp',trd.captain_no_whatsapp,
-        'preferred_kit_colour',st.primary_colour,
+        'preferred_kit_colour',trd.preferred_kit_colour,
         'instagram_url',st.instagram_url,
         'badge_path',st.badge_path,
         'weekly_fee_accepted_pence',trd.weekly_fee_accepted_pence,
