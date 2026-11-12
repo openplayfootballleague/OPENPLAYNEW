@@ -196,6 +196,31 @@ describe("buildNeedsAttentionTasks", () => {
     });
   });
 
+  it("surfaces defaulted, reconciliation and refund failures in the finance workspace", () => {
+    const tasks = buildNeedsAttentionTasks({
+      playerReviews: [],
+      teamApplications: [],
+      membershipRequests: [],
+      paymentObligations: [
+        { obligation_id: "defaulted", season_name: "Season 2", team_name: "Northside FC", opponent_name: "Town FC", gameweek: 4, amount_pence: 3500, deadline_at: "2026-11-10T19:00:00Z", status: "defaulted", refund_status: null },
+        { obligation_id: "review", season_name: "Season 2", team_name: "Rovers", opponent_name: "Athletic", gameweek: 5, amount_pence: 3500, deadline_at: "2026-11-11T19:00:00Z", status: "admin_review", refund_status: null },
+        { obligation_id: "refund", season_name: "Season 2", team_name: "United", opponent_name: "City", gameweek: 6, amount_pence: 3500, deadline_at: "2026-11-12T19:00:00Z", status: "refund_failed", refund_status: "failed" },
+        { obligation_id: "paid", season_name: "Season 2", team_name: "Wanderers", opponent_name: "County", gameweek: 7, amount_pence: 3500, deadline_at: "2026-11-13T19:00:00Z", status: "paid", refund_status: null },
+      ],
+    });
+
+    expect(tasks).toHaveLength(3);
+    expect(tasks[0]).toMatchObject({
+      id: "payment:defaulted",
+      category: "Payment exception",
+      subject: "Northside FC",
+      href: "/finance",
+      actionLabel: "Review payment",
+    });
+    expect(tasks[0].context).toContain("£35.00");
+    expect(tasks[2].id).toBe("payment:refund");
+  });
+
   it("limits the number of displayed items and handles empty queues", () => {
     const input = {
       playerReviews: Array.from({ length: 15 }, (_, index) => ({
