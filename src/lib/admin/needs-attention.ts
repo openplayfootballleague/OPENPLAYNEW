@@ -1,10 +1,10 @@
 export type NeedsAttentionTask = {
   id: string;
-  category: "Player review" | "Team application" | "Membership request" | "Missing team sheet" | "Player transfer request" | "Notification exception" | "Result needs attention";
+  category: "Player review" | "Team application" | "Membership request" | "Missing team sheet" | "Player transfer request" | "Notification exception" | "Result needs attention" | "Fixture needs attention";
   subject: string;
   context: string;
   createdAt: string;
-  href: "#admin-player-approvals" | "#admin-team-approvals" | "#admin-membership-requests" | "#admin-team-sheets" | "#admin-transfers" | "#admin-communications" | "#admin-results";
+  href: "#admin-player-approvals" | "#admin-team-approvals" | "#admin-membership-requests" | "#admin-team-sheets" | "#admin-transfers" | "#admin-communications" | "#admin-results" | "#admin-fixtures";
   actionLabel: string;
 };
 
@@ -55,6 +55,17 @@ export function buildNeedsAttentionTasks(input: NeedsAttentionInput, limit = 12)
 
   const submittedSheetKeys = new Set((input.submittedSheets ?? []).map((sheet) => `${sheet.fixture_id}:${sheet.season_team_id}`));
   for (const fixture of input.fixtures ?? []) {
+    if (fixture.status === "postponed") {
+      tasks.push({
+        id: `fixture:postponed:${fixture.id}`,
+        category: "Fixture needs attention",
+        subject: `${fixture.home_team_name} vs ${fixture.away_team_name}`,
+        context: `${fixture.season_name} · Gameweek ${fixture.gameweek} · Postponed fixture awaiting a new date`,
+        createdAt: fixture.scheduled_at ?? "",
+        href: "#admin-fixtures",
+        actionLabel: "Reschedule fixture",
+      });
+    }
     if (fixture.status === "completed" && (fixture.home_score == null || fixture.away_score == null)) {
       tasks.push({
         id: `result:${fixture.id}`,
