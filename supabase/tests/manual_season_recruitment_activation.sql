@@ -155,6 +155,9 @@ begin
   values(v_admin,'Season Recruitment Admin','+447700969991','ci-season-admin@openplay.invalid',date '1990-01-01','registered',true,false);
   insert into public.season_teams(team_id,season_id,name,slug,registration_status,approved_at,approved_by)
   values(v_home,v_blocked,'Closed Membership Team','ci-closed-membership-team','approved',now(),v_admin);
+  -- Even a direct recruitment-state edit cannot create future memberships
+  -- while the competition itself remains in draft.
+  update public.seasons set recruitment_status='open' where id=v_blocked;
   v_failed:=false;
   begin
     insert into public.team_memberships(season_team_id,user_id,status,is_captain)
@@ -162,6 +165,7 @@ begin
   exception when sqlstate '55000' then v_failed:=true;
   end;
   if not v_failed then raise exception 'A future season membership was created before recruitment opened'; end if;
+  update public.seasons set recruitment_status='closed' where id=v_blocked;
 
   if (select recruitment_status from public.seasons where id=v_upcoming)<>'open' then
     raise exception 'Manual activation did not persist';
