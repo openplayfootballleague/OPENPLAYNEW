@@ -25,7 +25,9 @@ declare
   v_opened public.seasons;
   v_failed boolean;
 begin
-  if pg_catalog.has_function_privilege('anon','public.admin_open_season_recruitment(uuid,text)','EXECUTE')
+  if pg_catalog.has_function_privilege('anon','public.admin_publish_upcoming_season(uuid,text)','EXECUTE')
+     or not pg_catalog.has_function_privilege('authenticated','public.admin_publish_upcoming_season(uuid,text)','EXECUTE')
+     or pg_catalog.has_function_privilege('anon','public.admin_open_season_recruitment(uuid,text)','EXECUTE')
      or not pg_catalog.has_function_privilege('authenticated','public.admin_open_season_recruitment(uuid,text)','EXECUTE')
      or pg_catalog.has_function_privilege('anon','public.admin_close_season_recruitment(uuid,text)','EXECUTE')
      or not pg_catalog.has_function_privilege('authenticated','public.admin_close_season_recruitment(uuid,text)','EXECUTE') then
@@ -98,6 +100,10 @@ begin
 
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  select * into v_opened from public.admin_publish_upcoming_season(v_upcoming,'Publish next season coming soon');
+  if v_opened.is_public is not true or v_opened.recruitment_status<>'closed' then
+    raise exception 'Publishing the upcoming season must not open recruitment';
+  end if;
   select * into v_opened from public.admin_open_season_recruitment(v_upcoming,'Previous season final match completed');
   if v_opened.recruitment_status<>'open' or v_opened.status::text<>'registration_open' or v_opened.is_public is not true then
     raise exception 'Manual activation did not open recruitment for the upcoming season';
