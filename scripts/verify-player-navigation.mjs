@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const navigation = readFileSync("src/components/player-bottom-navigation.tsx", "utf8");
-assert.ok(navigation.includes('id: "home", to: mode === "player" ? "/player" : "/"'), "Viewer Home must open public Home and registered-player Home must open Player Hub");
-assert.ok(navigation.includes('id: "match-centre", to: "/match-centre"') && navigation.includes('id: "teams", to: "/teams"'), "Viewer and registered-player navigation must include Match Centre and Teams");
+assert.ok(navigation.includes('id: "home", to: "/", label: "Home"') && navigation.includes('id: "home", to: "/player", label: "Player Hub"'), "Viewer Home and registered Player Hub must have distinct destinations");
+assert.ok(navigation.includes('id: "match-centre", to: "/match-centre"') && navigation.includes('id: "teams", to: "/teams"') && navigation.includes('id: "join", to: "/join", label: "Join Open Play"'), "Viewer navigation must include Match Centre, Teams and Join Open Play");
 assert.ok(navigation.includes('id: "club", to: "/captain", hash: "#captain-club"') && navigation.includes('id: "matchday", to: "/captain", hash: "#captain-matchday"'), "Captain navigation must expose Club and Matchday as distinct destinations");
 assert.ok(navigation.includes('id: "home", to: "/player"') && navigation.includes('id: "more", to: "/more"'), "Captain navigation must retain Player Hub Home and More");
 assert.ok(navigation.includes('registration_status !== "registered"') && navigation.includes('.eq("is_captain", true)') && navigation.includes('setMode((captainRows ?? []).length > 0 ? "captain" : "player")'), "Navigation must derive viewer, registered-player and captain states from authorised account data");
