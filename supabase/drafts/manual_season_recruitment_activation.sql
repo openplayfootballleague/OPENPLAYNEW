@@ -20,7 +20,7 @@ language plpgsql
 stable
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_actor uuid:=auth.uid();
 begin
@@ -125,7 +125,7 @@ begin
     ),'[]'::jsonb)
   );
 end;
-$;
+$$;
 revoke all on function public.get_admin_competition_setup() from public,anon;
 grant execute on function public.get_admin_competition_setup() to authenticated;
 
@@ -203,7 +203,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 begin
   if old.status::text='draft' and new.status::text='registration_open'
      and (new.recruitment_status<>'open'
@@ -214,7 +214,7 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 revoke all on function public.guard_season_recruitment_transition() from public,anon,authenticated;
 drop trigger if exists guard_season_recruitment_transition on public.seasons;
 create trigger guard_season_recruitment_transition
@@ -229,7 +229,7 @@ returns public.seasons
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_actor uuid:=auth.uid();
   v_before public.seasons;
@@ -263,7 +263,7 @@ begin
 
   return v_after;
 end;
-$;
+$$;
 revoke all on function public.admin_publish_upcoming_season(uuid,text) from public,anon;
 grant execute on function public.admin_publish_upcoming_season(uuid,text) to authenticated;
 
