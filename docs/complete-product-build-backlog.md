@@ -23,8 +23,8 @@ The complete feature-level checklist, including the 15-section admin workspace, 
 ## Current integration risks
 
 - Existing pull requests are based on several different feature branches. Compare ancestry and merge bases; never merge by PR number or title alone.
-- PostHog has competing implementations: PR #29 is consent-gated; PR #35 describes a direct provider and identity configuration. Reconcile to one privacy-first design before integration or enabling capture.
-- PR #36 initial-squad validation CI failed on three tests because the fixtures did not preserve the nominated captain and did not exceed the maximum squad size. Corrected tests have been committed to the feature branch; rerun and verify the new head.
+- PostHog's privacy-first implementation is now assembled in the combined M1 candidate PR #101: explicit opt-in, GPC override, role exclusion, property allow-list and disabled autocapture/session replay. PR #102 adds consent-gated gallery/directory events. The connected EU project is verified, but production variables remain disabled and no event has been ingested.
+- The initial-squad registration concept from older PR #36 work is not approved and must not be implemented. The owner-confirmed workflow requires no initial squad at team registration; the 11 November approved form order is recorded in `docs/player-club-matchday-workflow.md`.
 - Migration reconciliation and role-scope fixes must remain forward-only and replayable in an isolated database. No hosted migration is authorised.
 - The exact canonical OP logo binary, approved non-production Auth Admin test identities, SMTP, Stripe test webhook/secrets and provider privacy settings require approved external paths/configuration.
 - Notification dispatch remains inactive; no production data, privileged identities, payments, future-location activations or production deployment may be created as part of this build.
@@ -161,3 +161,13 @@ Added a global-admin-only role management workflow to complement existing locati
 ### Exact-head CI defects corrected — 11 November 2026
 
 The first clean local migration replay exposed a PostgreSQL PL/pgSQL error in `get_my_player_statistics`: a composite `public.players` row variable was included in a multi-target `INTO` list with a scalar. The migration now fetches the player composite and profile retention status in separate statements. Added the canonical player-statistics draft and explicit pinned-CLI generation/draft-parity steps for both `player_self_service_statistics` and `optional_goal_attribution`. The CI workflow also had double-escaped newline sequences in migration manifest/duplicate-version checks; these are now single shell newline escapes. Exact-head replay and build are rerunning; the earlier 146 unit tests and Deno checks passed, but do not count the previous failed build/replay as green.
+
+
+## Continuous execution checkpoint — 12 November 2026
+
+- Combined M1 candidate PR #101 exact head `c0bb4882fd2a48bd5ec3ae965a324b5973d86e99` passed all four CI jobs: build, Chromium responsive/PWA acceptance, clean local Supabase migration replay/security assertions, and browser-consent analytics acceptance. It remains draft and unmerged.
+- Dependent analytics PR #102 exact head `5dc958d8bb2e9b240163a31b1be0420c9a00c5f3` passed build, clean local Supabase migration/security replay and Chromium responsive/PWA acceptance in both duplicate trigger runs. It remains draft and based on PR #101.
+- The captain membership-approval authorization correction is present as forward-only migration `20261108223000_preserve_captain_membership_approval_scope.sql`, with positive/negative role assertions in the isolated location-admin workflow tests. The full local replay passed on PR #101.
+- The current PostHog project is `OPENPLAYNEW` on EU Cloud, IP anonymisation enabled, session recording disabled, and no events ingested yet. Source-level consent/privacy controls are present; deployment variables remain deliberately disabled.
+- Release blockers remain: GitHub branch protection on `main` cannot be configured through the connected integration (403 administration permission); Cloudflare account/zone ownership and production target need owner verification; the initial super-admin bootstrap remains owner-controlled; the canonical original OP binary still needs a verified binary transfer; and approved external Auth/email/Stripe/provider setup is outstanding.
+- No PR was merged, no hosted migration was run, no live Stripe action was made, no production resource was modified and no deployment occurred.

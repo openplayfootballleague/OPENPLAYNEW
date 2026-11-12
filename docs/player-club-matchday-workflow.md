@@ -102,3 +102,88 @@ These observations identify existing implementation; they do not prove end-to-en
 - No automatic membership merely because a player registered or requested to join.
 - No captain privileges before club approval.
 - No selection of players outside the approved club membership for a match sheet.
+
+
+## Phase 2A — Approved Register a Team form (11 November 2026)
+
+The following is the approved team-registration form order. It is a team application only: **do not collect an initial squad, starters, substitutes, player invitations or player membership requests in this form.** The captain recruits and manages the squad in Captain Hub after the team application has been approved.
+
+### Screen 1 — Team Identity
+- Team name (required).
+- Kit colour (required; primary colour, with secondary colour optional where supported).
+- Instagram handle (optional) and Instagram profile URL (optional; validate and normalise to a direct HTTPS profile URL).
+- Team crest/logo upload (optional PNG, JPG/JPEG or SVG). The user can skip it and add or change it later. Preserve the original upload and use the approved team-badge processing/review workflow before publication.
+- New team / returning team selection (required).
+
+### Screen 2 — Captain Information
+- Captain full name (required).
+- Mobile number (required).
+- WhatsApp number (required or explicitly confirmed as the mobile number if the product UI provides that choice).
+- These application contact details are private operational data. Do not expose them through public team-directory queries, player-facing team profiles or analytics exports.
+
+### Screen 3 — Declarations
+The captain must actively accept all five declarations before submission:
+1. They have the authority to register the team and act as its representative.
+2. The information supplied is accurate and they will notify Open Play of relevant changes.
+3. They are responsible for ensuring each fixture is paid in full at least 24 hours before kick-off and for collecting player payments.
+4. Every player representing the team is aged 16 or over.
+5. The team agrees to follow the competition and league rules.
+
+### Screen 4 — Additional Information
+- Optional free-text additional information.
+- This section appears after the declarations, never before them.
+
+### Submission and navigation
+- Submit the application for administrator approval.
+- The applicant does not become an active captain until the team application is approved; approval activates the applicant's captain membership atomically.
+- A submitted/pending or rejected application does not grant captain powers or make the team joinable.
+- Keep the fixed bottom navigation visible in its approved order: **Home, Match Centre, Join Open Play, More**.
+- The Join Open Play flow continues to separate **Join a Team** from **Register a Team**. Joining an existing team remains a separate player membership request to the selected approved team.
+
+### Data and security requirements
+- Persist the declarations and the submitted form snapshot with the application so an administrator can review exactly what was accepted.
+- Keep captain name, mobile, WhatsApp and additional information in a private application-detail store or a narrowly scoped admin RPC projection. Do not add these fields to a broadly selectable public team/season-team row.
+- Keep optional crest objects private while pending review. Verify bucket, owner path, MIME type, size and association server-side; only an authorised approval/publication workflow may make an approved processed badge public.
+- Validate all values server-side. Client-side validation is supplementary only.
+- Registration, pending membership creation and application-detail persistence must be atomic: no partially submitted application if any part fails.
+- Audit submission and subsequent admin approval/rejection. Preserve the existing season-specific team record and creator-as-pending-membership lifecycle.
+- Do not silently create player accounts, add squad members or approve any player as part of team registration.
+
+
+## Phase 3B — Player departure, captain removal and destination club
+
+### Player-initiated departure
+1. An active player chooses **Leave Club** and receives a clear confirmation warning that they will become unattached and ineligible for match sheets until accepted by another club.
+2. On confirmation, the player's membership becomes inactive immediately. The player does not need captain approval to leave.
+3. Notify the current captain that the player has left.
+4. Preserve the old membership record, match appearances, goals, statistics and audit history. Do not delete or rewrite historical records.
+
+### Captain-initiated removal
+1. A captain may initiate removal of a player from their active club.
+2. The player must approve the captain-initiated removal; a captain cannot remove a player unilaterally.
+3. The captain is not required to provide a reason.
+4. Until the player approves, the existing active membership and match-sheet eligibility remain unchanged.
+5. Once approved, the membership becomes inactive and the player is notified. Preserve the same historical records as a player-initiated departure.
+
+### Joining another club after departure
+1. The player must have left the existing club before submitting the destination-club request.
+2. A player may play for multiple clubs in the same league/area over time, but may not hold simultaneous active memberships in that same area/season.
+3. The destination club's active captain approves or rejects the join request.
+4. If approved, create/activate the new season membership. If rejected, the player remains unattached and ineligible for that club's match sheets.
+5. A player may participate in different areas independently; same-area restrictions must not block membership in a separate area.
+6. Keep the source and destination membership history and permanent competition identity intact.
+
+### Future-season registration and activation
+1. Do not accept advance player or team registrations for a future season.
+2. Keep the next season closed until the previous season's final fixture is completed. Postponed fixtures remain the blocking final fixture until they are played and marked completed.
+3. A countdown may explain when the previous season is expected to finish, but a countdown must never open registration or create memberships automatically.
+4. After the final fixture is completed, an administrator must manually activate the next season's registration workflow.
+5. Future membership/captaincy belongs to the future season and must not activate early. A future captain is separate from the current-season captain.
+6. Same-area membership/captaincy conflicts must be checked when the future season is activated; different areas remain independent.
+
+### Server-side acceptance and concurrency
+- Enforce departure state, same-area membership uniqueness, destination captain authority, season readiness and manual activation in RPC/database constraints. Client-only checks are insufficient.
+- Serialize concurrent leave/join/approval operations for the same player and area/season so two requests cannot create conflicting active memberships.
+- Do not let a pending destination request restore membership or match-sheet eligibility before captain approval.
+- Audit player departures, captain removal requests/acceptance, destination approvals/rejections and manual season activation.
+- Notify the current captain on player departure and the player on captain-initiated removal/decision. Preserve notification preferences and avoid duplicate dispatch.
