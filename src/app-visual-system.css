@@ -654,3 +654,26 @@
 
 #captain-club,#captain-matchday { scroll-margin-top:22px; }
 #captain-matchday { padding-top:8px; }
+
+
+/* Public location header: authoritative season recruitment state. */
+.player-recruitment-status {
+  display:inline-flex;
+  align-items:center;
+  width:fit-content;
+  margin:10px 0 0;
+  padding:7px 12px;
+  border:1px solid #59402f;
+  border-radius:999px;
+  background:#21170f;
+  color:#f2c2a4;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.player-recruitment-status.is-open {
+  border-color:#a94f24;
+  background:#2a1b12;
+  color:#ff9a62;
+}

@@ -55,13 +55,15 @@ Remember the last valid selection where appropriate. Revalidate it on return; if
 
 ### Season selection
 
-Location selection and season selection are separate steps. Show actual seasons with configured statuses: Upcoming, Registration Open, Active, Completed or Archived. Do not infer status from dates alone.
+Location selection and season selection are separate steps. Keep competition lifecycle separate from recruitment state. Competition lifecycle is Draft, Upcoming, Active, Completed or Archived; recruitment state is Closed, Open or Closed After Opening. Do not infer either state from dates alone.
 
-- Active: default for normal current competition activity.
-- Upcoming: permitted read-only preview until registration is explicitly opened.
-- Registration Open: accept only the registrations enabled by configuration.
+- Draft/Upcoming: read-only preview while recruitment remains closed.
+- Open recruitment: accept configured player and team registrations only after explicit authorised Admin activation.
+- Active: current competition activity; recruitment may remain open or be closed.
 - Completed: historical read-only experience except authorised audited corrections.
-- Archived: retained history, never an active registration opportunity.
+- Archived: retained history, never an active competition.
+
+Upcoming seasons remain inactive and closed to all registrations. Do not create pending future memberships or advance team applications.
 
 No location with no seasons or no active season should produce a broken or blank screen; explain the state and provide a safe return path.
 
@@ -186,6 +188,16 @@ F. **Tables/statistics:** Published result → atomically/consistently update te
 G. **Finance:** Fee assigned → confirmed hosted payment or authorised manual payment record → ledger/balance updated. Outstanding balances feed Needs Attention. Never trust client-side amount or payment status.
 
 H. **Season completion:** Verify fixtures/results → finalise table → reconcile finance → close registrations → mark completed → preserve read-only history.
+
+### Manual season recruitment activation
+
+- The location header is the primary public status surface across the location's app pages. It shows **Coming Soon / Recruiting Closed** while an upcoming season is closed, then **Recruiting Open** after manual activation.
+- Admin controls provide **Keep Closed**, **Publish Coming Soon**, **Open Recruitment** and **Close Recruitment**. Publishing makes an upcoming season publicly visible while recruitment remains closed; opening requires a reason and a deliberate location/season-scoped Admin action.
+- The server rechecks that the previous season in the same league has a final fixture marked completed and that the fixture has a published result. The scheduled date passing is not sufficient. If no prior season exists, the first season may be opened by an authorised administrator.
+- Activation and closure are transactional, permission-checked server-side and audit logged. Direct status updates must not bypass the activation RPC.
+- Opening makes normal player and team registration workflows available. Existing memberships remain tied to their original season.
+- Do not add scheduled opening, countdown-triggered activation, scheduler jobs, automatic membership activation, advance team applications or pending future memberships.
+
 
 ## 8. Analytics & Reports — independent department
 

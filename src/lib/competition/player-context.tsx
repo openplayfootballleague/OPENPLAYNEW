@@ -16,7 +16,8 @@ export type PlayerSeasonOption = {
   league_name: string;
   location_id: string;
   location_name: string;
-  status: "registration_open" | "active" | "completed";
+  status: "draft" | "registration_open" | "active" | "completed";
+  recruitment_status: "closed" | "open" | "closed_after_opening";
   starts_on: string | null;
 };
 
@@ -110,9 +111,9 @@ export function usePlayerCompetitionContext(): PlayerCompetitionContext {
       if (leagues.length > 0) {
         const { data: seasonRows, error: seasonError } = await supabase
           .from("seasons")
-          .select("id,name,league_id,status,starts_on")
+          .select("id,name,league_id,status,starts_on,recruitment_status")
           .eq("is_public", true)
-          .in("status", ["registration_open", "active", "completed"])
+          .in("status", ["draft", "registration_open", "active", "completed"])
           .in("league_id", leagues.map((league) => league.id))
           .order("starts_on", { ascending: false, nullsFirst: false });
 
@@ -135,6 +136,7 @@ export function usePlayerCompetitionContext(): PlayerCompetitionContext {
             location_id: location.id,
             location_name: location.name,
             status: season.status as PlayerSeasonOption["status"],
+            recruitment_status: season.recruitment_status as PlayerSeasonOption["recruitment_status"],
             starts_on: season.starts_on,
           }];
         });
@@ -226,6 +228,19 @@ export function PlayerCompetitionSelector({ context }: { context: PlayerCompetit
           </select>
         </label>
       </div>
+      {(() => {
+        const selected = availableSeasons.find((season) => season.status === "draft") ?? availableSeasons.find((season) => season.id === context.selectedSeasonId);
+        if (!selected) return null;
+        const recruiting = selected.recruitment_status === "open";
+        const label = recruiting
+          ? "Recruiting Open"
+          : selected.recruitment_status === "closed_after_opening"
+            ? "Recruiting Closed"
+            : selected.status === "draft"
+              ? "Coming Soon · Recruiting Closed"
+              : "Recruitment Closed";
+        return <p className={recruiting ? "player-recruitment-status is-open" : "player-recruitment-status"} role="status">{label}</p>;
+      })()}
       {context.error && <p className="form-error" role="alert">{context.error}</p>}
     </section>
   );
