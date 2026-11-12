@@ -38,6 +38,60 @@ describe("buildNeedsAttentionTasks", () => {
     expect(tasks.map((task) => task.id)).toEqual(["player:earlier", "player:later", "player:unknown"]);
   });
 
+  it("flags each missing side of an active fixture without duplicating submitted sheets", () => {
+    const tasks = buildNeedsAttentionTasks({
+      playerReviews: [],
+      teamApplications: [],
+      membershipRequests: [],
+      fixtures: [{
+        id: "fixture-1",
+        season_name: "Season 2",
+        gameweek: 4,
+        scheduled_at: "2026-11-14T19:00:00Z",
+        status: "scheduled",
+        home_team_id: "home",
+        away_team_id: "away",
+        home_team_name: "Northside FC",
+        away_team_name: "Town FC",
+      }],
+      submittedSheets: [{ fixture_id: "fixture-1", season_team_id: "home" }],
+    });
+
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({
+      id: "sheet:fixture-1:away",
+      category: "Missing team sheet",
+      subject: "Town FC",
+      href: "#admin-team-sheets",
+      actionLabel: "Open team sheets",
+    });
+  });
+
+  it("includes pending player transfers with their direct review destination", () => {
+    const tasks = buildNeedsAttentionTasks({
+      playerReviews: [],
+      teamApplications: [],
+      membershipRequests: [],
+      transferRequests: [{
+        id: "transfer-1",
+        player_name: "Jamie Player",
+        source_team_name: "Northside FC",
+        destination_team_name: "Town FC",
+        season_name: "Season 2",
+        requested_at: "2026-11-10T10:00:00Z",
+      }],
+    });
+
+    expect(tasks[0]).toMatchObject({
+      id: "transfer:transfer-1",
+      category: "Player transfer request",
+      subject: "Jamie Player",
+      context: "Northside FC → Town FC · Season 2",
+      href: "#admin-transfers",
+      actionLabel: "Review transfer",
+    });
+  });
+
   it("limits the number of displayed items and handles empty queues", () => {
     const input = {
       playerReviews: Array.from({ length: 15 }, (_, index) => ({
