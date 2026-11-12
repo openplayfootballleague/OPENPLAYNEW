@@ -539,7 +539,10 @@ declare
   v_location_id uuid;
   v_barrier_id uuid;
 begin
-  if pg_catalog.pg_trigger_depth()>1 or old.status<>'active' or new.status<>'left' then
+  if pg_catalog.pg_trigger_depth()>1
+     or coalesce(current_setting('app.future_membership_transition',true),'0')='1'
+     or old.status<>'active'
+     or new.status<>'left' then
     return new;
   end if;
 
