@@ -317,7 +317,15 @@ begin
 
   select * into v_membership
   from public.team_memberships where id=v_request.membership_id for update;
-  if not found or not exists (
+  if not found then raise exception 'Membership not found'; end if;
+
+  select * into v_request
+  from public.team_membership_removal_requests
+  where id=p_request_id and status='pending'
+  for update;
+  if not found then raise exception 'Only pending removal requests can be cancelled'; end if;
+
+  if not exists (
     select 1 from public.team_memberships captain
     where captain.season_team_id=v_membership.season_team_id
       and captain.user_id=v_actor and captain.is_captain=true and captain.status='active'
