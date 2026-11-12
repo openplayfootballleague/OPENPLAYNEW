@@ -524,3 +524,63 @@ $$;
 
 revoke all on function public.get_admin_dashboard_contextual(uuid,uuid,uuid) from public,anon;
 grant execute on function public.get_admin_dashboard_contextual(uuid,uuid,uuid) to authenticated;
+
+
+-- Captains can replace or remove a team crest after their team has been approved.
+create or replace function public.update_my_team_crest(
+  p_season_team_id uuid,
+  p_badge_path text
+)
+returns public.season_teams
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid:=auth.uid();
+  v_team public.season_teams;
+  v_old_badge_path text;
+begin
+  if v_user_id is null then raise exception 'Authentication required'; end if;
+  if not public.is_active_team_captain(p_season_team_id) then
+    raise exception 'Only the active team captain can update this crest';
+  end if;
+
+  select * into v_team
+  from public.season_teams
+  where id=p_season_team_id and registration_status='approved'
+  for update;
+  if not found then raise exception 'Approved team not found'; end if;
+
+  if p_badge_path is not null then
+    if p_badge_path !~ ('^'||v_user_id::text||'/[^/]+\.(png|jpe?g|svg)$')
+       or not exists (
+         select 1 from storage.objects o
+         where o.bucket_id='team-crests' and o.name=p_badge_path
+       ) then
+      raise exception 'The uploaded team crest is invalid or does not belong to your account';
+    end if;
+  end if;
+
+  v_old_badge_path:=v_team.badge_path;
+
+  update public.season_teams
+  set badge_path=p_badge_path,updated_at=now()
+  where id=p_season_team_id
+  returning * into v_team;
+
+  insert into public.audit_log(actor_user_id,action,entity_type,entity_id,before_data,after_data)
+  values(v_user_id,'team.branding.crest_updated','season_team',p_season_team_id::text,
+    jsonb_build_object('badge_path',v_old_badge_path),
+    jsonb_build_object('badge_path',p_badge_path));
+
+  if v_old_badge_path is not null and v_old_badge_path is distinct from p_badge_path then
+    delete from storage.objects where bucket_id='team-crests' and name=v_old_badge_path;
+  end if;
+
+  return v_team;
+end;
+$$;
+
+revoke all on function public.update_my_team_crest(uuid,text) from public,anon;
+grant execute on function public.update_my_team_crest(uuid,text) to authenticated;
