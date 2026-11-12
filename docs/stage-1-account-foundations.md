@@ -240,3 +240,11 @@ A fresh read-only inspection of the connected hosted Open Play New project super
 - The performance advisor reports 15 multiple-permissive-policy warnings. These need review for query cost and policy composition, but the current `*_admin_manage` policies inspected are global-admin-only; do not treat the warning count alone as evidence of a location-admin bypass. Seven unindexed foreign-key and 52 unused-index notices also remain; do not add/drop indexes without workload evidence. Health advisor returned no findings.
 
 This was a read-only catalog/advisor review. No SQL writes, hosted migrations, policy changes, role changes, or production data/configuration changes were made. The 38 newer migrations exercised by the current clean CI replay remain pending for hosted application and must stay behind the release approval gate.
+
+## PostHog project privacy configuration check — 12 November 2026
+
+Read-only inspection confirmed the connected PostHog project is `OPENPLAYNEW` (project ID 340435). The project currently has IP anonymisation enabled, session recording disabled at project level, and no ingested event recorded yet. The project-level `autocapture_opt_out` setting is false, so the application must not rely on that project toggle to suppress autocapture.
+
+The consent-first SDK implementation on the integration branch explicitly sets `autocapture: false`, disables automatic pageview/pageleave, exception, heatmap and performance capture, disables session recording, sets `opt_out_capturing_by_default: true`, and does not initialise PostHog until the user has granted consent, Global Privacy Control is not active, and `VITE_POSTHOG_PRIVACY_SETTINGS_VERIFIED=true`. Revocation opts out and resets the SDK. The browser project token and host are read from environment variables, not hard-coded.
+
+This is configuration/source inspection, not proof of production event delivery or a completed legal/privacy review. No events have yet been observed in the project. Keep the verified-settings environment flag unset until the approved production configuration and consent/network acceptance evidence are complete. No PostHog settings, events, users or project configuration were changed during this check.
