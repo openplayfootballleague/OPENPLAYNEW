@@ -385,7 +385,19 @@ begin
   select count(*) into v_count from public.admin_list_location_assignments(null);
   if v_count <> 2 then raise exception 'Global admin cannot manage and list location assignments'; end if;
   v_setup := public.get_admin_competition_setup();
-  if jsonb_array_length(v_setup->'locations') <> 2 then raise exception 'Global admin setup did not return all locations'; end if;
+  if jsonb_array_length(v_setup->'locations') <> 3 then raise exception 'Global admin setup did not return all three seeded locations'; end if;
+  if not exists (
+    select 1 from jsonb_array_elements(v_setup->'locations') item
+    where item->>'id' = '00000000-0000-4000-8000-000000000010'
+  ) or not exists (
+    select 1 from jsonb_array_elements(v_setup->'locations') item
+    where item->>'id' = '00000000-0000-4000-8000-000000000011'
+  ) or not exists (
+    select 1 from jsonb_array_elements(v_setup->'locations') item
+    where item->>'id' = '00000000-0000-4000-8000-000000000012'
+  ) then
+    raise exception 'Global admin setup omitted one or more seeded locations';
+  end if;
 
   -- Repeating an existing grant is a no-op and must not create duplicate audit entries.
   perform public.admin_set_location_assignment('00000000-0000-4000-8000-000000000004','00000000-0000-4000-8000-000000000011',true);
