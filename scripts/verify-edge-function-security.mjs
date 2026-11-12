@@ -25,6 +25,8 @@ for (const [name, expected] of [
   ["create-referee-connect-account", true],
   ["pay-referee-payout", true],
   ["referee-connect-webhook", false],
+  ["process-referee-payout-queue", false],
+  ["admin-postpone-gameweek", true],
 ]) {
   verifyJwtSetting(name, expected);
 }
@@ -92,8 +94,8 @@ assert.ok(connectOnboarding.includes('rpc("get_my_referee_connect_status")') && 
 assert.ok(connectOnboarding.includes("metadata[openplay_referee_user_id]"), "Connect accounts must retain the internal referee identity mapping");
 
 const refereePayout = readFileSync("supabase/functions/pay-referee-payout/index.ts", "utf8");
-assert.ok(refereePayout.includes("userClient.auth.getUser()"), "Referee payout transfers must validate the signed-in administrator");
-assert.ok(refereePayout.includes('rpc("claim_referee_payout_transfer",'), "Referee payout transfers must be claimed through the scoped finance RPC");
+assert.ok(refereePayout.includes("userClient!.auth.getUser()") && refereePayout.includes('req.headers.get("x-referee-payout-cron-secret")'), "Referee payout transfers must validate the signed-in administrator or protected cron worker");
+assert.ok(refereePayout.includes('rpc("claim_referee_payout_transfer",'), "Referee payout transfers must be claimed through the location-scoped approval RPC");
 assert.ok(refereePayout.includes("Idempotency-Key") && refereePayout.includes("openplay-referee-"), "Referee payout transfers must use attempt-scoped Stripe idempotency keys");
 assert.ok(refereePayout.includes('stripeKey?.startsWith("sk_test_")'), "Referee payout transfers must remain test-mode only");
 assert.ok(refereePayout.includes("if(!transferCreated&&canMarkFailed)"), "Ambiguous or already-created transfers must remain in reconciliation instead of becoming retryable");
@@ -102,5 +104,67 @@ const refereeConnectWebhook = readFileSync("supabase/functions/referee-connect-w
 assert.ok(refereeConnectWebhook.includes('req.headers.get("stripe-signature")') && refereeConnectWebhook.includes("verifyStripeSignature(rawBody,signature,secret)"), "Connect webhook must verify the raw-body Stripe signature");
 assert.ok(refereeConnectWebhook.includes("event.livemode!==false"), "Connect webhook must reject live-mode events");
 assert.ok(refereeConnectWebhook.includes("referee_connect_webhook_events") && refereeConnectWebhook.includes("processed_at"), "Connect webhook processing must be idempotent and retryable");
+
+
+
+assert.ok(connectOnboarding.includes('controller[stripe_dashboard][type]","express"') && connectOnboarding.includes('controller[fees][payer]","application"') && connectOnboarding.includes('controller[losses][payments]","application"'), "New referee Connect accounts must use Stripe controller properties with platform fee and loss responsibility");
+assert.ok(!connectOnboarding.includes('params.set("type","express")'), "New referee Connect accounts must not use deprecated legacy account-type creation");
+assert.ok(connectOnboarding.includes('sessionParams.set("components[account_onboarding][enabled]","true")') && connectOnboarding.includes('stripeRequest("account_sessions","POST"'), "Referee onboarding must use a Stripe Account Session for embedded onboarding");
+assert.ok(connectOnboarding.includes('sessionParams.set("components[account_onboarding][features][external_account_collection]","true")'), "Embedded referee onboarding must collect a bank account for payouts");
+assert.ok(connectOnboarding.includes("account_session_client_secret") && !connectOnboarding.includes('stripeRequest("account_links"'), "Referee onboarding must return an embedded session secret, not a hosted Account Link");
+assert.ok(connectOnboarding.includes('p_stripe_event_created_at:new Date((typeof account.created==="number"?account.created:Math.floor(Date.now()/1000))*1000).toISOString()'), "Initial Connect sync must use Stripe account creation time so later verification webhooks are not rejected as stale");
+assert.ok(connectOnboarding.includes("if(transfersEnabled){") && !connectOnboarding.includes("if(transfersEnabled&&account.payouts_enabled)"), "Connected-balance transfer readiness must not be blocked by later bank-payout enablement");
+
+const refereeWorkspace = readFileSync("src/routes/referee.tsx", "utf8");
+assert.ok(refereeWorkspace.includes("https://connect-js.stripe.com/v1.0/connect.js") && refereeWorkspace.includes('instance.create("account-onboarding")'), "Referee workspace must mount Stripe's embedded account onboarding component");
+assert.ok(refereeWorkspace.includes("VITE_STRIPE_PUBLISHABLE_KEY") && refereeWorkspace.includes('locale: "en-GB"'), "Embedded onboarding must use the configured publishable key and UK locale");
+assert.ok(!refereeWorkspace.includes("window.location.assign(data.onboarding_url)"), "Referee onboarding must not redirect to Stripe-hosted onboarding");
+
+const refereeConnectSql = readFileSync("supabase/drafts/referee_connect_payouts.sql", "utf8");
+const reportClaim = refereeConnectSql.slice(refereeConnectSql.indexOf("create or replace function public.claim_referee_payout_transfer"), refereeConnectSql.indexOf("create or replace function public.record_referee_payout_transfer_success"));
+assert.ok(reportClaim.includes("public.can_administer_location(v_location_id)"), "Match-report transfers must remain scoped to the approving administrator's location");
+assert.ok(reportClaim.includes("not public.has_platform_role() or not public.has_finance_access()"), "Milestone transfers must remain restricted to global finance administrators");
+assert.ok(refereeConnectSql.includes("onboarding_status<>'enabled' or (details_submitted and transfers_enabled)"), "Transfer readiness must not depend on bank-payout enablement");
+assert.ok(reportClaim.includes("not v_account.transfers_enabled then") && !reportClaim.includes("not v_account.payouts_enabled"), "Match transfers must require the transfers capability, not bank-payout enablement");
+
+const adminReferees = readFileSync("src/routes/admin/referees.tsx", "utf8");
+const reportReview = adminReferees.slice(adminReferees.indexOf("async function reviewReport"), adminReferees.indexOf("async function decide("));
+assert.ok(reportReview.includes('functions.invoke("pay-referee-payout"'), "Approving a referee match report must invoke the referee transfer workflow");
+assert.ok(reportReview.includes("report_id:report.report_id"), "The approval trigger must identify the report, not trust a browser-supplied payout amount or destination");
+assert.ok(adminReferees.includes("payout.transfers_enabled") && !adminReferees.includes("payout.transfers_enabled&&payout.payouts_enabled"), "Match-report transfer controls must not require bank-payout enablement");
+assert.ok(adminReferees.includes("reward.transfers_enabled") && !adminReferees.includes("reward.transfers_enabled&&reward.payouts_enabled"), "Milestone transfer controls must not require bank-payout enablement");
+
+const refereePayoutWorker = readFileSync("supabase/functions/process-referee-payout-queue/index.ts", "utf8");
+assert.ok(refereePayoutWorker.includes('req.headers.get("x-referee-payout-cron-secret")'), "Referee payout queue worker must validate its dedicated cron secret");
+assert.ok(refereePayoutWorker.includes('stripeKey?.startsWith("sk_test_")'), "Referee payout queue worker must remain test-mode only");
+assert.ok(refereePayoutWorker.includes('rpc("claim_referee_payout_transfer_jobs"') && refereePayoutWorker.includes('rpc("release_referee_payout_transfer_job"'), "Referee payout worker must use leased outbox claims and safe release logic");
+
+const refereePayoutOutbox = readFileSync("supabase/drafts/referee_payout_transfer_outbox.sql", "utf8");
+assert.ok(refereePayoutOutbox.includes("after insert or update of status on public.referee_report_payouts"), "Referee payout creation must atomically enqueue its transfer job");
+assert.ok(refereePayoutOutbox.includes("for update of job skip locked"), "Concurrent referee payout workers must claim jobs without duplicate leases");
+assert.ok(refereePayoutOutbox.includes("first_attempt_at") && refereePayoutOutbox.includes("now()-interval '23 hours'"), "Ambiguous payout recovery must reuse the original attempt only within Stripe's idempotency retention window");
+assert.ok(refereePayoutOutbox.includes("security invoker") && refereePayoutOutbox.includes("grant execute on function public.claim_referee_payout_transfer_jobs(integer) to service_role") && refereePayoutOutbox.includes("grant execute on function public.claim_referee_payout_transfer_worker(uuid,uuid,uuid) to service_role"), "Referee payout worker RPCs must use invoker security and service-role-only execution grants");
+assert.ok(refereePayoutOutbox.includes("pg_cron") && refereePayoutOutbox.includes("pg_net") && refereePayoutOutbox.includes("referee_payout_cron_secret"), "Referee payout outbox must include a Vault-backed scheduled dispatcher");
+
+
+assert.ok(teamWebhook.includes('intent.status!=="succeeded"') && teamWebhook.includes('Number(intent.amount_received)!==obligation.amount_pence'), "Team payment webhook must verify the fully settled PaymentIntent");
+assert.ok(teamWebhook.includes('intentMetadata?.team_fixture_payment_obligation_id!==obligationId') && teamWebhook.includes("Number.isSafeInteger(paidAt)"), "Team payment webhook must verify PaymentIntent metadata and the actual charge timestamp");
+assert.ok(teamDeadlineWorker.includes('.order("id").range(offset,offset+499)'), "Team payment and refund queues must be fully paginated in stable batches");
+assert.ok(teamDeadlineWorker.includes("[400,402,404,422].includes(stripeResponse.status)"), "Transient Stripe refund errors must not be recorded as definitive failures");
+assert.ok(teamDeadlineWorker.includes('result.status==="failed"||result.status==="canceled"'), "Provider-confirmed refund failures must be recorded for administrator review");
+assert.ok(teamDeadlineWorker.includes("result.payment_intent===refund.stripe_payment_intent_id") && teamDeadlineWorker.includes("Number(result.amount)===Number(refund.amount_pence)"), "Successful Stripe refunds must match the intended PaymentIntent and exact amount");
+
+const adminPostpone = readFileSync("supabase/functions/admin-postpone-gameweek/index.ts", "utf8");
+assert.ok(adminPostpone.includes('userClient.auth.getUser(token)'), "Gameweek postponement must validate the signed-in administrator");
+assert.ok(adminPostpone.includes('rpc("admin_postpone_gameweek"'), "Gameweek postponement must use the location-scoped database workflow");
+assert.ok(adminPostpone.includes('stripeKey?.startsWith("sk_test_")'), "Gameweek postponement refunds must remain test-mode only");
+assert.ok(adminPostpone.includes('intent.status!=="succeeded"') && adminPostpone.includes("Number(session.amount_total)!==obligation.amount_pence"), "Completed Checkout reconciliation must verify the settled PaymentIntent and Checkout amount");
+
+
+const adminRoute = readFileSync("src/routes/admin.tsx", "utf8");
+assert.ok(adminRoute.includes('to="/admin-messages"'), "Administrators must have a visible route to messaging and moderation controls");
+const adminMessagingRoute = readFileSync("src/routes/admin-messages.tsx", "utf8");
+assert.ok(adminMessagingRoute.includes('rpc("admin_get_message_reports"') && adminMessagingRoute.includes('rpc("admin_resolve_message_report"'), "Admin messaging workspace must expose the protected moderation queue and resolution action");
+assert.ok(adminMessagingRoute.includes('rpc("admin_create_message_broadcast"'), "Admin messaging workspace must expose targeted announcements");
 
 console.log("Edge Function security configuration and Phase 1 workflow boundary assertions passed.");

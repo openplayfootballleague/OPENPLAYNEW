@@ -127,3 +127,16 @@ This manifest maps every applied ledger version/name to its canonical source pat
 ## Additional integration security migrations
 
 The consolidation also carries five forward-only security migrations from the integration branch: global-admin-only location activation; removal of platform-wide `has_platform_role()` access from sensitive RLS policies; non-recursive global-admin RLS and revocation of legacy unscoped admin RPCs; and preservation of the active captain's membership-approval scope. These are retained as pending migrations and have not been applied to the hosted project.
+
+## Additional forward-only feature sources — 11 November 2026
+
+The current development integration adds six further canonical, timestamped migration sources after the existing 99-version hosted baseline and the previously declared pending migrations:
+
+- `20261110193000_admin_disciplinary_return_queue.sql` — location-scoped disciplinary suspension review and audited return-to-play approval that preserves the permanent strike record.
+- `20261111190000_team_weekly_payment_workflow.sql` — team-level weekly fixture obligations, deadlines, refunds and ledger state.
+- `20261111191000_weather_gameweek_postponements.sql` — whole-gameweek postponement, replacement scheduling and refund reconciliation.
+- `20261111192000_referee_connect_payouts.sql` — Stripe Connect account readiness and approved referee payout obligations.
+- `20261111193000_referee_payout_transfer_outbox.sql` — durable, leased and idempotent transfer jobs with a Vault-backed scheduler.
+- `20261111194000_secure_messaging_platform.sql` — member conversations, team/support messaging, broadcasts and moderation.
+
+These are source-controlled forward-only migrations, not applied hosted migrations. The canonical files are compared with their retained draft sources and replayed in CI against a clean local Supabase database. The connected hosted project remains unchanged.

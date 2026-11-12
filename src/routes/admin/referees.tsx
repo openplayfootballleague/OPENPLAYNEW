@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRequiredSession } from "../../lib/auth/use-required-session";
 import { getSupabaseClient } from "../../lib/supabase/client";
+import { AdminDisciplinarySuspensions } from "../../components/admin-disciplinary-suspensions";
 
 type RpcError = { message: string };
 type RpcClient = {
@@ -542,10 +543,31 @@ function AdminRefereesPage() {
       setError(result.error.message);
       return;
     }
-    setNotice(decision === "approved"
-      ? "Match report approved. The official result, disciplinary events and team fines have been recorded."
-      : "Match report returned to the referee with your review reason.");
-    await Promise.all([loadReports(), loadApprovedReports()]);
+    if(decision==="approved"){
+      // Trigger the report's one-time Stripe transfer immediately after the
+      // approval transaction succeeds. The payout claim is locked/idempotent;
+      // ambiguous Stripe outcomes stay processing for webhook reconciliation.
+      const supabase=getSupabaseClient() as unknown as {
+        functions:{invoke(name:string,options?:Record<string,unknown>):Promise<{data:any;error:{message:string}|null}>};
+      };
+      const {data:transferData,error:transferError}=await supabase.functions.invoke("pay-referee-payout",{
+        body:{payout_type:"match_report",report_id:report.report_id},
+      });
+      if(transferError){
+        setNotice("Match report approved and result published. The automatic referee transfer could not be confirmed ("+
+          (transferData?.error??transferError.message)+"). Check the payout queue before any retry.");
+      }else if(transferData?.status==="processing"){
+        setNotice("Match report approved and result published. The referee transfer is still processing and must be reconciled before any retry. Do not retry yet.");
+      }else if(transferData?.success===true&&transferData?.status==="transferred"){
+        setNotice("Match report approved and result published. The referee's approved payment transfer was confirmed by Stripe.");
+      }else{
+        setNotice("Match report approved and result published. The referee payment requires attention: "+
+          (transferData?.error??"Stripe did not confirm a transfer.")+" Check Connect readiness and the payout queue.");
+      }
+    }else{
+      setNotice("Match report returned to the referee with your review reason.");
+    }
+    await Promise.all([loadReports(),loadApprovedReports(),loadPayouts()]);
   }
 
   async function decide(application: RefereeApplication, decision: "approved" | "rejected") {
@@ -583,6 +605,8 @@ function AdminRefereesPage() {
         <p className="eyebrow eyebrow-dark">ADMINISTRATION · OFFICIALS</p>
         <h1>Referee<br /><em>applications.</em></h1>
         <p>Review referee applicants for the locations you administer. Approval grants a separate referee membership; it does not rely on user-editable account metadata.</p>
+
+        <AdminDisciplinarySuspensions />
 
         <section className="hub-memberships">
           <div className="hub-section-heading">
@@ -866,7 +890,7 @@ function AdminRefereesPage() {
               <option value="all">All statuses</option>
             </select>
           </div>
-          <p>Location-scoped referee match payments. Transfers are test-mode only. A payout can be sent only when Stripe confirms the referee account has both transfers and bank payouts enabled; failed transfers can be retried, while processing transfers must be reconciled before another attempt.</p>
+          <p>Location-scoped referee match payments. Transfers are test-mode only. A transfer can be sent when Stripe confirms the referee account has transfers enabled; bank-payout enablement is separate and does not block a transfer into the connected Stripe balance; failed transfers can be retried, while processing transfers must be reconciled before another attempt.</p>
           {payoutsLoading ? <p className="form-note">Loading referee payout obligations…</p> : payouts.length === 0 ? (
             <p className="form-note">No referee payout obligations match this status for your permitted locations.</p>
           ) : payouts.map((payout) => (
@@ -882,7 +906,7 @@ function AdminRefereesPage() {
                 {payout.failure_reason && <small>Last transfer failure: {payout.failure_reason}</small>}
                 {payout.status==="processing" && <small>Transfer processing — do not retry until Stripe reconciliation completes.</small>}
                 {payout.transferred_at && <small>Transfer confirmed {new Date(payout.transferred_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</small>}
-                {(payout.status==="pending_connect"||payout.status==="failed")&&payout.connect_status==="enabled"&&payout.transfers_enabled&&payout.payouts_enabled&&(
+                {(payout.status==="pending_connect"||payout.status==="failed")&&payout.connect_status==="enabled"&&payout.transfers_enabled&&(
                   <button type="button" disabled={busy===`referee-payout:${payout.payout_id}`} onClick={()=>void sendRefereePayout("match_report",payout.payout_id)}>
                     {busy===`referee-payout:${payout.payout_id}`?"SENDING…":payout.status==="failed"?"RETRY REFEREE TRANSFER":"SEND REFEREE PAYMENT"}
                   </button>
@@ -915,7 +939,7 @@ function AdminRefereesPage() {
                 {reward.stripe_transfer_id&&<small>Stripe transfer reference: {reward.stripe_transfer_id}</small>}
                 {reward.transferred_at&&<small>Transfer confirmed {new Date(reward.transferred_at).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"})}</small>}
                 {reward.status==="processing"&&<small>Transfer processing — do not retry until Stripe reconciliation completes.</small>}
-                {(reward.status==="pending_connect"||reward.status==="failed")&&reward.connect_status==="enabled"&&reward.transfers_enabled&&reward.payouts_enabled&&(
+                {(reward.status==="pending_connect"||reward.status==="failed")&&reward.connect_status==="enabled"&&reward.transfers_enabled&&(
                   <button type="button" disabled={busy===`referee-payout:${reward.reward_id}`} onClick={()=>void sendRefereePayout("milestone",reward.reward_id)}>
                     {busy===`referee-payout:${reward.reward_id}`?"SENDING…":reward.status==="failed"?"RETRY MILESTONE TRANSFER":"SEND MILESTONE REWARD"}
                   </button>

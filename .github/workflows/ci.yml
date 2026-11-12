@@ -12,7 +12,7 @@ permissions:
 # Every push creates a PR check; serialize the local Supabase database replay
 # so concurrent attempts cannot contend for the same Docker host ports.
 concurrency:
-  group: openplay-phase1-${{ github.event.pull_request.number || github.ref }}
+  group: openplay-phase1-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -39,7 +39,9 @@ jobs:
         with:
           deno-version: v2.x
       - name: Type-check Supabase Edge Functions
-        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts supabase/functions/player-account-retention/index.ts supabase/functions/create-referee-connect-account/index.ts supabase/functions/pay-referee-payout/index.ts supabase/functions/referee-connect-webhook/index.ts supabase/functions/create-team-fixture-checkout/index.ts supabase/functions/team-stripe-webhook/index.ts supabase/functions/process-team-payment-deadlines/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts supabase/functions/player-account-retention/index.ts supabase/functions/create-referee-connect-account/index.ts supabase/functions/pay-referee-payout/index.ts supabase/functions/referee-connect-webhook/index.ts supabase/functions/create-team-fixture-checkout/index.ts supabase/functions/team-stripe-webhook/index.ts supabase/functions/process-team-payment-deadlines/index.ts supabase/functions/process-referee-payout-queue/index.ts supabase/functions/admin-postpone-gameweek/index.ts
+      - name: Test Stripe Connect webhook signature verification
+        run: deno test --node-modules-dir=auto supabase/functions/referee-connect-webhook/signature_test.ts
       - name: Run domain tests
         run: npm test
       - name: Type-check and build
@@ -124,8 +126,8 @@ jobs:
             diff -u supabase/drafts/team_weekly_payment_workflow.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
-          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\n' "$migration_file"
       - name: Preserve CLI-generated team payment migration for review
         uses: actions/upload-artifact@v4
@@ -136,24 +138,24 @@ jobs:
           retention-days: 1
       - name: Generate weather gameweek postponement migration using the pinned Supabase CLI
         run: |
-          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponement.sql' -print -quit)"
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponements.sql' -print -quit)"
           if [ -z "$migration_file" ]; then
             # Supabase CLI versions migrations to the nearest second; keep generated versions unique.
             sleep 1
-            supabase migration new weather_gameweek_postponement < supabase/drafts/weather_gameweek_postponement.sql
-            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponement.sql' -print -quit)"
+            supabase migration new weather_gameweek_postponements < supabase/drafts/weather_gameweek_postponements.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_weather_gameweek_postponements.sql' -print -quit)"
           else
-            diff -u supabase/drafts/weather_gameweek_postponement.sql "$migration_file"
+            diff -u supabase/drafts/weather_gameweek_postponements.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
-          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\\n' "$migration_file"
       - name: Preserve CLI-generated weather postponement migration for review
         uses: actions/upload-artifact@v4
         with:
           name: weather-gameweek-postponement-migration
-          path: supabase/migrations/*_weather_gameweek_postponement.sql
+          path: supabase/migrations/*_weather_gameweek_postponements.sql
           if-no-files-found: error
           retention-days: 1
       - name: Generate approved referee report correction options migration using the pinned Supabase CLI
@@ -168,8 +170,8 @@ jobs:
             diff -u supabase/drafts/referee_approved_report_correction_options.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
-          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\\n' "$migration_file"
       - name: Preserve CLI-generated approved report correction options migration
         uses: actions/upload-artifact@v4
@@ -190,14 +192,35 @@ jobs:
             diff -u supabase/drafts/referee_connect_payouts.sql "$migration_file"
           fi
           test -n "$migration_file"
-          printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
-          sort -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\\n' "$migration_file"
       - name: Preserve CLI-generated referee Connect migration
         uses: actions/upload-artifact@v4
         with:
           name: referee-connect-payouts-migration
           path: supabase/migrations/*_referee_connect_payouts.sql
+          if-no-files-found: error
+          retention-days: 1
+      - name: Generate referee payout transfer outbox migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_payout_transfer_outbox.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new referee_payout_transfer_outbox < supabase/drafts/referee_payout_transfer_outbox.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_payout_transfer_outbox.sql' -print -quit)"
+          else
+            diff -u supabase/drafts/referee_payout_transfer_outbox.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
+      - name: Preserve CLI-generated referee payout outbox migration
+        uses: actions/upload-artifact@v4
+        with:
+          name: referee-payout-transfer-outbox-migration
+          path: supabase/migrations/*_referee_payout_transfer_outbox.sql
           if-no-files-found: error
           retention-days: 1
       - name: Preserve CLI-generated referee migrations for review
@@ -211,6 +234,21 @@ jobs:
             supabase/migrations/*_referee_approved_report_corrections.sql
           if-no-files-found: error
           retention-days: 1
+      - name: Generate secure messaging migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_secure_messaging_platform.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new secure_messaging_platform < supabase/drafts/secure_messaging_platform.sql
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_secure_messaging_platform.sql' -print -quit)"
+            cp supabase/drafts/secure_messaging_platform.sql "$migration_file"
+          else
+            diff -u supabase/drafts/secure_messaging_platform.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
       - name: Verify unique migration versions before replay
         shell: bash
         run: |
@@ -292,6 +330,11 @@ jobs:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_connect_payouts.sql
 
+      - name: Verify secure messaging access, membership lifecycle, read receipts, moderation and rate limits
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/secure_messaging_platform.sql
+
       - name: Verify team weekly payment deadlines, strikes, cancellation and refund ledger
         env:
           PGPASSWORD: postgres
@@ -300,7 +343,7 @@ jobs:
       - name: Verify whole-gameweek weather postponements, refunds and chronological renumbering
         env:
           PGPASSWORD: postgres
-        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/weather_gameweek_postponement.sql
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/weather_gameweek_postponements.sql
 
       - name: Verify age tiers and guardian consent lifecycle
         env:
@@ -367,7 +410,7 @@ jobs:
       - name: Install locked application dependencies
         run: npm ci --no-audit --no-fund
       - name: Install isolated Playwright test runner
-        run: npm install --no-save --package-lock=false @playwright/test@1.55.0
+        run: mkdir -p /tmp/openplay-playwright && npm install --prefix /tmp/openplay-playwright --no-save --package-lock=false @playwright/test@1.56.1 && mkdir -p node_modules/@playwright node_modules/.bin && ln -sfn /tmp/openplay-playwright/node_modules/@playwright/test node_modules/@playwright/test && ln -sfn /tmp/openplay-playwright/node_modules/playwright node_modules/playwright && ln -sfn /tmp/openplay-playwright/node_modules/playwright-core node_modules/playwright-core && ln -sfn /tmp/openplay-playwright/node_modules/.bin/playwright node_modules/.bin/playwright
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Use the browser runner's supported local workerd compatibility date

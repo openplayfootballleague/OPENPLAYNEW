@@ -2,15 +2,23 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const navigation = readFileSync("src/components/player-bottom-navigation.tsx", "utf8");
-const expected = [
-  'to: "/" as const, label: "Home"',
-  'to: "/match-centre" as const, label: "Match Centre"',
-  'to: "/join" as const, label: "Join Open Play"',
-  'to: "/more" as const, label: "More"',
-];
-for (const item of expected) assert.ok(navigation.includes(item), `Missing required bottom navigation item: ${item}`);
-assert.equal((navigation.match(/to: "[^"]*" as const, label:/g) ?? []).length, 4, "Bottom navigation must contain exactly four tabs");
-assert.ok(navigation.includes("useRouterState") && navigation.includes("pathname === \"/player\""), "Home tab must be active on both public Home and the registered Player Hub, not every route");
+for (const label of ["Home", "Player Hub", "Match Centre", "Join Open Play", "Teams", "Club", "Matchday", "More"]) {
+  assert.ok(navigation.includes(`label: "${label}"`), `Missing role-aware bottom navigation item: ${label}`);
+}
+assert.ok(navigation.includes('mode === "captain"') && navigation.includes('mode === "player"'), "Primary navigation must resolve distinct captain and registered-player modes");
+assert.ok(navigation.includes('registration_status === "registered"') && navigation.includes('is_banned !== true'), "Player navigation must require a registered, non-banned player");
+assert.ok(navigation.includes('eq("status", "active")') && navigation.includes('eq("is_captain", true)'), "Captain navigation must require an active server-backed captain membership");
+assert.ok(navigation.includes('hash: "club"') && navigation.includes('hash: "matchday"'), "Captain Club and Matchday tabs must navigate to their respective workspace sections");
+assert.ok(navigation.includes("useRouterState") && navigation.includes('location.pathname'), "Navigation active state must follow the current route");
+const captainStart = navigation.indexOf('mode === "captain"');
+const playerStart = navigation.indexOf('mode === "player"');
+const viewerStart = navigation.indexOf(": [", playerStart);
+const captainNav = navigation.slice(captainStart, playerStart);
+const playerNav = navigation.slice(playerStart, viewerStart);
+const viewerNav = navigation.slice(viewerStart);
+for (const [name, block] of [["captain", captainNav], ["player", playerNav], ["viewer", viewerNav]]) {
+  assert.equal((block.match(/label:/g) ?? []).length, 4, `${name} navigation must contain exactly four tabs`);
+}
 
 const more = readFileSync("src/routes/more.tsx", "utf8");
 for (const destination of ['to="/teams"', 'to="/gallery"', 'to="/match-centre"']) {
@@ -37,6 +45,8 @@ for (const route of ["index.tsx","player.tsx","captain.tsx","join.tsx","match-ce
   const source = readFileSync("src/routes/" + route, "utf8");
   assert.ok(source.includes("<RefereeBottomNavigation"), route + " must use role-aware navigation");
 }
+const captainHub = readFileSync("src/routes/captain.tsx", "utf8");
+assert.ok(captainHub.includes('id="club"') && captainHub.includes('id="matchday"'), "Captain navigation must have separate Club and Matchday destinations");
 const joinPage = readFileSync("src/routes/join.tsx", "utf8");
 assert.ok(joinPage.includes('if(!player||player.registration_status!=="registered"||player.is_banned)'), "Unregistered viewer accounts must not submit team join or registration requests");
 const registrationPage = readFileSync("src/routes/register-player.tsx", "utf8");

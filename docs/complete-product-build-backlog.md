@@ -114,3 +114,12 @@ The authoritative Stage 1 scope and live completion checklist is maintained in [
 ### Stage 1 permission audit update — 8 November 2026
 
 A read-only catalog audit of the deployed Supabase project is recorded in `docs/stage-1-account-foundations.md` (commit `c2f8df496fcbd2d9fc12b71116004788ecbd5a30`). It confirms owner/admin read boundaries and SELECT-only authenticated grants for `user_roles`, `profiles`, `players` and `team_memberships`, and deny-all/no client grants for `audit_log`. It also identified deployed-policy/migration-source drift in `season_teams`; this must be reconciled against the applied migration ledger before any corrective migration is authored. No hosted changes were made. CI has not yet produced a run/status for the latest docs commit. Stage 1 remains in progress.
+
+
+### Admin weather UI canonicalisation — 11 November 2026
+
+Removed the duplicate legacy integer-gameweek weather postponement form, its history panel, client state and direct calls to `admin_postpone_gameweek_weather` / `get_admin_weather_postponements` from `src/routes/admin.tsx` on the canonical workflow branch. The route now retains the stable-gameweek `AdminGameweekPostponements` component as its single postponement interface, which lists eligible stable gameweek IDs and invokes the protected `admin-postpone-gameweek` Edge Function.
+
+Commit: `ac3f94ff9addc497777c8e78b427e330d7439ce0`.
+
+Static source assertions passed after editing: the canonical component remains; legacy RPC names, handler, state and history type are absent from the route. Build, type-check, browser and SQL verification for this exact head are pending. This is a UI de-duplication on the workflow branch only; it does not reconcile the competing migration on the visual branch or establish payment/refund correctness.
