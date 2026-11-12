@@ -3659,6 +3659,10 @@ export type Database = {
         Args: never
         Returns: boolean
       }
+      get_public_match_report: {
+        Args: { p_fixture_id: string }
+        Returns: Json
+      }
       get_admin_platform_feature_flags: {
         Args: never
         Returns: {
