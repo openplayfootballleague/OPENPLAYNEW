@@ -113,10 +113,7 @@ $$;
 revoke all on function public.get_membership_transition_barrier(uuid,uuid) from public,anon,authenticated;
 
 create or replace function public.finalize_previous_location_memberships(
-  p_user_id uuid,
-  p_location_id uuid,
-  p_target_season_id uuid,
-  p_actor uuid default null
+  p_user_id uuid,p_location_id uuid,p_target_season_id uuid,p_actor uuid default null
 )
 returns integer
 language plpgsql
@@ -124,52 +121,34 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_target public.seasons;
   v_changed integer:=0;
+  v_previous_transition_flag text;
 begin
-  select * into v_target
-  from public.seasons s
-  where s.id=p_target_season_id;
-
-  if not found then
-    raise exception 'Target season was not found';
-  end if;
+  v_previous_transition_flag:=current_setting('app.future_membership_transition',true);
+  perform set_config('app.future_membership_transition','1',true);
 
   with transitioned as (
     update public.team_memberships tm
-    set status='left',
-        left_at=coalesce(tm.left_at,now()),
-        squad_number=null,
-        updated_at=now()
+    set status='left',left_at=coalesce(tm.left_at,now()),
+        joined_at=coalesce(tm.joined_at,tm.created_at),updated_at=now()
     from public.season_teams st
     join public.seasons s on s.id=st.season_id
     join public.leagues l on l.id=s.league_id
-    where tm.season_team_id=st.id
-      and tm.user_id=p_user_id
-      and tm.status='active'
-      and l.location_id=p_location_id
-      and s.id<>p_target_season_id
-      and (
-        (v_target.starts_on is not null
-          and ((s.starts_on is not null and s.starts_on<v_target.starts_on)
-            or (s.starts_on is null and s.created_at<v_target.created_at)))
-        or
-        (v_target.starts_on is null and s.created_at<v_target.created_at)
-      )
+    where tm.season_team_id=st.id and tm.user_id=p_user_id and tm.status='active'
+      and l.location_id=p_location_id and s.id<>p_target_season_id
+      and s.starts_on<=(select target_season.starts_on from public.seasons target_season where target_season.id=p_target_season_id)
       and public.is_season_final_gameweek_confirmed(s.id)
     returning tm.id,tm.season_team_id,tm.user_id
   )
   insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
-  select coalesce(p_actor,auth.uid()),
-    'player.membership.season_completed',
-    'team_membership',
-    transitioned.id::text,
-    'Previous location season completed; membership closed for the season transition',
-    jsonb_build_object('status','active','season_team_id',transitioned.season_team_id),
-    jsonb_build_object('status','left','season_team_id',transitioned.season_team_id,'user_id',transitioned.user_id)
+  select coalesce(p_actor,auth.uid()),'team.membership.season_transitioned','team_membership',
+    transitioned.id::text,'Previous location season completed with confirmed results',
+    jsonb_build_object('status','active'),
+    jsonb_build_object('status','left','season_team_id',transitioned.season_team_id)
   from transitioned;
 
   get diagnostics v_changed=row_count;
+  perform set_config('app.future_membership_transition',coalesce(v_previous_transition_flag,'0'),true);
   return v_changed;
 end;
 $$;
@@ -384,8 +363,7 @@ execute function public.enforce_location_season_membership_rules();
 revoke all on function public.enforce_location_season_membership_rules() from public,anon,authenticated;
 
 create or replace function public.activate_future_memberships_for_season(
-  p_completed_season_id uuid,
-  p_actor uuid default null
+  p_completed_season_id uuid,p_actor uuid default null
 )
 returns integer
 language plpgsql
@@ -399,57 +377,44 @@ declare
   v_conflict boolean;
   v_activated integer:=0;
 begin
-  if not public.is_season_final_gameweek_confirmed(p_completed_season_id) then
-    return 0;
-  end if;
+  if not public.is_season_final_gameweek_confirmed(p_completed_season_id) then return 0; end if;
 
   select l.location_id into v_location_id
-  from public.seasons s
-  join public.leagues l on l.id=s.league_id
+  from public.seasons s join public.leagues l on l.id=s.league_id
   where s.id=p_completed_season_id;
-
-  if v_location_id is null then
-    return 0;
-  end if;
+  if v_location_id is null then return 0; end if;
 
   for v_future in
-    select tm.id,tm.user_id,tm.season_team_id,tm.is_captain,
-      st.team_id,st.name as team_name,s.id as target_season_id,s.name as target_season_name
+    select tm.id,tm.user_id,tm.season_team_id,tm.is_captain,st.team_id,
+      st.name as team_name,s.id as target_season_id,s.league_id as target_league_id,
+      s.name as target_season_name
     from public.team_memberships tm
     join public.season_teams st on st.id=tm.season_team_id
     join public.seasons s on s.id=st.season_id
     join public.leagues l on l.id=s.league_id
-    where tm.status='pending'
-      and tm.future_approved_at is not null
-      and tm.future_activated_at is null
-      and tm.activation_after_season_id=p_completed_season_id
+    where tm.status='pending' and tm.future_approved_at is not null
+      and tm.future_activated_at is null and tm.activation_after_season_id=p_completed_season_id
       and l.location_id=v_location_id
     order by tm.user_id,tm.id
   loop
-    perform pg_catalog.pg_advisory_xact_lock(
-      pg_catalog.hashtextextended(v_future.user_id::text||':'||v_location_id::text,0)
-    );
+    perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_future.user_id::text||':'||v_future.target_league_id::text,0));
+    perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_future.user_id::text||':'||v_location_id::text,0));
 
     v_next_barrier:=public.get_membership_transition_barrier(v_location_id,v_future.target_season_id);
     if v_next_barrier is not null then
-      update public.team_memberships
-      set activation_after_season_id=v_next_barrier,
-          future_conflict_reason=null,
-          updated_at=now()
+      update public.team_memberships set activation_after_season_id=v_next_barrier,
+        future_conflict_reason=null,updated_at=now()
       where id=v_future.id and status='pending';
       continue;
     end if;
 
     select exists(
-      select 1
-      from public.team_memberships other_membership
+      select 1 from public.team_memberships other_membership
       join public.season_teams other_team on other_team.id=other_membership.season_team_id
       join public.seasons other_season on other_season.id=other_team.season_id
       join public.leagues other_league on other_league.id=other_season.league_id
-      where other_membership.user_id=v_future.user_id
-        and other_membership.status='active'
-        and other_league.location_id=v_location_id
-        and other_season.id=v_future.target_season_id
+      where other_membership.user_id=v_future.user_id and other_membership.status='active'
+        and other_league.location_id=v_location_id and other_season.id=v_future.target_season_id
         and other_team.team_id is distinct from v_future.team_id
     ) into v_conflict;
 
@@ -466,15 +431,12 @@ begin
     );
 
     if exists(
-      select 1
-      from public.team_memberships other_membership
+      select 1 from public.team_memberships other_membership
       join public.season_teams other_team on other_team.id=other_membership.season_team_id
       join public.seasons other_season on other_season.id=other_team.season_id
       join public.leagues other_league on other_league.id=other_season.league_id
-      where other_membership.user_id=v_future.user_id
-        and other_membership.status='active'
-        and other_league.location_id=v_location_id
-        and other_team.team_id is distinct from v_future.team_id
+      where other_membership.user_id=v_future.user_id and other_membership.status='active'
+        and other_league.location_id=v_location_id and other_team.team_id is distinct from v_future.team_id
     ) then
       update public.team_memberships
       set future_conflict_reason='You must leave your existing club in this area before this future membership can activate.',
@@ -484,46 +446,25 @@ begin
     end if;
 
     update public.team_memberships
-    set status='active',
-        joined_at=now(),
-        left_at=null,
-        future_activated_at=now(),
-        future_conflict_reason=null,
-        updated_at=now()
-    where id=v_future.id
-      and status='pending'
-      and future_approved_at is not null
-      and future_activated_at is null;
+    set status='active',joined_at=now(),left_at=null,future_activated_at=now(),
+        future_conflict_reason=null,updated_at=now()
+    where id=v_future.id and status='pending'
+      and future_approved_at is not null and future_activated_at is null;
 
     if found then
       insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
-      values(
-        coalesce(p_actor,auth.uid()),
-        'team.membership.future_activated',
-        'team_membership',
-        v_future.id::text,
+      values(coalesce(p_actor,auth.uid()),'team.membership.future_activated','team_membership',v_future.id::text,
         'Previous location season completed with confirmed results',
         jsonb_build_object('status','pending','activation_after_season_id',p_completed_season_id),
-        jsonb_build_object('status','active','season_team_id',v_future.season_team_id,'future_activated_at',now())
-      );
-
+        jsonb_build_object('status','active','season_team_id',v_future.season_team_id,'future_activated_at',now()));
       if v_future.is_captain then
-        perform public.enqueue_notification_event(
-          v_future.user_id,
-          'team.future_captain_activated',
-          jsonb_build_object(
-            'season_team_id',v_future.season_team_id,
-            'team_name',v_future.team_name,
-            'season_name',v_future.target_season_name,
-            'changed_at',now()
-          )
-        );
+        perform public.enqueue_notification_event(v_future.user_id,'team.future_captain_activated',
+          jsonb_build_object('season_team_id',v_future.season_team_id,'team_name',v_future.team_name,
+            'season_name',v_future.target_season_name,'changed_at',now()));
       end if;
-
       v_activated:=v_activated+1;
     end if;
   end loop;
-
   return v_activated;
 end;
 $$;
@@ -655,53 +596,45 @@ declare
   v_team public.season_teams;
   v_season public.seasons;
   v_location_id uuid;
+  v_lock_location_id uuid;
+  v_lock_league_id uuid;
   v_membership public.team_memberships;
 begin
-  if v_user is null then
-    raise exception 'Authentication required';
-  end if;
+  if v_user is null then raise exception 'Authentication required'; end if;
 
-  select * into v_player
-  from public.players
-  where user_id=v_user
-  for share;
-
-  if not found or v_player.registration_status<>'registered' or v_player.is_banned then
-    raise exception 'An approved, eligible player registration is required before joining a team';
-  end if;
-
-  select * into v_team
-  from public.season_teams
-  where id=p_season_team_id
-  for share;
-
+  select * into v_team from public.season_teams where id=p_season_team_id;
   if not found or v_team.registration_status<>'approved' then
     raise exception 'This team is not currently accepting player requests';
   end if;
-
-  select s.* into v_season
-  from public.seasons s
-  where s.id=v_team.season_id
-  for share;
-
+  select * into v_season from public.seasons where id=v_team.season_id;
   if not found or v_season.status<>'registration_open' then
     raise exception 'This team is not currently accepting player requests';
   end if;
 
-  select l.location_id into v_location_id
-  from public.leagues l
-  where l.id=v_season.league_id;
+  v_lock_league_id:=v_season.league_id;
+  select l.location_id into v_lock_location_id from public.leagues l where l.id=v_lock_league_id;
+  if v_lock_location_id is null then raise exception 'This team does not belong to an active location'; end if;
 
-  if v_location_id is null then
-    raise exception 'This team does not belong to an active location';
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_user::text||':'||v_lock_league_id::text,0));
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_user::text||':'||v_lock_location_id::text,0));
+
+  select * into v_team from public.season_teams where id=p_season_team_id for share;
+  if not found or v_team.registration_status<>'approved' then
+    raise exception 'This team is not currently accepting player requests';
+  end if;
+  select s.* into v_season from public.seasons s where s.id=v_team.season_id for share;
+  if not found or v_season.status<>'registration_open' then
+    raise exception 'This team is not currently accepting player requests';
+  end if;
+  select l.location_id into v_location_id from public.leagues l where l.id=v_season.league_id;
+  if v_season.league_id is distinct from v_lock_league_id or v_location_id is distinct from v_lock_location_id then
+    raise exception 'The destination competition changed while the request was being prepared. Please retry';
   end if;
 
-  perform pg_catalog.pg_advisory_xact_lock(
-    pg_catalog.hashtextextended(v_user::text||':'||v_season.league_id::text,0)
-  );
-  perform pg_catalog.pg_advisory_xact_lock(
-    pg_catalog.hashtextextended(v_user::text||':'||v_location_id::text,0)
-  );
+  select * into v_player from public.players where user_id=v_user for share;
+  if not found or v_player.registration_status<>'registered' or v_player.is_banned then
+    raise exception 'An approved, eligible player registration is required before joining a team';
+  end if;
 
   if exists(
     select 1
@@ -709,8 +642,7 @@ begin
     join public.season_teams other_team on other_team.id=tm.season_team_id
     join public.seasons other_season on other_season.id=other_team.season_id
     join public.leagues other_league on other_league.id=other_season.league_id
-    where tm.user_id=v_user
-      and tm.status='active'
+    where tm.user_id=v_user and tm.status='active'
       and other_league.location_id=v_location_id
       and other_season.id=v_season.id
       and other_team.team_id is distinct from v_team.team_id
@@ -724,13 +656,11 @@ begin
     join public.season_teams other_team on other_team.id=tm.season_team_id
     join public.seasons other_season on other_season.id=other_team.season_id
     join public.leagues other_league on other_league.id=other_season.league_id
-    where tm.user_id=v_user
+    where tm.user_id=v_user and tm.status='pending'
+      and tm.future_approved_at is not null and tm.future_activated_at is null
       and other_league.location_id=v_location_id
       and other_season.id=v_season.id
       and other_team.team_id is distinct from v_team.team_id
-      and tm.future_approved_at is not null
-      and tm.future_activated_at is null
-      and tm.status='pending'
   ) then
     raise exception 'You already have an approved future membership with another club in this area for this season';
   end if;
@@ -741,45 +671,53 @@ begin
     join public.season_teams other_team on other_team.id=tm.season_team_id
     join public.seasons other_season on other_season.id=other_team.season_id
     join public.leagues other_league on other_league.id=other_season.league_id
-    where tm.user_id=v_user
+    where tm.user_id=v_user and tm.status='pending'
+      and tm.future_approved_at is null
       and other_league.location_id=v_location_id
       and other_season.id=v_season.id
-      and tm.status='pending'
-      and tm.future_approved_at is null
   ) then
     raise exception 'You already have a pending team request in this area for this season';
   end if;
 
   if exists(
-    select 1
-    from public.player_transfer_requests r
-    where r.user_id=v_user
-      and r.league_id=v_season.league_id
-      and r.status='pending'
+    select 1 from public.player_transfer_requests r
+    where r.user_id=v_user and r.league_id=v_season.league_id and r.status='pending'
   ) then
     raise exception 'Cancel or resolve your pending transfer request before requesting to join a team';
+  end if;
+
+  if exists(
+    select 1
+    from (
+      select source_team.team_id
+      from public.team_memberships source_membership
+      join public.season_teams source_team on source_team.id=source_membership.season_team_id
+      join public.seasons source_season on source_season.id=source_team.season_id
+      join public.leagues source_league on source_league.id=source_season.league_id
+      where source_membership.user_id=v_user
+        and source_membership.status='left'
+        and source_membership.voluntarily_left_at is not null
+        and source_league.location_id=v_location_id
+        and source_season.id=v_season.id
+      order by source_membership.voluntarily_left_at desc
+      limit 1
+    ) latest_departure
+    where latest_departure.team_id is distinct from v_team.team_id
+  ) then
+    raise exception 'Use the player transfer workflow after voluntarily leaving a different club in this season';
   end if;
 
   insert into public.team_memberships(season_team_id,user_id,status)
   values(p_season_team_id,v_user,'pending')
   on conflict(season_team_id,user_id) do update
-    set status='pending',
-        left_at=null,
-        joined_at=null,
-        is_captain=false,
-        transfer_request_id=null,
-        voluntarily_left_at=null,
-        future_approved_at=null,
-        activation_after_season_id=null,
-        future_activated_at=null,
-        future_conflict_reason=null,
-        updated_at=now()
+    set status='pending',left_at=null,joined_at=null,is_captain=false,
+        transfer_request_id=null,voluntarily_left_at=null,
+        future_approved_at=null,activation_after_season_id=null,
+        future_activated_at=null,future_conflict_reason=null,updated_at=now()
     where public.team_memberships.status in ('left','rejected')
   returning * into v_membership;
 
-  if v_membership.id is null then
-    raise exception 'A membership or request already exists for this team';
-  end if;
+  if v_membership.id is null then raise exception 'A membership or request already exists for this team'; end if;
 
   insert into public.audit_log(actor_user_id,action,entity_type,entity_id)
   values(v_user,'team.membership.requested','team_membership',v_membership.id::text);
@@ -792,8 +730,7 @@ revoke all on function public.request_team_membership(uuid) from public,anon;
 grant execute on function public.request_team_membership(uuid) to authenticated;
 
 create or replace function public.resolve_team_membership_request(
-  p_membership_id uuid,
-  p_decision text
+  p_membership_id uuid,p_decision text
 )
 returns public.team_memberships
 language plpgsql
@@ -807,40 +744,44 @@ declare
   v_season public.seasons;
   v_player public.players;
   v_location_id uuid;
+  v_lock_location_id uuid;
+  v_lock_league_id uuid;
   v_barrier_id uuid;
 begin
-  if v_actor is null then
-    raise exception 'Authentication required';
-  end if;
-
+  if v_actor is null then raise exception 'Authentication required'; end if;
   if p_decision is null or p_decision not in ('approved','rejected') then
     raise exception 'Decision must be approved or rejected';
   end if;
 
   select * into v_membership
   from public.team_memberships
-  where id=p_membership_id
-    and status='pending'
-    and future_approved_at is null
+  where id=p_membership_id and status='pending' and future_approved_at is null;
+  if not found then raise exception 'No pending team request exists'; end if;
+
+  select * into v_team from public.season_teams where id=v_membership.season_team_id;
+  if not found then raise exception 'The destination team no longer exists'; end if;
+  select * into v_season from public.seasons where id=v_team.season_id;
+  if not found then raise exception 'The destination season no longer exists'; end if;
+
+  v_lock_league_id:=v_season.league_id;
+  select l.location_id into v_lock_location_id from public.leagues l where l.id=v_lock_league_id;
+  if v_lock_location_id is null then raise exception 'The destination team has no location'; end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_membership.user_id::text||':'||v_lock_league_id::text,0));
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_membership.user_id::text||':'||v_lock_location_id::text,0));
+
+  select * into v_membership
+  from public.team_memberships
+  where id=p_membership_id and status='pending' and future_approved_at is null
   for update;
+  if not found then raise exception 'This team request has already been resolved'; end if;
 
-  if not found then
-    raise exception 'No pending team request exists';
+  select * into v_team from public.season_teams where id=v_membership.season_team_id for share;
+  select * into v_season from public.seasons where id=v_team.season_id for share;
+  select l.location_id into v_location_id from public.leagues l where l.id=v_season.league_id;
+  if v_season.league_id is distinct from v_lock_league_id or v_location_id is distinct from v_lock_location_id then
+    raise exception 'The destination competition changed while the request was being resolved. Please retry';
   end if;
-
-  select * into v_team
-  from public.season_teams
-  where id=v_membership.season_team_id
-  for share;
-
-  select * into v_season
-  from public.seasons
-  where id=v_team.season_id
-  for share;
-
-  select l.location_id into v_location_id
-  from public.leagues l
-  where l.id=v_season.league_id;
 
   if not public.is_active_team_captain(v_membership.season_team_id)
      and not public.can_administer_location(v_location_id) then
@@ -848,44 +789,23 @@ begin
   end if;
 
   if p_decision='approved' then
-    if v_team.registration_status<>'approved' then
-      raise exception 'Only approved teams can accept players';
-    end if;
+    if v_team.registration_status<>'approved' then raise exception 'Only approved teams can accept players'; end if;
+    if v_season.status not in ('registration_open','active') then raise exception 'Membership approvals are closed for this season'; end if;
 
-    if v_season.status not in ('registration_open','active') then
-      raise exception 'Membership approvals are closed for this season';
-    end if;
-
-    select * into v_player
-    from public.players
-    where user_id=v_membership.user_id
-    for share;
-
+    select * into v_player from public.players where user_id=v_membership.user_id for share;
     if not found or v_player.registration_status<>'registered' or v_player.is_banned then
       raise exception 'Only registered, eligible players can join a team';
     end if;
 
-    perform pg_catalog.pg_advisory_xact_lock(
-      pg_catalog.hashtextextended(v_membership.user_id::text||':'||v_season.league_id::text,0)
-    );
-    perform pg_catalog.pg_advisory_xact_lock(
-      pg_catalog.hashtextextended(v_membership.user_id::text||':'||v_location_id::text,0)
-    );
-
     if v_membership.transfer_request_id is not null then
       raise exception 'Transfer-linked memberships must be resolved through the player transfer workflow';
     end if;
-
     if exists(
-      select 1
-      from public.player_transfer_requests r
-      where r.user_id=v_membership.user_id
-        and r.league_id=v_season.league_id
-        and r.status='pending'
+      select 1 from public.player_transfer_requests r
+      where r.user_id=v_membership.user_id and r.league_id=v_season.league_id and r.status='pending'
     ) then
       raise exception 'This player has a pending transfer request in this league';
     end if;
-
     if exists(
       select 1
       from public.team_memberships source_membership
@@ -901,82 +821,48 @@ begin
     ) then
       raise exception 'Use the player transfer workflow after voluntarily leaving a different club in this season';
     end if;
-
     if exists(
-      select 1
-      from public.team_memberships tm
+      select 1 from public.team_memberships tm
       join public.season_teams st on st.id=tm.season_team_id
-      where tm.user_id=v_membership.user_id
-        and tm.status='active'
-        and st.season_id=v_season.id
-        and st.team_id is distinct from v_team.team_id
+      where tm.user_id=v_membership.user_id and tm.status='active'
+        and st.season_id=v_season.id and st.team_id is distinct from v_team.team_id
         and tm.id is distinct from v_membership.id
     ) then
       raise exception 'The player must leave their existing club before joining another club in the same area for this season';
     end if;
 
     v_barrier_id:=public.get_membership_transition_barrier(v_location_id,v_season.id);
-
     if v_barrier_id is null then
-      perform public.finalize_previous_location_memberships(
-        v_membership.user_id,v_location_id,v_season.id,v_actor
-      );
-
+      perform public.finalize_previous_location_memberships(v_membership.user_id,v_location_id,v_season.id,v_actor);
       update public.team_memberships
-      set status='active',
-          joined_at=now(),
-          left_at=null,
-          is_captain=false,
-          future_approved_at=null,
-          activation_after_season_id=null,
-          future_activated_at=null,
-          future_conflict_reason=null,
-          updated_at=now()
-      where id=p_membership_id
-      returning * into v_membership;
-
+      set status='active',joined_at=now(),left_at=null,is_captain=false,
+          future_approved_at=null,activation_after_season_id=null,
+          future_activated_at=null,future_conflict_reason=null,updated_at=now()
+      where id=p_membership_id returning * into v_membership;
       insert into public.audit_log(actor_user_id,action,entity_type,entity_id,after_data)
       values(v_actor,'team.membership.approved','team_membership',p_membership_id::text,
         jsonb_build_object('status','active','season_team_id',v_membership.season_team_id));
     else
       update public.team_memberships
-      set status='pending',
-          joined_at=null,
-          left_at=null,
-          is_captain=false,
-          future_approved_at=now(),
-          activation_after_season_id=v_barrier_id,
-          future_activated_at=null,
-          future_conflict_reason=null,
-          updated_at=now()
-      where id=p_membership_id
-      returning * into v_membership;
-
+      set status='pending',joined_at=null,left_at=null,is_captain=false,
+          future_approved_at=now(),activation_after_season_id=v_barrier_id,
+          future_activated_at=null,future_conflict_reason=null,updated_at=now()
+      where id=p_membership_id returning * into v_membership;
       insert into public.audit_log(actor_user_id,action,entity_type,entity_id,after_data)
       values(v_actor,'team.membership.future_approved','team_membership',p_membership_id::text,
-        jsonb_build_object(
-          'status','pending',
-          'future_approved_at',v_membership.future_approved_at,
-          'activation_after_season_id',v_barrier_id
-        ));
+        jsonb_build_object('status','pending','future_approved_at',v_membership.future_approved_at,
+          'activation_after_season_id',v_barrier_id));
     end if;
   else
     update public.team_memberships
-    set status='rejected',
-        left_at=now(),
-        future_approved_at=null,
-        activation_after_season_id=null,
-        future_activated_at=null,
-        future_conflict_reason=null,
-        updated_at=now()
-    where id=p_membership_id
-    returning * into v_membership;
-
+    set status='rejected',left_at=now(),future_approved_at=null,
+        activation_after_season_id=null,future_activated_at=null,
+        future_conflict_reason=null,updated_at=now()
+    where id=p_membership_id returning * into v_membership;
     insert into public.audit_log(actor_user_id,action,entity_type,entity_id,after_data)
     values(v_actor,'team.membership.rejected','team_membership',p_membership_id::text,
       jsonb_build_object('status','rejected'));
   end if;
-
   return v_membership;
 end;
 $$;
@@ -1040,8 +926,7 @@ revoke all on function public.get_my_future_captain_requests() from public,anon;
 grant execute on function public.get_my_future_captain_requests() to authenticated;
 
 create or replace function public.resolve_future_team_membership_request(
-  p_membership_id uuid,
-  p_decision text
+  p_membership_id uuid,p_decision text
 )
 returns public.team_memberships
 language plpgsql
@@ -1055,45 +940,49 @@ declare
   v_season public.seasons;
   v_player public.players;
   v_location_id uuid;
+  v_lock_location_id uuid;
+  v_lock_league_id uuid;
   v_barrier_id uuid;
 begin
-  if v_actor is null then
-    raise exception 'Authentication required';
-  end if;
-
+  if v_actor is null then raise exception 'Authentication required'; end if;
   if p_decision is null or p_decision not in ('approved','rejected') then
     raise exception 'Decision must be approved or rejected';
   end if;
 
   select * into v_membership
   from public.team_memberships
-  where id=p_membership_id
-    and status='pending'
-    and future_approved_at is null
-    and transfer_request_id is null
-  for update;
+  where id=p_membership_id and status='pending'
+    and future_approved_at is null and transfer_request_id is null;
+  if not found then raise exception 'No pending future-team request exists'; end if;
 
-  if not found then
-    raise exception 'No pending future-team request exists';
+  select * into v_team from public.season_teams where id=v_membership.season_team_id;
+  if not found then raise exception 'The future team no longer exists'; end if;
+  select * into v_season from public.seasons where id=v_team.season_id;
+  if not found then raise exception 'The future season no longer exists'; end if;
+
+  v_lock_league_id:=v_season.league_id;
+  select l.location_id into v_lock_location_id from public.leagues l where l.id=v_lock_league_id;
+  if v_lock_location_id is null then raise exception 'The future team has no location'; end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_membership.user_id::text||':'||v_lock_league_id::text,0));
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_membership.user_id::text||':'||v_lock_location_id::text,0));
+
+  select * into v_membership
+  from public.team_memberships
+  where id=p_membership_id and status='pending'
+    and future_approved_at is null and transfer_request_id is null
+  for update;
+  if not found then raise exception 'This future-team request has already been resolved'; end if;
+
+  select * into v_team from public.season_teams where id=v_membership.season_team_id for share;
+  select * into v_season from public.seasons where id=v_team.season_id for share;
+  select l.location_id into v_location_id from public.leagues l where l.id=v_season.league_id;
+  if v_season.league_id is distinct from v_lock_league_id or v_location_id is distinct from v_lock_location_id then
+    raise exception 'The future competition changed while the request was being resolved. Please retry';
   end if;
 
-  select * into v_team
-  from public.season_teams
-  where id=v_membership.season_team_id
-  for share;
-
-  select * into v_season
-  from public.seasons
-  where id=v_team.season_id
-  for share;
-
-  select l.location_id into v_location_id
-  from public.leagues l
-  where l.id=v_season.league_id;
-
   if not exists(
-    select 1
-    from public.team_memberships future_captain
+    select 1 from public.team_memberships future_captain
     join public.players captain_player on captain_player.user_id=future_captain.user_id
     where future_captain.season_team_id=v_membership.season_team_id
       and future_captain.user_id=v_actor
@@ -1112,33 +1001,16 @@ begin
     if v_team.registration_status<>'approved' or v_season.status not in ('registration_open','active') then
       raise exception 'This future team is no longer accepting player memberships';
     end if;
-
-    select * into v_player
-    from public.players
-    where user_id=v_membership.user_id
-    for share;
-
+    select * into v_player from public.players where user_id=v_membership.user_id for share;
     if not found or v_player.registration_status<>'registered' or v_player.is_banned then
       raise exception 'Only registered, eligible players can join a team';
     end if;
-
-    perform pg_catalog.pg_advisory_xact_lock(
-      pg_catalog.hashtextextended(v_membership.user_id::text||':'||v_season.league_id::text,0)
-    );
-    perform pg_catalog.pg_advisory_xact_lock(
-      pg_catalog.hashtextextended(v_membership.user_id::text||':'||v_location_id::text,0)
-    );
-
     if exists(
-      select 1
-      from public.player_transfer_requests r
-      where r.user_id=v_membership.user_id
-        and r.league_id=v_season.league_id
-        and r.status='pending'
+      select 1 from public.player_transfer_requests r
+      where r.user_id=v_membership.user_id and r.league_id=v_season.league_id and r.status='pending'
     ) then
       raise exception 'This player has a pending transfer request in this league';
     end if;
-
     if exists(
       select 1
       from public.team_memberships source_membership
@@ -1154,85 +1026,48 @@ begin
     ) then
       raise exception 'Use the player transfer workflow after voluntarily leaving a different club in this season';
     end if;
-
     if exists(
-      select 1
-      from public.team_memberships tm
+      select 1 from public.team_memberships tm
       join public.season_teams st on st.id=tm.season_team_id
-      join public.seasons s on s.id=st.season_id
-      join public.leagues l on l.id=s.league_id
-      where tm.user_id=v_membership.user_id
-        and tm.status='active'
-        and l.location_id=v_location_id
-        and s.id=v_season.id
-        and st.team_id is distinct from v_team.team_id
+      where tm.user_id=v_membership.user_id and tm.status='active'
+        and st.season_id=v_season.id and st.team_id is distinct from v_team.team_id
         and tm.id is distinct from v_membership.id
     ) then
       raise exception 'The player must leave their existing club before joining another club in the same area for this season';
     end if;
 
     v_barrier_id:=public.get_membership_transition_barrier(v_location_id,v_season.id);
-
     if v_barrier_id is null then
-      perform public.finalize_previous_location_memberships(
-        v_membership.user_id,v_location_id,v_season.id,v_actor
-      );
-
+      perform public.finalize_previous_location_memberships(v_membership.user_id,v_location_id,v_season.id,v_actor);
       update public.team_memberships
-      set status='active',
-          joined_at=now(),
-          left_at=null,
-          is_captain=false,
-          future_approved_at=null,
-          activation_after_season_id=null,
-          future_activated_at=null,
-          future_conflict_reason=null,
-          updated_at=now()
-      where id=p_membership_id
-      returning * into v_membership;
-
+      set status='active',joined_at=now(),left_at=null,is_captain=false,
+          future_approved_at=null,activation_after_season_id=null,
+          future_activated_at=null,future_conflict_reason=null,updated_at=now()
+      where id=p_membership_id returning * into v_membership;
       insert into public.audit_log(actor_user_id,action,entity_type,entity_id,after_data)
       values(v_actor,'team.membership.approved','team_membership',p_membership_id::text,
         jsonb_build_object('status','active','season_team_id',v_membership.season_team_id));
     else
       update public.team_memberships
-      set status='pending',
-          joined_at=null,
-          left_at=null,
-          is_captain=false,
-          future_approved_at=now(),
-          activation_after_season_id=v_barrier_id,
-          future_activated_at=null,
-          future_conflict_reason=null,
-          updated_at=now()
-      where id=p_membership_id
-      returning * into v_membership;
-
+      set status='pending',joined_at=null,left_at=null,is_captain=false,
+          future_approved_at=now(),activation_after_season_id=v_barrier_id,
+          future_activated_at=null,future_conflict_reason=null,updated_at=now()
+      where id=p_membership_id returning * into v_membership;
       insert into public.audit_log(actor_user_id,action,entity_type,entity_id,after_data)
       values(v_actor,'team.membership.future_approved','team_membership',p_membership_id::text,
-        jsonb_build_object(
-          'status','pending',
-          'future_approved_at',v_membership.future_approved_at,
-          'activation_after_season_id',v_barrier_id
-        ));
+        jsonb_build_object('status','pending','future_approved_at',v_membership.future_approved_at,
+          'activation_after_season_id',v_barrier_id));
     end if;
   else
     update public.team_memberships
-    set status='rejected',
-        left_at=now(),
-        future_approved_at=null,
-        activation_after_season_id=null,
-        future_activated_at=null,
-        future_conflict_reason=null,
-        updated_at=now()
-    where id=p_membership_id
-    returning * into v_membership;
-
+    set status='rejected',left_at=now(),future_approved_at=null,
+        activation_after_season_id=null,future_activated_at=null,
+        future_conflict_reason=null,updated_at=now()
+    where id=p_membership_id returning * into v_membership;
     insert into public.audit_log(actor_user_id,action,entity_type,entity_id,after_data)
     values(v_actor,'team.membership.rejected','team_membership',p_membership_id::text,
       jsonb_build_object('status','rejected'));
   end if;
-
   return v_membership;
 end;
 $$;
@@ -1334,9 +1169,7 @@ revoke all on function public.get_captain_dashboard() from public,anon;
 grant execute on function public.get_captain_dashboard() to authenticated;
 
 create or replace function public.resolve_team_registration(
-  p_season_team_id uuid,
-  p_decision text,
-  p_reason text default null
+  p_season_team_id uuid,p_decision text,p_reason text default null
 )
 returns public.season_teams
 language plpgsql
@@ -1350,95 +1183,72 @@ declare
   v_player public.players;
   v_captain_user_id uuid;
   v_location_id uuid;
+  v_lock_location_id uuid;
+  v_lock_league_id uuid;
   v_barrier_id uuid;
   v_membership public.team_memberships;
 begin
-  if v_actor is null or not public.has_platform_role() then
-    raise exception 'Administrator permission required';
-  end if;
+  if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
+  if p_decision not in ('approved','rejected') then raise exception 'Decision must be approved or rejected'; end if;
 
-  if p_decision not in ('approved','rejected') then
-    raise exception 'Decision must be approved or rejected';
-  end if;
+  select * into v_season_team from public.season_teams
+  where id=p_season_team_id and registration_status='pending';
+  if not found then raise exception 'No pending team registration exists'; end if;
 
-  select * into v_season_team
-  from public.season_teams
-  where id=p_season_team_id and registration_status='pending'
-  for update;
-
-  if not found then
-    raise exception 'No pending team registration exists';
-  end if;
-
-  select tm.user_id
-    into v_captain_user_id
+  select tm.user_id into v_captain_user_id
   from public.team_memberships tm
-  where tm.season_team_id=p_season_team_id
-    and tm.status='pending'
-    and tm.is_captain=false
-    and tm.future_approved_at is null
-  for update;
-
-  select * into v_membership
-  from public.team_memberships tm
-  where tm.season_team_id=p_season_team_id
-    and tm.user_id=v_captain_user_id
-  for update;
-
+  where tm.season_team_id=p_season_team_id and tm.status='pending'
+    and tm.is_captain=false and tm.future_approved_at is null;
   if v_captain_user_id is null then
     raise exception 'Team registration has no pending applicant to appoint as captain';
   end if;
 
+  select * into v_season from public.seasons where id=v_season_team.season_id;
+  if not found then raise exception 'The team registration season no longer exists'; end if;
+  v_lock_league_id:=v_season.league_id;
+  select l.location_id into v_lock_location_id from public.leagues l where l.id=v_lock_league_id;
+  if v_lock_location_id is null then raise exception 'The team registration has no location'; end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_captain_user_id::text||':'||v_lock_league_id::text,0));
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_captain_user_id::text||':'||v_lock_location_id::text,0));
+
+  select * into v_season_team from public.season_teams
+  where id=p_season_team_id and registration_status='pending'
+  for update;
+  if not found then raise exception 'This team registration has already been resolved'; end if;
+
+  select * into v_membership from public.team_memberships tm
+  where tm.season_team_id=p_season_team_id and tm.user_id=v_captain_user_id
+    and tm.status='pending' and tm.is_captain=false and tm.future_approved_at is null
+  for update;
+  if not found then raise exception 'Team registration no longer has a pending applicant to appoint as captain'; end if;
+
+  select * into v_season from public.seasons where id=v_season_team.season_id for share;
+  select l.location_id into v_location_id from public.leagues l where l.id=v_season.league_id;
+  if v_season.league_id is distinct from v_lock_league_id or v_location_id is distinct from v_lock_location_id then
+    raise exception 'The team registration competition changed while the application was being resolved. Please retry';
+  end if;
+
   if p_decision='approved' then
-    select * into v_season
-    from public.seasons
-    where id=v_season_team.season_id
-    for share;
-
-    if not found or v_season.status<>'registration_open' then
-      raise exception 'Team registrations are closed for this season';
-    end if;
-
-    select * into v_player
-    from public.players
-    where user_id=v_captain_user_id
-    for share;
-
+    if v_season.status<>'registration_open' then raise exception 'Team registrations are closed for this season'; end if;
+    select * into v_player from public.players where user_id=v_captain_user_id for share;
     if not found or v_player.registration_status<>'registered' or v_player.is_banned then
       raise exception 'The proposed captain is no longer an eligible registered player';
     end if;
-
-    select l.location_id into v_location_id
-    from public.leagues l
-    where l.id=v_season.league_id;
-
-    perform pg_catalog.pg_advisory_xact_lock(
-      pg_catalog.hashtextextended(v_captain_user_id::text||':'||v_season.league_id::text,0)
-    );
-    perform pg_catalog.pg_advisory_xact_lock(
-      pg_catalog.hashtextextended(v_captain_user_id::text||':'||v_location_id::text,0)
-    );
-
     if exists(
-      select 1
-      from public.team_memberships tm
+      select 1 from public.team_memberships tm
       join public.season_teams other_team on other_team.id=tm.season_team_id
-      where tm.user_id=v_captain_user_id
-        and tm.status='active'
-        and other_team.season_id=v_season_team.season_id
-        and tm.season_team_id<>p_season_team_id
+      where tm.user_id=v_captain_user_id and tm.status='active'
+        and other_team.season_id=v_season_team.season_id and tm.season_team_id<>p_season_team_id
     ) then
       raise exception 'The proposed captain is already active with another club in this area for this season';
     end if;
-
     if exists(
-      select 1
-      from public.team_memberships tm
+      select 1 from public.team_memberships tm
       join public.season_teams other_team on other_team.id=tm.season_team_id
       join public.seasons other_season on other_season.id=other_team.season_id
       join public.leagues other_league on other_league.id=other_season.league_id
-      where tm.user_id=v_captain_user_id
-        and tm.is_captain=true
+      where tm.user_id=v_captain_user_id and tm.is_captain=true
         and other_league.location_id=v_location_id
         and other_season.id=v_season_team.season_id
         and (tm.status='active' or tm.future_approved_at is not null)
@@ -1446,7 +1256,6 @@ begin
     ) then
       raise exception 'The proposed captain already holds a captaincy in this area for this season';
     end if;
-
     v_barrier_id:=public.get_membership_transition_barrier(v_location_id,v_season_team.season_id);
   end if;
 
@@ -1454,52 +1263,29 @@ begin
   set registration_status=p_decision::public.registration_status,
       approved_at=case when p_decision='approved' then now() else null end,
       approved_by=case when p_decision='approved' then v_actor else null end
-  where id=p_season_team_id
-  returning * into v_season_team;
+  where id=p_season_team_id returning * into v_season_team;
 
   if p_decision='approved' then
     if v_barrier_id is null then
-      perform public.finalize_previous_location_memberships(
-        v_captain_user_id,v_location_id,v_season_team.season_id,v_actor
-      );
-
+      perform public.finalize_previous_location_memberships(v_captain_user_id,v_location_id,v_season_team.season_id,v_actor);
       update public.team_memberships
-      set status='active',
-          is_captain=true,
-          joined_at=now(),
-          left_at=null,
-          future_approved_at=null,
-          activation_after_season_id=null,
-          future_activated_at=null,
-          future_conflict_reason=null,
-          updated_at=now()
-      where id=v_membership.id
-      returning * into v_membership;
+      set status='active',is_captain=true,joined_at=now(),left_at=null,
+          future_approved_at=null,activation_after_season_id=null,
+          future_activated_at=null,future_conflict_reason=null,updated_at=now()
+      where id=v_membership.id returning * into v_membership;
     else
       update public.team_memberships
-      set status='pending',
-          is_captain=true,
-          joined_at=null,
-          left_at=null,
-          future_approved_at=now(),
-          activation_after_season_id=v_barrier_id,
-          future_activated_at=null,
-          future_conflict_reason=null,
-          updated_at=now()
-      where id=v_membership.id
-      returning * into v_membership;
+      set status='pending',is_captain=true,joined_at=null,left_at=null,
+          future_approved_at=now(),activation_after_season_id=v_barrier_id,
+          future_activated_at=null,future_conflict_reason=null,updated_at=now()
+      where id=v_membership.id returning * into v_membership;
     end if;
   else
     update public.team_memberships
-    set status='rejected',
-        left_at=now(),
-        future_approved_at=null,
-        activation_after_season_id=null,
-        future_activated_at=null,
-        future_conflict_reason=null,
-        updated_at=now()
-    where id=v_membership.id
-    returning * into v_membership;
+    set status='rejected',left_at=now(),future_approved_at=null,
+        activation_after_season_id=null,future_activated_at=null,
+        future_conflict_reason=null,updated_at=now()
+    where id=v_membership.id returning * into v_membership;
   end if;
 
   insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,after_data)
@@ -1510,10 +1296,293 @@ begin
       'future_captaincy',case when p_decision='approved' then v_membership.future_approved_at is not null else false end,
       'activation_after_season_id',v_membership.activation_after_season_id
     ));
-
   return v_season_team;
 end;
 $$;
 
 revoke all on function public.resolve_team_registration(uuid,text,text) from public,anon;
 grant execute on function public.resolve_team_registration(uuid,text,text) to authenticated;
+
+
+-- Keep all player/team departure and transfer mutations on the same
+-- league-then-location advisory-lock order as membership approvals.
+create or replace function public.leave_team_membership(p_membership_id uuid)
+returns public.team_memberships
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user uuid:=auth.uid();
+  v_membership public.team_memberships;
+  v_team_name text;
+  v_location_id uuid;
+  v_league_id uuid;
+begin
+  if v_user is null then raise exception 'Authentication required'; end if;
+
+  select l.location_id,s.league_id,st.name
+  into v_location_id,v_league_id,v_team_name
+  from public.team_memberships tm
+  join public.season_teams st on st.id=tm.season_team_id
+  join public.seasons s on s.id=st.season_id
+  join public.leagues l on l.id=s.league_id
+  where tm.id=p_membership_id and tm.user_id=v_user;
+  if not found then raise exception 'You must have an active membership to leave this club'; end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_user::text||':'||v_league_id::text,0));
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_user::text||':'||v_location_id::text,0));
+
+  select * into v_membership
+  from public.team_memberships
+  where id=p_membership_id and user_id=v_user
+  for update;
+  if not found or v_membership.status<>'active' then
+    raise exception 'You must have an active membership to leave this club';
+  end if;
+  if v_membership.is_captain then
+    raise exception 'Appoint a replacement captain before leaving this club';
+  end if;
+  if exists(
+    select 1 from public.fixture_team_sheet_players tsp
+    join public.fixture_team_sheets ts on ts.id=tsp.team_sheet_id and ts.is_locked=true
+    join public.fixtures f on f.id=ts.fixture_id
+    where tsp.user_id=v_user and ts.season_team_id=v_membership.season_team_id
+      and f.status in ('scheduled','in_progress')
+  ) then
+    raise exception 'You are on a submitted sheet for a fixture that has not been completed. Ask an administrator to amend it before leaving';
+  end if;
+
+  update public.team_memberships
+  set status='left',left_at=now(),voluntarily_left_at=now(),squad_number=null,updated_at=now()
+  where id=v_membership.id returning * into v_membership;
+
+  insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
+  values(v_user,'player.membership.left','team_membership',v_membership.id::text,
+    'Voluntary departure by player',
+    jsonb_build_object('status','active','season_team_id',v_membership.season_team_id),
+    jsonb_build_object('status','left','season_team_id',v_membership.season_team_id));
+
+  perform public.enqueue_notification_event(v_user,'team.membership_left',
+    jsonb_build_object('team_name',coalesce(v_team_name,'your club'),'changed_at',now()));
+  return v_membership;
+end;
+$$;
+
+revoke all on function public.leave_team_membership(uuid) from public,anon;
+grant execute on function public.leave_team_membership(uuid) to authenticated;
+
+create or replace function public._resolve_player_transfer_request(
+  p_request_id uuid,p_decision text,p_reason text,p_actor uuid,p_admin_override boolean
+)
+returns public.player_transfer_requests
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_request public.player_transfer_requests;
+  v_source public.team_memberships;
+  v_source_team_id uuid;
+  v_destination public.season_teams;
+  v_season public.seasons;
+  v_player public.players;
+  v_location_id uuid;
+  v_cancelled integer:=0;
+  v_membership public.team_memberships;
+begin
+  if p_actor is null then raise exception 'Authentication required'; end if;
+  if p_decision is null or p_decision not in ('approved','rejected') then raise exception 'Decision must be approved or rejected'; end if;
+  if p_reason is null or length(btrim(p_reason))<5 then raise exception 'Enter a decision reason of at least 5 characters'; end if;
+
+  select * into v_request from public.player_transfer_requests where id=p_request_id;
+  if not found then raise exception 'Transfer request not found'; end if;
+  if v_request.user_id is null then raise exception 'The transfer request no longer belongs to an active player account'; end if;
+
+  select l.location_id into v_location_id
+  from public.season_teams destination
+  join public.seasons destination_season on destination_season.id=destination.season_id
+  join public.leagues l on l.id=destination_season.league_id
+  where destination.id=v_request.destination_season_team_id
+    and destination_season.league_id=v_request.league_id;
+  if v_location_id is null then raise exception 'The transfer destination no longer belongs to a valid location'; end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_request.user_id::text||':'||v_request.league_id::text,0));
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_request.user_id::text||':'||v_location_id::text,0));
+
+  select * into v_request from public.player_transfer_requests where id=p_request_id for update;
+  if not found or v_request.status<>'pending' then
+    raise exception 'This transfer has already been resolved or secured by another club';
+  end if;
+
+  select * into v_source from public.team_memberships where id=v_request.source_membership_id for share;
+  if not found or v_source.user_id is distinct from v_request.user_id
+     or v_source.season_team_id is distinct from v_request.source_season_team_id
+     or v_source.status<>'left' or v_source.voluntarily_left_at is null then
+    raise exception 'The source membership was not voluntarily left by this player';
+  end if;
+
+  select st.team_id into v_source_team_id
+  from public.season_teams st join public.seasons source_season on source_season.id=st.season_id
+  where st.id=v_source.season_team_id and source_season.league_id=v_request.league_id;
+  if v_source_team_id is null then raise exception 'The source membership does not belong to this league'; end if;
+
+  select * into v_destination from public.season_teams where id=v_request.destination_season_team_id for share;
+  if not found or v_destination.registration_status<>'approved' then raise exception 'Destination club is no longer approved'; end if;
+  if v_source_team_id=v_destination.team_id then raise exception 'A transfer must move the player to a different club'; end if;
+
+  select * into v_season from public.seasons where id=v_destination.season_id for share;
+  if not found or v_season.league_id<>v_request.league_id or v_season.status not in ('registration_open','active') then
+    raise exception 'Destination season is no longer eligible';
+  end if;
+
+  if p_admin_override then
+    if not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
+  elsif not public.is_active_team_captain(v_destination.id) then
+    raise exception 'Only the destination club captain can approve or reject this transfer';
+  end if;
+
+  select * into v_player from public.players where user_id=v_request.user_id for share;
+  if not found or v_player.registration_status<>'registered' or v_player.is_banned then
+    raise exception 'Player is not currently eligible to transfer';
+  end if;
+
+  if exists(
+    select 1 from public.team_memberships tm
+    join public.season_teams st on st.id=tm.season_team_id
+    join public.seasons s on s.id=st.season_id
+    where tm.user_id=v_request.user_id and tm.status='active'
+      and s.league_id=v_request.league_id and tm.id<>v_source.id
+  ) then
+    raise exception 'Player is already attached to a club in this league';
+  end if;
+
+  if p_decision='approved' then
+    if v_request.is_emergency then
+      if v_request.target_fixture_id is null or not exists(
+        select 1 from public.fixtures f
+        where f.id=v_request.target_fixture_id and f.season_id=v_destination.season_id
+          and v_destination.id in (f.home_team_id,f.away_team_id)
+          and f.status='scheduled' and f.scheduled_at>now()
+          and f.scheduled_at<=now()+interval '24 hours'
+          and not exists(select 1 from public.fixture_team_sheets ts
+            where ts.fixture_id=f.id and ts.season_team_id=v_destination.id and ts.is_locked=true)
+      ) then raise exception 'The emergency transfer window for this fixture has closed'; end if;
+    end if;
+
+    update public.player_transfer_requests
+    set status='approved',resolved_at=now(),resolved_by=p_actor,resolution_reason=btrim(p_reason),updated_at=now()
+    where id=p_request_id returning * into v_request;
+
+    update public.player_transfer_requests
+    set status='cancelled',resolved_at=now(),resolved_by=p_actor,
+      resolution_reason='Automatically cancelled because another club secured the player',updated_at=now()
+    where user_id=v_request.user_id and league_id=v_request.league_id
+      and status='pending' and id<>p_request_id;
+    get diagnostics v_cancelled=row_count;
+
+    insert into public.team_memberships(
+      season_team_id,user_id,status,is_captain,squad_number,joined_at,left_at,transfer_request_id
+    ) values(v_destination.id,v_request.user_id,'active',false,null,now(),null,v_request.id)
+    on conflict(season_team_id,user_id) do update
+      set status='active',is_captain=false,squad_number=null,joined_at=now(),left_at=null,
+        voluntarily_left_at=null,transfer_request_id=v_request.id,updated_at=now()
+      where public.team_memberships.status in ('left','rejected')
+    returning * into v_membership;
+    if v_membership.id is null then raise exception 'The destination already has an active or pending membership for this player'; end if;
+  else
+    update public.player_transfer_requests
+    set status='rejected',resolved_at=now(),resolved_by=p_actor,resolution_reason=btrim(p_reason),updated_at=now()
+    where id=p_request_id returning * into v_request;
+  end if;
+
+  perform public.enqueue_notification_event(
+    v_request.user_id,
+    case when p_decision='approved' then 'player.transfer_approved' else 'player.transfer_rejected' end,
+    jsonb_build_object('transfer_request_id',v_request.id,
+      'source_team_name',(select name from public.season_teams where id=v_request.source_season_team_id),
+      'team_name',v_destination.name,'reason',btrim(p_reason),'changed_at',now(),'is_emergency',v_request.is_emergency)
+  );
+
+  insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
+  values(p_actor,'player.transfer.'||p_decision,'player_transfer_request',p_request_id::text,btrim(p_reason),
+    jsonb_build_object('status','pending','league_id',v_request.league_id),
+    jsonb_build_object('status',p_decision,'destination_team_id',v_destination.id,
+      'cancelled_competing_requests',v_cancelled,'admin_override',p_admin_override));
+  return v_request;
+end;
+$$;
+
+revoke all on function public._resolve_player_transfer_request(uuid,text,text,uuid,boolean) from public,anon,authenticated;
+
+create or replace function public.admin_remove_player_from_team(p_membership_id uuid,p_reason text)
+returns public.team_memberships
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_actor uuid:=auth.uid();
+  v_membership public.team_memberships;
+  v_before jsonb;
+  v_team_name text;
+  v_next_status public.membership_status;
+  v_location_id uuid;
+  v_league_id uuid;
+begin
+  if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
+  if p_reason is null or length(btrim(p_reason))<5 then raise exception 'Enter a reason of at least 5 characters'; end if;
+
+  select l.location_id,s.league_id,st.name
+  into v_location_id,v_league_id,v_team_name
+  from public.team_memberships tm
+  join public.season_teams st on st.id=tm.season_team_id
+  join public.seasons s on s.id=st.season_id
+  join public.leagues l on l.id=s.league_id
+  where tm.id=p_membership_id;
+  if not found then raise exception 'Team membership not found'; end if;
+
+  select tm.user_id into v_membership.user_id
+  from public.team_memberships tm where tm.id=p_membership_id;
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_membership.user_id::text||':'||v_league_id::text,0));
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_membership.user_id::text||':'||v_location_id::text,0));
+
+  select * into v_membership from public.team_memberships where id=p_membership_id for update;
+  if not found then raise exception 'Team membership not found'; end if;
+  if v_membership.status not in ('active','pending') then raise exception 'Only active or pending memberships can be removed'; end if;
+  if v_membership.is_captain then raise exception 'Appoint a replacement captain before removing this player'; end if;
+
+  if v_membership.status='active' and exists(
+    select 1 from public.fixture_team_sheet_players tsp
+    join public.fixture_team_sheets ts on ts.id=tsp.team_sheet_id and ts.is_locked=true
+    join public.fixtures f on f.id=ts.fixture_id
+    where tsp.user_id=v_membership.user_id and ts.season_team_id=v_membership.season_team_id
+      and f.status='scheduled' and f.scheduled_at>now()
+  ) then
+    raise exception 'Player is on a locked upcoming team sheet. Amend the team sheet before removing them';
+  end if;
+
+  v_before:=jsonb_build_object('status',v_membership.status,'is_captain',v_membership.is_captain,
+    'squad_number',v_membership.squad_number,'season_team_id',v_membership.season_team_id);
+  v_next_status:=case when v_membership.status='active' then 'left'::public.membership_status else 'rejected'::public.membership_status end;
+
+  update public.team_memberships
+  set status=v_next_status,left_at=case when v_next_status='left'::public.membership_status then now() else left_at end,
+    squad_number=null,updated_at=now()
+  where id=p_membership_id returning * into v_membership;
+
+  insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
+  values(v_actor,'team.membership.admin_removed','team_membership',p_membership_id::text,btrim(p_reason),v_before,
+    jsonb_build_object('status',v_membership.status,'season_team_id',v_membership.season_team_id,
+      'user_id',v_membership.user_id,'reason',btrim(p_reason)));
+
+  if v_next_status='left'::public.membership_status then
+    perform public.enqueue_notification_event(v_membership.user_id,'team.membership_removed',
+      jsonb_build_object('team_name',v_team_name,'reason',btrim(p_reason),'changed_at',now()));
+  end if;
+  return v_membership;
+end;
+$$;
+
+revoke all on function public.admin_remove_player_from_team(uuid,text) from public,anon;
+grant execute on function public.admin_remove_player_from_team(uuid,text) to authenticated;
