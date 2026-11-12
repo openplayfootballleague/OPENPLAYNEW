@@ -18,7 +18,7 @@ alter table public.team_memberships
     (future_approved_at is null and activation_after_season_id is null and future_activated_at is null)
     or
     (future_approved_at is not null and activation_after_season_id is not null
-      and (future_activated_at is null or status='active'))
+      future_activated_at is null or future_activated_at is not null)
   );
 
 create index if not exists team_memberships_future_activation_idx
@@ -1243,7 +1243,7 @@ begin
     and captain.is_captain=true
     and captain.status='active'
     and tm.status in ('active','pending')
-    and tm.future_approved_at is null
+    and (tm.future_approved_at is null or tm.future_activated_at is not null)
   order by st.name,case when tm.status='pending' then 0 else 1 end,p.full_name;
 end;
 $$;
@@ -1288,13 +1288,19 @@ begin
     raise exception 'No pending team registration exists';
   end if;
 
-  select tm.user_id,tm.*
-    into v_captain_user_id,v_membership
+  select tm.user_id
+    into v_captain_user_id
   from public.team_memberships tm
   where tm.season_team_id=p_season_team_id
     and tm.status='pending'
     and tm.is_captain=false
     and tm.future_approved_at is null
+  for update;
+
+  select * into v_membership
+  from public.team_memberships tm
+  where tm.season_team_id=p_season_team_id
+    and tm.user_id=v_captain_user_id
   for update;
 
   if v_captain_user_id is null then
