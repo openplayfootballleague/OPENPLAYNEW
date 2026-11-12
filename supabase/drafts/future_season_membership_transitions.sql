@@ -1377,7 +1377,7 @@ begin
   end if;
 
   update public.season_teams
-  set registration_status=p_decision,
+  set registration_status=p_decision::public.registration_status,
       approved_at=case when p_decision='approved' then now() else null end,
       approved_by=case when p_decision='approved' then v_actor else null end
   where id=p_season_team_id
