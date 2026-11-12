@@ -30,6 +30,10 @@ begin
     (v_player,'authenticated','authenticated','ci-removal-player@openplay.invalid','','{}'::jsonb,now(),now(),now()),
     (v_other_player,'authenticated','authenticated','ci-removal-other@openplay.invalid','','{}'::jsonb,now(),now(),now());
 
+  insert into public.notification_preferences(user_id,in_app_enabled)
+  values(v_captain,true),(v_player,true),(v_other_player,true)
+  on conflict(user_id) do update set in_app_enabled=true;
+
   insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status,is_genuine)
   values
     (v_captain,'Removal Test Captain','+447700920001','ci-removal-captain@openplay.invalid',date '1990-01-01','registered',true),
