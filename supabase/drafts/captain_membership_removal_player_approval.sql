@@ -1,6 +1,56 @@
 -- Captain-requested membership removal requires the affected player's explicit approval.
 -- No captain can directly deactivate another player's membership.
 
+-- Include request identifiers in notification deduplication so a later
+-- removal request for the same membership is not suppressed by an older event.
+create or replace function public.enqueue_notification_event(
+  p_user_id uuid,
+  p_event_type text,
+  p_payload jsonb
+)
+returns void
+language plpgsql
+security definer
+set search_path=''
+as $
+declare
+  v_preferences public.notification_preferences;
+  v_dedupe text;
+begin
+  if p_user_id is null or p_event_type is null or length(btrim(p_event_type))<3 then return; end if;
+  insert into public.notification_preferences(user_id) values(p_user_id)
+  on conflict(user_id) do nothing;
+  select * into v_preferences from public.notification_preferences where user_id=p_user_id;
+  v_dedupe:=p_event_type||':'||coalesce(
+    p_payload->>'request_id',
+    p_payload->>'report_id',
+    p_payload->>'message_id',
+    p_payload->>'fixture_id',
+    p_payload->>'membership_id',
+    p_payload->>'season_team_id',
+    p_payload->>'conversation_id',
+    'event'
+  )||':'||p_user_id::text;
+
+  if v_preferences.email_enabled then
+    insert into public.notification_events(user_id,channel,event_type,status,payload,dedupe_key)
+    values(p_user_id,'email',p_event_type,'queued',coalesce(p_payload,'{}'::jsonb),v_dedupe||':email')
+    on conflict(dedupe_key) where dedupe_key is not null do nothing;
+  end if;
+  if v_preferences.sms_enabled then
+    insert into public.notification_events(user_id,channel,event_type,status,payload,dedupe_key)
+    values(p_user_id,'sms',p_event_type,'queued',coalesce(p_payload,'{}'::jsonb),v_dedupe||':sms')
+    on conflict(dedupe_key) where dedupe_key is not null do nothing;
+  end if;
+  if v_preferences.in_app_enabled then
+    insert into public.notification_events(user_id,channel,event_type,status,payload,dedupe_key,sent_at)
+    values(p_user_id,'in_app',p_event_type,'sent',coalesce(p_payload,'{}'::jsonb),v_dedupe||':in_app',now())
+    on conflict(dedupe_key) where dedupe_key is not null do nothing;
+  end if;
+end;
+$;
+revoke all on function public.enqueue_notification_event(uuid,text,jsonb) from public,anon,authenticated;
+
 create table if not exists public.team_membership_removal_requests (
   id uuid primary key default gen_random_uuid(),
   membership_id uuid not null references public.team_memberships(id) on delete restrict,
@@ -105,7 +155,7 @@ begin
 
   perform public.enqueue_notification_event(
     v_membership.user_id,'team.membership_removal_requested',
-    jsonb_build_object('request_id',v_request.id,'team_name',coalesce(v_team_name,'your club'),'requested_at',now())
+    jsonb_build_object('request_id',v_request.id,'membership_id',v_membership.id,'team_name',coalesce(v_team_name,'your club'),'requested_at',now())
   );
 
   return v_request;
@@ -218,7 +268,7 @@ begin
     perform public.enqueue_notification_event(
       v_request.requested_by,
       case when p_decision='approved' then 'team.membership_removal_approved' else 'team.membership_removal_rejected' end,
-      jsonb_build_object('request_id',v_request.id,'team_name',coalesce(v_team_name,'your club'),
+      jsonb_build_object('request_id',v_request.id,'membership_id',v_membership.id,'team_name',coalesce(v_team_name,'your club'),
         'decision_reason',v_request.decision_reason,'changed_at',now())
     );
   end if;
@@ -226,7 +276,7 @@ begin
   perform public.enqueue_notification_event(
     v_actor,
     case when p_decision='approved' then 'team.membership_left' else 'team.membership_removal_declined' end,
-    jsonb_build_object('request_id',v_request.id,'team_name',coalesce(v_team_name,'your club'),'changed_at',now())
+    jsonb_build_object('request_id',v_request.id,'membership_id',v_membership.id,'team_name',coalesce(v_team_name,'your club'),'changed_at',now())
   );
 
   return v_request;
