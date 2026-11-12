@@ -10,6 +10,19 @@ Browser analytics is disabled by default. The SDK is not initialized unless all 
 
 The committed `.env.example` intentionally leaves the project token blank and the verification flag false. Do not change that flag in a production deployment until the privacy and data-flow review is signed off.
 
+## Verified PostHog project status — 12 November 2026
+
+The connected project was inspected directly before recording this configuration:
+
+- Project: `OPENPLAYNEW` (project ID `340435`).
+- Region: EU Cloud; ingestion host is `https://eu.i.posthog.com`.
+- Project IP anonymisation is enabled.
+- Session recording is not enabled.
+- No event has been ingested into this project yet (`ingested_event=false`).
+- No event was sent during the inspection. The application remains disabled by the blank public token and false privacy-verification flag in `.env.example`.
+
+The project identity/region and the above privacy settings are verified. This does not replace the outstanding legal/controller review, retention review or production deployment-variable check.
+
 ## Privacy controls
 
 - EU Cloud ingestion host is configured through `VITE_POSTHOG_HOST`; no token or host is hard-coded in source.
@@ -24,12 +37,9 @@ The committed `.env.example` intentionally leaves the project token blank and th
 
 ## Current event coverage
 
-- Account signup started/completed.
-- Player registration submitted.
-- Player join request submitted.
-- Team registration submitted.
-- Navigation section viewed.
-- Workflow errors use only a coarse allow-listed feature and error code.
+- The governed event-name allow-list includes account signup/verification, player registration/profile completion, team registration, player join requests, location/season selection, navigation, fixtures/results/tables, team/player profiles, player statistics, gallery, announcements, feature actions and coarse application/workflow/data-load errors.
+- Implemented call sites cover the main signup, player registration, team registration, join request, competition selection, navigation, match-centre, player statistics and captain membership/team-sheet actions.
+- Draft PR #102 adds the missing successful gallery-view call site and privacy-safe gallery/team-directory data-load failures; do not treat those call sites as integrated until PR #102 is merged into the development baseline.
 
 The event helper is client-side and captures only after explicit consent. It is not an authoritative business ledger. Trusted server-side capture for security-sensitive or financially meaningful events remains outstanding and must be added before enabling production ingestion.
 
@@ -39,7 +49,7 @@ The event helper is client-side and captures only after explicit consent. It is 
 
 ## Remaining release tasks
 
-- Verify and record PostHog project-level autocapture, exception, replay, console-log and retention settings.
+- Complete the remaining project-level retention, data-processing and legal/controller review; the application SDK already disables autocapture, exception capture, replay, console logs and the other automatic capture features listed above.
 - Complete legal/privacy review and confirm the controller identity/contact details.
 - Implement authenticated trusted server-side event capture for approved server-confirmed events.
 - Configure the production public project token and host only after review; keep the verification flag false until all gates pass.
