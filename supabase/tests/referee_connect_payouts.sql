@@ -77,6 +77,14 @@ begin
   ) values(
     v_season,1,1,v_home_season_team,v_away_season_team,v_location,now()-interval '1 day','completed'
   ) returning id into v_fixture;
+
+  -- The approval RPC publishes the match result through the normal guarded
+  -- result workflow, which requires both teams' sheets to be locked.
+  insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)
+  values
+    (v_fixture,v_home_season_team,v_admin,true),
+    (v_fixture,v_away_season_team,v_admin,true);
+
   insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
   values(v_fixture,0,0,now(),v_admin);
   insert into public.referee_match_reports(
