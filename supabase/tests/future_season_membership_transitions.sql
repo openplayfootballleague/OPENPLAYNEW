@@ -41,6 +41,7 @@ declare
   v_fixture_one uuid;
   v_fixture_two uuid;
   v_count integer;
+  v_other_area_membership uuid;
   v_error text;
 begin
   insert into auth.users
@@ -225,10 +226,10 @@ begin
   perform public.request_team_membership(v_other_area_st);
 
   perform set_config('request.jwt.claim.sub',v_second_area_captain::text,true);
-  select id into v_count from public.team_memberships
+  select id into v_other_area_membership from public.team_memberships
   where season_team_id=v_other_area_st and user_id=v_player_two;
 
-  perform public.resolve_team_membership_request(v_count::uuid,'approved');
+  perform public.resolve_team_membership_request(v_other_area_membership,'approved');
 
   if not exists(
     select 1 from public.team_memberships
