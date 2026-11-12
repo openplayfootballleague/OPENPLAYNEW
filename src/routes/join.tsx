@@ -460,7 +460,6 @@ function JoinPage() {
                         <div className="team-captain-details">
                           <div><span>CAPTAIN NAME</span><strong>{player.full_name}</strong></div>
                           <div><span>MOBILE NUMBER</span><strong>{player.phone || "Add a mobile number to your player profile"}</strong></div>
-                          <div><span>ACCOUNT EMAIL</span><strong>{session.user.email}</strong></div>
                         </div>
                         <fieldset className="team-registration-choice">
                           <legend>WhatsApp contact number</legend>
