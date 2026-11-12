@@ -204,11 +204,11 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as '
 declare
   v_location_id uuid;
 begin
-  if new.status<>'pending' or new.user_id is null then return new; end if;
+  if new.status<>''pending'' or new.user_id is null then return new; end if;
 
   select l.location_id into v_location_id
   from public.season_teams destination
@@ -216,7 +216,7 @@ begin
   join public.leagues l on l.id=s.league_id
   where destination.id=new.destination_season_team_id;
 
-  if v_location_id is null then raise exception 'Transfer destination must belong to a location'; end if;
+  if v_location_id is null then raise exception ''Transfer destination must belong to a location''; end if;
 
   if exists (
     select 1
@@ -225,16 +225,16 @@ begin
     join public.seasons s on s.id=st.season_id
     join public.leagues l on l.id=s.league_id
     where tm.user_id=new.user_id
-      and tm.status='active'
-      and s.status in ('registration_open','active')
+      and tm.status=''active''
+      and s.status in (''registration_open'',''active'')
       and l.location_id=v_location_id
   ) then
-    raise exception 'Leave your existing club in this area before requesting a transfer';
+    raise exception ''Leave your existing club in this area before requesting a transfer'';
   end if;
   return new;
 end;
-
-$;
+'
+;
 
 drop trigger if exists player_transfer_requests_location_membership_guard on public.player_transfer_requests;
 create trigger player_transfer_requests_location_membership_guard
