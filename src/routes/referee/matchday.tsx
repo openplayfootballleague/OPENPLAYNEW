@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RefereeBottomNavigation } from "../../components/referee-bottom-navigation";
 import { getSupabaseClient } from "../../lib/supabase/client";
+import { useOpenPlayAnalytics } from "../../components/analytics-provider";
 
 type RpcClient = {
   rpc(name: string): Promise<{ data: unknown; error: { message: string } | null }>;
@@ -12,6 +13,7 @@ type RefereeAppointment = { assignment_id: string; fixture_id: string; assignmen
 export const Route = createFileRoute("/referee/matchday")({ component: RefereeMatchdayPage });
 
 function RefereeMatchdayPage() {
+  const capture = useOpenPlayAnalytics();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState(false);
@@ -30,22 +32,30 @@ function RefereeMatchdayPage() {
       }
       const result = await (supabase as unknown as RpcClient).rpc("get_my_referee_portal_state");
       if (!alive) return;
-      if (result.error) setError(result.error.message);
+      if (result.error) {
+        setError(result.error.message);
+        capture("data_load_failed", { feature: "referee_workspace", error_code: "network_error", outcome: "failure" });
+      }
       else if (result.data && typeof result.data === "object") {
         const isActive = (result.data as PortalState).membership?.status === "active";
         setActive(isActive);
         if (isActive) {
           const appointmentResult = await (supabase as unknown as RpcClient).rpc("get_my_referee_assignments");
           if (!alive) return;
-          if (appointmentResult.error) setError(appointmentResult.error.message);
-          else setAppointments((appointmentResult.data ?? []) as RefereeAppointment[]);
+          if (appointmentResult.error) {
+            setError(appointmentResult.error.message);
+            capture("data_load_failed", { feature: "referee_workspace", error_code: "network_error", outcome: "failure" });
+          } else {
+            setAppointments((appointmentResult.data ?? []) as RefereeAppointment[]);
+            capture("feature_opened", { feature: "referee_workspace", outcome: "success" });
+          }
         }
       }
       setLoading(false);
     }
     void load();
     return () => { alive = false; };
-  }, [navigate]);
+  }, [capture, navigate]);
 
   useEffect(() => {
     if (!loading && !active && !error) void navigate({ to: "/referee", replace: true });
