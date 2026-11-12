@@ -5,17 +5,18 @@ import { getSupabaseClient } from "../lib/supabase/client";
 type NavigationMode = "viewer" | "player" | "captain";
 
 type NavigationItem = {
-  id: "home" | "match-centre" | "teams" | "club" | "matchday" | "more";
-  to: "/" | "/player" | "/match-centre" | "/teams" | "/captain" | "/more";
+  id: "home" | "match-centre" | "teams" | "join" | "club" | "matchday" | "more";
+  to: "/" | "/player" | "/match-centre" | "/teams" | "/join" | "/captain" | "/more";
   hash?: "#captain-club" | "#captain-matchday";
   label: string;
-  icon: "home" | "match" | "teams" | "whistle" | "more";
+  icon: "home" | "match" | "teams" | "join" | "whistle" | "more";
 };
 
 function NavIcon({ name }: { name: NavigationItem["icon"] }) {
   const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   if (name === "home") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><path d="m3 10 9-7 9 7" /><path d="M5 9v12h14V9M9 21v-7h6v7" /></svg>;
   if (name === "match") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="12" cy="12" r="9" /><path d="m12 7 3 2v4l-3 2-3-2V9l3-2ZM9 9l-4-2m10 2 4-2M9 13l-2 5m8-5 2 5" /></svg>;
+  if (name === "join") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="9" cy="8" r="4" /><path d="M3 21v-2a6 6 0 0 1 12 0v2M19 8v6m-3-3h6" /></svg>;
   if (name === "teams") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 15a5 5 0 0 1 5 5" /></svg>;
   if (name === "whistle") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><path d="M4 11h10a6 6 0 1 1-6 6v-2H4a2 2 0 0 1 0-4Z" /><path d="M14 11V7h4l3 4M8 15h3" /></svg>;
   return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg>;
@@ -66,17 +67,25 @@ export function PlayerBottomNavigation() {
 
   const items: NavigationItem[] = mode === "captain"
     ? [
-        { id: "home", to: "/player", label: "Home", icon: "home" },
+        { id: "home", to: "/player", label: "Player Hub", icon: "home" },
         { id: "club", to: "/captain", hash: "#captain-club", label: "Club", icon: "teams" },
         { id: "matchday", to: "/captain", hash: "#captain-matchday", label: "Matchday", icon: "whistle" },
         { id: "more", to: "/more", label: "More", icon: "more" },
       ]
-    : [
-        { id: "home", to: mode === "player" ? "/player" : "/", label: "Home", icon: "home" },
-        { id: "match-centre", to: "/match-centre", label: "Match Centre", icon: "match" },
-        { id: "teams", to: "/teams", label: "Teams", icon: "teams" },
-        { id: "more", to: "/more", label: "More", icon: "more" },
-      ];
+    : mode === "player"
+      ? [
+          { id: "home", to: "/player", label: "Player Hub", icon: "home" },
+          { id: "match-centre", to: "/match-centre", label: "Match Centre", icon: "match" },
+          { id: "teams", to: "/teams", label: "Teams", icon: "teams" },
+          { id: "more", to: "/more", label: "More", icon: "more" },
+        ]
+      : [
+          { id: "home", to: "/", label: "Home", icon: "home" },
+          { id: "match-centre", to: "/match-centre", label: "Match Centre", icon: "match" },
+          { id: "teams", to: "/teams", label: "Teams", icon: "teams" },
+          { id: "join", to: "/join", label: "Join Open Play", icon: "join" },
+          { id: "more", to: "/more", label: "More", icon: "more" },
+        ];
 
   function isActive(item: NavigationItem) {
     if (item.id === "home") return pathname === "/" || pathname === "/player";
