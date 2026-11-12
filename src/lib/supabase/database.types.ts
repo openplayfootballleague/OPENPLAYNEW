@@ -1280,6 +1280,7 @@ export type Database = {
           badge_path: string | null
           created_at: string
           id: string
+          instagram_url: string | null
           name: string
           primary_colour: string | null
           registration_status: Database["public"]["Enums"]["registration_status"]
@@ -1295,6 +1296,7 @@ export type Database = {
           badge_path?: string | null
           created_at?: string
           id?: string
+          instagram_url?: string | null
           name: string
           primary_colour?: string | null
           registration_status?: Database["public"]["Enums"]["registration_status"]
@@ -1310,6 +1312,7 @@ export type Database = {
           badge_path?: string | null
           created_at?: string
           id?: string
+          instagram_url?: string | null
           name?: string
           primary_colour?: string | null
           registration_status?: Database["public"]["Enums"]["registration_status"]
@@ -1340,6 +1343,7 @@ export type Database = {
         Row: {
           created_at: string
           ends_on: string | null
+          gameweek_count: number
           id: string
           is_public: boolean
           league_id: string
@@ -1354,6 +1358,7 @@ export type Database = {
         Insert: {
           created_at?: string
           ends_on?: string | null
+          gameweek_count?: number
           id?: string
           is_public?: boolean
           league_id: string
@@ -1368,6 +1373,7 @@ export type Database = {
         Update: {
           created_at?: string
           ends_on?: string | null
+          gameweek_count?: number
           id?: string
           is_public?: boolean
           league_id?: string
@@ -1385,6 +1391,102 @@ export type Database = {
             columns: ["league_id"]
             isOneToOne: false
             referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_registration_details: {
+        Row: {
+          additional_information: string | null
+          captain_full_name: string
+          captain_mobile: string
+          captain_no_whatsapp: boolean
+          captain_whatsapp: string | null
+          captain_whatsapp_same_as_mobile: boolean
+          created_at: string
+          declaration_accuracy: boolean
+          declaration_age: boolean
+          declaration_authority: boolean
+          declaration_payment: boolean
+          declaration_rules: boolean
+          declarations_accepted_at: string
+          declarations_version: string
+          fee_accepted_at: string
+          fee_accepted_by: string
+          fee_accepted_competition_id: string
+          full_season_total_accepted_pence: number
+          gameweek_count_accepted: number
+          season_team_id: string
+          submitted_by: string
+          team_status: string
+          updated_at: string
+          weekly_fee_accepted_pence: number
+        }
+        Insert: {
+          additional_information?: string | null
+          captain_full_name: string
+          captain_mobile: string
+          captain_no_whatsapp?: boolean
+          captain_whatsapp?: string | null
+          captain_whatsapp_same_as_mobile?: boolean
+          created_at?: string
+          declaration_accuracy?: boolean
+          declaration_age?: boolean
+          declaration_authority?: boolean
+          declaration_payment?: boolean
+          declaration_rules?: boolean
+          declarations_accepted_at: string
+          declarations_version: string
+          fee_accepted_at: string
+          fee_accepted_by: string
+          fee_accepted_competition_id: string
+          full_season_total_accepted_pence: number
+          gameweek_count_accepted: number
+          season_team_id: string
+          submitted_by: string
+          team_status: string
+          updated_at?: string
+          weekly_fee_accepted_pence: number
+        }
+        Update: {
+          additional_information?: string | null
+          captain_full_name?: string
+          captain_mobile?: string
+          captain_no_whatsapp?: boolean
+          captain_whatsapp?: string | null
+          captain_whatsapp_same_as_mobile?: boolean
+          created_at?: string
+          declaration_accuracy?: boolean
+          declaration_age?: boolean
+          declaration_authority?: boolean
+          declaration_payment?: boolean
+          declaration_rules?: boolean
+          declarations_accepted_at?: string
+          declarations_version?: string
+          fee_accepted_at?: string
+          fee_accepted_by?: string
+          fee_accepted_competition_id?: string
+          full_season_total_accepted_pence?: number
+          gameweek_count_accepted?: number
+          season_team_id?: string
+          submitted_by?: string
+          team_status?: string
+          updated_at?: string
+          weekly_fee_accepted_pence?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_registration_details_fee_accepted_competition_id_fkey"
+            columns: ["fee_accepted_competition_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_registration_details_season_team_id_fkey"
+            columns: ["season_team_id"]
+            isOneToOne: true
+            referencedRelation: "season_teams"
             referencedColumns: ["id"]
           },
         ]
@@ -3230,12 +3332,39 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_team_registration_terms: {
+        Args: { p_season_id: string }
+        Returns: {
+          competition_id: string
+          competition_name: string
+          full_season_total_pence: number
+          gameweek_count: number
+          season_id: string
+          season_name: string
+          weekly_fee_pence: number
+        }[]
+      }
       register_team: {
         Args: {
-          p_primary_colour?: string
+          p_additional_information: string | null
+          p_badge_path: string | null
+          p_captain_no_whatsapp: boolean
+          p_captain_whatsapp: string | null
+          p_captain_whatsapp_same_as_mobile: boolean
+          p_declaration_accuracy: boolean
+          p_declaration_age: boolean
+          p_declaration_authority: boolean
+          p_declaration_payment: boolean
+          p_declaration_rules: boolean
+          p_fee_accepted: boolean
+          p_full_season_total_accepted_pence: number
+          p_gameweek_count_accepted: number
+          p_instagram_url: string | null
+          p_primary_colour: string | null
           p_season_id: string
-          p_secondary_colour?: string
           p_team_name: string
+          p_team_status: string
+          p_weekly_fee_accepted_pence: number
         }
         Returns: {
           approved_at: string | null
@@ -3243,6 +3372,7 @@ export type Database = {
           badge_path: string | null
           created_at: string
           id: string
+          instagram_url: string | null
           name: string
           primary_colour: string | null
           registration_status: Database["public"]["Enums"]["registration_status"]
