@@ -428,7 +428,7 @@ begin
   end if;
 
   select * into v_membership from public.team_memberships
-  where id=p_membership_id and status='pending' for update;
+  where id=p_membership_id and status='pending';
   if not found then raise exception 'No pending team request exists'; end if;
 
   select l.location_id into v_location_id
@@ -458,11 +458,17 @@ begin
     if not found or v_player.registration_status<>'registered' or v_player.is_banned then
       raise exception 'Only registered, eligible players can join a team';
     end if;
+  end if;
 
-    perform pg_catalog.pg_advisory_xact_lock(
-      pg_catalog.hashtextextended('membership-location:'||v_membership.user_id::text||':'||v_location_id::text,0)
-    );
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('membership-location:'||v_membership.user_id::text||':'||v_location_id::text,0)
+  );
 
+  select * into v_membership from public.team_memberships
+  where id=p_membership_id and status='pending' for update;
+  if not found then raise exception 'No pending team request exists'; end if;
+
+  if p_decision='approved' then
     if exists(
       select 1
       from public.player_transfer_requests r
