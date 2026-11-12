@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 
-type NavigationMode = "viewer" | "player" | "captain";
+type NavigationMode = "loading" | "viewer" | "player" | "captain";
 
 type NavigationItem = {
   id: "home" | "match-centre" | "teams" | "join" | "club" | "matchday" | "more";
@@ -26,7 +26,7 @@ function NavIcon({ name }: { name: NavigationItem["icon"] }) {
 export function PlayerBottomNavigation() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const hash = useRouterState({ select: (state) => state.location.hash });
-  const [mode, setMode] = useState<NavigationMode>("viewer");
+  const [mode, setMode] = useState<NavigationMode>("loading");
 
   useEffect(() => {
     let alive = true;
@@ -35,8 +35,9 @@ export function PlayerBottomNavigation() {
 
     async function resolveMode() {
       const sequence = ++requestSequence;
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (!alive || sequence !== requestSequence) return;
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (!alive || sequence !== requestSequence) return;
       if (sessionError || !session) {
         setMode("viewer");
         return;
@@ -51,7 +52,10 @@ export function PlayerBottomNavigation() {
         setMode("viewer");
         return;
       }
-      setMode((captainRows ?? []).length > 0 ? "captain" : "player");
+        setMode((captainRows ?? []).length > 0 ? "captain" : "player");
+      } catch {
+        if (alive && sequence === requestSequence) setMode("viewer");
+      }
     }
 
     void resolveMode();
@@ -64,6 +68,8 @@ export function PlayerBottomNavigation() {
       subscription.unsubscribe();
     };
   }, []);
+
+  if (mode === "loading") return null;
 
   const items: NavigationItem[] = mode === "captain"
     ? [
