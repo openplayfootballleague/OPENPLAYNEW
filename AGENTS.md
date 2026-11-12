@@ -30,6 +30,11 @@ Build Open Play as a production-grade football league platform, not a static mar
 - 7-a-side team sheets: exactly 7 starters and up to 4 substitutes.
 - Squad numbers are optional.
 - Archived seasons are read-only and retain their historical records.
+- A player may hold only one active club membership and one captaincy in the same location/area for a given season; different locations remain independent.
+- A player may request and receive approval for a future-season club while remaining active in the current season, but that future membership stays non-active and grants no current-season playing or captain permissions.
+- A future captain may manage only future-season membership requests through the restricted Player Hub Future Squad Requests panel; future captain status does not grant the full Captain Hub until activation.
+- At the season transition, prior memberships in the same area close before future memberships activate. Activation waits until every non-cancelled fixture in the preceding location season is completed and its result confirmed; postponed, scheduled, in-progress or unconfirmed fixtures delay activation.
+- Same-area moves within the same season require the player to leave the existing club and use the approved transfer workflow. A future-season move is recorded as an approved future membership and never overlaps as an active membership.
 - Existing payment requests retain their original fee snapshot if future fees change.
 - The administrator experience prioritizes a clear overview, quick actions and a prominent Needs Attention queue. Registers should be searchable, simple edits inline, and complex records in side panels.
 

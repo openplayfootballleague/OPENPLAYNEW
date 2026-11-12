@@ -9,6 +9,11 @@ export type TeamRequestStatus = {
   is_captain: boolean;
   is_transfer_request: boolean;
   created_at: string;
+  future_approved_at: string | null;
+  activation_after_season_id: string | null;
+  activation_after_season_name: string | null;
+  future_activated_at: string | null;
+  future_conflict_reason: string | null;
 };
 
 export type TeamRequestDisplay = {
@@ -18,6 +23,26 @@ export type TeamRequestDisplay = {
 };
 
 export function getTeamRequestDisplay(item: TeamRequestStatus): TeamRequestDisplay {
+  if (item.future_conflict_reason) {
+    return { label: "Membership conflict", description: item.future_conflict_reason, tone: "danger" };
+  }
+
+  if (item.future_approved_at && !item.future_activated_at) {
+    const previousSeason = item.activation_after_season_name ?? "the previous season";
+    if (item.is_captain) {
+      return {
+        label: "Future captaincy approved",
+        description: "Your team is approved. Captain access begins when " + previousSeason + " has completed all fixtures and its results are confirmed.",
+        tone: "pending",
+      };
+    }
+    return {
+      label: "Approved future membership",
+      description: "Your place is approved and will activate when " + previousSeason + " has completed all fixtures and its results are confirmed.",
+      tone: "pending",
+    };
+  }
+
   if (item.is_transfer_request) {
     if (item.membership_status === "pending") {
       return { label: "Transfer awaiting approval", description: "Your request to move teams is waiting for an administrator decision.", tone: "pending" };

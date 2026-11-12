@@ -161,3 +161,20 @@ Added a global-admin-only role management workflow to complement existing locati
 ### Exact-head CI defects corrected — 11 November 2026
 
 The first clean local migration replay exposed a PostgreSQL PL/pgSQL error in `get_my_player_statistics`: a composite `public.players` row variable was included in a multi-target `INTO` list with a scalar. The migration now fetches the player composite and profile retention status in separate statements. Added the canonical player-statistics draft and explicit pinned-CLI generation/draft-parity steps for both `player_self_service_statistics` and `optional_goal_attribution`. The CI workflow also had double-escaped newline sequences in migration manifest/duplicate-version checks; these are now single shell newline escapes. Exact-head replay and build are rerunning; the earlier 146 unit tests and Deno checks passed, but do not count the previous failed build/replay as green.
+
+
+### Future-season membership and captaincy transition — 12 November 2026
+
+Owner-confirmed workflow added to development branch feat/future-season-membership-transitions-2026-11-12.
+
+Implementation in progress:
+- Added future approval, activation barrier, activation timestamp and conflict fields to season memberships.
+- Added location/season membership and captaincy safeguards.
+- Added a season-completion gate that waits for all non-cancelled fixtures to be completed with confirmed results; postponed and unconfirmed fixtures delay activation.
+- Added automatic closure of earlier-season memberships before activating an approved future membership.
+- Updated team registration approval so the applicant can become a future captain without gaining current-season captain permissions early.
+- Added a restricted Future Squad Requests workflow to Player Hub for future captains.
+- Added the future membership/captaincy regression SQL test and wired it into clean migration replay CI.
+- Updated generated Supabase types and the Player Hub membership status copy.
+
+Verification state: **implementation committed to the feature branch; clean database replay, SQL regression, TypeScript build, browser acceptance and review are pending.** No hosted Supabase migration, merge to main, live Stripe operation or production deployment has been performed.

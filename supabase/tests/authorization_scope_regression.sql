@@ -15,9 +15,9 @@ declare
   ));
 begin
   -- Membership resolution: captains may act for their own team and assigned
-  -- location administrators may act within their location. The current transfer
-  -- model enforces one club per player per league (including across seasons),
-  -- with row/advisory locks, eligibility checks and an audit write.
+  -- location administrators may act within their location. A player may have
+  -- only one active club in a location/season; a future-season reservation
+  -- remains pending behind the previous-season completion barrier.
   if pg_catalog.strpos(v_membership,
        'if not public.is_active_team_captain(v_membership.season_team_id)') = 0
      or pg_catalog.strpos(v_membership, 'and not public.can_administer_location(v_location_id)') = 0
@@ -25,9 +25,11 @@ begin
      or pg_catalog.strpos(v_membership, 'for update') = 0
      or pg_catalog.strpos(v_membership, 'pg_advisory_xact_lock') = 0
      or pg_catalog.strpos(v_membership, 'tm.status=''active''') = 0
-     or pg_catalog.strpos(v_membership, 'other_season.league_id=v_season.league_id') = 0
-     or pg_catalog.strpos(v_membership, 'other_team.team_id<>v_team.team_id') = 0
-     or pg_catalog.strpos(v_membership, 'public.membership_status') = 0
+     or pg_catalog.strpos(v_membership, 'other_team.season_id=v_season.id') = 0
+     or pg_catalog.strpos(pg_catalog.regexp_replace(v_membership, E'\\s+', '', 'g'), 'other_team.team_id<>v_team.team_id') = 0
+     or pg_catalog.strpos(v_membership, 'get_membership_transition_barrier') = 0
+     or pg_catalog.strpos(v_membership, 'future_approved_at') = 0
+     or pg_catalog.strpos(v_membership, 'activation_after_season_id') = 0
      or pg_catalog.strpos(v_membership, 'insert into public.audit_log') = 0 then
     raise exception 'Membership captain/location authorization or a required workflow invariant is missing';
   end if;

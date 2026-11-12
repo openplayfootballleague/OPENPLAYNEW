@@ -78,7 +78,13 @@ begin
 
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
   values(v_user,'authenticated','authenticated','ci-platform-feature@openplay.invalid','','{}'::jsonb,now(),now(),now());
-  -- The auth.users insert trigger creates the matching profile automatically.
+  -- Auth signup may create the profile through the production auth trigger.
+  -- Make the fixture deterministic whether that trigger has already run or not.
+  insert into public.profiles(id,display_name,account_retention_status)
+  values(v_user,'Platform Feature Test','active')
+  on conflict (id) do update
+  set display_name=excluded.display_name,
+      account_retention_status=excluded.account_retention_status;
   insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status,is_banned)
   values(v_user,'Platform Feature Test','+447700929991','ci-platform-feature@openplay.invalid',date '1990-01-01','registered',false);
 
@@ -94,6 +100,8 @@ begin
 
   -- The clean CI database is replayed without seed data, so this test must
   -- provision its own location instead of depending on an existing one.
+  -- The first-release environment intentionally permits only one active
+  -- location. This isolated feature-flag fixture does not need to be active.
   insert into public.locations(name,slug,town,region,is_active)
   values('Feature Flag Test Location','ci-feature-flag-test-location','Bideford','Devon',false)
   returning id into v_location;
