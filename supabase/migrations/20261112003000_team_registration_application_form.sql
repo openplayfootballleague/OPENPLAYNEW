@@ -223,6 +223,8 @@ declare
   v_season_team public.season_teams;
   v_whatsapp text;
   v_location_id uuid;
+  v_lock_location_id uuid;
+  v_lock_league_id uuid;
 begin
   if v_user_id is null then raise exception 'Authentication required'; end if;
 
@@ -242,13 +244,47 @@ begin
   if p_additional_information is not null and char_length(p_additional_information)>2000 then
     raise exception 'Additional information must be 2,000 characters or fewer';
   end if;
-
   if p_captain_whatsapp_same_as_mobile is null or p_captain_no_whatsapp is null
      or (p_captain_whatsapp_same_as_mobile and p_captain_no_whatsapp) then
     raise exception 'Choose one WhatsApp contact option';
   end if;
 
-  select * into v_player from public.players where user_id=v_user_id for share;
+  -- Take the same league/location locks used by membership and transfer
+  -- workflows before taking row locks or creating the application.
+  select * into v_season
+  from public.seasons
+  where id=p_season_id and status='registration_open';
+  if not found then raise exception 'This season is not accepting team registrations'; end if;
+
+  v_lock_league_id:=v_season.league_id;
+  select l.location_id into v_lock_location_id
+  from public.leagues l where l.id=v_lock_league_id;
+  if v_lock_location_id is null then raise exception 'The selected competition has no location'; end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(v_user_id::text||':'||v_lock_league_id::text,0)
+  );
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(v_user_id::text||':'||v_lock_location_id::text,0)
+  );
+
+  select * into v_season
+  from public.seasons
+  where id=p_season_id and status='registration_open'
+  for share;
+  if not found then raise exception 'This season is no longer accepting team registrations'; end if;
+
+  select l.location_id into v_location_id
+  from public.leagues l where l.id=v_season.league_id;
+  if v_season.league_id is distinct from v_lock_league_id
+     or v_location_id is distinct from v_lock_location_id then
+    raise exception 'The selected competition changed while the application was being prepared. Please retry';
+  end if;
+
+  select * into v_player
+  from public.players
+  where user_id=v_user_id
+  for share;
   if not found or v_player.registration_status<>'registered' or v_player.is_banned then
     raise exception 'An approved, eligible player registration is required to register a team';
   end if;
@@ -266,15 +302,6 @@ begin
       raise exception 'Enter a valid WhatsApp number or choose another contact option';
     end if;
   end if;
-
-  select * into v_season
-  from public.seasons
-  where id=p_season_id and status='registration_open'
-  for share;
-  if not found then raise exception 'This season is not accepting team registrations'; end if;
-
-  select l.location_id into v_location_id from public.leagues l where l.id=v_season.league_id;
-  if v_location_id is null then raise exception 'The selected competition has no location'; end if;
 
   select * into v_terms from public.get_team_registration_terms(p_season_id);
   if not found then raise exception 'Team registration terms are unavailable'; end if;
