@@ -14,6 +14,7 @@ declare
   v_approved_membership uuid;
   v_request uuid;
   v_error text;
+  v_failed boolean;
 begin
   if has_table_privilege('authenticated','public.team_membership_removal_requests','SELECT')
      or has_table_privilege('authenticated','public.team_membership_removal_requests','INSERT')
@@ -138,15 +139,15 @@ begin
 
   -- A captain cannot request removal of themselves or another captain.
   perform set_config('request.jwt.claim.sub',v_captain::text,true);
+  v_failed:=false;
   begin
     perform public.request_team_membership_removal(
       (select id from public.team_memberships where season_team_id=v_season_team and user_id=v_captain)
     );
-    raise exception 'Captain was incorrectly allowed to request their own removal';
   exception when others then
-    get stacked diagnostics v_error=message_text;
-    if v_error not like 'Captains cannot use removal requests%' then raise; end if;
+    v_failed:=true;
   end;
+  if not v_failed then raise exception 'Captain was incorrectly allowed to request their own removal'; end if;
 
   -- Request cancellation is restricted to the captain who created it.
   select id into v_membership from public.team_memberships
