@@ -3322,7 +3322,11 @@ export type Database = {
       request_team_membership: {
         Args: { p_season_team_id: string }
         Returns: {
+          activation_after_season_id: string | null
           created_at: string
+          future_approved_at: string | null
+          future_activated_at: string | null
+          future_conflict_reason: string | null
           id: string
           is_captain: boolean
           joined_at: string | null
