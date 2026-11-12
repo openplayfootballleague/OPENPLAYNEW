@@ -26,7 +26,7 @@ begin
      or pg_catalog.strpos(v_membership, 'pg_advisory_xact_lock') = 0
      or pg_catalog.strpos(v_membership, 'tm.status=''active''') = 0
      or pg_catalog.strpos(v_membership, 'other_team.season_id=v_season.id') = 0
-     or pg_catalog.strpos(v_membership, 'other_team.team_id<>v_team.team_id') = 0
+     or pg_catalog.strpos(pg_catalog.regexp_replace(v_membership, E'\\s+', '', 'g'), 'other_team.team_id<>v_team.team_id') = 0
      or pg_catalog.strpos(v_membership, 'get_membership_transition_barrier') = 0
      or pg_catalog.strpos(v_membership, 'future_approved_at') = 0
      or pg_catalog.strpos(v_membership, 'activation_after_season_id') = 0
