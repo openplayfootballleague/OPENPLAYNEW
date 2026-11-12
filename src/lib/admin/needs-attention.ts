@@ -13,7 +13,7 @@ export type NeedsAttentionInput = {
   teamApplications: ReadonlyArray<{ season_team_id: string; team_name: string; season_name: string; created_at: string }>;
   membershipRequests: ReadonlyArray<{ membership_id: string; team_name: string; player_name: string; created_at: string }>;
   fixtures?: ReadonlyArray<{ id: string; season_name: string; gameweek: number; scheduled_at: string | null; status: string; home_team_id: string; away_team_id: string; home_team_name: string; away_team_name: string; home_score?: number | null; away_score?: number | null }>;
-  submittedSheets?: ReadonlyArray<{ fixture_id: string; season_team_id: string }>;
+  submittedSheets?: ReadonlyArray<{ fixture_id: string; season_team_id: string; is_locked: boolean }>;
   transferRequests?: ReadonlyArray<{ id: string; player_name: string | null; source_team_name: string; destination_team_name: string; season_name: string; requested_at: string }>;
   notifications?: ReadonlyArray<{ id: string; recipient_name: string | null; recipient_email: string | null; recipient_phone: string | null; event_type: string; status: string; created_at: string; last_error: string | null; hold_reason: string | null }>;
 };
@@ -53,7 +53,7 @@ export function buildNeedsAttentionTasks(input: NeedsAttentionInput, limit = 12)
     })),
   ];
 
-  const submittedSheetKeys = new Set((input.submittedSheets ?? []).map((sheet) => `${sheet.fixture_id}:${sheet.season_team_id}`));
+  const submittedSheetKeys = new Set((input.submittedSheets ?? []).filter((sheet) => sheet.is_locked).map((sheet) => `${sheet.fixture_id}:${sheet.season_team_id}`));
   for (const fixture of input.fixtures ?? []) {
     if (fixture.status === "postponed") {
       tasks.push({
