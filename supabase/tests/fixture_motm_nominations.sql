@@ -8,7 +8,7 @@ declare
   v_home_sub constant uuid:='96000000-0000-4000-8000-000000000004';
   v_away_captain constant uuid:='96000000-0000-4000-8000-000000000005';
   v_away_teammate constant uuid:='96000000-0000-4000-8000-000000000006';
-  v_location constant uuid:='96000000-0000-4000-8000-000000000010';
+  v_location uuid;
   v_league constant uuid:='96000000-0000-4000-8000-000000000020';
   v_season constant uuid:='96000000-0000-4000-8000-000000000030';
   v_home_team constant uuid:='96000000-0000-4000-8000-000000000040';
@@ -39,8 +39,15 @@ begin
     (v_away_captain,'authenticated','authenticated','ci-motm-away-captain@openplay.invalid','','{}'::jsonb,now(),now()),
     (v_away_teammate,'authenticated','authenticated','ci-motm-away-player@openplay.invalid','','{}'::jsonb,now(),now());
 
-  insert into public.locations(id,name,slug,town,region,is_active)
-  values(v_location,'MOTM Test Location','ci-motm-location','Bideford','Devon',false);
+  -- Reuse the active location provisioned by the isolated database. The
+  -- database deliberately permits only one active first-release location.
+  select id into v_location from public.locations
+  where is_active is true order by created_at limit 1;
+  if not found then
+    insert into public.locations(name,slug,town,region,is_active)
+    values('MOTM Test Location','ci-motm-location','Bideford','Devon',true)
+    returning id into v_location;
+  end if;
   insert into public.user_roles(user_id,role,granted_by)
   values(v_admin,'admin',v_admin);
   insert into public.leagues(id,location_id,name,slug,format,is_published)
