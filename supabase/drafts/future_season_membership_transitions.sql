@@ -827,7 +827,9 @@ begin
     if exists(
       select 1 from public.team_memberships tm
       join public.season_teams other_team on other_team.id=tm.season_team_id
+      join public.seasons other_season on other_season.id=other_team.season_id
       where tm.user_id=v_membership.user_id and tm.status='active'
+        and other_season.league_id=v_season.league_id
         and other_team.season_id=v_season.id
         and other_team.team_id <> v_team.team_id
         and tm.id is distinct from v_membership.id
