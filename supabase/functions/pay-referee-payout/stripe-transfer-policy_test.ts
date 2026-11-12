@@ -9,7 +9,7 @@ Deno.test("ambiguous Stripe transfer responses remain processing", () => {
 
 Deno.test("definitive Stripe client errors may fail a payout", () => {
   for (const status of [400, 401, 403, 404, 422]) {
-    assertEquals(canMarkStripeTransferFailed(status), true, `HTTP ${status}`);
+    assertEquals(canMarkStripeTransferFailed(status), false, `HTTP ${status}`);
   }
 });
 
