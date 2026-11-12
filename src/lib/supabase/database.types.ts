@@ -1416,6 +1416,7 @@ export type Database = {
           fee_accepted_competition_id: string
           full_season_total_accepted_pence: number
           gameweek_count_accepted: number
+          preferred_kit_colour: string | null
           season_team_id: string
           submitted_by: string
           team_status: string
@@ -1442,6 +1443,7 @@ export type Database = {
           fee_accepted_competition_id: string
           full_season_total_accepted_pence: number
           gameweek_count_accepted: number
+          preferred_kit_colour?: string | null
           season_team_id: string
           submitted_by: string
           team_status: string
@@ -1468,6 +1470,7 @@ export type Database = {
           fee_accepted_competition_id?: string
           full_season_total_accepted_pence?: number
           gameweek_count_accepted?: number
+          preferred_kit_colour?: string | null
           season_team_id?: string
           submitted_by?: string
           team_status?: string
@@ -3360,7 +3363,7 @@ export type Database = {
           p_full_season_total_accepted_pence: number
           p_gameweek_count_accepted: number
           p_instagram_url: string | null
-          p_primary_colour: string | null
+          p_preferred_kit_colour: string | null
           p_season_id: string
           p_team_name: string
           p_team_status: string
