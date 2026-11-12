@@ -66,7 +66,7 @@ begin;
 
 do $bootstrap$
 declare
-  v_target_user_id uuid := 'REPLACE-WITH-OWNER-APPROVED-AUTH-UUID';
+  v_target_user_id uuid := '00000000-0000-0000-0000-000000000000';
   v_expected_email text := lower('REPLACE-WITH-OWNER-APPROVED-EMAIL');
   v_operator_reference text := 'REPLACE-WITH-OWNER-APPROVAL-REFERENCE';
   v_role_id uuid;
@@ -76,8 +76,8 @@ begin
   if v_target_user_id is null
      or v_expected_email = ''
      or v_operator_reference = ''
-     or v_target_user_id::text = 'REPLACE-WITH-OWNER-APPROVED-AUTH-UUID' then
-    raise exception 'Replace all bootstrap placeholders before execution';
+     or v_target_user_id = '00000000-0000-0000-0000-000000000000'::uuid then
+    raise exception 'Replace the zero UUID, email and approval-reference placeholders before execution';
   end if;
 
   if exists (
