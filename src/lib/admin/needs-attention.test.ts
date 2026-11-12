@@ -144,6 +144,33 @@ describe("buildNeedsAttentionTasks", () => {
     });
   });
 
+  it("flags postponed fixtures for rescheduling", () => {
+    const tasks = buildNeedsAttentionTasks({
+      playerReviews: [],
+      teamApplications: [],
+      membershipRequests: [],
+      fixtures: [{
+        id: "fixture-postponed",
+        season_name: "Season 2",
+        gameweek: 8,
+        scheduled_at: "2026-11-08T19:00:00Z",
+        status: "postponed",
+        home_team_id: "home",
+        away_team_id: "away",
+        home_team_name: "Northside FC",
+        away_team_name: "Town FC",
+      }],
+    });
+
+    expect(tasks[0]).toMatchObject({
+      id: "fixture:postponed:fixture-postponed",
+      category: "Fixture needs attention",
+      subject: "Northside FC vs Town FC",
+      href: "#admin-fixtures",
+      actionLabel: "Reschedule fixture",
+    });
+  });
+
   it("limits the number of displayed items and handles empty queues", () => {
     const input = {
       playerReviews: Array.from({ length: 15 }, (_, index) => ({
