@@ -84,6 +84,15 @@ begin
   values(v_league,'Future Membership Upcoming Season',2,date '2026-04-01',date '2026-06-01','registration_open',true)
   returning id into v_future_season;
 
+  -- Exercise the supported legacy/undated-season ordering path. The previous
+  -- season is older by creation time, while the target season has no start date.
+  update public.seasons
+  set created_at=now()-interval '1 year'
+  where id=v_previous_season;
+  update public.seasons
+  set starts_on=null
+  where id=v_future_season;
+
   insert into public.teams(created_by) values(v_future_captain) returning id into v_old_team;
   insert into public.teams(created_by) values(v_opponent_captain) returning id into v_opponent_team;
   insert into public.teams(created_by) values(v_future_captain) returning id into v_future_team;
