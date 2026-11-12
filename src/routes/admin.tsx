@@ -138,7 +138,7 @@ function AdminDashboardPage(){
   fixtures:contextFixtures,
   submittedSheets:teamSheets,
   transferRequests,
- });
+ }, 10000);
  const attentionTotal=attentionTasks.length;
  return <main className="notice-page"><section id="admin-dashboard" className="notice-panel hub-panel"><Link className="notice-brand" to="/player"><img className="open-play-logo" src="/open-play-logo.png" alt="Open Play"/></Link><p className="eyebrow eyebrow-dark">ADMINISTRATION</p><h1>League<br/><em>control.</em></h1><p>Needs Attention — the operational queue for Open Play.</p><nav className="admin-workspace-nav" aria-label="Administrative workspaces">
     <a href="#admin-dashboard">01 Dashboard</a>
