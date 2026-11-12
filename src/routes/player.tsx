@@ -37,7 +37,8 @@ function PlayerHubPage(){
     supabase.rpc("get_my_transfer_destinations"),
     supabase.rpc("get_my_transfer_requests"),
     supabase.rpc("get_my_fixture_payments"),
-    supabase.rpc("get_my_team_request_statuses")
+    supabase.rpc("get_my_team_request_statuses"),
+    supabase.rpc("get_my_membership_removal_requests")
    ]);
    if(!alive)return;
    if(playerError||membershipError||profileError||notificationPrefsError||notificationRowsError||transferOptionsError||transferRowsError||paymentRowsError||teamRequestRowsError||removalRowsError)setError(playerError?.message??membershipError?.message??profileError?.message??notificationPrefsError?.message??notificationRowsError?.message??transferOptionsError?.message??transferRowsError?.message??paymentRowsError?.message??teamRequestRowsError?.message??removalRowsError?.message??"Unable to load your player hub.");
