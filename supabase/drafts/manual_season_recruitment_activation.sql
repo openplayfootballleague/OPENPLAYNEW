@@ -166,6 +166,7 @@ begin
 
   update public.seasons
   set status='registration_open',
+      is_public=true,
       recruitment_status='open',
       recruitment_opened_at=now(),
       recruitment_opened_by=v_actor,
