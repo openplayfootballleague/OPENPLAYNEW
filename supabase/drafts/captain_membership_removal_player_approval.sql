@@ -42,9 +42,23 @@ declare
   v_actor uuid:=auth.uid();
   v_membership public.team_memberships;
   v_team_name text;
+  v_league_id uuid;
   v_request public.team_membership_removal_requests;
 begin
   if v_actor is null then raise exception 'Authentication required'; end if;
+
+  select * into v_membership
+  from public.team_memberships
+  where id=p_membership_id;
+  if not found then raise exception 'Membership not found'; end if;
+
+  select s.league_id into v_league_id
+  from public.season_teams st
+  join public.seasons s on s.id=st.season_id
+  where st.id=v_membership.season_team_id;
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(v_membership.user_id::text || ':' || coalesce(v_league_id::text,''),0)
+  );
 
   select * into v_membership
   from public.team_memberships
@@ -133,8 +147,7 @@ begin
 
   select tm.* into v_membership
   from public.team_memberships tm
-  where tm.id=v_request.membership_id
-  for update;
+  where tm.id=v_request.membership_id;
   if not found or v_membership.user_id is distinct from v_actor then
     raise exception 'This removal request no longer belongs to your membership';
   end if;
@@ -147,6 +160,14 @@ begin
   perform pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtextextended(v_actor::text || ':' || coalesce(v_league_id::text,''),0)
   );
+
+  select tm.* into v_membership
+  from public.team_memberships tm
+  where tm.id=v_request.membership_id
+  for update;
+  if not found or v_membership.user_id is distinct from v_actor then
+    raise exception 'This removal request no longer belongs to your membership';
+  end if;
 
   select * into v_request
   from public.team_membership_removal_requests
@@ -230,14 +251,22 @@ begin
   if v_actor is null then raise exception 'Authentication required'; end if;
   select * into v_request
   from public.team_membership_removal_requests
-  where id=p_request_id
-  for update;
+  where id=p_request_id;
   if not found or v_request.status<>'pending' then
     raise exception 'Only pending removal requests can be cancelled';
   end if;
 
   select * into v_membership
   from public.team_memberships where id=v_request.membership_id;
+  if not found then raise exception 'Membership not found'; end if;
+
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended(coalesce(v_membership.user_id::text,'') || ':' ||
+      coalesce((select s.league_id::text from public.season_teams st join public.seasons s on s.id=st.season_id where st.id=v_membership.season_team_id),''),0)
+  );
+
+  select * into v_membership
+  from public.team_memberships where id=v_request.membership_id for update;
   if not found or not exists (
     select 1 from public.team_memberships captain
     where captain.season_team_id=v_membership.season_team_id
