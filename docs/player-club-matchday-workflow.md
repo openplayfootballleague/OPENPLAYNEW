@@ -148,3 +148,42 @@ The captain must actively accept all five declarations before submission:
 - Registration, pending membership creation and application-detail persistence must be atomic: no partially submitted application if any part fails.
 - Audit submission and subsequent admin approval/rejection. Preserve the existing season-specific team record and creator-as-pending-membership lifecycle.
 - Do not silently create player accounts, add squad members or approve any player as part of team registration.
+
+
+## Phase 3B — Player departure, captain removal and destination club
+
+### Player-initiated departure
+1. An active player chooses **Leave Club** and receives a clear confirmation warning that they will become unattached and ineligible for match sheets until accepted by another club.
+2. On confirmation, the player's membership becomes inactive immediately. The player does not need captain approval to leave.
+3. Notify the current captain that the player has left.
+4. Preserve the old membership record, match appearances, goals, statistics and audit history. Do not delete or rewrite historical records.
+
+### Captain-initiated removal
+1. A captain may initiate removal of a player from their active club.
+2. The player must approve the captain-initiated removal; a captain cannot remove a player unilaterally.
+3. The captain is not required to provide a reason.
+4. Until the player approves, the existing active membership and match-sheet eligibility remain unchanged.
+5. Once approved, the membership becomes inactive and the player is notified. Preserve the same historical records as a player-initiated departure.
+
+### Joining another club after departure
+1. The player must have left the existing club before submitting the destination-club request.
+2. A player may play for multiple clubs in the same league/area over time, but may not hold simultaneous active memberships in that same area/season.
+3. The destination club's active captain approves or rejects the join request.
+4. If approved, create/activate the new season membership. If rejected, the player remains unattached and ineligible for that club's match sheets.
+5. A player may participate in different areas independently; same-area restrictions must not block membership in a separate area.
+6. Keep the source and destination membership history and permanent competition identity intact.
+
+### Future-season registration and activation
+1. Do not accept advance player or team registrations for a future season.
+2. Keep the next season closed until the previous season's final fixture is completed. Postponed fixtures remain the blocking final fixture until they are played and marked completed.
+3. A countdown may explain when the previous season is expected to finish, but a countdown must never open registration or create memberships automatically.
+4. After the final fixture is completed, an administrator must manually activate the next season's registration workflow.
+5. Future membership/captaincy belongs to the future season and must not activate early. A future captain is separate from the current-season captain.
+6. Same-area membership/captaincy conflicts must be checked when the future season is activated; different areas remain independent.
+
+### Server-side acceptance and concurrency
+- Enforce departure state, same-area membership uniqueness, destination captain authority, season readiness and manual activation in RPC/database constraints. Client-only checks are insufficient.
+- Serialize concurrent leave/join/approval operations for the same player and area/season so two requests cannot create conflicting active memberships.
+- Do not let a pending destination request restore membership or match-sheet eligibility before captain approval.
+- Audit player departures, captain removal requests/acceptance, destination approvals/rejections and manual season activation.
+- Notify the current captain on player departure and the player on captain-initiated removal/decision. Preserve notification preferences and avoid duplicate dispatch.
