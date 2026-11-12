@@ -1432,7 +1432,11 @@ export type Database = {
       }
       team_memberships: {
         Row: {
+          activation_after_season_id: string | null
           created_at: string
+          future_approved_at: string | null
+          future_activated_at: string | null
+          future_conflict_reason: string | null
           id: string
           is_captain: boolean
           joined_at: string | null
@@ -1446,7 +1450,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          activation_after_season_id?: string | null
           created_at?: string
+          future_approved_at?: string | null
+          future_activated_at?: string | null
+          future_conflict_reason?: string | null
           id?: string
           is_captain?: boolean
           joined_at?: string | null
@@ -1460,7 +1468,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          activation_after_season_id?: string | null
           created_at?: string
+          future_approved_at?: string | null
+          future_activated_at?: string | null
+          future_conflict_reason?: string | null
           id?: string
           is_captain?: boolean
           joined_at?: string | null
@@ -3015,7 +3027,12 @@ export type Database = {
       get_my_team_request_statuses: {
         Args: never
         Returns: {
+          activation_after_season_id: string | null
+          activation_after_season_name: string | null
           created_at: string
+          future_activated_at: string | null
+          future_approved_at: string | null
+          future_conflict_reason: string | null
           is_captain: boolean
           is_transfer_request: boolean
           membership_id: string
@@ -3025,6 +3042,19 @@ export type Database = {
           season_team_id: string
           team_name: string
           team_registration_status: string
+        }[]
+      }
+      get_my_future_captain_requests: {
+        Args: never
+        Returns: {
+          activation_after_season_name: string | null
+          membership_id: string
+          player_name: string
+          requested_at: string
+          season_id: string
+          season_name: string
+          season_team_id: string
+          team_name: string
         }[]
       }
       get_my_transfer_destinations: {
@@ -3339,7 +3369,38 @@ export type Database = {
       resolve_team_membership_request: {
         Args: { p_decision: string; p_membership_id: string }
         Returns: {
+          activation_after_season_id: string | null
           created_at: string
+          future_approved_at: string | null
+          future_activated_at: string | null
+          future_conflict_reason: string | null
+          id: string
+          is_captain: boolean
+          joined_at: string | null
+          left_at: string | null
+          season_team_id: string
+          squad_number: number | null
+          status: Database["public"]["Enums"]["membership_status"]
+          transfer_request_id: string | null
+          voluntarily_left_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_memberships"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      resolve_future_team_membership_request: {
+        Args: { p_decision: string; p_membership_id: string }
+        Returns: {
+          activation_after_season_id: string | null
+          created_at: string
+          future_approved_at: string | null
+          future_activated_at: string | null
+          future_conflict_reason: string | null
           id: string
           is_captain: boolean
           joined_at: string | null
