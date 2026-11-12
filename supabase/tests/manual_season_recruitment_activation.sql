@@ -55,6 +55,13 @@ begin
   insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
   values(v_fixture,3,2,now(),v_admin);
 
+  v_failed:=false;
+  begin
+    update public.seasons set status='registration_open' where id=v_blocked;
+  exception when sqlstate '55000' then v_failed:=true;
+  end;
+  if not v_failed then raise exception 'A direct status update bypassed the audited recruitment activation'; end if;
+
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
   select * into v_opened from public.admin_open_season_recruitment(v_upcoming,'Previous season final match completed');
