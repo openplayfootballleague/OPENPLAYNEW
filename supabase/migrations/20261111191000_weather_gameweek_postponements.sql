@@ -838,3 +838,8 @@ begin
   end if;
 end;
 $$;
+
+-- This internal notification enqueue helper is called by trusted definer workflows.
+-- It must never be executable directly by anonymous or signed-in clients.
+revoke all on function public.enqueue_notification_event(uuid,text,jsonb) from public,anon,authenticated;
+grant execute on function public.enqueue_notification_event(uuid,text,jsonb) to service_role;

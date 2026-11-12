@@ -321,6 +321,21 @@ jobs:
           grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\n' "$migration_file"
+      - name: Generate fixture Man of the Match nomination migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_fixture_motm_nominations.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new fixture_motm_nominations
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_fixture_motm_nominations.sql' -print -quit)"
+            cp supabase/drafts/fixture_motm_nominations.sql "$migration_file"
+          else
+            diff -u supabase/drafts/fixture_motm_nominations.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
       - name: Verify unique migration versions before replay
         shell: bash
         run: |
@@ -396,6 +411,11 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/referee_match_reports.sql
+
+      - name: Verify captain Man of the Match nomination and correction workflow
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/fixture_motm_nominations.sql
 
       - name: Verify Stripe Connect referee onboarding and payout transfers
         env:
