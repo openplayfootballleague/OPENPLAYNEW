@@ -110,7 +110,7 @@ begin
     (v_away_sheet,v_away_user,v_away_identity,'starter',false,true);
   perform set_config('request.jwt.claim.role','authenticated',true);
   update public.fixtures
-  set scheduled_at=now()-interval '1 hour',status='in_progress'
+  set scheduled_at=now()-interval '1 hour',status='completed'
   where id=v_fixture;
   insert into public.referee_match_reports(
     fixture_id,referee_user_id,report_source,submitted_by,status,
