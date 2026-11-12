@@ -549,15 +549,24 @@ begin
   end;
   if not v_denied then raise exception 'Global admin activated a non-Bideford location'; end if;
 
+  if not (select is_active from public.locations where id='00000000-0000-4000-8000-000000000010') then
+    raise exception 'Location A must be active before testing the single-active-location constraint';
+  end if;
   v_denied:=false;
   begin
     perform public.admin_set_location_active(
       '00000000-0000-4000-8000-000000000012',true,'CI duplicate active location denial'
     );
-  exception when others then
-    v_denied:=sqlerrm='Only one location may be active for the first release';
+  exception
+    when unique_violation then
+      v_denied:=true;
+    when others then
+      v_denied:=sqlerrm='Only one location may be active for the first release';
   end;
   if not v_denied then raise exception 'A second Bideford location became active while another was active'; end if;
+  if (select is_active from public.locations where id='00000000-0000-4000-8000-000000000012') then
+    raise exception 'The duplicate Bideford location must remain inactive';
+  end if;
 
   perform public.admin_set_location_active(
     '00000000-0000-4000-8000-000000000010',false,'CI global admin deactivation acceptance'
