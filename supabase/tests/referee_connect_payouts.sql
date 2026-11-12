@@ -80,6 +80,7 @@ begin
 
   -- The approval RPC publishes the match result through the normal guarded
   -- result workflow, which requires both teams' sheets to be locked.
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)
   values
     (v_fixture,v_home_season_team,v_admin,true),
