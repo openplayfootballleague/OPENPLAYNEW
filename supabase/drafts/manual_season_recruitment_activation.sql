@@ -162,7 +162,7 @@ begin
     join public.seasons s on s.id=st.season_id
     where st.id=new.season_team_id;
     if not found then return new; end if;
-    if v_competition_status='draft' and v_state is distinct from 'open' then
+    if v_competition_status='draft' then
       raise exception 'Future season memberships cannot be created before Admin opens recruitment'
         using errcode='55000';
     end if;
