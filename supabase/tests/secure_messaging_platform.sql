@@ -192,7 +192,7 @@ begin
   perform set_config('request.jwt.claim.sub',v_player_b::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_b::text,'role','authenticated')::text,true);
   if not exists (
-    select 1 from public.get_message_history(v_direct,1,null,null)
+    select 1 from public.get_message_history(v_direct,1,v_cursor_at+interval '1 microsecond',null)
     where message_id=v_cursor_id
   ) then
     raise exception 'Newest message was not returned as the first pagination cursor';
