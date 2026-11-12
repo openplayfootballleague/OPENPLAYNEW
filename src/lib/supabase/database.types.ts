@@ -1345,6 +1345,11 @@ export type Database = {
           league_id: string
           name: string
           registration_closes_at: string | null
+          registration_opened_at: string | null
+          registration_opened_by: string | null
+          recruitment_closed_at: string | null
+          recruitment_closed_by: string | null
+          recruitment_status: string
           registration_opens_at: string | null
           season_number: number | null
           starts_on: string | null
@@ -1359,6 +1364,11 @@ export type Database = {
           league_id: string
           name: string
           registration_closes_at?: string | null
+          registration_opened_at?: string | null
+          registration_opened_by?: string | null
+          recruitment_closed_at?: string | null
+          recruitment_closed_by?: string | null
+          recruitment_status?: string
           registration_opens_at?: string | null
           season_number?: number | null
           starts_on?: string | null
@@ -1373,6 +1383,11 @@ export type Database = {
           league_id?: string
           name?: string
           registration_closes_at?: string | null
+          registration_opened_at?: string | null
+          registration_opened_by?: string | null
+          recruitment_closed_at?: string | null
+          recruitment_closed_by?: string | null
+          recruitment_status?: string
           registration_opens_at?: string | null
           season_number?: number | null
           starts_on?: string | null
@@ -1918,6 +1933,24 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      admin_open_season_recruitment: {
+        Args: { p_reason: string; p_season_id: string }
+        Returns: Database["public"]["Tables"]["seasons"]["Row"]
+      }
+      admin_close_season_recruitment: {
+        Args: { p_reason: string; p_season_id: string }
+        Returns: Database["public"]["Tables"]["seasons"]["Row"]
+      }
+      get_public_season_recruitment_status: {
+        Args: { p_season_id: string }
+        Returns: {
+          competition_status: string
+          recruitment_status: string
+          season_id: string
+          season_name: string
+          starts_on: string | null
+        }[]
       }
       admin_create_season: {
         Args: {
