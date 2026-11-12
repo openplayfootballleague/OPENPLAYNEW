@@ -2940,6 +2940,27 @@ export type Database = {
           team_name: string
         }[]
       }
+      get_admin_team_fixture_payment_queue: {
+        Args: { p_season_id?: string | null }
+        Returns: {
+          amount_pence: number
+          deadline_at: string
+          fixture_id: string
+          gameweek: number
+          grace_ends_at: string
+          obligation_id: string
+          opponent_name: string
+          paid_at: string | null
+          refund_status: string | null
+          scheduled_at: string | null
+          season_id: string
+          season_name: string
+          season_team_id: string
+          status: string
+          strike_created_at: string | null
+          team_name: string
+        }[]
+      }
       get_captain_team_sheet: {
         Args: { p_fixture_id: string }
         Returns: {
