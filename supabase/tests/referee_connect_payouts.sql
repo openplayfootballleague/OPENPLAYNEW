@@ -5,6 +5,10 @@ declare
   v_admin constant uuid:='97000000-0000-4000-8000-000000000001';
   v_referee constant uuid:='97000000-0000-4000-8000-000000000002';
   v_location_admin constant uuid:='97000000-0000-4000-8000-000000000003';
+  v_home_user constant uuid:='97000000-0000-4000-8000-000000000004';
+  v_away_user constant uuid:='97000000-0000-4000-8000-000000000005';
+  v_home_identity constant uuid:='97000000-0000-4000-8000-000000000006';
+  v_away_identity constant uuid:='97000000-0000-4000-8000-000000000007';
   v_location uuid;
   v_league uuid;
   v_season uuid;
@@ -13,6 +17,8 @@ declare
   v_home_season_team uuid;
   v_away_season_team uuid;
   v_fixture uuid;
+  v_home_sheet uuid;
+  v_away_sheet uuid;
   v_application uuid;
   v_report uuid;
   v_match_payout uuid;
@@ -28,7 +34,17 @@ begin
   values
     (v_admin,'authenticated','authenticated','ci-connect-admin@openplay.invalid','','{}'::jsonb,now(),now(),now()),
     (v_referee,'authenticated','authenticated','ci-connect-referee@openplay.invalid','','{}'::jsonb,now(),now(),now()),
-    (v_location_admin,'authenticated','authenticated','ci-connect-location-admin@openplay.invalid','','{}'::jsonb,now(),now(),now());
+    (v_location_admin,'authenticated','authenticated','ci-connect-location-admin@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    (v_home_user,'authenticated','authenticated','ci-connect-home-player@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    (v_away_user,'authenticated','authenticated','ci-connect-away-player@openplay.invalid','','{}'::jsonb,now(),now(),now());
+  insert into public.competition_player_identities(id,display_name,counts_for_statistics)
+  values
+    (v_home_identity,'Connect Home Player',true),
+    (v_away_identity,'Connect Away Player',true);
+  insert into public.players(user_id,competition_player_id,full_name,phone,email,date_of_birth,registration_status,is_genuine)
+  values
+    (v_home_user,v_home_identity,'Connect Home Player','07700909004','ci-connect-home-player@openplay.invalid',date '1990-04-04','registered',true),
+    (v_away_user,v_away_identity,'Connect Away Player','07700909005','ci-connect-away-player@openplay.invalid',date '1990-04-05','registered',true);
   insert into public.user_roles(user_id,role,granted_by) values
     (v_admin,'admin',v_admin),(v_location_admin,'league_admin',v_admin);
 
@@ -75,19 +91,27 @@ begin
   insert into public.fixtures(
     season_id,gameweek,fixture_number,home_team_id,away_team_id,venue_id,scheduled_at,status
   ) values(
-    v_season,1,1,v_home_season_team,v_away_season_team,v_location,now()-interval '1 day','completed'
+    v_season,1,1,v_home_season_team,v_away_season_team,v_location,now()+interval '1 day','scheduled'
   ) returning id into v_fixture;
 
-  -- The approval RPC publishes the match result through the normal guarded
-  -- result workflow, which requires both teams' sheets to be locked.
-  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  -- Reproduce the real matchday lifecycle: both sheets are submitted and
+  -- locked before kickoff, then the fixture moves into progress. Service-role
+  -- setup is used only for this isolated regression fixture.
+  perform set_config('request.jwt.claim.role','service_role',true);
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)
+  values(v_fixture,v_home_season_team,v_home_user,true)
+  returning id into v_home_sheet;
+  insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)
+  values(v_fixture,v_away_season_team,v_away_user,true)
+  returning id into v_away_sheet;
+  insert into public.fixture_team_sheet_players(team_sheet_id,user_id,competition_player_id,role,is_goalkeeper,did_appear)
   values
-    (v_fixture,v_home_season_team,v_admin,true),
-    (v_fixture,v_away_season_team,v_admin,true);
-
-  insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
-  values(v_fixture,0,0,now(),v_admin);
+    (v_home_sheet,v_home_user,v_home_identity,'starter',false,true),
+    (v_away_sheet,v_away_user,v_away_identity,'starter',false,true);
+  perform set_config('request.jwt.claim.role','authenticated',true);
+  update public.fixtures
+  set scheduled_at=now()-interval '1 hour',status='in_progress'
+  where id=v_fixture;
   insert into public.referee_match_reports(
     fixture_id,referee_user_id,report_source,submitted_by,status,
     home_score,away_score
