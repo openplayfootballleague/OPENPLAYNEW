@@ -92,6 +92,29 @@ describe("buildNeedsAttentionTasks", () => {
     });
   });
 
+  it("surfaces failed, unconfirmed and held notifications but ignores routine delivery states", () => {
+    const tasks = buildNeedsAttentionTasks({
+      playerReviews: [],
+      teamApplications: [],
+      membershipRequests: [],
+      notifications: [
+        { id: "failed", recipient_name: "Alex", recipient_email: "alex@example.test", recipient_phone: null, event_type: "fixture_reminder", status: "failed", created_at: "2026-11-10T10:00:00Z", last_error: "Provider rejected request", hold_reason: null },
+        { id: "held", recipient_name: "Sam", recipient_email: null, recipient_phone: null, event_type: "team_approval", status: "held", created_at: "2026-11-11T10:00:00Z", last_error: null, hold_reason: "Manual review" },
+        { id: "sent", recipient_name: "Jordan", recipient_email: null, recipient_phone: null, event_type: "fixture_reminder", status: "sent", created_at: "2026-11-12T10:00:00Z", last_error: null, hold_reason: null },
+      ],
+    });
+
+    expect(tasks).toHaveLength(2);
+    expect(tasks[0]).toMatchObject({
+      id: "notification:failed",
+      category: "Notification exception",
+      subject: "Alex",
+      href: "#admin-communications",
+      actionLabel: "Open outbox",
+    });
+    expect(tasks[1].id).toBe("notification:held");
+  });
+
   it("limits the number of displayed items and handles empty queues", () => {
     const input = {
       playerReviews: Array.from({ length: 15 }, (_, index) => ({
