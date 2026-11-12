@@ -1934,6 +1934,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_publish_upcoming_season: {
+        Args: { p_reason: string; p_season_id: string }
+        Returns: Database["public"]["Tables"]["seasons"]["Row"]
+      }
       admin_open_season_recruitment: {
         Args: { p_reason: string; p_season_id: string }
         Returns: Database["public"]["Tables"]["seasons"]["Row"]
