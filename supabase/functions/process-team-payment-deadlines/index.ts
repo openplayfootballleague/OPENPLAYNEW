@@ -26,14 +26,19 @@ Deno.serve(async(req)=>{
   const admin=createClient(supabaseUrl,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
   const now=new Date();
   const nowIso=now.toISOString();
-  const {data:obligations,error:loadError}=await admin.from("team_fixture_payment_obligations")
-    .select("id,status,deadline_at,grace_ends_at,stripe_checkout_session_id")
-    .in("status",["due","grace_period","admin_review","weather_cancelled"])
-    .limit(500);
-  if(loadError)return response({error:"Could not load team payment deadlines"},500);
+  const obligations:Array<Record<string,unknown>>=[];
+  for(let offset=0;;offset+=500){
+    const {data:page,error:loadError}=await admin.from("team_fixture_payment_obligations")
+      .select("id,status,amount_pence,currency,deadline_at,grace_ends_at,stripe_checkout_session_id")
+      .in("status",["due","grace_period","admin_review","weather_cancelled"])
+      .order("id").range(offset,offset+499);
+    if(loadError)return response({error:"Could not load team payment deadlines"},500);
+    obligations.push(...(page??[]));
+    if((page??[]).length<500)break;
+  }
 
   let reconciled=0,expired=0,refundsSucceeded=0,refundsFailed=0,refundsPending=0;
-  for(const obligation of obligations??[]){
+  for(const obligation of obligations){
     const sessionId=obligation.stripe_checkout_session_id as string|null;
     if(!sessionId)continue;
     const weatherCancelled=obligation.status==="weather_cancelled";
@@ -59,8 +64,17 @@ Deno.serve(async(req)=>{
       const amountReceived=Number(intent.amount_received);
       const currency=String(intent.currency??"").toLowerCase();
       const metadata=intent.metadata as Record<string,unknown>|undefined;
-      if(!Number.isSafeInteger(paidAt)||amountReceived<=0||currency!=="gbp"||
-        metadata?.team_fixture_payment_obligation_id!==obligation.id)continue;
+      const expectedAmount=Number(obligation.amount_pence);
+      const expectedCurrency=String(obligation.currency??"").toLowerCase();
+      const intentAmount=Number(intent.amount);
+      const sessionAmount=Number(session.amount_total);
+      const sessionCurrency=String(session.currency??"").toLowerCase();
+      const sessionMetadata=session.metadata as Record<string,unknown>|undefined;
+      if(!Number.isSafeInteger(paidAt)||!Number.isSafeInteger(expectedAmount)||expectedAmount<=0||
+        amountReceived!==expectedAmount||intentAmount!==expectedAmount||sessionAmount!==expectedAmount||
+        currency!==expectedCurrency||sessionCurrency!==expectedCurrency||
+        metadata?.team_fixture_payment_obligation_id!==obligation.id||
+        sessionMetadata?.team_fixture_payment_obligation_id!==obligation.id)continue;
       const {error:paymentError}=await admin.rpc("record_team_fixture_payment_success",{
         p_obligation_id:obligation.id,
         p_stripe_payment_intent_id:paymentIntentId,
@@ -92,11 +106,16 @@ Deno.serve(async(req)=>{
   });
   if(processError)return response({error:"Could not process team payment deadlines"},500);
 
-  const {data:refundRows,error:refundLoadError}=await admin.from("team_fixture_payment_refunds")
-    .select("id,amount_pence,stripe_payment_intent_id")
-    .eq("status","pending").limit(200);
-  if(refundLoadError)return response({error:"Could not load opponent refunds"},500);
-  for(const refund of refundRows??[]){
+  const refundRows:Array<Record<string,unknown>>=[];
+  for(let offset=0;;offset+=500){
+    const {data:page,error:refundLoadError}=await admin.from("team_fixture_payment_refunds")
+      .select("id,amount_pence,stripe_payment_intent_id")
+      .eq("status","pending").order("id").range(offset,offset+499);
+    if(refundLoadError)return response({error:"Could not load opponent refunds"},500);
+    refundRows.push(...(page??[]));
+    if((page??[]).length<500)break;
+  }
+  for(const refund of refundRows){
     const form=new URLSearchParams();
     form.set("payment_intent",String(refund.stripe_payment_intent_id));
     form.set("amount",String(refund.amount_pence));
@@ -110,19 +129,33 @@ Deno.serve(async(req)=>{
       body:form,
     });
     const result=await stripeResponse.json().catch(()=>({})) as StripeObject;
-    if(stripeResponse.ok&&result.status==="succeeded"&&typeof result.id==="string"){
+    if(stripeResponse.ok&&result.status==="succeeded"&&typeof result.id==="string"&&
+      result.payment_intent===refund.stripe_payment_intent_id&&
+      Number(result.amount)===Number(refund.amount_pence)&&
+      String(result.currency??"").toLowerCase()==="gbp"){
       const {error}=await admin.rpc("record_team_fixture_payment_refund_result",{
         p_refund_id:refund.id,p_succeeded:true,p_stripe_refund_id:result.id,
       });
       if(!error)refundsSucceeded++;
     }else if(stripeResponse.ok&&(result.status==="pending"||result.status==="requires_action")){
       refundsPending++;
-    }else if(!stripeResponse.ok&&stripeResponse.status>=400&&stripeResponse.status<500){
-      await admin.rpc("record_team_fixture_payment_refund_result",{
-        p_refund_id:refund.id,p_succeeded:false,p_failure_reason:String((result.error as Record<string,unknown>|undefined)?.message??"Stripe rejected the refund"),
+    }else if(stripeResponse.ok&&(result.status==="failed"||result.status==="canceled")){
+      const {error}=await admin.rpc("record_team_fixture_payment_refund_result",{
+        p_refund_id:refund.id,p_succeeded:false,
+        p_failure_reason:String((result.failure_reason as string|undefined)??"Stripe confirmed that the refund failed"),
       });
-      refundsFailed++;
+      if(!error)refundsFailed++;
+      else refundsPending++;
+    }else if(!stripeResponse.ok&&[400,402,404,422].includes(stripeResponse.status)){
+      const {error}=await admin.rpc("record_team_fixture_payment_refund_result",{
+        p_refund_id:refund.id,p_succeeded:false,
+        p_failure_reason:String((result.error as Record<string,unknown>|undefined)?.message??"Stripe rejected the refund"),
+      });
+      if(!error)refundsFailed++;
+      else refundsPending++;
     }else{
+      // Rate limits, authentication/configuration errors and server/network
+      // failures are not proof that the refund failed. Keep them reconcilable.
       refundsPending++;
     }
   }

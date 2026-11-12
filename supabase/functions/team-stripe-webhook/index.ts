@@ -96,13 +96,31 @@ Deno.serve(async(req)=>{
         const amount=Number(object.amount_total);
         const currency=String(object.currency??"").toLowerCase();
         const paymentIntent=typeof object.payment_intent==="string"?object.payment_intent:"";
-        if(amount!==obligation.amount_pence||currency!==obligation.currency||!paymentIntent){
-          throw new Error("Stripe amount, currency or PaymentIntent does not match the server-side obligation");
+        const sessionMetadata=object.metadata as Record<string,unknown>|undefined;
+        if(amount!==obligation.amount_pence||currency!==obligation.currency||!paymentIntent||
+          sessionMetadata?.team_fixture_payment_obligation_id!==obligationId){
+          throw new Error("Stripe amount, currency, metadata or PaymentIntent does not match the server-side obligation");
+        }
+        const intentResponse=await fetch(
+          `https://api.stripe.com/v1/payment_intents/${encodeURIComponent(paymentIntent)}?expand[]=latest_charge`,
+          {headers:{Authorization:`Bearer ${stripeKey}`}},
+        );
+        const intent=await intentResponse.json().catch(()=>({})) as Record<string,unknown>;
+        if(!intentResponse.ok)throw new Error("Stripe PaymentIntent could not be verified");
+        const intentMetadata=intent.metadata as Record<string,unknown>|undefined;
+        const latestCharge=intent.latest_charge as Record<string,unknown>|string|null;
+        const paidAt=typeof latestCharge==="object"&&latestCharge!==null?Number(latestCharge.created):NaN;
+        if(intent.status!=="succeeded"||Number(intent.amount)!==obligation.amount_pence||
+          Number(intent.amount_received)!==obligation.amount_pence||
+          String(intent.currency??"").toLowerCase()!==obligation.currency||
+          intentMetadata?.team_fixture_payment_obligation_id!==obligationId||
+          !Number.isSafeInteger(paidAt)||paidAt<=0){
+          throw new Error("Stripe PaymentIntent or successful charge does not match the server-side obligation");
         }
         const {error:paymentError}=await admin.rpc("record_team_fixture_payment_success",{
           p_obligation_id:obligationId,
           p_stripe_payment_intent_id:paymentIntent,
-          p_paid_at:new Date(created*1000).toISOString(),
+          p_paid_at:new Date(paidAt*1000).toISOString(),
         });
         if(paymentError)throw new Error(paymentError.message);
       }else if(eventType==="checkout.session.async_payment_succeeded"){
