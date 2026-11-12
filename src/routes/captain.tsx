@@ -1,40 +1,17 @@
 import { useCallback,useEffect,useState } from "react";
-import type { Session } from "@supabase/supabase-js";
 import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 import { Link,createFileRoute } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { useOpenPlayAnalytics } from "../components/analytics-provider";
 import { CaptainTeamPayments } from "../components/captain-team-payments";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 type CaptainRow={season_team_id:string;team_name:string;membership_id:string;player_name:string;membership_status:string;is_captain:boolean;squad_number:number|null;requested_at:string};
 type CaptainFixture={fixture_id:string;season_team_id:string;team_name:string;opponent_name:string;gameweek:number;scheduled_at:string|null;competition_format:string};
 type CaptainAvailability={fixture_id:string;season_team_id:string;team_name:string;gameweek:number;scheduled_at:string|null;player_name:string;is_available:boolean|null;response_note:string|null;responded_at:string|null};
 type CaptainTransferRequest={id:string;user_id:string;player_name:string;source_team_name:string;destination_season_team_id:string;destination_team_name:string;league_name:string;season_name:string;reason:string;status:string;requested_at:string;is_emergency:boolean;target_fixture_id:string|null};
 export const Route=createFileRoute("/captain")({component:CaptainsHubPage});
 function CaptainsHubPage(){
- const [session,setSession]=useState<Session|null>(null);
- const [sessionLoading,setSessionLoading]=useState(true);
-
- useEffect(()=>{
-  let alive=true;
-  let authEventSeen=false;
-  const supabase=getSupabaseClient();
-  const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,next)=>{
-   authEventSeen=true;
-   if(alive){setSession(next);setSessionLoading(false);}
-  });
-  void supabase.auth.getSession().then(({data,error})=>{
-   if(!alive||authEventSeen)return;
-   setSession(error?null:data.session);
-   setSessionLoading(false);
-  }).catch(()=>{
-   if(alive&&!authEventSeen){setSession(null);setSessionLoading(false);}
-  });
-  return()=>{alive=false;subscription.unsubscribe();};
- },[]);
-
- if(sessionLoading)return <main className="notice-page player-facing"><section className="notice-panel"><p>Checking your account…</p></section></main>;
- if(!session)return <main className="notice-page"><section className="notice-panel"><p className="eyebrow eyebrow-dark">CAPTAINS HUB</p><h1>Your squad.<br/><em>Your account.</em></h1><p>Sign in with your Open Play account to manage your club.</p><Link className="button" to="/sign-in">SIGN IN <span>↗</span></Link></section></main>;
- return <CaptainWorkspace key={session.user.id}/>;
+ return <AuthenticatedSessionBoundary label="CAPTAINS HUB"><CaptainWorkspace/></AuthenticatedSessionBoundary>;
 }
 
 function CaptainWorkspace(){
