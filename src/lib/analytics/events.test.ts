@@ -11,7 +11,6 @@ describe("Open Play analytics property governance", () => {
   it("keeps only allow-listed, validated, non-sensitive properties", () => {
     expect(sanitizeAnalyticsProperties({
       route_category: "player_hub",
-      feature: "referee_workspace",
       feature: "player_hub",
       device_type: "mobile",
       app_version: "1.2.3",
