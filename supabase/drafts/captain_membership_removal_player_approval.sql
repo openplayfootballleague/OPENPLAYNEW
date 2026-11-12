@@ -12,7 +12,7 @@ returns void
 language plpgsql
 security definer
 set search_path=''
-as $
+as $notify$
 declare
   v_preferences public.notification_preferences;
   v_dedupe text;
