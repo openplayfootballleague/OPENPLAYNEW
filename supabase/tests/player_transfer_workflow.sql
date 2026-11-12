@@ -16,6 +16,7 @@ declare
   v_captain_e uuid:=gen_random_uuid();
   v_captain_f uuid:=gen_random_uuid();
   v_location uuid;
+  v_other_location uuid;
   v_league uuid;
   v_season uuid;
   v_season_two uuid;
@@ -408,9 +409,12 @@ begin
     if v_error not like 'A player can represent only one club%' then raise; end if;
   end;
 
-  -- The same player may still represent a club in a different league.
+  -- The same player may represent another club in a different area.
+  insert into public.locations(name,slug,town)
+  values('Transfer Other Location','transfer-other-location','Barnstaple')
+  returning id into v_other_location;
   insert into public.leagues(location_id,name,slug,format,is_published)
-  values(v_location,'Transfer Other League','transfer-other-league','six_a_side',true)
+  values(v_other_location,'Transfer Other League','transfer-other-league','six_a_side',true)
   returning id into v_other_league;
   insert into public.seasons(league_id,name,status,is_public)
   values(v_other_league,'Transfer Other League Season','active',true)
