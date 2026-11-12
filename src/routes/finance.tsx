@@ -1,4 +1,5 @@
 import { useCallback,useEffect,useMemo,useState } from "react";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { Link,createFileRoute,useNavigate } from "@tanstack/react-router";
 import { useRequiredSession } from "../lib/auth/use-required-session";
 import { getSupabaseClient } from "../lib/supabase/client";
@@ -13,6 +14,10 @@ const dateTime=(value:string|null)=>value?new Date(value).toLocaleString("en-GB"
 
 export const Route=createFileRoute("/finance")({component:FinancePage});
 function FinancePage(){
+ return <AuthenticatedSessionBoundary label="FINANCE WORKSPACE"><FinanceWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function FinanceWorkspace(){
  const authStatus=useRequiredSession();const navigate=useNavigate();
  useEffect(()=>{if(authStatus==="unauthenticated")void navigate({to:"/sign-in",replace:true});},[authStatus,navigate]);
  const [options,setOptions]=useState<FinanceOption[]>([]);
