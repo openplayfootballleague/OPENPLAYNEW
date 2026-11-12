@@ -1,10 +1,10 @@
 export type NeedsAttentionTask = {
   id: string;
-  category: "Player review" | "Team application" | "Membership request" | "Missing team sheet" | "Player transfer request" | "Notification exception" | "Result needs attention" | "Fixture needs attention";
+  category: "Player review" | "Team application" | "Membership request" | "Missing team sheet" | "Player transfer request" | "Notification exception" | "Result needs attention" | "Fixture needs attention" | "Payment exception";
   subject: string;
   context: string;
   createdAt: string;
-  href: "#admin-player-approvals" | "#admin-team-approvals" | "#admin-membership-requests" | "#admin-team-sheets" | "#admin-transfers" | "#admin-communications" | "#admin-results" | "#admin-fixtures";
+  href: "#admin-player-approvals" | "#admin-team-approvals" | "#admin-membership-requests" | "#admin-team-sheets" | "#admin-transfers" | "#admin-communications" | "#admin-results" | "#admin-fixtures" | "/finance";
   actionLabel: string;
 };
 
@@ -16,6 +16,7 @@ export type NeedsAttentionInput = {
   submittedSheets?: ReadonlyArray<{ fixture_id: string; season_team_id: string; is_locked: boolean }>;
   transferRequests?: ReadonlyArray<{ id: string; player_name: string | null; source_team_name: string; destination_team_name: string; season_name: string; requested_at: string }>;
   notifications?: ReadonlyArray<{ id: string; recipient_name: string | null; recipient_email: string | null; recipient_phone: string | null; event_type: string; status: string; created_at: string; last_error: string | null; hold_reason: string | null }>;
+  paymentObligations?: ReadonlyArray<{ obligation_id: string; season_name: string; team_name: string; opponent_name: string; gameweek: number; amount_pence: number; deadline_at: string; status: string; refund_status: string | null }>;
 };
 
 /**
@@ -115,6 +116,25 @@ export function buildNeedsAttentionTasks(input: NeedsAttentionInput, limit = 12)
       createdAt: item.created_at,
       href: "#admin-communications",
       actionLabel: "Open outbox",
+    })));
+
+  tasks.push(...(input.paymentObligations ?? [])
+    .filter((item) =>
+      item.status === "defaulted" ||
+      item.status === "admin_review" ||
+      item.status === "paid_after_cancellation" ||
+      item.status === "refund_pending" ||
+      item.status === "refund_failed" ||
+      item.refund_status === "failed"
+    )
+    .map((item): NeedsAttentionTask => ({
+      id: `payment:${item.obligation_id}`,
+      category: "Payment exception",
+      subject: item.team_name,
+      context: `${item.season_name} · Gameweek ${item.gameweek} vs ${item.opponent_name} · ${item.status.replaceAll("_", " ")} · £${(item.amount_pence / 100).toFixed(2)}${item.refund_status ? ` · refund ${item.refund_status}` : ""}`,
+      createdAt: item.deadline_at,
+      href: "/finance",
+      actionLabel: "Review payment",
     })));
 
   tasks.sort((a, b) => {
