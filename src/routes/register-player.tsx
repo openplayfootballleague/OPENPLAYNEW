@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
@@ -20,7 +21,11 @@ type GuardianConsent = {
 
 export const Route = createFileRoute("/register-player")({ component: RegisterPlayerPage });
 
-function RegisterPlayerPage() {
+function RegisterPlayerPage(){
+ return <AuthenticatedSessionBoundary label="PLAYER REGISTRATION"><RegisterPlayerWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function RegisterPlayerWorkspace() {
   const navigate=useNavigate(); const capture=useOpenPlayAnalytics(); const [session,setSession]=useState<Session|null>(null); const [loading,setLoading]=useState(true);
   const [name,setName]=useState(""); const [phone,setPhone]=useState(""); const [dob,setDob]=useState("");
   const [error,setError]=useState(""); const [message,setMessage]=useState(""); const [submitted,setSubmitted]=useState(false); const [busy,setBusy]=useState(false);
