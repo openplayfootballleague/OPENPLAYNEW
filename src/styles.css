@@ -1452,3 +1452,57 @@ a { color: inherit; text-decoration: none; }
 .admin-gameweek-postponements { margin: 18px 0 24px; }
 .admin-gameweek-postponements .admin-gameweek-confirm { display: flex; align-items: flex-start; gap: 10px; }
 .admin-gameweek-postponements .admin-gameweek-confirm input { width: 18px; min-width: 18px; min-height: 18px; margin-top: 2px; }
+
+
+/* Four-step Open Play team registration application */
+.team-registration-form { gap: 22px; }
+.team-registration-progress { display: grid; gap: 9px; color: #73746c; font-size: 10px; font-weight: 800; letter-spacing: .13em; }
+.team-registration-progress-track { height: 4px; overflow: hidden; background: #d7d5cc; }
+.team-registration-progress-track span { display: block; height: 100%; background: var(--orange); transition: width .2s ease; }
+.team-registration-step { display: grid; gap: 18px; }
+.team-registration-step h2 { margin: -8px 0 4px; color: #111411; font-family: "Oswald", sans-serif; font-size: clamp(29px, 5vw, 38px); line-height: 1; letter-spacing: .02em; }
+.field-optional { margin-left: 6px; color: #8a8a80; font-size: 9px; font-weight: 700; letter-spacing: .12em; }
+.team-registration-form input[type="file"] { padding: 10px; font-size: 12px; }
+.team-registration-form textarea { width: 100%; min-height: 120px; padding: 13px 14px; border: 1px solid #cfcec5; border-radius: 0; background: #fffefa; color: #111411; font: inherit; font-size: 14px; line-height: 1.6; resize: vertical; }
+.team-registration-form textarea:focus { outline: 2px solid #e96831; border-color: #e96831; }
+.team-registration-choice { display: grid; gap: 11px; margin: 0; padding: 16px; border: 1px solid #d5d3ca; }
+.team-registration-choice legend { padding: 0 7px; color: #30312c; font-size: 11px; font-weight: 800; letter-spacing: .04em; }
+.team-registration-choice label { display: flex; grid-template-columns: none; align-items: center; gap: 10px; color: #30312c; font-size: 13px; font-weight: 500; letter-spacing: 0; }
+.team-registration-choice input[type="radio"] { width: 17px; min-width: 17px; min-height: 17px; height: 17px; margin: 0; accent-color: var(--orange); }
+.team-captain-details { display: grid; gap: 0; border: 1px solid #d5d3ca; background: #fffefa; }
+.team-captain-details > div { display: grid; gap: 5px; padding: 13px 15px; border-bottom: 1px solid #e4e2d9; }
+.team-captain-details > div:last-child { border-bottom: 0; }
+.team-captain-details span, .team-registration-review span { color: #85867d; font-size: 9px; font-weight: 800; letter-spacing: .12em; }
+.team-captain-details strong, .team-registration-review strong { color: #171915; font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
+.team-fee-summary { padding: 18px; background: #171a16; color: #f6f5f0; }
+.team-fee-summary .eyebrow { color: #c8c8bd; }
+.team-fee-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }
+.team-fee-summary-grid > div { display: grid; gap: 7px; }
+.team-fee-summary-grid span { color: #a7a89e; font-size: 9px; font-weight: 800; letter-spacing: .1em; }
+.team-fee-summary-grid strong { color: #fff; font-family: "Oswald", sans-serif; font-size: 28px; line-height: 1; }
+.team-fee-summary-grid .team-fee-total { grid-column: 1 / -1; padding-top: 14px; border-top: 1px solid #454940; }
+.team-fee-summary-grid .team-fee-total strong { color: var(--orange); font-size: 34px; }
+.team-fee-summary .form-note { margin-top: 15px; color: #c1c2b8; }
+.team-declarations { display: grid; gap: 12px; }
+.team-declarations > .eyebrow { margin: 0 0 2px; }
+.team-declaration { display: flex !important; grid-template-columns: none !important; align-items: flex-start; gap: 11px !important; padding: 13px 14px; border: 1px solid #d5d3ca; background: #fffefa; color: #393a34 !important; font-size: 12px !important; font-weight: 500 !important; line-height: 1.6; letter-spacing: 0 !important; }
+.team-declaration input[type="checkbox"] { flex: 0 0 18px; width: 18px; min-width: 18px; min-height: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--orange); }
+.team-declaration span { display: block; }
+.team-fee-acceptance { border-color: #e96831; }
+.team-selected-file { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; background: #e8e6dd; color: #30312c; font-size: 12px; }
+.team-selected-file span { overflow-wrap: anywhere; }
+.team-selected-file button { border: 0; background: transparent; color: #b94d23; font: inherit; font-size: 11px; font-weight: 800; cursor: pointer; }
+.team-registration-review { display: grid; gap: 0; padding: 16px; border: 1px solid #d5d3ca; background: #fffefa; }
+.team-registration-review .eyebrow { margin: 0 0 10px; }
+.team-registration-review > div { display: flex; justify-content: space-between; gap: 16px; padding: 9px 0; border-top: 1px solid #e6e4dc; }
+.team-registration-review strong { text-align: right; }
+.team-registration-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.team-registration-actions .button { flex: 1; }
+.team-back-button { min-height: 48px; padding: 0 18px; border: 1px solid #c9c7bd; background: transparent; color: #34352f; font: inherit; font-size: 11px; font-weight: 800; letter-spacing: .1em; cursor: pointer; }
+.team-back-button:disabled { opacity: .5; cursor: wait; }
+@media (max-width: 520px) {
+  .team-fee-summary-grid { gap: 13px; }
+  .team-fee-summary-grid strong { font-size: 25px; }
+  .team-registration-review > div { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .team-registration-review strong { text-align: left; }
+}
