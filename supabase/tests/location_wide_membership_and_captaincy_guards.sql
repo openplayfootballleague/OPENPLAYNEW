@@ -68,7 +68,7 @@ begin
   returning id into v_league_b;
 
   insert into public.seasons(league_id,name,status,is_public)
-  values(v_league_a,'Area Guard Season A','active',true)
+  values(v_league_a,'Area Guard Season A','registration_open',true)
   returning id into v_season_a;
   insert into public.seasons(league_id,name,status,is_public)
   values(v_league_a_two,'Area Guard Season A2','registration_open',true)
