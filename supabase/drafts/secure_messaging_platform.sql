@@ -637,6 +637,9 @@ begin
      or length(btrim(coalesce(p_initial_message,''))) not between 1 and 2000 then
     raise exception 'Enter a subject and a message';
   end if;
+  -- Serialize support-request creation per member so concurrent requests
+  -- cannot all pass the daily quota check before any row is inserted.
+  perform pg_advisory_xact_lock(hashtextextended('support:'||v_user::text,0));
   select count(*) into v_count from public.message_conversations
   where kind='support' and created_by=v_user and created_at>now()-interval '1 day';
   if v_count>=5 then raise exception 'Support request limit reached. Please wait before opening another conversation'; end if;
@@ -723,6 +726,9 @@ begin
   elsif not v_global then
     raise exception 'Location administrators must choose an assigned location, season, team or captain audience';
   end if;
+  -- Serialize broadcast creation per administrator to enforce the hourly
+  -- quota under concurrent requests.
+  perform pg_advisory_xact_lock(hashtextextended('broadcast:'||v_user::text,0));
   select count(*) into v_recent_broadcasts
   from public.message_conversations
   where kind='announcement' and created_by=v_user and created_at>now()-interval '1 hour';
