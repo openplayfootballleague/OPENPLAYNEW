@@ -208,6 +208,24 @@ begin
     raise exception 'Captain nomination options must include only the two actual home-team appearances';
   end if;
 
+  -- Invalid candidate checks must run before the team consumes its one
+  -- nomination; otherwise the duplicate-submission guard masks eligibility.
+  v_denied:=false;
+  begin
+    perform public.submit_fixture_motm_nomination(v_fixture,v_home_sub_identity);
+  exception when others then
+    v_denied:=sqlerrm like '%actually appeared%';
+  end;
+  if not v_denied then raise exception 'A substitute who did not appear was eligible for MOTM'; end if;
+
+  v_denied:=false;
+  begin
+    perform public.submit_fixture_motm_nomination(v_fixture,v_away_captain_identity);
+  exception when others then
+    v_denied:=sqlerrm like '%your team’s locked sheet%';
+  end;
+  if not v_denied then raise exception 'A captain nominated a player from the opposing team'; end if;
+
   v_nomination_id:=public.submit_fixture_motm_nomination(v_fixture,v_home_captain_identity);
   if v_nomination_id is null then raise exception 'Captain could not nominate themselves despite being an eligible actual appearance'; end if;
 
@@ -224,22 +242,6 @@ begin
     v_denied:=sqlerrm like '%already submitted%';
   end;
   if not v_denied then raise exception 'A team submitted more than one MOTM nomination for the same fixture'; end if;
-
-  v_denied:=false;
-  begin
-    perform public.submit_fixture_motm_nomination(v_fixture,v_home_sub_identity);
-  exception when others then
-    v_denied:=sqlerrm like '%actually appeared%';
-  end;
-  if not v_denied then raise exception 'A substitute who did not appear was eligible for MOTM'; end if;
-
-  v_denied:=false;
-  begin
-    perform public.submit_fixture_motm_nomination(v_fixture,v_away_captain_identity);
-  exception when others then
-    v_denied:=sqlerrm like '%your team’s locked sheet%';
-  end;
-  if not v_denied then raise exception 'A captain nominated a player from the opposing team'; end if;
 
   v_denied:=false;
   begin
