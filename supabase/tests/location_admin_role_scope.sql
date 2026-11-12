@@ -15,7 +15,9 @@ begin
    ('00000000-0000-4000-8000-000000000004','authenticated','authenticated','ci-location-admin@openplay.invalid','','{}'::jsonb,now(),now()),
    ('00000000-0000-4000-8000-000000000005','authenticated','authenticated','ci-global-admin@openplay.invalid','','{}'::jsonb,now(),now()),
    ('00000000-0000-4000-8000-000000000006','authenticated','authenticated','ci-player-c@openplay.invalid','','{}'::jsonb,now(),now()),
-   ('00000000-0000-4000-8000-000000000007','authenticated','authenticated','ci-finance-admin@openplay.invalid','','{}'::jsonb,now(),now());
+   ('00000000-0000-4000-8000-000000000007','authenticated','authenticated','ci-finance-admin@openplay.invalid','','{}'::jsonb,now(),now()),
+   ('00000000-0000-4000-8000-000000000008','authenticated','authenticated','ci-super-admin@openplay.invalid','','{}'::jsonb,now(),now()),
+   ('00000000-0000-4000-8000-000000000009','authenticated','authenticated','ci-unassigned-league-admin@openplay.invalid','','{}'::jsonb,now(),now());
 
   insert into public.locations (id,name,slug,town,region,is_active)
   values
@@ -476,6 +478,120 @@ begin
   end;
   execute 'reset role';
   if not v_denied then raise exception 'Role management allowed a global administrator to change their own role'; end if;
+
+  -- Full platform location-activation role matrix. This runs last so closing
+  -- the synthetic seasons cannot affect earlier membership/finance assertions.
+  update public.seasons
+     set status='completed'
+   where id in (
+     '00000000-0000-4000-8000-000000000030',
+     '00000000-0000-4000-8000-000000000031'
+   );
+
+  -- An ordinary player is denied even though the RPC is authenticated-callable.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000001',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001"}',true);
+  v_denied:=false;
+  begin
+    perform public.admin_set_location_active(
+      '00000000-0000-4000-8000-000000000010',false,'CI ordinary player denial'
+    );
+  exception when others then
+    v_denied:=sqlerrm='Global administrator permission required';
+  end;
+  execute 'reset role';
+  if not v_denied then raise exception 'Ordinary player changed a platform-wide location activation state'; end if;
+
+  -- An unassigned league administrator is denied as well as the assigned
+  -- league administrator covered by the earlier negative test.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000009',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000009"}',true);
+  v_denied:=false;
+  begin
+    perform public.admin_set_location_active(
+      '00000000-0000-4000-8000-000000000010',false,'CI unassigned league admin denial'
+    );
+  exception when others then
+    v_denied:=sqlerrm='Global administrator permission required';
+  end;
+  execute 'reset role';
+  if not v_denied then raise exception 'Unassigned league administrator changed location activation'; end if;
+
+  -- Anonymous execution must be denied by the function grant boundary.
+  execute 'set local role anon';
+  perform set_config('request.jwt.claim.sub','',true);
+  perform set_config('request.jwt.claims','{}',true);
+  v_denied:=false;
+  begin
+    perform public.admin_set_location_active(
+      '00000000-0000-4000-8000-000000000010',false,'CI anonymous denial'
+    );
+  exception when others then
+    v_denied:=true;
+  end;
+  execute 'reset role';
+  if not v_denied then raise exception 'Anonymous caller changed location activation'; end if;
+
+  -- Only a global admin may activate, and only the first-release Bideford
+  -- location. A second Bideford cannot become active while Location A is active.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000005',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000005"}',true);
+  v_denied:=false;
+  begin
+    perform public.admin_set_location_active(
+      '00000000-0000-4000-8000-000000000011',true,'CI non-Bideford activation denial'
+    );
+  exception when others then
+    v_denied:=sqlerrm='Only Bideford may be activated for the first release';
+  end;
+  if not v_denied then raise exception 'Global admin activated a non-Bideford location'; end if;
+
+  v_denied:=false;
+  begin
+    perform public.admin_set_location_active(
+      '00000000-0000-4000-8000-000000000012',true,'CI duplicate active location denial'
+    );
+  exception when others then
+    v_denied:=sqlerrm='Only one location may be active for the first release';
+  end;
+  if not v_denied then raise exception 'A second Bideford location became active while another was active'; end if;
+
+  perform public.admin_set_location_active(
+    '00000000-0000-4000-8000-000000000010',false,'CI global admin deactivation acceptance'
+  );
+  if (select is_active from public.locations where id='00000000-0000-4000-8000-000000000010') then
+    raise exception 'Global admin deactivation did not persist';
+  end if;
+  perform public.admin_set_location_active(
+    '00000000-0000-4000-8000-000000000010',true,'CI global admin activation acceptance'
+  );
+  if not (select is_active from public.locations where id='00000000-0000-4000-8000-000000000010') then
+    raise exception 'Global admin activation did not persist';
+  end if;
+  execute 'reset role';
+
+  -- super_admin has the same platform activation capability as admin.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000008',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000008"}',true);
+  perform public.admin_set_location_active(
+    '00000000-0000-4000-8000-000000000010',false,'CI super admin deactivation acceptance'
+  );
+  perform public.admin_set_location_active(
+    '00000000-0000-4000-8000-000000000010',true,'CI super admin activation acceptance'
+  );
+  execute 'reset role';
+
+  select count(*) into v_count
+  from public.audit_log
+  where entity_type='location'
+    and entity_id='00000000-0000-4000-8000-000000000010'
+    and action in ('location.activated','location.deactivated')
+    and reason like 'CI % acceptance';
+  if v_count<4 then raise exception 'Location activation/deactivation audit history is incomplete'; end if;
 
   -- A finance administrator cannot search or mutate platform roles.
   execute 'set local role authenticated';
