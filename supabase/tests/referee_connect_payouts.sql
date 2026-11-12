@@ -32,13 +32,16 @@ begin
   insert into public.user_roles(user_id,role,granted_by) values
     (v_admin,'admin',v_admin),(v_location_admin,'league_admin',v_admin);
 
-  -- Keep this regression self-contained; never depend on another SQL test's seed data.
-  insert into public.locations(name,slug,town,region,is_active)
-  values(
-    'CI Referee Connect Location',
-    'ci-referee-connect-'||replace(gen_random_uuid()::text,'-',''),
-    'Bideford','Devon',true
-  ) returning id into v_location;
+  -- Reuse the active CI location fixture. The production schema deliberately
+  -- permits only its configured first-release location to be active.
+  select id into v_location
+  from public.locations
+  where is_active=true
+  order by created_at
+  limit 1;
+  if v_location is null then
+    raise exception 'Expected the active CI location fixture from the database setup';
+  end if;
   insert into public.location_admin_assignments(user_id,location_id,assigned_by)
   values(v_location_admin,v_location,v_admin);
   insert into public.leagues(location_id,name,slug,is_published)
