@@ -1445,6 +1445,42 @@ export type Database = {
           },
         ]
       }
+      team_membership_removal_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          id: string
+          membership_id: string
+          player_user_id: string | null
+          requested_by: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          id?: string
+          membership_id: string
+          player_user_id?: string | null
+          requested_by?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_reason?: string | null
+          id?: string
+          membership_id?: string
+          player_user_id?: string | null
+          requested_by?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       team_memberships: {
         Row: {
           created_at: string
@@ -3315,6 +3351,74 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      request_team_membership_removal: {
+        Args: { p_membership_id: string }
+        Returns: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          id: string
+          membership_id: string
+          player_user_id: string | null
+          requested_by: string | null
+          status: string
+        }
+      }
+      respond_team_membership_removal: {
+        Args: { p_decision: string; p_request_id: string; p_reason?: string | null }
+        Returns: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          id: string
+          membership_id: string
+          player_user_id: string | null
+          requested_by: string | null
+          status: string
+        }
+      }
+      cancel_team_membership_removal_request: {
+        Args: { p_request_id: string }
+        Returns: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_reason: string | null
+          id: string
+          membership_id: string
+          player_user_id: string | null
+          requested_by: string | null
+          status: string
+        }
+      }
+      get_my_membership_removal_requests: {
+        Args: never
+        Returns: {
+          id: string
+          membership_id: string
+          team_name: string
+          requested_at: string
+          status: string
+          decided_at: string | null
+          decision_reason: string | null
+        }[]
+      }
+      get_captain_membership_removal_requests: {
+        Args: never
+        Returns: {
+          id: string
+          membership_id: string
+          player_user_id: string | null
+          player_name: string | null
+          team_name: string
+          requested_at: string
+          status: string
+          decided_at: string | null
+          decision_reason: string | null
+        }[]
       }
       request_team_membership: {
         Args: { p_season_team_id: string }
