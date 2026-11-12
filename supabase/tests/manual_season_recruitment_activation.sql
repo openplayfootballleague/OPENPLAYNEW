@@ -65,7 +65,7 @@ begin
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
   select * into v_opened from public.admin_open_season_recruitment(v_upcoming,'Previous season final match completed');
-  if v_opened.recruitment_status<>'open' or v_opened.status::text<>'registration_open' then
+  if v_opened.recruitment_status<>'open' or v_opened.status::text<>'registration_open' or v_opened.is_public is not true then
     raise exception 'Manual activation did not open recruitment for the upcoming season';
   end if;
 
