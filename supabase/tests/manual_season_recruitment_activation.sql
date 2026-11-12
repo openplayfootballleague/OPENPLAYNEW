@@ -5,6 +5,7 @@ begin;
 do $season_recruitment$
 declare
   v_admin uuid:=gen_random_uuid();
+  v_nonadmin uuid:=gen_random_uuid();
   v_location uuid;
   v_league uuid;
   v_previous uuid;
@@ -24,8 +25,20 @@ declare
   v_opened public.seasons;
   v_failed boolean;
 begin
+  if pg_catalog.has_function_privilege('anon','public.admin_open_season_recruitment(uuid,text)','EXECUTE')
+     or not pg_catalog.has_function_privilege('authenticated','public.admin_open_season_recruitment(uuid,text)','EXECUTE')
+     or pg_catalog.has_function_privilege('anon','public.admin_close_season_recruitment(uuid,text)','EXECUTE')
+     or not pg_catalog.has_function_privilege('authenticated','public.admin_close_season_recruitment(uuid,text)','EXECUTE') then
+    raise exception 'Season recruitment mutation RPC grants are not least-privilege';
+  end if;
+  if position('recruitment_status' in pg_catalog.pg_get_functiondef('public.get_admin_competition_setup()'::regprocedure))=0 then
+    raise exception 'Admin season setup does not expose the persisted recruitment state';
+  end if;
+
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
   values(v_admin,'authenticated','authenticated','ci-season-admin@openplay.invalid','','{}'::jsonb,now(),now(),now());
+  insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,email_confirmed_at,created_at,updated_at)
+  values(v_nonadmin,'authenticated','authenticated','ci-season-nonadmin@openplay.invalid','','{}'::jsonb,now(),now(),now());
   insert into public.user_roles(user_id,role,granted_by) values(v_admin,'admin',v_admin);
 
   insert into public.locations(name,slug,town,region,is_active)
@@ -89,6 +102,15 @@ begin
   if v_opened.recruitment_status<>'open' or v_opened.status::text<>'registration_open' or v_opened.is_public is not true then
     raise exception 'Manual activation did not open recruitment for the upcoming season';
   end if;
+
+  perform set_config('request.jwt.claim.sub',v_nonadmin::text,true);
+  v_failed:=false;
+  begin
+    perform public.admin_open_season_recruitment(v_blocked,'Unauthorised activation attempt');
+  exception when sqlstate '42501' then v_failed:=true;
+  end;
+  if not v_failed then raise exception 'An unassigned non-admin account opened season recruitment'; end if;
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
 
   v_failed:=false;
   begin
