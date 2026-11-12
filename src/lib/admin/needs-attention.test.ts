@@ -87,8 +87,8 @@ describe("buildNeedsAttentionTasks", () => {
     });
 
     expect(tasks.map((task) => task.id)).toEqual([
-      "sheet:fixture-draft:home",
       "sheet:fixture-draft:away",
+      "sheet:fixture-draft:home",
     ]);
   });
 
