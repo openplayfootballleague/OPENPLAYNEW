@@ -51,11 +51,11 @@ begin
   if v_location is null then raise exception 'Expected an active location from the local Supabase seed'; end if;
 
   insert into public.leagues(location_id,name,slug,is_published)
-  values(v_location,'CI Team Registration League','ci-team-registration-league',false)
+  values(v_location,'CI Team Registration League','ci-team-registration-league',true)
   returning id into v_league;
 
   insert into public.seasons(league_id,name,season_number,status,is_public,gameweek_count)
-  values(v_league,'CI Team Registration Season',997,'registration_open',false,14)
+  values(v_league,'CI Team Registration Season',997,'registration_open',true,14)
   returning id into v_season;
 
   insert into public.season_fee_configs(season_id,effective_from_gameweek,team_fee_pence,reason)
