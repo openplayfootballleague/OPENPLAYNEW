@@ -975,6 +975,7 @@ as $$
   join public.team_memberships request_membership
     on request_membership.season_team_id=future_captain.season_team_id
   join public.players player on player.user_id=request_membership.user_id
+  join public.players future_captain_player on future_captain_player.user_id=future_captain.user_id
   left join public.seasons barrier_season on barrier_season.id=future_captain.activation_after_season_id
   where auth.uid() is not null
     and future_captain.user_id=auth.uid()
@@ -982,7 +983,11 @@ as $$
     and future_captain.status='pending'
     and future_captain.future_approved_at is not null
     and future_captain.future_activated_at is null
+    and future_captain.future_conflict_reason is null
+    and future_captain_player.registration_status='registered'
+    and future_captain_player.is_banned=false
     and destination_team.registration_status='approved'
+    and destination_season.status in ('registration_open','active')
     and request_membership.status='pending'
     and request_membership.future_approved_at is null
     and player.registration_status='registered'
@@ -1047,12 +1052,16 @@ begin
   if not exists(
     select 1
     from public.team_memberships future_captain
+    join public.players captain_player on captain_player.user_id=future_captain.user_id
     where future_captain.season_team_id=v_membership.season_team_id
       and future_captain.user_id=v_actor
       and future_captain.is_captain=true
       and future_captain.status='pending'
       and future_captain.future_approved_at is not null
       and future_captain.future_activated_at is null
+      and future_captain.future_conflict_reason is null
+      and captain_player.registration_status='registered'
+      and captain_player.is_banned=false
   ) then
     raise exception 'Approved future captain permission required for this team';
   end if;
