@@ -94,6 +94,8 @@ Build one central admin workspace, not disconnected location-management pages. H
 
 Location/league/season context must remain visible and quickly switchable throughout the dashboard. All applicable sections use the same validated context and refresh dependent data when it changes.
 
+The selected location's public app header also shows the relevant season status. For an upcoming season, show a concise Coming Soon / Recruiting Closed state and, when an opening is scheduled, a live countdown to the configured registration opening time. Once registration opens, change the header state to Recruiting Open. Keep this compact and consistent across the location's app pages; do not create a separate promotional card as the primary status surface.
+
 ### Main dashboard
 
 Provide actual, clickable operational metrics for:
@@ -186,6 +188,16 @@ F. **Tables/statistics:** Published result → atomically/consistently update te
 G. **Finance:** Fee assigned → confirmed hosted payment or authorised manual payment record → ledger/balance updated. Outstanding balances feed Needs Attention. Never trust client-side amount or payment status.
 
 H. **Season completion:** Verify fixtures/results → finalise table → reconcile finance → close registrations → mark completed → preserve read-only history.
+
+### Season recruitment visibility, scheduling and notifications
+
+- An upcoming season may be visible in the selected location's app header while remaining inactive and closed to registrations. Its public status is Coming Soon / Recruiting Closed; it must not accept player registrations, team applications, join requests or create future/pending memberships.
+- When an opening date and time has been configured, the header displays a live countdown using the location's `Europe/London` timezone. The countdown is informational only; reaching zero in the browser must never open registration by itself.
+- Admin season controls provide **Keep Closed**, **Open Now**, and **Schedule Opening**. Scheduling requires an explicit date/time, a preview of the announcement, and a clear scheduled status. Admins can edit or cancel the schedule before it fires, or close recruiting after it has opened.
+- At the scheduled time, a trusted server-side scheduler rechecks that the selected season is still eligible, the location/league are active and the previous season's final fixture is actually completed (not merely past its scheduled date). If any prerequisite is false, registration stays closed, the schedule is marked blocked/needs attention, and authorised admins are notified; it must not silently open early.
+- A successful scheduled opening or Open Now action atomically changes the season's registration state and enqueues one notification announcement for the affected location/season audience. Use an idempotency key so retries cannot send duplicates. Do not send notifications on countdown expiry alone or on an unsuccessful state change.
+- Before scheduling or opening, show the exact message and audience. Record actor, location, season, scheduled/opened/closed timestamps, prior/new state, message version, dispatch status and failure/retry outcome in the audit/communications history. Show sent, queued and failed delivery counts where the provider supports them. Never claim delivery when only queued.
+- All controls and scheduler operations are location- and season-scoped, permission-checked server-side, and protected against double activation, stale schedules, concurrent edits and duplicate dispatch. No production notification dispatch is part of development or preview testing.
 
 ## 8. Analytics & Reports — independent department
 
