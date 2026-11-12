@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RefereeBottomNavigation } from "../../components/referee-bottom-navigation";
 import { getSupabaseClient } from "../../lib/supabase/client";
+import { useOpenPlayAnalytics } from "../../components/analytics-provider";
 
 type RpcClient = {
   rpc(name: string, args?: Record<string, unknown>): Promise<{ data: unknown; error: { message: string } | null }>;
@@ -64,6 +65,7 @@ type ReportOptions = {
 export const Route = createFileRoute("/referee/report/$fixtureId")({ component: RefereeMatchReportPage });
 
 function RefereeMatchReportPage() {
+  const capture = useOpenPlayAnalytics();
   const { fixtureId } = Route.useParams();
   const navigate = useNavigate();
   const [options, setOptions] = useState<ReportOptions | null>(null);
@@ -94,9 +96,11 @@ function RefereeMatchReportPage() {
       if (!alive) return;
       if (result.error) {
         setError(result.error.message);
+        capture("data_load_failed", { feature: "referee_match_report", error_code: "network_error", outcome: "failure" });
       } else {
         const value = result.data as ReportOptions;
         setOptions(value);
+        capture("feature_opened", { feature: "referee_match_report", outcome: "success" });
         const report = value.report;
         if (report) {
           setHomeScore(String(report.home_score));
@@ -120,7 +124,7 @@ function RefereeMatchReportPage() {
     }
     void load();
     return () => { alive = false; };
-  }, [fixtureId, navigate]);
+  }, [capture, fixtureId, navigate]);
 
   const homeScorerOptions = useMemo(() => options?.home_players.filter((player) =>
     player.role === "starter" || homeSubs.includes(player.competition_player_id)) ?? [], [options, homeSubs]);
@@ -174,8 +178,10 @@ function RefereeMatchReportPage() {
     setSaving(false);
     if (result.error) {
       setError(result.error.message);
+      capture("feature_action_failed", { feature: "referee_match_report", error_code: "unexpected_error", outcome: "failure" });
       return;
     }
+    capture("feature_action_completed", { feature: "referee_match_report", outcome: "success" });
     setNotice("Match report submitted. It is now awaiting administrator approval.");
     setOptions((current) => current ? {
       ...current,

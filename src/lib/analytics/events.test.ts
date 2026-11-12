@@ -11,7 +11,7 @@ describe("Open Play analytics property governance", () => {
   it("keeps only allow-listed, validated, non-sensitive properties", () => {
     expect(sanitizeAnalyticsProperties({
       route_category: "player_hub",
-      feature: "player_hub",
+      ...{ feature: "player_hub" },
       device_type: "mobile",
       app_version: "1.2.3",
       competition_format: "six_a_side",
@@ -55,6 +55,26 @@ describe("Open Play analytics property governance", () => {
       route_category: undefined,
     })).toEqual({});
   });
+  it("captures consented referee workflow events without match or player details", () => {
+    const capture = vi.fn();
+    expect(captureOpenPlayEvent(
+      { capture },
+      "granted",
+      false,
+      "account_user",
+      "feature_action_completed",
+      { feature: "referee_match_report", outcome: "success", fixture_id: "private-fixture-id", match_write_up: "private report" },
+    )).toBe(true);
+    expect(capture).toHaveBeenCalledWith("feature_action_completed", {
+      feature: "referee_match_report",
+      outcome: "success",
+    });
+    expect(sanitizeAnalyticsProperties({ route_category: "referee", feature: "referee_workspace" })).toEqual({
+      route_category: "referee",
+      feature: "referee_workspace",
+    });
+  });
+
 });
 
 describe("consent and role-gated analytics capture", () => {
