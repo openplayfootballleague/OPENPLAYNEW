@@ -42,8 +42,7 @@ function PlayerHubPage(){
    setPlayerStatsError("");setSaving(false);
   }
 
-  async function loadForSession(current:Session){
-   const generation=++requestGeneration;
+  async function loadForSession(current:Session,generation:number){
    const userId=current.user.id;
    activeUserId=userId;
    setSession(current);setLoading(true);setError("");
@@ -121,8 +120,9 @@ function PlayerHubPage(){
    clearPlayerData();
    setSession(next);
    if(transition==="signed-out"){setLoading(false);return;}
-   void loadForSession(next!).catch((cause:unknown)=>{
-    if(!alive)return;
+   const generation=requestGeneration;
+   void loadForSession(next!,generation).catch((cause:unknown)=>{
+    if(!alive||generation!==requestGeneration)return;
     setLoading(false);
     setError(cause instanceof Error?cause.message:"Unable to load your player hub.");
    });
