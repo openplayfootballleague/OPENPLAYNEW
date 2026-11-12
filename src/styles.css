@@ -1612,3 +1612,6 @@ a { color: inherit; text-decoration: none; }
   .match-report-goal { grid-template-columns: 22px minmax(0,1fr); }
   .match-report-goal > span:last-child { grid-column: 2; text-align: left; }
 }
+
+.match-row-link { display: block; color: inherit; text-decoration: none; }
+.match-row-link:hover { border-color: #e96831; }
