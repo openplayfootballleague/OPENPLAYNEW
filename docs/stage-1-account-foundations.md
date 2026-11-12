@@ -228,3 +228,15 @@ PR #116 (fix/player-hub-session-isolation-2026-11-12) corrects the route to:
 - keep a visible load error rather than redirecting away when protected data could not be loaded.
 
 Unit tests cover the transition classifier. Exact-head build, domain tests, clean local Supabase replay and Chromium/PWA acceptance are pending on the latest PR head. This is a client-side isolation fix; database RPC/RLS remains authoritative. No hosted migration, production identity, merge or deployment was performed.
+
+## Live migration and RLS reconciliation verification — 12 November 2026
+
+A fresh read-only inspection of the connected hosted Open Play New project supersedes earlier historical notes in this document that described the Phase 1 RLS corrections as pending application:
+
+- The hosted migration ledger contains 99 applied migrations; latest applied version is `20261108194831` (`phase1_completion_bundle`). The canonical source manifest records 99/99 applied source files and states that the Phase 1 completion bundle includes the seven outstanding security/authorization corrections plus the picture-only profile permission correction.
+- The live `has_global_admin_role()` definition checks only `admin` and `super_admin`; `has_platform_role()` still includes `league_admin`, as intended for broader platform-role checks. Live `*_admin_manage` policies inspected on competition/workflow tables use `has_global_admin_role()`, while location-scoped read policies use `can_administer_location(...)`.
+- The three advisor-reported RLS-enabled tables with no policies (`admin_context_preferences`, `gallery_items`, `location_admin_assignments`) have no anon or authenticated SELECT/INSERT/UPDATE/DELETE table grants in the live catalogue query. They are not directly accessible to those client roles.
+- The live security advisor reports 77 authenticated-executable SECURITY DEFINER functions and zero anon-executable functions. A coarse read-only source-marker check found at least one recognised auth/role guard marker in each of the 77 definitions; this is a screening heuristic, not proof of correct per-function authorization.
+- The performance advisor reports 15 multiple-permissive-policy warnings. These need review for query cost and policy composition, but the current `*_admin_manage` policies inspected are global-admin-only; do not treat the warning count alone as evidence of a location-admin bypass. Seven unindexed foreign-key and 52 unused-index notices also remain; do not add/drop indexes without workload evidence. Health advisor returned no findings.
+
+This was a read-only catalog/advisor review. No SQL writes, hosted migrations, policy changes, role changes, or production data/configuration changes were made. The 38 newer migrations exercised by the current clean CI replay remain pending for hosted application and must stay behind the release approval gate.
