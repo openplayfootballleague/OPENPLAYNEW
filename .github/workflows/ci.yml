@@ -40,8 +40,8 @@ jobs:
           deno-version: v2.x
       - name: Type-check Supabase Edge Functions
         run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts supabase/functions/player-account-retention/index.ts supabase/functions/create-referee-connect-account/index.ts supabase/functions/pay-referee-payout/index.ts supabase/functions/referee-connect-webhook/index.ts supabase/functions/create-team-fixture-checkout/index.ts supabase/functions/team-stripe-webhook/index.ts supabase/functions/process-team-payment-deadlines/index.ts supabase/functions/process-referee-payout-queue/index.ts
-      - name: Test Stripe Connect webhook signature verification
-        run: deno test --node-modules-dir=auto supabase/functions/referee-connect-webhook/signature_test.ts
+      - name: Test Stripe Connect webhook signatures and payout HTTP failure classification
+        run: deno test --node-modules-dir=auto supabase/functions/referee-connect-webhook/signature_test.ts supabase/functions/pay-referee-payout/stripe-transfer-policy_test.ts
       - name: Run domain tests
         run: npm test
       - name: Type-check and build

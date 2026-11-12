@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { canMarkStripeTransferFailed } from "./stripe-transfer-policy.ts";
 
 const cors=(origin:string)=>({
   "Access-Control-Allow-Origin":origin,
@@ -96,9 +97,10 @@ Deno.serve(async(req)=>{
     });
     const transfer=await response.json();
     if(!response.ok){
-      // 409 means the same idempotency key is still in flight; 429 is retryable.
-      // Neither may be recorded as a definitive payout failure.
-      canMarkFailed=response.status<500&&response.status!==409&&response.status!==429;
+      // A request timeout may have created the transfer despite the response.
+      // 409 can mean the idempotent request is still in flight; 429 is retryable.
+      // These and all 5xx responses must remain ambiguous, not failed.
+      canMarkFailed=canMarkStripeTransferFailed(response.status);
       throw new Error(transfer?.error?.message??"Stripe transfer failed");
     }
     if(transfer.livemode!==false)throw new Error("Live-mode transfers are disabled for this workflow");
