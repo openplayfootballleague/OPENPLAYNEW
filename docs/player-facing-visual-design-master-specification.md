@@ -137,3 +137,16 @@ Review every player-facing route individually and as one journey. Acceptance che
 - Admin Dashboard visual design remains unchanged apart from correct official logo branding.
 
 A visual audit or screenshot alone is not proof of functionality. Record route-by-route results, viewport sizes, tests, regressions and any blocked checks. Do not claim completion until implementation and verification are complete.
+
+
+## Future-season membership states — 12 November 2026
+
+Preserve the approved Player Hub composition. Future-season information is an additional state within the existing team/membership area, not a redesign of the Home layout.
+
+- Use the concise status **Approved future membership** for a player whose upcoming-season place is approved but not yet active.
+- Use **Future captaincy approved** for an approved team applicant whose captain role is reserved for the upcoming season.
+- Explain the activation dependency in plain language and name the previous season whose fixtures/results are still outstanding.
+- Use **Membership conflict** only when an approved future membership is held because another incompatible club membership remains active in the same area/season.
+- A future captain with pending player requests sees a **Future Squad Requests** panel in Player Hub. Each request shows the player's name, future team, season, activation dependency, and explicit Approve/Decline actions.
+- This panel is restricted to future-season membership decisions. It must not expose current-season team sheets, matchday controls, payments, transfers or other Captain Hub permissions.
+- When the previous season's non-cancelled fixtures are all completed and results confirmed, the membership/captaincy status changes to active and the ordinary Captain Hub becomes available. Keep the existing fixed bottom navigation and role-based navigation rules unchanged.
