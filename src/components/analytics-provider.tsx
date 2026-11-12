@@ -69,6 +69,7 @@ function routeCategory(pathname: string): string {
   if (pathname.startsWith("/team")) return "teams";
   if (pathname.startsWith("/register") || pathname.startsWith("/registration") || pathname.startsWith("/onboarding")) return "registration";
   if (pathname.startsWith("/notification")) return "notifications";
+  if (pathname.startsWith("/referee")) return "referee";
   if (pathname.startsWith("/gallery")) return "gallery";
   if (pathname.startsWith("/account") || pathname.startsWith("/profile") || pathname.startsWith("/settings") || pathname.startsWith("/privacy")) return "account";
   return "other";
@@ -84,6 +85,7 @@ function routeFeature(category: string): string | null {
     notifications: "notifications",
     gallery: "gallery",
     account: "profile",
+    referee: "referee_workspace",
   };
   return features[category] ?? null;
 }
