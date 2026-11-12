@@ -677,3 +677,18 @@
   background:#2a1b12;
   color:#ff9a62;
 }
+
+
+/* Actionable Admin Needs Attention task centre. */
+#admin-dashboard .admin-needs-attention { margin:12px 0 16px; }
+#admin-dashboard .admin-needs-attention h2 { margin:3px 0 0; color:#f5f5f5; font-family:"Oswald",sans-serif; font-size:20px; }
+#admin-dashboard .admin-attention-list { display:grid; gap:8px; }
+#admin-dashboard .admin-attention-row { display:flex; align-items:center; justify-content:space-between; gap:14px; }
+#admin-dashboard .admin-attention-row>div { display:grid; min-width:0; gap:4px; }
+#admin-dashboard .admin-attention-row strong { color:#f5f5f5; }
+#admin-dashboard .admin-attention-row small { color:#999; }
+#admin-dashboard .admin-attention-category { color:var(--op-orange); font-size:9px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+#admin-dashboard .admin-attention-row .admin-inline-action { flex:0 0 auto; }
+@media(max-width:600px) {
+  #admin-dashboard .admin-attention-row { align-items:flex-start; flex-direction:column; }
+}
