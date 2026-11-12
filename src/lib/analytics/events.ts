@@ -65,13 +65,13 @@ const ALLOWED_PROPERTIES = new Set([
 ]);
 
 const ROUTE_CATEGORIES = new Set([
-  "home", "player_hub", "match_centre", "teams", "registration",
+  "home", "player_hub", "match_centre", "teams", "registration", "referee",
   "notifications", "gallery", "account", "other",
 ]);
 const FEATURES = new Set([
   "player_hub", "match_centre", "team_directory", "team_registration",
   "player_registration", "team_membership", "fixtures", "results", "player_statistics",
-  "league_table", "gallery", "announcements", "location_selector",
+  "league_table", "gallery", "announcements", "referee_workspace", "referee_match_report", "location_selector",
   "season_selector", "notifications", "profile",
 ]);
 const DEVICE_TYPES = new Set(["mobile", "tablet", "desktop", "unknown"]);
