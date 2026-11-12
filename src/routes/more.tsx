@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 import { AnalyticsConsentSettings } from "../components/analytics-provider";
@@ -24,7 +25,11 @@ const initialAccess: MoreAccess = {
 
 export const Route = createFileRoute("/more")({ component: MorePage });
 
-function MorePage() {
+function MorePage(){
+ return <AuthenticatedSessionBoundary label="MORE"><MoreWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function MoreWorkspace() {
   const [access, setAccess] = useState<MoreAccess>(initialAccess);
 
   useEffect(() => {
