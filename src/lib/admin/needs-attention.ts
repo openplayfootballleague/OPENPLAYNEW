@@ -12,9 +12,9 @@ export type NeedsAttentionInput = {
   playerReviews: ReadonlyArray<{ player_id: string; full_name: string; created_at: string }>;
   teamApplications: ReadonlyArray<{ season_team_id: string; team_name: string; season_name: string; created_at: string }>;
   membershipRequests: ReadonlyArray<{ membership_id: string; team_name: string; player_name: string; created_at: string }>;
-  fixtures: ReadonlyArray<{ id: string; season_name: string; gameweek: number; scheduled_at: string | null; status: string; home_team_id: string; away_team_id: string; home_team_name: string; away_team_name: string }>;
-  submittedSheets: ReadonlyArray<{ fixture_id: string; season_team_id: string }>;
-  transferRequests: ReadonlyArray<{ id: string; player_name: string | null; source_team_name: string; destination_team_name: string; season_name: string; requested_at: string }>;
+  fixtures?: ReadonlyArray<{ id: string; season_name: string; gameweek: number; scheduled_at: string | null; status: string; home_team_id: string; away_team_id: string; home_team_name: string; away_team_name: string }>;
+  submittedSheets?: ReadonlyArray<{ fixture_id: string; season_team_id: string }>;
+  transferRequests?: ReadonlyArray<{ id: string; player_name: string | null; source_team_name: string; destination_team_name: string; season_name: string; requested_at: string }>;
 };
 
 /**
@@ -52,8 +52,8 @@ export function buildNeedsAttentionTasks(input: NeedsAttentionInput, limit = 12)
     })),
   ];
 
-  const submittedSheetKeys = new Set(input.submittedSheets.map((sheet) => `${sheet.fixture_id}:${sheet.season_team_id}`));
-  for (const fixture of input.fixtures) {
+  const submittedSheetKeys = new Set((input.submittedSheets ?? []).map((sheet) => `${sheet.fixture_id}:${sheet.season_team_id}`));
+  for (const fixture of input.fixtures ?? []) {
     if (fixture.status !== "scheduled" && fixture.status !== "in_progress") continue;
     for (const side of [
       { teamId: fixture.home_team_id, teamName: fixture.home_team_name },
@@ -72,7 +72,7 @@ export function buildNeedsAttentionTasks(input: NeedsAttentionInput, limit = 12)
     }
   }
 
-  tasks.push(...input.transferRequests.map((item): NeedsAttentionTask => ({
+  tasks.push(...(input.transferRequests ?? []).map((item): NeedsAttentionTask => ({
     id: `transfer:${item.id}`,
     category: "Player transfer request",
     subject: item.player_name ?? "Player transfer",
