@@ -273,7 +273,7 @@ function JoinPage() {
       const { data, error: rpcError } = await getSupabaseClient().rpc("register_team", {
         p_season_id: competition.selectedSeasonId,
         p_team_name: teamName.trim(),
-        p_primary_colour: preferredKitColour.trim() || null,
+        p_preferred_kit_colour: preferredKitColour.trim() || null,
         p_instagram_url: instagramUrl.trim() || null,
         p_team_status: teamStatus,
         p_badge_path: uploadedBadgePath,
