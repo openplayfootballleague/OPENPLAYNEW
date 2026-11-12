@@ -75,6 +75,9 @@ declare
   v_pending_captain constant uuid := '90000000-0000-4000-8000-000000000306';
   v_b_captain constant uuid := '90000000-0000-4000-8000-000000000307';
   v_location uuid;
+  v_location_c uuid;
+  v_location_d uuid;
+  v_location_f uuid;
   v_league uuid;
   v_season uuid;
   v_league_c uuid;
@@ -160,25 +163,34 @@ begin
   values(v_league,'CI Registration Safeguards',999,'active',false)
   returning id into v_season;
 
-  -- A player may captain several clubs only when those clubs belong to
-  -- different leagues. Keep the appearance fixture pair in one league, and
-  -- isolate the separate captain-succession scenarios in their own leagues.
+  -- Keep each independent captain-succession scenario in a distinct
+  -- location. A player may hold only one active club per area, even when
+  -- clubs belong to different leagues in that area.
+  insert into public.locations(name,slug,town,is_active)
+  values('CI Registration Safeguards Tie','ci-registration-safeguards-tie','Barnstaple',false)
+  returning id into v_location_c;
   insert into public.leagues(location_id,name,slug,is_published)
-  values(v_location,'CI Registration Safeguards Tie','ci-registration-safeguards-tie',false)
+  values(v_location_c,'CI Registration Safeguards Tie','ci-registration-safeguards-tie',false)
   returning id into v_league_c;
   insert into public.seasons(league_id,name,season_number,status,is_public)
   values(v_league_c,'CI Registration Safeguards Tie',1000,'active',false)
   returning id into v_season_c;
 
+  insert into public.locations(name,slug,town,is_active)
+  values('CI Registration Safeguards Single','ci-registration-safeguards-single','Torrington',false)
+  returning id into v_location_d;
   insert into public.leagues(location_id,name,slug,is_published)
-  values(v_location,'CI Registration Safeguards Single','ci-registration-safeguards-single',false)
+  values(v_location_d,'CI Registration Safeguards Single','ci-registration-safeguards-single',false)
   returning id into v_league_d;
   insert into public.seasons(league_id,name,season_number,status,is_public)
   values(v_league_d,'CI Registration Safeguards Single',1001,'active',false)
   returning id into v_season_d;
 
+  insert into public.locations(name,slug,town,is_active)
+  values('CI Registration Safeguards Empty','ci-registration-safeguards-empty','Hartland',false)
+  returning id into v_location_f;
   insert into public.leagues(location_id,name,slug,is_published)
-  values(v_location,'CI Registration Safeguards Empty','ci-registration-safeguards-empty',false)
+  values(v_location_f,'CI Registration Safeguards Empty','ci-registration-safeguards-empty',false)
   returning id into v_league_f;
   insert into public.seasons(league_id,name,season_number,status,is_public)
   values(v_league_f,'CI Registration Safeguards Empty',1002,'active',false)
@@ -254,9 +266,9 @@ begin
     update public.fixtures set status='completed' where id=v_fixture;
   end loop;
 
-  -- The tie-break candidates are tested in a separate league, where they can
+  -- The tie-break candidates are tested in a separate location, where they can
   -- legitimately be eligible successors without holding a second active club
-  -- in the appearance league. Equal zero-appearance counts use full-name order.
+  -- in the appearance area. Equal zero-appearance counts use full-name order.
 
   -- Invalid reasons must fail before any ban state is changed.
   execute 'set local role authenticated';
