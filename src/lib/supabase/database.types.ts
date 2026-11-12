@@ -1501,16 +1501,22 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          instagram_handle: string | null
+          instagram_profile_url: string | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
           id?: string
+          instagram_handle?: string | null
+          instagram_profile_url?: string | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
           id?: string
+          instagram_handle?: string | null
+          instagram_profile_url?: string | null
         }
         Relationships: []
       }
@@ -3230,11 +3236,73 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_get_team_social_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          instagram_handle: string | null
+          instagram_profile_url: string | null
+          location_name: string
+          season_name: string
+          season_team_id: string
+          team_name: string
+        }[]
+      }
+      get_captain_team_social_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          instagram_handle: string | null
+          instagram_profile_url: string | null
+          season_team_id: string
+          team_name: string
+        }[]
+      }
+      get_public_team_directory: {
+        Args: { p_season_id: string }
+        Returns: {
+          instagram_handle: string | null
+          instagram_profile_url: string | null
+          primary_colour: string | null
+          season_id: string
+          season_name: string
+          season_team_id: string
+          secondary_colour: string | null
+          starts_on: string | null
+          team_name: string
+        }[]
+      }
+      get_public_team_profile: {
+        Args: { p_season_team_id: string }
+        Returns: {
+          instagram_handle: string | null
+          instagram_profile_url: string | null
+          primary_colour: string | null
+          season_id: string
+          season_name: string
+          season_team_id: string
+          secondary_colour: string | null
+          starts_on: string | null
+          team_name: string
+        }[]
+      }
+      update_team_instagram_profile: {
+        Args: { p_instagram_profile_url: string | null; p_season_team_id: string }
+        Returns: string | null
+      }
+      update_team_instagram_details: {
+        Args: {
+          p_instagram_handle: string | null
+          p_instagram_profile_url: string | null
+          p_season_team_id: string
+        }
+        Returns: undefined
+      }
       register_team: {
         Args: {
-          p_primary_colour?: string
+          p_instagram_handle?: string | null
+          p_instagram_profile_url?: string | null
+          p_primary_colour?: string | null
           p_season_id: string
-          p_secondary_colour?: string
+          p_secondary_colour?: string | null
           p_team_name: string
         }
         Returns: {
