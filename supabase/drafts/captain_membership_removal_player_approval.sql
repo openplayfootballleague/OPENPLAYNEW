@@ -12,7 +12,7 @@ returns void
 language plpgsql
 security definer
 set search_path=''
-as $notify$
+as $
 declare
   v_preferences public.notification_preferences;
   v_dedupe text;
@@ -48,7 +48,8 @@ begin
     on conflict(dedupe_key) where dedupe_key is not null do nothing;
   end if;
 end;
-$notify$;
+
+$;
 revoke all on function public.enqueue_notification_event(uuid,text,jsonb) from public,anon,authenticated;
 
 create table if not exists public.team_membership_removal_requests (
