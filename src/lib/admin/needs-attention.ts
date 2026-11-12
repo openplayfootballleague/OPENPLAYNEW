@@ -1,10 +1,10 @@
 export type NeedsAttentionTask = {
   id: string;
-  category: "Player review" | "Team application" | "Membership request" | "Missing team sheet" | "Player transfer request";
+  category: "Player review" | "Team application" | "Membership request" | "Missing team sheet" | "Player transfer request" | "Notification exception";
   subject: string;
   context: string;
   createdAt: string;
-  href: "#admin-player-approvals" | "#admin-team-approvals" | "#admin-membership-requests" | "#admin-team-sheets" | "#admin-transfers";
+  href: "#admin-player-approvals" | "#admin-team-approvals" | "#admin-membership-requests" | "#admin-team-sheets" | "#admin-transfers" | "#admin-communications";
   actionLabel: string;
 };
 
@@ -15,6 +15,7 @@ export type NeedsAttentionInput = {
   fixtures?: ReadonlyArray<{ id: string; season_name: string; gameweek: number; scheduled_at: string | null; status: string; home_team_id: string; away_team_id: string; home_team_name: string; away_team_name: string }>;
   submittedSheets?: ReadonlyArray<{ fixture_id: string; season_team_id: string }>;
   transferRequests?: ReadonlyArray<{ id: string; player_name: string | null; source_team_name: string; destination_team_name: string; season_name: string; requested_at: string }>;
+  notifications?: ReadonlyArray<{ id: string; recipient_name: string | null; recipient_email: string | null; recipient_phone: string | null; event_type: string; status: string; created_at: string; last_error: string | null; hold_reason: string | null }>;
 };
 
 /**
@@ -81,6 +82,18 @@ export function buildNeedsAttentionTasks(input: NeedsAttentionInput, limit = 12)
     href: "#admin-transfers",
     actionLabel: "Review transfer",
   })));
+
+  tasks.push(...(input.notifications ?? [])
+    .filter((item) => item.status === "failed" || item.status === "unconfirmed" || item.status === "held")
+    .map((item): NeedsAttentionTask => ({
+      id: `notification:${item.id}`,
+      category: "Notification exception",
+      subject: item.recipient_name ?? item.recipient_email ?? item.recipient_phone ?? "Notification delivery",
+      context: [item.event_type, item.status, item.last_error ?? item.hold_reason].filter(Boolean).join(" · "),
+      createdAt: item.created_at,
+      href: "#admin-communications",
+      actionLabel: "Open outbox",
+    })));
 
   tasks.sort((a, b) => {
     const aTime = Date.parse(a.createdAt);
