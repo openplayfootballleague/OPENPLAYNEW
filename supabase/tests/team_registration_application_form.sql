@@ -12,6 +12,7 @@ declare
   v_membership public.team_memberships;
   v_details public.team_registration_details;
   v_rejected boolean;
+  v_membership_count integer;
 begin
   if not exists (
     select 1 from pg_catalog.pg_class c
@@ -29,7 +30,8 @@ begin
   end if;
 
   if has_function_privilege('anon','public.get_team_registration_terms(uuid)','EXECUTE')
-     or has_function_privilege('anon','public.register_team(uuid,text,text,text,text,text,text,boolean,boolean,integer,integer,integer,boolean,boolean,boolean,boolean,boolean,boolean,text)','EXECUTE') then
+     or has_function_privilege('anon','public.register_team(uuid,text,text,text,text,text,text,boolean,boolean,integer,integer,integer,boolean,boolean,boolean,boolean,boolean,boolean,text)','EXECUTE')
+     or has_function_privilege('anon','public.update_my_team_crest(uuid,text)','EXECUTE') then
     raise exception 'Team registration RPCs must not be anonymously executable';
   end if;
 
@@ -115,6 +117,8 @@ begin
   if not found or v_membership.status<>'pending' or v_membership.is_captain then
     raise exception 'Applicant must not become captain or active player before administrator approval';
   end if;
+  select count(*) into v_membership_count from public.team_memberships where season_team_id=v_season_team.id;
+  if v_membership_count<>1 then raise exception 'Team registration must not create an initial squad'; end if;
 
   select * into v_details
   from public.team_registration_details
@@ -127,6 +131,7 @@ begin
      or not v_details.captain_whatsapp_same_as_mobile
      or v_details.captain_no_whatsapp
      or v_details.team_status<>'returning'
+     or v_details.preferred_kit_colour<>'Orange and black'
      or v_details.weekly_fee_accepted_pence<>3000
      or v_details.full_season_total_accepted_pence<>45500
      or v_details.gameweek_count_accepted<>14
