@@ -114,7 +114,7 @@ export function AdminFixtureGenerator({ seasons, venues, locations, defaultSeaso
     setBuffer(String(selectedSeason.matchday_buffer_minutes ?? 0));
     setVenueId(selectedSeason.default_venue_id || "");
     setRoundRobinMode(selectedSeason.round_robin_mode || "double");
-    setFirstMatchdayDate(selectedSeason.starts_on || "");
+    if (selectedSeason.starts_on && selectedSeason.matchday_weekday !== null) {\n      const firstDate = new Date(`${selectedSeason.starts_on}T12:00:00`);\n      const offset = (selectedSeason.matchday_weekday - firstDate.getDay() + 7) % 7;\n      firstDate.setDate(firstDate.getDate() + offset);\n      setFirstMatchdayDate(`${firstDate.getFullYear()}-${String(firstDate.getMonth() + 1).padStart(2, "0")}-${String(firstDate.getDate()).padStart(2, "0")}`);\n    } else {\n      setFirstMatchdayDate(selectedSeason.starts_on || "");\n    }
     setPreview(null);
     setConfirmGenerate(false);
     setError("");
