@@ -1,4 +1,8 @@
 -- OneSignal push delivery, account category preferences and privacy-safe retry behavior.
+-- Preference mutations go through narrowly scoped security-definer RPCs or the
+-- authenticated OneSignal device manager; do not expose direct table updates.
+revoke update on public.notification_preferences from authenticated;
+
 alter table public.notification_preferences
   add column if not exists push_enabled boolean not null default false,
   add column if not exists category_preferences jsonb not null default
