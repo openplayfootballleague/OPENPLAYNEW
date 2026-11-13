@@ -21,6 +21,20 @@ type GrowthRow = {
   team_applications: number | string;
   team_approvals: number | string;
 };
+type RegistrationRow = {
+  bucket_date: string;
+  player_registered: number | string | null;
+  player_pending_review: number | string | null;
+  player_rejected: number | string | null;
+  team_applications: number | string;
+  team_approved: number | string;
+  team_rejected: number | string;
+  team_pending: number | string;
+  membership_requests: number | string;
+  membership_accepted: number | string;
+  membership_rejected: number | string;
+  membership_pending: number | string;
+};
 type Tab = "overview" | "usage" | "growth" | "registrations" | "engagement" | "features" | "locations" | "competition" | "business" | "reports";
 
 const money = (pence: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
@@ -53,6 +67,8 @@ function AdminAnalyticsPage() {
   const [financeRows, setFinanceRows] = useState<FinanceSummaryRow[]>([]);
   const [growthRows, setGrowthRows] = useState<GrowthRow[]>([]);
   const [growthError, setGrowthError] = useState("");
+  const [registrationRows, setRegistrationRows] = useState<RegistrationRow[]>([]);
+  const [registrationError, setRegistrationError] = useState("");
   const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
 
@@ -114,10 +130,15 @@ function AdminAnalyticsPage() {
         p_league_id: leagueId || undefined,
         p_season_id: seasonId || undefined,
       };
-      const [dashboardResult, fixtureResult, growthResult] = await Promise.all([
+      const [dashboardResult, fixtureResult, growthResult, registrationResult] = await Promise.all([
         getSupabaseClient().rpc("get_admin_dashboard_contextual", args),
         getSupabaseClient().rpc("get_admin_contextual_fixtures", args),
         getSupabaseClient().rpc("get_admin_user_growth", {
+          p_from_date: fromDate || undefined,
+          p_to_date: toDate || undefined,
+          ...args,
+        }),
+        getSupabaseClient().rpc("get_admin_registration_conversion", {
           p_from_date: fromDate || undefined,
           p_to_date: toDate || undefined,
           ...args,
@@ -134,6 +155,13 @@ function AdminAnalyticsPage() {
       } else {
         setGrowthRows((growthResult.data ?? []) as GrowthRow[]);
         setGrowthError("");
+      }
+      if (registrationResult.error) {
+        setRegistrationRows([]);
+        setRegistrationError("Registration conversion reporting is unavailable for this context.");
+      } else {
+        setRegistrationRows((registrationResult.data ?? []) as RegistrationRow[]);
+        setRegistrationError("");
       }
 
       if (seasonId) {
@@ -205,6 +233,29 @@ function AdminAnalyticsPage() {
     teamApplications: growthRows.reduce((total, row) => total + Number(row.team_applications ?? 0), 0),
     teamApprovals: growthRows.reduce((total, row) => total + Number(row.team_approvals ?? 0), 0),
   }), [growthRows]);
+  const registrationTotals = useMemo(() => registrationRows.reduce((totals, row) => ({
+    playerRegistered: totals.playerRegistered === null || row.player_registered === null ? null : totals.playerRegistered + Number(row.player_registered),
+    playerPending: totals.playerPending === null || row.player_pending_review === null ? null : totals.playerPending + Number(row.player_pending_review),
+    playerRejected: totals.playerRejected === null || row.player_rejected === null ? null : totals.playerRejected + Number(row.player_rejected),
+    teamApplications: totals.teamApplications + Number(row.team_applications),
+    teamApproved: totals.teamApproved + Number(row.team_approved),
+    teamRejected: totals.teamRejected + Number(row.team_rejected),
+    teamPending: totals.teamPending + Number(row.team_pending),
+    membershipRequests: totals.membershipRequests + Number(row.membership_requests),
+    membershipAccepted: totals.membershipAccepted + Number(row.membership_accepted),
+    membershipRejected: totals.membershipRejected + Number(row.membership_rejected),
+    membershipPending: totals.membershipPending + Number(row.membership_pending),
+  }), {
+    playerRegistered: registrationRows.length > 0 && registrationRows[0].player_registered !== null ? 0 : null,
+    playerPending: registrationRows.length > 0 && registrationRows[0].player_pending_review !== null ? 0 : null,
+    playerRejected: registrationRows.length > 0 && registrationRows[0].player_rejected !== null ? 0 : null,
+    teamApplications: 0, teamApproved: 0, teamRejected: 0, teamPending: 0,
+    membershipRequests: 0, membershipAccepted: 0, membershipRejected: 0, membershipPending: 0,
+  }), [registrationRows]);
+  const teamResolved = registrationTotals.teamApproved + registrationTotals.teamRejected;
+  const membershipResolved = registrationTotals.membershipAccepted + registrationTotals.membershipRejected;
+  const teamApprovalRate = teamResolved > 0 ? registrationTotals.teamApproved / teamResolved * 100 : null;
+  const membershipAcceptanceRate = membershipResolved > 0 ? registrationTotals.membershipAccepted / membershipResolved * 100 : null;
 
   async function saveContext(nextLocation: string, nextLeague: string, nextSeason: string) {
     setContextSaving(true);
@@ -385,13 +436,38 @@ function AdminAnalyticsPage() {
           </>}
         </>}
       </> : tab === "registrations" ? <>
-        <div className="analytics-stat-grid">
-          <article><span>Pending player reviews</span><strong>{overview.pendingPlayerReviews}</strong></article>
-          <article><span>Pending team applications</span><strong>{overview.pendingTeamApplications}</strong></article>
-          <article><span>Pending join requests</span><strong>{overview.pendingMembershipRequests}</strong></article>
-          <article><span>Approved teams</span><strong>{overview.approvedTeams}</strong></article>
-        </div>
-        <p className="form-note">These are current workflow queues, not conversion rates. Signup-to-registration conversion requires a complete, consented event history and is not reported yet.</p>
+        <h2>Registration &amp; conversion · created-date cohorts</h2>
+        {registrationError ? <p className="form-error" role="alert">{registrationError}</p> : <>
+          <p className="form-note">Records are grouped by their original creation date and classified by their current outcome. Pending records remain unresolved and are excluded from resolved conversion-rate denominators.</p>
+          <div className="analytics-stat-grid">
+            <article><span>Player registrations approved</span><strong>{registrationTotals.playerRegistered === null ? "—" : registrationTotals.playerRegistered}</strong></article>
+            <article><span>Player reviews pending</span><strong>{registrationTotals.playerPending === null ? "—" : registrationTotals.playerPending}</strong></article>
+            <article><span>Player registrations rejected</span><strong>{registrationTotals.playerRejected === null ? "—" : registrationTotals.playerRejected}</strong></article>
+            <article><span>Team applications</span><strong>{registrationTotals.teamApplications}</strong></article>
+            <article><span>Team approval · resolved</span><strong>{teamApprovalRate === null ? "—" : teamApprovalRate.toFixed(1) + "%"}</strong></article>
+            <article><span>Membership acceptance · resolved</span><strong>{membershipAcceptanceRate === null ? "—" : membershipAcceptanceRate.toFixed(1) + "%"}</strong></article>
+          </div>
+          {registrationTotals.playerRegistered === null && <p className="analytics-state-label">Player registration review totals are restricted to the global administrator's all-location view. They are not inferred from team membership records.</p>}
+          <div className="analytics-section"><h3>Team application outcomes</h3>
+            <p className="form-note">Approval rate = approved / (approved + rejected). Pending applications are excluded from the resolved denominator.</p>
+            <div className="analytics-stat-grid analytics-stat-grid-compact">
+              <article><span>Approved</span><strong>{registrationTotals.teamApproved}</strong></article>
+              <article><span>Rejected</span><strong>{registrationTotals.teamRejected}</strong></article>
+              <article><span>Pending</span><strong>{registrationTotals.teamPending}</strong></article>
+            </div>
+          </div>
+          <div className="analytics-section"><h3>Club membership outcomes</h3>
+            <p className="form-note">Acceptance rate = accepted / (accepted + rejected). Previously accepted memberships remain accepted in this cohort if the player later leaves; pending requests are excluded.</p>
+            <div className="analytics-stat-grid analytics-stat-grid-compact">
+              <article><span>Accepted</span><strong>{registrationTotals.membershipAccepted}</strong></article>
+              <article><span>Rejected</span><strong>{registrationTotals.membershipRejected}</strong></article>
+              <article><span>Pending</span><strong>{registrationTotals.membershipPending}</strong></article>
+            </div>
+          </div>
+          {registrationRows.length === 0 ? <p className="form-note">No registration activity was recorded in the selected date range.</p> : <div className="analytics-table-wrap"><table><thead><tr><th>Created</th><th>Team applications</th><th>Approved</th><th>Rejected</th><th>Pending</th><th>Join requests</th><th>Accepted</th><th>Rejected</th><th>Pending</th></tr></thead><tbody>
+            {registrationRows.map((row) => <tr key={row.bucket_date}><td>{new Date(row.bucket_date + "T12:00:00Z").toLocaleDateString("en-GB", { timeZone: "Europe/London", dateStyle: "medium" })}</td><td>{Number(row.team_applications)}</td><td>{Number(row.team_approved)}</td><td>{Number(row.team_rejected)}</td><td>{Number(row.team_pending)}</td><td>{Number(row.membership_requests)}</td><td>{Number(row.membership_accepted)}</td><td>{Number(row.membership_rejected)}</td><td>{Number(row.membership_pending)}</td></tr>)}
+          </tbody></table></div>}
+        </>}
       </> : tab === "engagement" ? <div className="analytics-state"><h2>Engagement &amp; retention</h2><p>Meaningful repeat visits, active-user cohorts and 1/7/30-day retention are not available until the consented event history has sufficient coverage.</p><p className="analytics-state-label">An open tab or a page render is not counted as engagement.</p></div> : tab === "features" ? <div className="analytics-state"><h2>Feature performance</h2><p>Feature adoption and repeat interactions will be reported for Player Hub, Match Centre, teams, fixtures, results, registration, team management, gallery and announcements.</p><p className="analytics-state-label">Event coverage is being expanded; incomplete feature history is not displayed as zero.</p></div> : tab === "competition" ? <>
         {!seasonId ? <p className="form-note">Choose a season above to load its verified competition statistics.</p> : seasonError ? <p className="form-error" role="alert">{seasonError}</p> : !seasonStats ? <p className="form-note">Loading season statistics…</p> : <>
           <h2>{seasonStats.season.name} · {seasonStats.season.status}</h2>
