@@ -31,7 +31,7 @@ The public app ID is not a secret. The REST API key must never be exposed to the
 1. Create/configure a OneSignal Web Push app for the exact Open Play HTTPS origin.
 2. Confirm the browser platform and web push domain are correct.
 3. Keep the app's external ID alias enabled; Open Play uses the signed-in Supabase Auth UUID as that external ID.
-4. Configure the service worker path as `/sw.js` (the existing root-scoped Open Play PWA worker).
+4. Configure the service worker path as `/onesignal/OneSignalSDKWorker.js` with scope `/onesignal/`. This is separate from the root-scoped Open Play PWA worker.
 5. Use a project-scoped REST API key with only the access required for notification creation and subscription/user management.
 6. Add the three server-side secrets and the public build variable above. Do not use live credentials in CI.
 
