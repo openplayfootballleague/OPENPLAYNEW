@@ -414,6 +414,47 @@ function AdminAnalyticsPage() {
     }
   }
 
+  async function saveOperatingCost() {
+    const amountPence = Math.round(Number(costAmount) * 100);
+    if (!Number.isFinite(amountPence) || amountPence < 1 || amountPence > 100000000) {
+      setBusinessError("Enter a valid operating cost between £0.01 and £1,000,000.");
+      return;
+    }
+    if (costDescription.trim().length < 3 || costReason.trim().length < 5 || !costDate) {
+      setBusinessError("Enter a description, date and reason for recording this cost.");
+      return;
+    }
+    setCostSaving(true);
+    setBusinessError("");
+    setNotice("");
+    try {
+      const { error: rpcError } = await analyticsRpc().rpc("admin_create_operating_cost", {
+        p_amount_pence: amountPence,
+        p_category: costCategory,
+        p_description: costDescription.trim(),
+        p_occurred_at: new Date(costDate + "T12:00:00.000Z").toISOString(),
+        p_location_id: locationId || null,
+        p_league_id: leagueId || null,
+        p_season_id: seasonId || null,
+        p_reference: costReference.trim() || null,
+        p_notes: costNotes.trim() || null,
+        p_reason: costReason.trim(),
+      });
+      if (rpcError) throw new Error(rpcError.message);
+      setNotice("Operating cost recorded and added to the finance audit history.");
+      setCostAmount("");
+      setCostDescription("");
+      setCostReference("");
+      setCostNotes("");
+      setCostReason("");
+      await loadContextData();
+    } catch (cause) {
+      setBusinessError(cause instanceof Error ? cause.message : "Unable to record the operating cost.");
+    } finally {
+      setCostSaving(false);
+    }
+  }
+
   function exportCsv() {
     if (!overview) return;
     const rows: Array<Array<string | number>> = [
