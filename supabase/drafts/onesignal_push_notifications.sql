@@ -16,8 +16,8 @@ immutable
 set search_path = ''
 as $$
   select case
-    when p_event_type like 'fixture.%' or p_event_type like 'referee.report.%' then 'match_updates'
-    when p_event_type like 'team.%' or p_event_type like 'player.transfer.%' then 'team_updates'
+    when p_event_type like 'fixture.%' or p_event_type like 'referee.%' then 'match_updates'
+    when p_event_type like 'team.%' or p_event_type like 'player.transfer%' then 'team_updates'
     when p_event_type = 'message.new' then 'club_messages'
     when p_event_type like 'announcement.%' then 'competition_announcements'
     when p_event_type like 'support.%' then 'support_updates'
