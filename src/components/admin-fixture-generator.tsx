@@ -107,7 +107,9 @@ export function AdminFixtureGenerator({ seasons, venues, locations, fixtures, de
     if (nextSeasonId) setSeasonId(nextSeasonId);
   }, [defaultSeasonId, eligibleSeasons, seasonId]);
 
-  const seasonHasFixtures = fixtures.some((fixture) => fixture.season_id === seasonId);\n\n  const availableVenues = useMemo(() => {
+  const seasonHasFixtures = fixtures.some((fixture) => fixture.season_id === seasonId);
+
+  const availableVenues = useMemo(() => {
     if (!selectedSeason) return [];
     return venues.filter((venue) =>
       venue.location_id === selectedSeason.location_id &&
@@ -125,7 +127,14 @@ export function AdminFixtureGenerator({ seasons, venues, locations, fixtures, de
     setBuffer(String(selectedSeason.matchday_buffer_minutes ?? 0));
     setVenueId(selectedSeason.default_venue_id || "");
     setRoundRobinMode(selectedSeason.round_robin_mode || "double");
-    if (selectedSeason.starts_on && selectedSeason.matchday_weekday !== null) {\n      const firstDate = new Date(`${selectedSeason.starts_on}T12:00:00`);\n      const offset = (selectedSeason.matchday_weekday - firstDate.getDay() + 7) % 7;\n      firstDate.setDate(firstDate.getDate() + offset);\n      setFirstMatchdayDate(`${firstDate.getFullYear()}-${String(firstDate.getMonth() + 1).padStart(2, "0")}-${String(firstDate.getDate()).padStart(2, "0")}`);\n    } else {\n      setFirstMatchdayDate(selectedSeason.starts_on || "");\n    }
+    if (selectedSeason.starts_on && selectedSeason.matchday_weekday !== null) {
+      const firstDate = new Date(`${selectedSeason.starts_on}T12:00:00`);
+      const offset = (selectedSeason.matchday_weekday - firstDate.getDay() + 7) % 7;
+      firstDate.setDate(firstDate.getDate() + offset);
+      setFirstMatchdayDate(`${firstDate.getFullYear()}-${String(firstDate.getMonth() + 1).padStart(2, "0")}-${String(firstDate.getDate()).padStart(2, "0")}`);
+    } else {
+      setFirstMatchdayDate(selectedSeason.starts_on || "");
+    }
     setPreview(null);
     setConfirmGenerate(false);
     setError("");
@@ -221,7 +230,8 @@ export function AdminFixtureGenerator({ seasons, venues, locations, fixtures, de
       <div className="admin-section-heading">
         <div><h3>Round-robin fixture generator</h3><p>Configure the season matchday, preview the complete schedule, then generate fixtures once approved.</p></div>
       </div>
-      {seasonHasFixtures && <p className="form-note">Fixtures already exist for this season. Existing fixtures are never overwritten, and matchday settings are locked.</p>}\n      <form className="admin-setup-form admin-fixture-generator-form" onSubmit={saveSettings}>
+      {seasonHasFixtures && <p className="form-note">Fixtures already exist for this season. Existing fixtures are never overwritten, and matchday settings are locked.</p>}
+      <form className="admin-setup-form admin-fixture-generator-form" onSubmit={saveSettings}>
         <label>Season
           <select value={seasonId} onChange={(event) => { setSeasonId(event.target.value); setPreview(null); setConfirmGenerate(false); setSettingsSaved(false); setNotice(""); setError(""); }} required>
             {eligibleSeasons.map((season) => <option key={season.id} value={season.id}>{season.name}</option>)}
