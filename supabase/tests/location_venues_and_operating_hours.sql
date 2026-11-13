@@ -143,8 +143,8 @@ begin
     raise exception 'Venue writes must be performed only through permission-checked RPCs';
   end if;
   -- Finance administrators and ordinary users must not manage venue configuration.
-  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000007',true);
-  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000007","role":"authenticated"}',true);
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000006',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000006","role":"authenticated"}',true);
   v_denied:=false;
   begin
     perform * from public.admin_create_venue(v_location_a,'Finance user venue',null,'{}'::smallint[],null,null,false);
