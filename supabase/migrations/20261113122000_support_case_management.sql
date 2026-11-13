@@ -78,17 +78,17 @@ begin
   if not found then return new; end if;
   if v_case.created_by=new.sender_id and v_case.status in ('resolved','closed') then
     v_before:=jsonb_build_object(
-      'status',v_case.status,'resolution_summary',v_case.resolution_summary,
+      'assigned_to',v_case.assigned_to,'status',v_case.status,'resolution_summary',v_case.resolution_summary,
       'resolved_at',v_case.resolved_at,'resolved_by',v_case.resolved_by
     );
     update public.support_cases
-    set status='open',resolution_summary=null,resolved_at=null,resolved_by=null,updated_at=now()
+    set assigned_to=null,status='open',resolution_summary=null,resolved_at=null,resolved_by=null,updated_at=now()
     where id=v_case.id
     returning * into v_case;
     insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
     values(new.sender_id,'support.case.reopened_by_member','support_case',v_case.id::text,
       'Member sent a follow-up message.',
-      v_before,jsonb_build_object('status',v_case.status,'resolution_summary',v_case.resolution_summary,
+      v_before,jsonb_build_object('assigned_to',v_case.assigned_to,'status',v_case.status,'resolution_summary',v_case.resolution_summary,
         'resolved_at',v_case.resolved_at,'resolved_by',v_case.resolved_by));
   else
     update public.support_cases set updated_at=now() where id=v_case.id;
