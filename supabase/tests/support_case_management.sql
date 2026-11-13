@@ -100,13 +100,22 @@ begin
     v_case_id,v_assignee,'closed','normal','Member confirmed access is restored','Closed after member confirmation'
   );
   select closed_at into v_closed_at from public.message_conversations where id=v_conversation;
-  if v_closed_at is null then raise exception 'Closing a support case did not close its conversation'; end if;
+  if v_closed_at is not null then raise exception 'Closing a support case incorrectly hid the member conversation history'; end if;
 
-  perform public.admin_update_support_case(
-    v_case_id,v_assignee,'open','normal',null,'Reopened after a follow-up from the member'
-  );
+  execute 'reset role';
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_player::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player::text,'role','authenticated')::text,true);
+  perform public.send_message(v_conversation,'I still need help after the case was closed','message');
+  execute 'reset role';
+
+  select status,resolved_at,resolved_by into v_status,v_closed_at,v_assigned
+  from public.support_cases where id=v_case_id;
+  if v_status<>'open' or v_closed_at is not null or v_assigned is not null then
+    raise exception 'A member follow-up did not reopen the closed support case';
+  end if;
   select closed_at into v_closed_at from public.message_conversations where id=v_conversation;
-  if v_closed_at is not null then raise exception 'Reopening a support case did not reopen its conversation'; end if;
+  if v_closed_at is not null then raise exception 'Support conversation history became inaccessible after a follow-up'; end if;
 
   execute 'reset role';
   execute 'set local role authenticated';
