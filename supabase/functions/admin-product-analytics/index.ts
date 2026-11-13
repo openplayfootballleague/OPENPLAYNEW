@@ -197,7 +197,7 @@ Deno.serve(async (request: Request) => {
     }, 200, allowedOrigin);
   }
 
-  if (!posthogKey || !projectId || !/^\\d+$/.test(projectId)) {
+  if (!posthogKey || !projectId || !/^[0-9]+$/.test(projectId)) {
     return json({
       error: "PostHog reporting is not configured. Add a project-scoped personal API key with query read access and the PostHog project ID to Supabase function secrets.",
       code: "posthog_not_configured",
