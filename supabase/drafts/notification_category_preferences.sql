@@ -81,9 +81,9 @@ begin
   if p_user_id is null or p_event_type is null or length(btrim(p_event_type))<3 then return; end if;
 
   v_category:=case
-    when p_event_type like 'fixture.%' then 'matchday'
     when p_event_type like '%payment%' or p_event_type like 'finance.%'
       or p_event_type like 'referee.payout.%' then 'payments'
+    when p_event_type like 'fixture.%' or p_event_type like 'gameweek.%' then 'matchday'
     when p_event_type like 'team.%' or p_event_type like 'player.transfer_%' then 'team_updates'
     when p_event_type like 'message.%' or p_event_type like 'announcement.%' or p_event_type='admin.announcement' then 'messages'
     else 'account_security'
