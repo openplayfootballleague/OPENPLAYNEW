@@ -83,3 +83,7 @@ verify_jwt = true
 [functions.admin-product-analytics]
 # JWT is required; the function additionally validates the caller and scopes queries through get_admin_competition_setup.
 verify_jwt = true
+
+[functions.manage-push-devices]
+# The function validates the Supabase user and verifies device ownership with OneSignal.
+verify_jwt = true
