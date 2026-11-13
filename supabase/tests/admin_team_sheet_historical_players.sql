@@ -1,5 +1,5 @@
 -- Historical submitted selections are immutable records; current roster eligibility
--- must not erase former players from the admin's submitted-sheet view.
+-- must not erase former or anonymised players from the admin's submitted-sheet view.
 do $historical_team_sheet_regression$
 declare
   v_definition text := lower(pg_catalog.pg_get_functiondef(
@@ -7,6 +7,7 @@ declare
   ));
   v_players_query text;
   v_roster_query text;
+  v_compact_players text;
   v_players_start integer;
   v_roster_start integer;
 begin
@@ -17,13 +18,20 @@ begin
   end if;
   v_players_query := pg_catalog.substr(v_definition, v_players_start, v_roster_start - v_players_start);
   v_roster_query := pg_catalog.substr(v_definition, v_roster_start);
+  v_compact_players := pg_catalog.regexp_replace(v_players_query, E'\\s+', '', 'g');
 
   if pg_catalog.strpos(v_players_query, 'tm.status=''active''') > 0 then
     raise exception 'Historical submitted-sheet players must not be filtered by current membership status';
   end if;
-  if pg_catalog.strpos(v_players_query, 'tm.user_id=tsp.user_id') = 0
-     or pg_catalog.strpos(v_players_query, 'tm.season_team_id=sh.season_team_id') = 0 then
-    raise exception 'Historical submitted-sheet players must retain their recorded team membership identity';
+  if pg_catalog.strpos(v_compact_players, 'tm.user_id=tsp.user_id') = 0
+     or pg_catalog.strpos(v_compact_players, 'tm.season_team_id=sh.season_team_id') = 0
+     or pg_catalog.strpos(v_compact_players, 'leftjoinpublic.team_membershipstm') = 0 then
+    raise exception 'Historical membership identity must be optional, not a filter on submitted players';
+  end if;
+  if pg_catalog.strpos(v_compact_players, 'leftjoinpublic.competition_player_identitiescpi') = 0
+     or pg_catalog.strpos(v_compact_players, 'cpi.id=tsp.competition_player_id') = 0
+     or pg_catalog.strpos(v_players_query, 'cpi.display_name') = 0 then
+    raise exception 'Historical display names must come from the permanent competition identity after erasure';
   end if;
   if pg_catalog.strpos(v_roster_query, 'tm.status=''active''') = 0
      or pg_catalog.strpos(v_roster_query, 'p.registration_status=''registered''') = 0
