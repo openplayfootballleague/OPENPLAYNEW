@@ -38,11 +38,15 @@ begin
   perform set_config('request.jwt.claims','{"sub":"f2000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
   select public.get_admin_product_analytics_scope() into v_scope;
 
-  if jsonb_array_length(v_scope->'locations')<>2
-     or jsonb_array_length(v_scope->'leagues')<>2
-     or jsonb_array_length(v_scope->'seasons')<>2
+  if jsonb_array_length(v_scope->'locations')<2
+     or jsonb_array_length(v_scope->'leagues')<2
+     or jsonb_array_length(v_scope->'seasons')<2
      or not (v_scope->'locations' @> jsonb_build_array('f2000000-0000-4000-8000-000000000010'))
-     or not (v_scope->'locations' @> jsonb_build_array('f2000000-0000-4000-8000-000000000011')) then
+     or not (v_scope->'locations' @> jsonb_build_array('f2000000-0000-4000-8000-000000000011'))
+     or not (v_scope->'leagues' @> jsonb_build_array(jsonb_build_object('id','f2000000-0000-4000-8000-000000000020','location_id','f2000000-0000-4000-8000-000000000010')))
+     or not (v_scope->'leagues' @> jsonb_build_array(jsonb_build_object('id','f2000000-0000-4000-8000-000000000021','location_id','f2000000-0000-4000-8000-000000000011')))
+     or not (v_scope->'seasons' @> jsonb_build_array(jsonb_build_object('id','f2000000-0000-4000-8000-000000000030','league_id','f2000000-0000-4000-8000-000000000020')))
+     or not (v_scope->'seasons' @> jsonb_build_array(jsonb_build_object('id','f2000000-0000-4000-8000-000000000031','league_id','f2000000-0000-4000-8000-000000000021'))) then
     raise exception 'Global administrator did not receive both authorised competition scopes: %', v_scope;
   end if;
   if v_scope::text ~* 'email|full_name|phone|date_of_birth|user_id|profile' then
