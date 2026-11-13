@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRequiredSession } from "../../lib/auth/use-required-session";
-import { aggregateFinanceTotals, buildAnalyticsOverview, buildLocationComparisons, safeCsvCell, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup, type FinanceSummaryRow } from "../../lib/analytics/overview";
+import { buildAnalyticsOverview, buildLocationComparisons, safeCsvCell, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup } from "../../lib/analytics/overview";
 import { getSupabaseClient } from "../../lib/supabase/client";
 
 type ContextPreference = { location_id: string | null; league_id: string | null; season_id: string | null; is_global_admin: boolean };
@@ -13,7 +13,6 @@ type SeasonStats = {
   teams: Array<{ position: number; team_id: string; name: string; played: number; wins: number; draws: number; losses: number; goals_for: number; goals_against: number; goal_difference: number; points: number; clean_sheets: number }>;
   players: Array<{ competition_player_id: string; full_name: string; apps: number; goals: number }>;
 };
-type FinanceOption = { season_id: string; season_name: string; team_id: string; team_name: string; league_name: string; season_status: string };
 type BusinessPerformance = {
   team_charges_pence: number | string;
   team_receipts_pence: number | string;
@@ -104,8 +103,6 @@ function AdminAnalyticsPage() {
   const [seasonError, setSeasonError] = useState("");
   const [financeAccess, setFinanceAccess] = useState(false);
   const [financeError, setFinanceError] = useState("");
-  const [financeOptions, setFinanceOptions] = useState<FinanceOption[]>([]);
-  const [financeRows, setFinanceRows] = useState<FinanceSummaryRow[]>([]);
   const [businessPerformance, setBusinessPerformance] = useState<BusinessPerformance | null>(null);
   const [businessError, setBusinessError] = useState("");
   const [operatingCosts, setOperatingCosts] = useState<OperatingCost[]>([]);
@@ -234,18 +231,16 @@ function AdminAnalyticsPage() {
         setSeasonError("");
       }
 
-      const { data: financeOptionRows, error: financeOptionError } = await getSupabaseClient().rpc("get_finance_options");
+      const { error: financeOptionError } = await getSupabaseClient().rpc("get_finance_options");
       if (financeOptionError) {
         setFinanceAccess(false);
-        setFinanceOptions([]);
-        setFinanceRows([]);
         setBusinessPerformance(null);
         setOperatingCosts([]);
         setFinanceError("Finance reporting is restricted to authorised finance administrators.");
         setBusinessError("Business performance is available to authorised finance administrators only.");
       } else {
         setFinanceAccess(true);
-        setFinanceOptions((financeOptionRows ?? []) as FinanceOption[]);
+        setFinanceError("");
         const [businessResult, costResult] = await Promise.all([
           analyticsRpc().rpc("get_admin_business_performance", {
             ...args,
@@ -256,7 +251,7 @@ function AdminAnalyticsPage() {
             ...args,
             p_from_date: fromDate || undefined,
             p_to_date: toDate || undefined,
-            p_limit: 100,
+            p_limit: 200,
           }),
         ]);
         if (businessResult.error || costResult.error) {
@@ -267,19 +262,6 @@ function AdminAnalyticsPage() {
           setBusinessPerformance(((businessResult.data ?? []) as BusinessPerformance[])[0] ?? null);
           setOperatingCosts((costResult.data ?? []) as OperatingCost[]);
           setBusinessError("");
-        }
-        if (!seasonId && (locationId || leagueId)) {
-          setFinanceRows([]);
-          setFinanceError("");
-        } else {
-          const { data: summaryRows, error: financeSummaryError } = await getSupabaseClient().rpc("get_finance_summary", { p_season_id: seasonId || undefined });
-          if (financeSummaryError) {
-            setFinanceRows([]);
-            setFinanceError("Finance summary could not be loaded for this context.");
-          } else {
-            setFinanceRows((summaryRows ?? []) as FinanceSummaryRow[]);
-            setFinanceError("");
-          }
         }
       }
       setRefreshedAt(new Date());
@@ -359,7 +341,6 @@ function AdminAnalyticsPage() {
     () => buildLocationComparisons(setup, { locationId, leagueId, seasonId, fromDate, toDate }),
     [fromDate, leagueId, locationId, seasonId, setup, toDate],
   );
-  const financeTotals = useMemo(() => aggregateFinanceTotals(financeRows), [financeRows]);
   const growthTotals = useMemo(() => ({
     accountSignups: growthRows.some((row) => row.account_signups !== null)
       ? growthRows.reduce((total, row) => total + Number(row.account_signups ?? 0), 0)
@@ -478,15 +459,6 @@ function AdminAnalyticsPage() {
       ["Pending team applications", overview.pendingTeamApplications],
       ["Pending join requests", overview.pendingMembershipRequests],
     ];
-    if (financeAccess && !financeError && financeRows.length > 0) {
-      rows.push(
-        ["Ledger charges (pence)", financeTotals.chargesPence],
-        ["Ledger payments (pence)", financeTotals.paymentsPence],
-        ["Ledger refunds (pence)", financeTotals.refundsPence],
-        ["Ledger fines (pence)", financeTotals.finesPence],
-        ["Outstanding ledger balance (pence)", financeTotals.outstandingPence],
-      );
-    }
     if (financeAccess && businessPerformance) {
       rows.push(
         [],
@@ -881,7 +853,7 @@ function AdminAnalyticsPage() {
         <h3>Weekly retention</h3>
         <div className="analytics-table-wrap"><table><thead><tr><th>Cohort week</th><th>Weeks later</th><th>Cohort size</th><th>Returned</th><th>Retention</th></tr></thead><tbody>{productAnalytics.retention.map((row) => <tr key={row.cohort_week + "-" + row.weeks_since_start}><td>{row.cohort_week}</td><td>{row.weeks_since_start}</td><td>{row.cohort_users}</td><td>{row.retained_users}</td><td>{row.retention_rate.toFixed(1)}%</td></tr>)}</tbody></table></div>
       </>}
-      {financeAccess && !financeError && <p>Ledger charges: {money(financeTotals.chargesPence)} · Payments: {money(financeTotals.paymentsPence)} · Refunds: {money(financeTotals.refundsPence)} · Fines: {money(financeTotals.finesPence)} · Outstanding: {money(financeTotals.outstandingPence)}</p>}
+      
       <p>Generated {new Date().toLocaleString("en-GB")}. Aggregate operational data only; no player personal details included.</p>
     </section>
     <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs for operational and financial truth; consented PostHog aggregates for product engagement and feature performance. Reporting window: {fromDate || toDate ? `${fromDate || "Any date"} to ${toDate || "Any date"}` : "all dates"} within the selected context. Team and queue figures are current snapshots; business performance combines team ledger entries, player-card proceeds, future team obligations and recorded operating costs. PostHog reporting requires the server-side project query credential and sufficient consented activity.</p>
