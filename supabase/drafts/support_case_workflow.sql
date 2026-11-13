@@ -11,6 +11,17 @@ update public.message_conversations
 set support_status='open',support_priority='normal'
 where kind='support' and support_status is null;
 
+-- Support cases are a global account-support queue. Remove legacy location/finance
+-- administrators from private support threads; only global administrators retain access.
+delete from public.message_conversation_participants cp
+using public.message_conversations c,public.user_roles ur
+where cp.conversation_id=c.id and c.kind='support'
+  and ur.user_id=cp.user_id and ur.role in ('league_admin','finance_admin')
+  and not exists(
+    select 1 from public.user_roles global_role
+    where global_role.user_id=cp.user_id and global_role.role in ('admin','super_admin')
+  );
+
 alter table public.message_conversations
   drop constraint if exists message_conversations_support_case_state_check;
 alter table public.message_conversations
@@ -57,6 +68,57 @@ revoke all on function public.set_support_case_defaults() from public,anon,authe
 create index if not exists message_conversations_support_queue_idx
   on public.message_conversations(support_status,support_priority,updated_at desc)
   where kind='support' and closed_at is null;
+
+create or replace function public.create_support_message_conversation(
+  p_subject text,
+  p_initial_message text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path=''
+as $support_create$
+declare
+  v_user uuid:=auth.uid();
+  v_conversation_id uuid;
+  v_count integer;
+  v_admin_count integer;
+begin
+  if v_user is null or not public.message_actor_is_active(v_user) then
+    raise exception 'Active Open Play account required';
+  end if;
+  if length(btrim(coalesce(p_subject,''))) not between 3 and 120
+     or length(btrim(coalesce(p_initial_message,''))) not between 1 and 2000 then
+    raise exception 'Enter a subject and a message';
+  end if;
+  select count(*) into v_count from public.message_conversations
+  where kind='support' and created_by=v_user and created_at>now()-interval '1 day';
+  if v_count>=5 then raise exception 'Support request limit reached. Please wait before opening another conversation'; end if;
+  insert into public.message_conversations(kind,title,created_by)
+  values('support',btrim(p_subject),v_user)
+  returning id into v_conversation_id;
+  insert into public.message_conversation_participants(conversation_id,user_id)
+  values(v_conversation_id,v_user)
+  on conflict do nothing;
+  insert into public.message_conversation_participants(conversation_id,user_id,last_read_at)
+  select v_conversation_id,ur.user_id,now()-interval '1 microsecond'
+  from public.user_roles ur
+  where ur.role in ('admin','super_admin')
+    and public.message_actor_is_active(ur.user_id)
+  on conflict do nothing;
+  select count(*) into v_admin_count
+  from public.message_conversation_participants cp
+  join public.user_roles ur on ur.user_id=cp.user_id
+  where cp.conversation_id=v_conversation_id
+    and ur.role in ('admin','super_admin')
+    and cp.left_at is null;
+  if v_admin_count=0 then raise exception 'Administrator support is not available right now'; end if;
+  perform public.send_message(v_conversation_id,p_initial_message,'message');
+  return v_conversation_id;
+end;
+$support_create$;
+revoke all on function public.create_support_message_conversation(text,text) from public,anon;
+grant execute on function public.create_support_message_conversation(text,text) to authenticated;
 
 create or replace function public.admin_get_support_cases(
   p_status text default 'open',
