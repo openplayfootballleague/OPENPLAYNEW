@@ -166,6 +166,10 @@ export function aggregateFinanceTotals(rows: FinanceSummaryRow[]): FinanceTotals
 /** Quote CSV values and neutralise spreadsheet formula prefixes in user-controlled text. */
 export function safeCsvCell(value: string | number): string {
   const text = String(value);
-  const safe = /^[\u0000-\u0020]*[=+\-@]/.test(text) ? "'" + text : text;
+  // Numeric values are trusted data, not formulas. Preserve negative numbers
+  // as numbers in spreadsheet imports; neutralise formula-like text only.
+  const formulaLikeText = typeof value === "string"
+    && /^[\\s\\uFEFF]*[=+\\-@]/u.test(text);
+  const safe = formulaLikeText ? "'" + text : text;
   return '"' + safe.replaceAll('"', '""') + '"';
 }
