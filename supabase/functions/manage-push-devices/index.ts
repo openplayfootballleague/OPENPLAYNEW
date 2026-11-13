@@ -27,7 +27,7 @@ function json(body: unknown, status = 200, allowedOrigin = "null") {
 
 function isPushSubscription(subscription: OneSignalSubscription): boolean {
   const type = typeof subscription.type === "string" ? subscription.type.toLowerCase() : "";
-  return type !== "email" && type !== "sms";
+  return type.length > 0 && type !== "email" && type !== "sms";
 }
 
 async function getOneSignalUser(appId: string, apiKey: string, externalId: string) {
