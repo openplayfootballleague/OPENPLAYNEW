@@ -53,6 +53,16 @@ begin
   if jsonb_array_length(v_preview->'fixtures')<>56 then raise exception 'Fixture preview did not return all 56 fixtures'; end if;
   if exists(select 1 from public.fixtures where season_id=v_season) then raise exception 'Preview must not create fixtures'; end if;
 
+  perform public.admin_update_season_matchday_settings(v_season,5,time '20:00',26,5,v_venue,'double');
+  v_denied:=false;
+  begin
+    perform public.admin_generate_round_robin_fixtures(v_season,date '2026-11-20',v_preview->>'settings_hash');
+  exception when others then v_denied:=true;
+  end;
+  if not v_denied then raise exception 'Generation must reject a stale schedule preview after settings change'; end if;
+  perform public.admin_update_season_matchday_settings(v_season,5,time '20:00',25,5,v_venue,'double');
+  v_preview:=public.admin_preview_round_robin_fixtures(v_season,date '2026-11-20');
+
   v_generated:=public.admin_generate_round_robin_fixtures(v_season,date '2026-11-20',v_preview->>'settings_hash');
   if (v_generated->>'fixture_count')::integer<>56 or (v_generated->>'round_count')::integer<>14 then
     raise exception 'Fixture generation returned an unexpected summary: %',v_generated;
