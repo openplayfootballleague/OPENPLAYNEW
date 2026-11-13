@@ -18,3 +18,25 @@ Deno.test("successful HTTP responses are never classified as failures", () => {
     assertEquals(canMarkStripeTransferFailed(status), false, `HTTP ${status}`);
   }
 });
+
+Deno.test("Stripe idempotency keys are stable for the same payout attempt", () => {
+  const first = stripeTransferIdempotencyKey("match_report", "payout-123", 1);
+  const retry = stripeTransferIdempotencyKey("match_report", "payout-123", 1);
+  assertEquals(first, "openplay-referee-match_report-payout-123-attempt-1");
+  assertEquals(retry, first);
+});
+
+Deno.test("a new reconciled attempt receives a different idempotency key", () => {
+  const first = stripeTransferIdempotencyKey("match_report", "payout-123", 1);
+  const second = stripeTransferIdempotencyKey("match_report", "payout-123", 2);
+  assertEquals(first === second, false);
+});
+
+Deno.test("invalid payout identities cannot produce Stripe idempotency keys", () => {
+  let invalidType = false;
+  let invalidAttempt = false;
+  try { stripeTransferIdempotencyKey("other", "payout-123", 1); } catch { invalidType = true; }
+  try { stripeTransferIdempotencyKey("match_report", "payout-123", 0); } catch { invalidAttempt = true; }
+  assertEquals(invalidType, true);
+  assertEquals(invalidAttempt, true);
+});

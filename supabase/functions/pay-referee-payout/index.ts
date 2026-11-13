@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { canMarkStripeTransferFailed } from "./stripe-transfer-policy.ts";
+import { canMarkStripeTransferFailed, stripeTransferIdempotencyKey } from "./stripe-transfer-policy.ts";
 
 const cors=(origin:string)=>({
   "Access-Control-Allow-Origin":origin,
@@ -91,7 +91,7 @@ Deno.serve(async(req)=>{
       headers:{
         "Authorization":`Bearer ${stripeKey}`,
         "Content-Type":"application/x-www-form-urlencoded",
-        "Idempotency-Key":`openplay-referee-${payoutType}-${payoutId}-attempt-${payout.attempt}`,
+        "Idempotency-Key":stripeTransferIdempotencyKey(payoutType,payoutId,payout.attempt),
       },
       body:params.toString(),
     });
