@@ -62,13 +62,13 @@ Deno.test("builds fixed, scoped aggregate queries with inclusive date boundaries
     excludes(query, /SELECT \*|distinct_id|email|full_name|phone/, "Must not return direct identifiers or raw rows");
   }
   matches(queries.featurePerformance, /properties\['feature'\] IN \('fixtures', 'results', 'league_table', 'player_statistics', 'team_directory'\)/, "Feature list must be allowlisted");
-  matches(queries.weeklyActivity, /timestamp < toStartOfWeek\\(now\\(\\), 1\\)/, "Weekly activity must exclude the incomplete current week");
-  matches(queries.weeklyActivity, /toStartOfWeek\\(timestamp, 1\\) >= toDateTime\\('2026-11-01 00:00:00'\\)/, "Weekly activity must exclude a partial first week");
-  matches(queries.weeklyActivity, /addWeeks\\(toStartOfWeek\\(timestamp, 1\\), 1\\) <= toDateTime\\('2026-11-14 00:00:00'\\)/, "Weekly activity must exclude a partial final week");
+  matches(queries.weeklyActivity, /timestamp < toStartOfWeek\(now\(\), 1\)/, "Weekly activity must exclude the incomplete current week");
+  matches(queries.weeklyActivity, /toStartOfWeek\(timestamp, 1\) >= toDateTime\('2026-11-01 00:00:00'\)/, "Weekly activity must exclude a partial first week");
+  matches(queries.weeklyActivity, /addWeeks\(toStartOfWeek\(timestamp, 1\), 1\) <= toDateTime\('2026-11-14 00:00:00'\)/, "Weekly activity must exclude a partial final week");
   matches(queries.retention, /timestamp < toStartOfWeek\(now\(\), 1\)/, "Retention must exclude the incomplete current week");
   matches(queries.retention, /dateDiff\('week'/, "Retention must use weekly intervals");
   matches(queries.retention, /CROSS JOIN numbers\(9\)/, "Retention must zero-fill the first nine weekly intervals");
-  matches(queries.retention, /addWeeks\\(s.cohort_week, intervals.number \\+ 1\\) <= toDateTime\\('2026-11-14 00:00:00'\\)/, "Retention must not zero-fill beyond the selected date window");
+  matches(queries.retention, /addWeeks\(s.cohort_week, intervals.number \+ 1\) <= toDateTime\('2026-11-14 00:00:00'\)/, "Retention must not zero-fill beyond the selected date window");
   matches(queries.retention, /coalesce\(r.retained_users, 0\)/, "Missing return weeks must be shown as zero");
 });
 
