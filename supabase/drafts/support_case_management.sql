@@ -66,7 +66,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path=''
-as $
+as $$
 declare
   v_case public.support_cases;
   v_before jsonb;
@@ -75,9 +75,7 @@ begin
   from public.support_cases
   where conversation_id=new.conversation_id
   for update;
-
   if not found then return new; end if;
-
   if v_case.created_by=new.sender_id and v_case.status in ('resolved','closed') then
     v_before:=jsonb_build_object(
       'status',v_case.status,'resolution_summary',v_case.resolution_summary,
@@ -93,12 +91,12 @@ begin
       v_before,jsonb_build_object('status',v_case.status,'resolution_summary',v_case.resolution_summary,
         'resolved_at',v_case.resolved_at,'resolved_by',v_case.resolved_by));
   else
-    update public.support_cases set updated_at=now()
-    where id=v_case.id;
+    update public.support_cases set updated_at=now() where id=v_case.id;
   end if;
   return new;
 end;
-$;
+$$;
+
 revoke all on function public.touch_support_case_on_message() from public,anon,authenticated;
 drop trigger if exists touch_support_case_on_message_trigger on public.messages;
 create trigger touch_support_case_on_message_trigger
