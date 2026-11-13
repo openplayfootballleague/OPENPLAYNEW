@@ -20,6 +20,7 @@ const expectedMigrations = [
   "optional_goal_attribution",
   "admin_league_admin_role_management",
   "manual_season_recruitment_activation",
+  "captain_membership_removal_player_approval",
 ];
 let checked = 0;
 const foundMigrations = [];
