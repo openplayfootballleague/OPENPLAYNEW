@@ -57,6 +57,15 @@ begin
     ('f1000000-0000-4000-8000-000000000051','f1000000-0000-4000-8000-000000000041','f1000000-0000-4000-8000-000000000030','Conversion Team Rejected','ci-conv-team-rejected','rejected',timestamptz '2001-02-01 13:00:00+00',null),
     ('f1000000-0000-4000-8000-000000000052','f1000000-0000-4000-8000-000000000042','f1000000-0000-4000-8000-000000000030','Conversion Team Pending','ci-conv-team-pending','pending',timestamptz '2001-02-01 14:00:00+00',null);
 
+  insert into public.profiles(id,account_retention_status)
+  values
+    ('f1000000-0000-4000-8000-000000000001','active'),
+    ('f1000000-0000-4000-8000-000000000002','active'),
+    ('f1000000-0000-4000-8000-000000000003','active'),
+    ('f1000000-0000-4000-8000-000000000004','active'),
+    ('f1000000-0000-4000-8000-000000000005','active')
+  on conflict (id) do update set account_retention_status='active';
+
   insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status,created_at)
   values
     ('f1000000-0000-4000-8000-000000000003','Conversion Player A','+447700901103','ci-conv-player-a@openplay.invalid',date '1990-02-01','registered',timestamptz '2001-02-01 10:00:00+00'),
