@@ -196,7 +196,8 @@ Deno.serve(async (req: Request) => {
   if (appOrigin) {
     try {
       const parsed = new URL(appOrigin);
-      if (parsed.protocol === "https:" || parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+      if ((parsed.protocol === "https:" || parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") &&
+          parsed.pathname === "/" && !parsed.search && !parsed.hash && !parsed.username && !parsed.password) {
         validAppOrigin = parsed.origin;
       }
     } catch {
