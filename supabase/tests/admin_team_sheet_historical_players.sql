@@ -18,7 +18,7 @@ begin
   end if;
   v_players_query := pg_catalog.substr(v_definition, v_players_start, v_roster_start - v_players_start);
   v_roster_query := pg_catalog.substr(v_definition, v_roster_start);
-  v_compact_players := pg_catalog.regexp_replace(v_players_query, E'\\s+', '', 'g');
+  v_compact_players := pg_catalog.regexp_replace(v_players_query, '[[:space:]]+', '', 'g');
 
   if pg_catalog.strpos(v_players_query, 'tm.status=''active''') > 0 then
     raise exception 'Historical submitted-sheet players must not be filtered by current membership status';
@@ -31,7 +31,7 @@ begin
   if pg_catalog.strpos(v_compact_players, 'leftjoinpublic.competition_player_identitiescpi') = 0
      or pg_catalog.strpos(v_compact_players, 'cpi.id=tsp.competition_player_id') = 0
      or pg_catalog.strpos(v_players_query, 'cpi.display_name') = 0 then
-    raise exception 'Historical display names must come from the permanent competition identity after erasure; submitted-player query: %', v_players_query;
+    raise exception 'Historical display names must come from the permanent competition identity after erasure';
   end if;
   if pg_catalog.strpos(v_roster_query, 'tm.status=''active''') = 0
      or pg_catalog.strpos(v_roster_query, 'p.registration_status=''registered''') = 0
