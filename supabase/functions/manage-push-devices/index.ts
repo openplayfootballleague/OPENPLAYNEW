@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { sanitisePushDevice } from "../deliver-notifications/push-policy.ts";
+import { sanitisePushDevice } from "../_shared/onesignal-push-policy.ts";
 
 type OneSignalSubscription = {
   id?: unknown;
