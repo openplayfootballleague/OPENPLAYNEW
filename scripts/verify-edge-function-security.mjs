@@ -144,7 +144,7 @@ const approvalRpcPosition=reportReview.indexOf('rpc("admin_review_referee_match_
 const immediateTransferPosition=reportReview.indexOf('functions.invoke("pay-referee-payout"');
 const payoutInvocations=reportReview.split('functions.invoke("pay-referee-payout"').length-1;
 assert.ok(approvalRpcPosition>=0 && immediateTransferPosition>approvalRpcPosition, "The immediate referee transfer must be invoked only after the approval RPC succeeds");
-assert.equal(payoutInvocations.length,1, "One administrator approval handler must make exactly one immediate transfer invocation");
+assert.equal(payoutInvocations,1, "One administrator approval handler must make exactly one immediate transfer invocation");
 assert.ok(reportReview.includes("report_id:report.report_id"), "The approval trigger must identify the report, not trust a browser-supplied payout amount or destination");
 assert.ok(adminReferees.includes("payout.transfers_enabled") && !adminReferees.includes("payout.transfers_enabled&&payout.payouts_enabled"), "Match-report transfer controls must not require bank-payout enablement");
 assert.ok(adminReferees.includes("reward.transfers_enabled") && !adminReferees.includes("reward.transfers_enabled&&reward.payouts_enabled"), "Milestone transfer controls must not require bank-payout enablement");
