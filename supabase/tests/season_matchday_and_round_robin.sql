@@ -10,8 +10,8 @@ declare
   v_denied boolean;
   v_fixture_count integer;
   v_round_count integer;
-  v_bad_count integer;
   v_times time[];
+  i integer;
 begin
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,created_at,updated_at)
   values(v_admin,'authenticated','authenticated',v_admin_email,'','{}'::jsonb,now(),now());
