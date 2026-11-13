@@ -51,13 +51,13 @@ begin
 
   v_instagram_url := nullif(trim(coalesce(p_instagram_url,'')), '');
   if v_instagram_url is not null then
-    if v_instagram_url !~* '^https://(www\.)?instagram\.com/[A-Za-z0-9._]{1,30}/?$' then
+    if v_instagram_url !~* '^https://(www\.)?instagram\.com(:443)?/[A-Za-z0-9._]{1,30}/?$' then
       raise exception 'Instagram link must be a secure Instagram profile URL';
     end if;
     v_instagram_url := regexp_replace(
       v_instagram_url,
-      '^https://(www\.)?instagram\.com/([A-Za-z0-9._]{1,30})/?$',
-      'https://www.instagram.com/\2/',
+      '^https://(www\.)?instagram\.com(:443)?/([A-Za-z0-9._]{1,30})/?$',
+      'https://www.instagram.com/\3/',
       'i'
     );
   end if;
