@@ -144,3 +144,8 @@ Added the forward-only `20261110193000_admin_disciplinary_return_queue.sql` migr
 ## Audited league-administrator role lifecycle — 11 November 2026
 
 Added `20261111205000_admin_league_admin_role_management.sql` and its byte-identical canonical draft. Global administrators can search eligible existing accounts, grant/revoke only the `league_admin` role with a required reason, and audit every role change. Granting the role does not grant any location access. Revocation removes every location assignment through the existing audited location-assignment RPC before removing the role. Platform-admin and finance-admin accounts are excluded, and administrators cannot change their own role. The new global-admin-only UI is mounted separately from the existing Location Administrators assignment controls. The role/RLS SQL regression now covers eligible search, protected finance accounts, grant, separate location assignment, revocation cleanup, audit records, self-change denial and finance-admin denial. CI generates and verifies the migration from its draft. Exact-head SQL replay/build remains pending.
+
+
+## Historical Admin team-sheet preservation — 13 November 2026
+
+Added the forward-only migration `20261113131500_preserve_historical_admin_team_sheet_players.sql` with its byte-identical canonical draft and SQL regression assertion. Submitted team-sheet selections now retain players recorded at submission even after their current membership becomes inactive; the separate current roster remains limited to active, registered, non-banned players. CI checks the migration source manifest and runs the SQL regression. This is a pending development migration only and has not been applied to the hosted project.
