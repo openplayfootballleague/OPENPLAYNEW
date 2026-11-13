@@ -70,7 +70,7 @@ begin
   if p_description is null or length(btrim(p_description)) not between 3 and 240 then
     raise exception 'Description must be between 3 and 240 characters';
   end if;
-  if p_occurred_at is null or p_occurred_at>now() then
+  if p_occurred_at is null or p_occurred_at>now()+interval '1 day' then
     raise exception 'Enter a valid cost date';
   end if;
   if p_reference is not null and length(p_reference)>120 then raise exception 'Reference is too long'; end if;
