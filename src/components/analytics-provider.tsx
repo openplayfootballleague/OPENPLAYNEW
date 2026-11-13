@@ -95,6 +95,11 @@ function PostHogCaptureProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [actor, setActor] = useState<AnalyticsActor>("unknown");
   const [userId, setUserId] = useState<string | null>(null);
+  const [consentRevision, setConsentRevision] = useState(0);
+
+  useEffect(() => subscribeToBrowserAnalyticsConsent(() => {
+    setConsentRevision((revision) => revision + 1);
+  }), []);
 
   useEffect(() => {
     let alive = true;
@@ -223,15 +228,21 @@ function PostHogCaptureProvider({ children }: { children: ReactNode }) {
     const client: AnalyticsCaptureClient = {
       capture: (capturedEvent, safeProperties) => posthog.capture(capturedEvent, safeProperties),
     };
+    const captureActor = actor === "unknown" && location.pathname === "/sign-up" && event.startsWith("account_signup_")
+      ? "anonymous"
+      : actor;
+    const visitorType = captureActor === "anonymous"
+      ? "anonymous"
+      : captureActor === "account_user" || captureActor === "player" || captureActor === "captain"
+        ? "authenticated"
+        : undefined;
     return captureOpenPlayEvent(
       client,
       readBrowserAnalyticsConsent(),
       isGlobalPrivacyControlEnabled(),
-      actor === "unknown" && location.pathname === "/sign-up" && event.startsWith("account_signup_")
-        ? "anonymous"
-        : actor,
+      captureActor,
       event,
-      properties,
+      { ...properties, ...(visitorType ? { visitor_type: visitorType } : {}) },
     );
   }, [actor, location.pathname, posthog]);
 
@@ -242,7 +253,7 @@ function PostHogCaptureProvider({ children }: { children: ReactNode }) {
       route_category: category,
       feature: routeFeature(category),
     });
-  }, [actor, capture, location.pathname]);
+  }, [actor, capture, consentRevision, location.pathname]);
 
   return (
     <AnalyticsCaptureContext.Provider value={capture}>
