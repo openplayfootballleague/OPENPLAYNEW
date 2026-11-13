@@ -101,8 +101,10 @@ Deno.serve(async (request: Request) => {
     const pushSubscriptions = subscriptions.filter(isPushSubscription);
 
     if (action === "list") {
+      const { data: preference } = await service.from("notification_preferences")
+        .select("push_enabled").eq("user_id", user.id).maybeSingle();
       return json({
-        pushEnabled: pushSubscriptions.some((item) => item.enabled === true),
+        pushEnabled: preference?.push_enabled === true,
         devices: pushSubscriptions.map(sanitisePushDevice).filter((item) => item !== null),
       });
     }
