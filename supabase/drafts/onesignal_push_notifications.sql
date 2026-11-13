@@ -75,7 +75,7 @@ returns public.notification_preferences
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_user uuid := auth.uid();
   v_preferences public.notification_preferences;
@@ -88,7 +88,7 @@ begin
   returning * into v_preferences;
   return v_preferences;
 end;
-$;
+$$;
 
 create or replace function public.enqueue_notification_event(
   p_user_id uuid,
@@ -151,7 +151,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare v_event text; v_payload jsonb; v_user uuid;
 begin
   if tg_op='INSERT' then
@@ -190,7 +190,7 @@ begin
   end loop;
   return new;
 end;
-$;
+$$;
 
 drop function if exists public.claim_notification_events(integer);
 create or replace function public.claim_notification_events(
