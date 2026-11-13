@@ -32,6 +32,7 @@ declare
   v_user uuid:=auth.uid();
   v_preferences public.notification_preferences;
   v_before jsonb;
+  v_cancelled integer:=0;
   v_after jsonb:=jsonb_build_object(
     'matchday',p_matchday_enabled,
     'team_updates',p_team_updates_enabled,
@@ -52,10 +53,31 @@ begin
   where user_id=v_user
   returning * into v_preferences;
 
+  -- Prevent already queued/retryable outbound notifications from bypassing a
+  -- newly saved category opt-out. Historical in-app notifications are retained.
+  update public.notification_events
+  set status='cancelled',
+      last_error='Cancelled after recipient disabled this notification category',
+      updated_at=now()
+  where user_id=v_user
+    and channel in ('email','sms')
+    and status in ('queued','failed','held','unconfirmed')
+    and coalesce((v_after->>(
+      case
+        when event_type like '%payment%' or event_type like 'finance.%'
+          or event_type like 'referee.payout.%' then 'payments'
+        when event_type like 'fixture.%' or event_type like 'gameweek.%' then 'matchday'
+        when event_type like 'team.%' or event_type like 'player.transfer_%' then 'team_updates'
+        when event_type like 'message.%' or event_type like 'announcement.%' or event_type='admin.announcement' then 'messages'
+        else 'account_security'
+      end
+    ))::boolean,true)=false;
+  get diagnostics v_cancelled = row_count;
+
   insert into public.audit_log(actor_user_id,action,entity_type,entity_id,before_data,after_data)
   values(v_user,'notification.categories_updated','notification_preferences',v_user::text,
     jsonb_build_object('category_preferences',v_before),
-    jsonb_build_object('category_preferences',v_after));
+    jsonb_build_object('category_preferences',v_after,'cancelled_pending_events',v_cancelled));
 
   return v_preferences;
 end;
