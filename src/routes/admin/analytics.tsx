@@ -822,9 +822,9 @@ function AdminAnalyticsPage() {
         </>}
       </> : <>
         <h2>Reports &amp; exports</h2>
-        <p>Export the current permission-scoped aggregate snapshot. Player names, contact details, dates of birth, message content and payment references are excluded.</p>
+        <p>Export the current permission-scoped aggregate snapshot, including verified business metrics and recorded operating costs where finance access is available. Player names, contact details, dates of birth, message content, private notes and payment references are excluded.</p>
         <div className="analytics-report-actions"><button type="button" className="button" onClick={exportCsv} disabled={!overview || dateRangeInvalid}>EXPORT CSV</button><button type="button" className="admin-inline-action" onClick={() => window.print()} disabled={!overview || dateRangeInvalid}>PRINT / SAVE PDF</button></div>
-        <p className="form-note">CSV values are in integer pence for financial totals. Use the Finance Ledger for itemised financial records.</p>
+        <p className="form-note">CSV financial totals are in integer pence. Cost exports include only date, category, description and amount; private notes and payment references are excluded.</p>
       </>}
     </section>
     <section className="analytics-print-report" data-print-report aria-label="Printable analytics summary">
@@ -835,7 +835,19 @@ function AdminAnalyticsPage() {
         <p>Fixtures: {overview.fixtures} · Published results: {overview.publishedResults} · Goals: {overview.goals}</p>
         <p>Open seasons: {overview.openSeasons} · Pending player reviews: {overview.pendingPlayerReviews} · Pending team applications: {overview.pendingTeamApplications} · Pending join requests: {overview.pendingMembershipRequests}</p>
       </div>}
-      <h3>Location comparison</h3>
+      {financeAccess && businessPerformance && <>
+         <h3>Business performance</h3>
+         <div className="analytics-print-metrics">
+           <p>Upcoming team fee forecast: {money(Number(businessPerformance.upcoming_team_forecast_pence))} · Team charges: {money(Number(businessPerformance.team_charges_pence))} · Team receipts: {money(Number(businessPerformance.team_receipts_pence))}</p>
+           <p>Team refunds: {money(Number(businessPerformance.team_refunds_pence))} · Outstanding: {money(Number(businessPerformance.outstanding_pence))} · Player card net: {money(Number(businessPerformance.player_card_net_pence))}</p>
+           <p>Recorded operating costs: {money(Number(businessPerformance.recorded_costs_pence))} · Recorded operating surplus: {money(Number(businessPerformance.net_operating_surplus_pence))}</p>
+         </div>
+       </>}
+       {financeAccess && operatingCosts.length > 0 && <>
+         <h3>Recorded operating costs</h3>
+         <div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th></tr></thead><tbody>{operatingCosts.map((cost) => <tr key={cost.id}><td>{new Date(cost.occurred_at).toLocaleDateString("en-GB")}</td><td>{cost.category.replaceAll("_"," ")}</td><td>{cost.description}</td><td>{money(cost.amount_pence)}</td></tr>)}</tbody></table></div>
+       </>}
+       <h3>Location comparison</h3>
       <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.publishedResults}</td><td>{row.goals}</td></tr>)}</tbody></table></div>
       <h3>Daily user growth</h3>
       <div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Account signups</th><th>Player registrations</th><th>Team applications</th><th>Team approvals</th></tr></thead><tbody>{growthRows.map((row) => <tr key={row.bucket_date}><td>{row.bucket_date}</td><td>{row.account_signups === null ? "—" : Number(row.account_signups)}</td><td>{Number(row.player_registrations)}</td><td>{Number(row.team_applications)}</td><td>{Number(row.team_approvals)}</td></tr>)}</tbody></table></div>
