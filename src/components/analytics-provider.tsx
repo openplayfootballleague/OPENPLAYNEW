@@ -95,6 +95,11 @@ function PostHogCaptureProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [actor, setActor] = useState<AnalyticsActor>("unknown");
   const [userId, setUserId] = useState<string | null>(null);
+  const [consentRevision, setConsentRevision] = useState(0);
+
+  useEffect(() => subscribeToBrowserAnalyticsConsent(() => {
+    setConsentRevision((revision) => revision + 1);
+  }), []);
 
   useEffect(() => {
     let alive = true;
@@ -248,7 +253,7 @@ function PostHogCaptureProvider({ children }: { children: ReactNode }) {
       route_category: category,
       feature: routeFeature(category),
     });
-  }, [actor, capture, location.pathname]);
+  }, [actor, capture, consentRevision, location.pathname]);
 
   return (
     <AnalyticsCaptureContext.Provider value={capture}>
