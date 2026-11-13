@@ -198,7 +198,7 @@ function PrivacySecurityPage() {
         </section>
         <section className="account-security-section">
           <h2>Notification categories</h2>
-          <p>Choose which optional Open Play updates you receive. These settings apply across available notification channels. Essential account, security, safeguarding and eligibility notices remain enabled.</p>
+          <p>Choose which optional Open Play updates you receive. These settings apply across available notification channels. These category controls cannot mute essential account, security, safeguarding or eligibility notices.</p>
           {!signedIn ? (
             <Link className="auth-switch" to="/sign-in">Sign in to manage notification preferences</Link>
           ) : notificationCategoriesLoading ? (
