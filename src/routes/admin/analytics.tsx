@@ -281,7 +281,7 @@ function AdminAnalyticsPage() {
   useEffect(() => {
     if (!contextReady || authStatus !== "authenticated" ||
       (tab !== "engagement" && tab !== "features" && tab !== "usage" && tab !== "reports") ||
-      ((tab === "usage" || tab === "reports") && !isGlobalAdmin && tab === "usage")) return;
+      (tab === "usage" && !isGlobalAdmin)) return;
     let alive = true;
     setProductAnalyticsLoading(true);
     setProductAnalyticsError("");
