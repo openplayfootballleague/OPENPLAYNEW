@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import "../styles.css";
+import "../app-visual-system.css";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -49,7 +50,7 @@ function RootComponent() {
       <div className="openplay-app-frame">
         <header className="openplay-app-header">
           <Link className="openplay-app-brand" to="/player" aria-label="Open Play Player Hub">
-            <span className="openplay-app-mark">OP</span>
+            <img className="openplay-app-mark" src="/open-play-logo.webp" alt="" />
             <span>OPEN PLAY</span>
           </Link>
           <div className="openplay-header-actions">

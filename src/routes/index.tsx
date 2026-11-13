@@ -1,89 +1,64 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/")({
-  component: HomePage,
-});
+export const Route = createFileRoute("/")({ component: PublicHomePage });
 
-function HomePage() {
+function PublicHomePage() {
   return (
-    <main className="site-shell">
-      <header className="site-header">
-        <a className="wordmark" href="/" aria-label="Open Play home">
-          <span className="wordmark-mark">OP</span><span>OPEN PLAY</span>
+    <main className="site-shell home-reference">
+      <header className="reference-header">
+        <a className="reference-brand" href="/" aria-label="Open Play home">
+          <img className="reference-mark" src="/open-play-logo.webp" alt="" /><span>OPEN PLAY</span>
         </a>
-        <span className="header-tagline">LOCAL FOOTBALL. BIG ENERGY.</span>
-        <a className="header-join" href="/join">JOIN THE GAME <span aria-hidden="true">↗</span></a>
+        <a className="reference-location" href="/teams"><span>⌖</span> BIDEFORD <span className="reference-chevron">⌄</span></a>
+        <a className="reference-account" href="/sign-in" aria-label="Sign in"><span>♙</span></a>
       </header>
 
-      <section className="hero" aria-labelledby="hero-title">
-        <div className="hero-image" aria-hidden="true" />
-        <div className="hero-content">
-          <p className="eyebrow"><span /> BUILT FOR THE LOVE OF THE GAME</p>
-          <h1 id="hero-title">
-            YOUR GAME.
-            <br />
-            <span>YOUR LEAGUE.</span>
-          </h1>
-          <p className="hero-copy">
-            More than a match. A place to compete, connect and be part of
-            something.
-          </p>
-          <div className="hero-actions">
-            <a className="button" href="/join">FIND YOUR LEAGUE <span aria-hidden="true">↗</span></a>
-            <a className="text-link" href="/match-centre">EXPLORE MATCH CENTRE <span aria-hidden="true">→</span></a>
-          </div>
+      <section className="reference-welcome">
+        <div className="reference-welcome-top">
+          <span className="reference-label">OPEN PLAY</span>
+          <span className="reference-season">NORTH DEVON FOOTBALL</span>
         </div>
-        <div className="hero-foot">
+        <div className="reference-welcome-main">
+          <div>
+            <h1>YOUR GAME<br />STARTS HERE.</h1>
+            <p>Local football. Real teams. Your place to play.</p>
+            <div className="reference-actions">
+              <a className="reference-primary" href="/join">JOIN OPEN PLAY <span>↗</span></a>
+              <a className="reference-secondary" href="/match-centre">EXPLORE MATCH CENTRE <span>›</span></a>
+            </div>
+          </div>
+          <div className="reference-ball-art" aria-hidden="true"><img src="/open-play-logo.webp" alt="" /></div>
+        </div>
+        <div className="reference-welcome-foot">
           <span>PLAY HARD. RESPECT ALWAYS.</span>
-          <span>EST. OPEN PLAY</span>
+          <span>BUILT FOR THE LOVE OF THE GAME</span>
         </div>
       </section>
 
-      <section className="intro-grid" id="about">
-        <div>
-          <p className="eyebrow"><span /> THE OPEN PLAY PLATFORM</p>
-          <h2>EVERYTHING AROUND<br />THE GAME. <em>IN ONE PLACE.</em></h2>
+      <section className="reference-grid" aria-label="Open Play">
+        <a href="/match-centre" className="reference-card"><span className="reference-card-icon">▦</span><span className="reference-card-arrow">›</span><strong>Match Centre</strong><small>Fixtures, results and league tables</small></a>
+        <a href="/teams" className="reference-card"><span className="reference-card-icon">♧</span><span className="reference-card-arrow">›</span><strong>Find Your League</strong><small>Explore local teams and competitions</small></a>
+        <a href="/join" className="reference-card"><span className="reference-card-icon">＋</span><span className="reference-card-arrow">›</span><strong>Join Open Play</strong><small>Register as a player or apply with a team</small></a>
+        <a href="/player" className="reference-card"><span className="reference-card-icon">◎</span><span className="reference-card-arrow">›</span><strong>Player Hub</strong><small>Your fixtures, results and player profile</small></a>
+        <a href="/captain" className="reference-card"><span className="reference-card-icon">⬡</span><span className="reference-card-arrow">›</span><strong>Captain Hub</strong><small>Squads, team sheets and matchday tools</small></a>
+        <a href="/more" className="reference-card"><span className="reference-card-icon">☰</span><span className="reference-card-arrow">›</span><strong>More from Open Play</strong><small>Information, updates and support</small></a>
+      </section>
+
+      <section className="reference-next">
+        <div className="reference-section-heading"><h2>GET IN THE GAME</h2><a href="/join">JOIN NOW <span>›</span></a></div>
+        <div className="reference-next-panel">
+          <div><span className="reference-label">YOUR LOCAL FOOTBALL COMMUNITY</span><h3>Find your team.<br />Make your mark.</h3><p>Whether you're joining as a player or bringing a team, your next game starts here.</p></div>
+          <a className="reference-primary" href="/join">GET STARTED <span>↗</span></a>
         </div>
-        <p className="intro-copy">
-          Follow your team, keep up with every fixture and result, and manage
-          your football life from one simple home.
-        </p>
       </section>
 
-      <section className="feature-grid" aria-label="Platform features">
-        <a className="feature-card feature-dark" href="/match-centre">
-          <span className="feature-index">01 / FOLLOW</span>
-          <span className="feature-icon" aria-hidden="true">↗</span>
-          <div>
-            <h3>MATCH CENTRE</h3>
-            <p>Fixtures, live updates, results and league tables.</p>
-          </div>
-        </a>
-        <a className="feature-card feature-orange" href="/teams">
-          <span className="feature-index">02 / DISCOVER</span>
-          <span className="feature-icon" aria-hidden="true">＋</span>
-          <div>
-            <h3>FIND YOUR LEAGUE</h3>
-            <p>Discover a competition and get involved.</p>
-          </div>
-        </a>
-        <a className="feature-card feature-light" href="/player">
-          <span className="feature-index">03 / BELONG</span>
-          <span className="feature-icon" aria-hidden="true">◎</span>
-          <div>
-            <h3>YOUR PLAYER HUB</h3>
-            <p>Your profile, team and season — all together.</p>
-          </div>
-        </a>
-      </section>
-
-      <footer className="site-footer">
-        <a className="wordmark" href="/" aria-label="Open Play home">
-          <span>OPEN PLAY</span>
-        </a>
-        <span>PLAY HARD. RESPECT ALWAYS.</span>
-        <span>© {new Date().getFullYear()} OPEN PLAY</span>
-      </footer>
+      <footer className="reference-footer"><span className="reference-footer-brand"><img src="/open-play-logo.webp" alt="" /> OPEN PLAY</span><span>PLAY HARD. RESPECT ALWAYS.</span><span>© OPEN PLAY</span></footer>
+      <nav className="reference-bottom-nav" aria-label="Main navigation">
+        <a className="active" href="/"><span>⌂</span><small>HOME</small></a>
+        <a href="/match-centre"><span>♜</span><small>MATCH CENTRE</small></a>
+        <a href="/teams"><span>⬡</span><small>TEAMS</small></a>
+        <a href="/more"><span>☰</span><small>MORE</small></a>
+      </nav>
     </main>
   );
 }
