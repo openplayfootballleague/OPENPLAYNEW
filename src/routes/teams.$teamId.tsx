@@ -63,7 +63,7 @@ function PublicTeamProfilePage(){
   <p className="eyebrow eyebrow-dark">PUBLIC TEAM PROFILE</p>
   {loading?<p className="form-note" role="status">Loading team profile…</p>:error&&!team?<section className="hub-empty"><h1>Team unavailable.</h1><p className="form-error" role="alert">{error}</p><Link className="button" to="/teams">BACK TO TEAMS</Link></section>:team?<>
    <span className="team-colour-mark" style={{background:team.primary_colour??"#e96831"}} aria-hidden="true"/>
-   <h1>{team.name.split(" ").map((part,index)=><span key={index}>{part}{index===team.name.split(" ").length-1?"":" "}</span>)}</h1>
+   <h1>{team.name}</h1>
    <p>Competing in Open Play this season.</p>
    {team.primary_colour||team.secondary_colour?<section className="finance-section"><div className="hub-section-heading"><span className="hub-kicker">TEAM COLOURS</span></div><p className="form-note">Primary: {team.primary_colour??"Not set"} · Secondary: {team.secondary_colour??"Not set"}</p></section>:null}
    {error&&<p className="form-error" role="alert">{error}</p>}
