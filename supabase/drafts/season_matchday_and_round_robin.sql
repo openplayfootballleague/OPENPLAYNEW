@@ -59,6 +59,7 @@ begin
   if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
   select * into v_season from public.seasons where id=p_season_id for update;
   if not found then raise exception 'Choose an existing season'; end if;
+  perform 1 from public.season_teams where season_id=p_season_id for update;
   select location_id into v_location_id from public.leagues where id=v_season.league_id;
   if not public.can_administer_location(v_location_id) then raise exception 'You are not assigned to this location'; end if;
   if v_season.status not in ('draft','registration_open','active') then
