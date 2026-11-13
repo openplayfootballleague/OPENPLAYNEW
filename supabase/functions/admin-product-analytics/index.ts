@@ -71,7 +71,10 @@ async function runHogQL(
     signal: AbortSignal.timeout(20_000),
   });
   if (!response.ok) throw new Error("PostHog query failed");
-  const payload = await response.json() as { results?: unknown };
+  const payload = await response.json() as { results?: unknown; error?: unknown; detail?: unknown };
+  if (payload.error || payload.detail || !Array.isArray(payload.results)) {
+    throw new Error("PostHog query returned an invalid response");
+  }
   return payload.results;
 }
 
@@ -97,24 +100,6 @@ Deno.serve(async (request: Request) => {
   if (!supabaseUrl || !anonKey) {
     return json({ error: "Administrator analytics service is not configured" }, 503, allowedOrigin);
   }
-  if (!posthogKey || !projectId || !/^\d+$/.test(projectId)) {
-    return json({
-      error: "PostHog reporting is not configured. Add a project-scoped personal API key with query read access and the PostHog project ID to Supabase function secrets.",
-      code: "posthog_not_configured",
-    }, 503, allowedOrigin);
-  }
-
-  let host: string;
-  try {
-    const parsed = new URL(hostValue);
-    if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash) {
-      throw new Error("Invalid PostHog host");
-    }
-    host = parsed.origin;
-  } catch {
-    return json({ error: "PostHog reporting host is invalid" }, 503, allowedOrigin);
-  }
-
   const token = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
   if (!token) return json({ error: "Sign in to continue" }, 401, allowedOrigin);
 
@@ -190,6 +175,26 @@ Deno.serve(async (request: Request) => {
         retention: "Weekly recurring return to one of those meaningful competition-content actions. Cohort entry is first observed activity within the selected reporting window.",
       },
     }, 200, allowedOrigin);
+  }
+
+  if (!posthogKey || !projectId || !/^\\d+$/.test(projectId)) {
+    return json({
+      error: "PostHog reporting is not configured. Add a project-scoped personal API key with query read access and the PostHog project ID to Supabase function secrets.",
+      code: "posthog_not_configured",
+    }, 503, allowedOrigin);
+  }
+
+  let host: string;
+  try {
+    const parsed = new URL(hostValue);
+    const supportedCloudHost = parsed.hostname === "eu.posthog.com" || parsed.hostname === "us.posthog.com";
+    if (parsed.protocol !== "https:" || !supportedCloudHost || parsed.username || parsed.password ||
+      parsed.pathname !== "/" || parsed.search || parsed.hash) {
+      throw new Error("Invalid PostHog host");
+    }
+    host = parsed.origin;
+  } catch {
+    return json({ error: "PostHog reporting host is invalid" }, 503, allowedOrigin);
   }
 
   const posthogQueries = buildProductAnalyticsQueries(filters);
