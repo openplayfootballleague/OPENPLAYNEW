@@ -6,6 +6,7 @@ declare
     'public.get_admin_team_sheets_contextual(uuid,uuid,uuid)'::regprocedure
   ));
   v_players_query text;
+  v_players_where text;
   v_roster_query text;
   v_compact_players text;
   v_players_start integer;
@@ -19,14 +20,16 @@ begin
   v_players_query := pg_catalog.substr(v_definition, v_players_start, v_roster_start - v_players_start);
   v_roster_query := pg_catalog.substr(v_definition, v_roster_start);
   v_compact_players := pg_catalog.regexp_replace(v_players_query, '[[:space:]]+', '', 'g');
+  v_players_where := pg_catalog.substr(v_players_query, pg_catalog.strpos(v_players_query, 'where tsp.team_sheet_id=sh.id'));
 
-  if pg_catalog.strpos(v_players_query, 'tm.status=''active''') > 0 then
-    raise exception 'Historical submitted-sheet players must not be filtered by current membership status';
-  end if;
   if pg_catalog.strpos(v_compact_players, 'tm.user_id=tsp.user_id') = 0
      or pg_catalog.strpos(v_compact_players, 'tm.season_team_id=sh.season_team_id') = 0
-     or pg_catalog.strpos(v_compact_players, 'leftjoinpublic.team_membershipstm') = 0 then
-    raise exception 'Historical membership identity must be optional, not a filter on submitted players';
+     or pg_catalog.strpos(v_compact_players, 'leftjoinpublic.team_membershipstm') = 0
+     or pg_catalog.strpos(v_compact_players, 'andtm.status=''active''') = 0 then
+    raise exception 'Only an active membership may supply an amendment ID; the historical membership join must remain optional';
+  end if;
+  if v_players_where is null or pg_catalog.strpos(v_players_where, 'tm.status') > 0 then
+    raise exception 'Historical submitted-player rows must not be filtered out by current membership status';
   end if;
   if pg_catalog.strpos(v_compact_players, 'leftjoinpublic.competition_player_identitiescpi') = 0
      or pg_catalog.strpos(v_compact_players, 'cpi.id=tsp.competition_player_id') = 0
