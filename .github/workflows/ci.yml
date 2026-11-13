@@ -385,6 +385,21 @@ jobs:
           grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\n' "$migration_file"
+      - name: Generate admin analytics user growth migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_admin_analytics_user_growth.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new admin_analytics_user_growth
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_admin_analytics_user_growth.sql' -print -quit)"
+            cp supabase/drafts/admin_analytics_user_growth.sql "$migration_file"
+          else
+            diff -u supabase/drafts/admin_analytics_user_growth.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
       - name: Verify unique migration versions before replay
         shell: bash
         run: |
@@ -537,6 +552,10 @@ jobs:
         run: |
           eval "$(supabase status --output env)"
           SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" MAILPIT_URL="http://127.0.0.1:54324" node scripts/test-auth-lifecycle.mjs
+      - name: Verify analytics user growth aggregation and location isolation
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/admin_analytics_user_growth.sql
       - name: Stop local Supabase database
         if: always()
         run: supabase stop --no-backup
