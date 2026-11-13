@@ -56,12 +56,19 @@ async function deleteOneSignalSubscription(appId: string, apiKey: string, subscr
 Deno.serve(async (request: Request) => {
   const configuredOrigin = Deno.env.get("APP_ORIGIN");
   let allowedOrigin = "null";
+  const respond = (body: unknown, status = 200) => json(body, status, allowedOrigin);
   try {
-    if (configuredOrigin) allowedOrigin = new URL(configuredOrigin).origin;
+    if (configuredOrigin) {
+      const parsedOrigin = new URL(configuredOrigin);
+      if ((parsedOrigin.protocol !== "https:" && parsedOrigin.hostname !== "localhost" && parsedOrigin.hostname !== "127.0.0.1") ||
+          parsedOrigin.pathname !== "/" || parsedOrigin.search || parsedOrigin.hash || parsedOrigin.username || parsedOrigin.password) {
+        return respond({ error: "Push app origin is not configured correctly" }, 503);
+      }
+      allowedOrigin = parsedOrigin.origin;
+    }
   } catch {
     return respond({ error: "Push app origin is not configured correctly" }, 503);
   }
-  const respond = (body: unknown, status = 200) => json(body, status, allowedOrigin);
   if (request.method === "OPTIONS") return respond({ ok: true });
   if (!configuredOrigin) return respond({ error: "Push app origin is not configured" }, 503);
   const requestOrigin = request.headers.get("Origin");
