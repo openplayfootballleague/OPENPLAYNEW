@@ -14,7 +14,7 @@ create table public.finance_operating_costs (
   season_id uuid references public.seasons(id) on delete restrict,
   reference text check (reference is null or length(reference)<=120),
   notes text check (notes is null or length(notes)<=1000),
-  created_by uuid not null references auth.users(id) on delete restrict,
+  created_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
   constraint finance_operating_cost_context_check check (
     (league_id is null or location_id is not null)
