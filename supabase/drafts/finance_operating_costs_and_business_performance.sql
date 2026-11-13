@@ -124,6 +124,8 @@ create or replace function public.get_admin_operating_costs(
   p_location_id uuid default null,
   p_league_id uuid default null,
   p_season_id uuid default null,
+  p_from_date date default null,
+  p_to_date date default null,
   p_limit integer default 100
 )
 returns table(
@@ -162,17 +164,21 @@ begin
   where (p_location_id is null or c.location_id=p_location_id)
     and (p_league_id is null or c.league_id=p_league_id)
     and (p_season_id is null or c.season_id=p_season_id)
+    and (p_from_date is null or c.occurred_at>=p_from_date::timestamptz)
+    and (p_to_date is null or c.occurred_at<(p_to_date+1)::timestamptz)
   order by c.occurred_at desc,c.created_at desc
   limit least(greatest(coalesce(p_limit,100),1),200);
 end;
 $$;
-revoke all on function public.get_admin_operating_costs(uuid,uuid,uuid,integer) from public,anon;
-grant execute on function public.get_admin_operating_costs(uuid,uuid,uuid,integer) to authenticated;
+revoke all on function public.get_admin_operating_costs(uuid,uuid,uuid,date,date,integer) from public,anon;
+grant execute on function public.get_admin_operating_costs(uuid,uuid,uuid,date,date,integer) to authenticated;
 
 create or replace function public.get_admin_business_performance(
   p_location_id uuid default null,
   p_league_id uuid default null,
-  p_season_id uuid default null
+  p_season_id uuid default null,
+  p_from_date date default null,
+  p_to_date date default null
 )
 returns table(
   team_charges_pence bigint,
@@ -231,6 +237,8 @@ begin
     from public.finance_entries e
     join public.season_teams st on st.id=e.season_team_id
     join scoped_seasons ss on ss.id=st.season_id
+    where (p_from_date is null or e.occurred_at>=p_from_date::timestamptz)
+      and (p_to_date is null or e.occurred_at<(p_to_date+1)::timestamptz)
     group by e.season_team_id
   ),
   ledger_totals as (
@@ -250,6 +258,8 @@ begin
     join scoped_seasons ss on ss.id=st.season_id
     where o.status in ('due','grace_period')
       and o.scheduled_at_snapshot>=now()
+      and (p_from_date is null or o.scheduled_at_snapshot>=p_from_date::timestamptz)
+      and (p_to_date is null or o.scheduled_at_snapshot<(p_to_date+1)::timestamptz)
   ),
   player_cards as (
     select
@@ -261,6 +271,8 @@ begin
     from public.payment_records pr
     join public.season_teams st on st.id=pr.season_team_id
     join scoped_seasons ss on ss.id=st.season_id
+    where (p_from_date is null or coalesce(pr.paid_at,pr.created_at)>=p_from_date::timestamptz)
+      and (p_to_date is null or coalesce(pr.paid_at,pr.created_at)<(p_to_date+1)::timestamptz)
   ),
   costs as (
     select coalesce(sum(c.amount_pence),0)::bigint amount
@@ -268,6 +280,8 @@ begin
     where (p_location_id is null or c.location_id=p_location_id)
       and (p_league_id is null or c.league_id=p_league_id)
       and (p_season_id is null or c.season_id=p_season_id)
+      and (p_from_date is null or c.occurred_at>=p_from_date::timestamptz)
+      and (p_to_date is null or c.occurred_at<(p_to_date+1)::timestamptz)
   )
   select lt.charges,lt.receipts,lt.refunds,lt.credits,lt.fines,lt.outstanding,
     f.amount,f.obligations,pc.gross,pc.refunds,pc.fees,pc.net,c.amount,
@@ -275,5 +289,5 @@ begin
   from ledger_totals lt cross join forecast f cross join player_cards pc cross join costs c;
 end;
 $$;
-revoke all on function public.get_admin_business_performance(uuid,uuid,uuid) from public,anon;
-grant execute on function public.get_admin_business_performance(uuid,uuid,uuid) to authenticated;
+revoke all on function public.get_admin_business_performance(uuid,uuid,uuid,date,date) from public,anon;
+grant execute on function public.get_admin_business_performance(uuid,uuid,uuid,date,date) to authenticated;
