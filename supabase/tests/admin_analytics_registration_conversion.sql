@@ -94,7 +94,7 @@ begin
     v_requests,v_accepted,v_membership_rejected,v_membership_pending
   from public.get_admin_registration_conversion(date '2001-02-01',date '2001-02-01');
 
-  if v_players<>2 or v_pending_players<>1 or v_rejected_players<>1
+  if v_players<>3 or v_pending_players<>1 or v_rejected_players<>1
      or v_applications<>3 or v_approved<>1 or v_rejected<>1 or v_pending<>1
      or v_requests<>3 or v_accepted<>1 or v_membership_rejected<>1 or v_membership_pending<>1 then
     raise exception 'Global registration conversion cohort totals are incorrect';
