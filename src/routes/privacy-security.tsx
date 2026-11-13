@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { PushNotificationSettings } from "../components/push-notification-settings";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   isGlobalPrivacyControlEnabled,
@@ -18,6 +19,7 @@ function PrivacySecurityPage() {
   const [globalPrivacyControl, setGlobalPrivacyControl] = useState(false);
   const [message, setMessage] = useState("");
   const [signedIn, setSignedIn] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const [sessionsBusy, setSessionsBusy] = useState(false);
   const [sessionsMessage, setSessionsMessage] = useState("");
   const [sessionsError, setSessionsError] = useState("");
@@ -26,12 +28,21 @@ function PrivacySecurityPage() {
     const supabase = getSupabaseClient();
     let alive = true;
     void supabase.auth.getSession().then(({ data }) => {
-      if (alive) setSignedIn(Boolean(data.session));
+      if (alive) {
+        setSignedIn(Boolean(data.session));
+        setUserId(data.session?.user.id ?? null);
+      }
     }).catch(() => {
-      if (alive) setSignedIn(false);
+      if (alive) {
+        setSignedIn(false);
+        setUserId(null);
+      }
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (alive) setSignedIn(Boolean(session));
+      if (alive) {
+        setSignedIn(Boolean(session));
+        setUserId(session?.user.id ?? null);
+      }
     });
     return () => {
       alive = false;
@@ -108,6 +119,7 @@ function PrivacySecurityPage() {
           )}
           {message && <p className="form-success" role="status">{message}</p>}
         </section>
+        {signedIn && <PushNotificationSettings userId={userId} />}
         <section className="account-security-section">
           <h2>Active sessions</h2>
           <p>Sign out of other sessions if you no longer recognise one. This does not sign out the session you are using now. A per-device session list and individual revocation controls are not yet available.</p>
