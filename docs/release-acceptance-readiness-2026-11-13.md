@@ -2,15 +2,15 @@
 
 ## Status
 
-The canonical integration candidate is PR #109 at verified code head `a6163e8cc828aa00e70f220eb8373bf2b4a9e1ba`.
+The canonical integration candidate is PR #109 at verified code head `60c45903bb72856422a1b23ac09b3e3e200c6556`.
 
-Exact-head GitHub Actions run [#43421928507](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/43421928507) completed successfully with all four jobs:
+Exact-head GitHub Actions run [#43450775828](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/43450775828) completed successfully with all four jobs:
 - Application build, Deno type checks, Stripe webhook signature tests, domain tests, migration-source/security configuration checks, and Cloudflare Worker dry-run.
 - Clean Supabase migration replay and database security/role/lifecycle regression assertions.
 - Chromium responsive-route, manifest and offline PWA checks.
 - PostHog consent and network acceptance.
 
-The current code head is verified by all four passing jobs. This readiness-document correction is a new documentation-only commit and will receive its own CI run; its resulting head and run should be recorded separately after completion.
+The current PR head, including this readiness-document correction, is verified by all four passing jobs in run #43450775828. The run completed successfully on 13 November 2026.
 
 These automated checks are implementation-level CI and targeted browser/security checks. They are not the coordinated full end-to-end acceptance campaign described in the product backlog, and they do not prove that every agreed feature is complete.
 
@@ -63,4 +63,4 @@ Performance advisories:
 
 ## Release decision
 
-**Not ready for production release yet.** The integrated code and automated checks are green. The remaining blockers are staging-cost approval, staging deployment/configuration, Stripe test-mode end-to-end acceptance, payout-policy confirmation, physical-device/owner acceptance, and completion of the wider product feature inventory.
+**Not ready for production release yet.** The integrated code and exact-head automated checks are green. The full product specification has not yet been reconciled against every route, workflow and live PostHog data source. The remaining blockers are staging-cost approval, staging deployment/configuration, Stripe test-mode end-to-end acceptance, payout-policy confirmation, physical-device/owner acceptance, and completion of the wider product feature inventory.
