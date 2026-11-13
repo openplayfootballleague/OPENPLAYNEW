@@ -144,13 +144,27 @@ $legacy_admin_rpc_boundary$;
 
 do $captain_membership_approval_scope$
 declare
-  v_definition text := pg_catalog.pg_get_functiondef(
-    'public.resolve_team_membership_request(uuid,text)'::regprocedure
+  v_definition text := pg_catalog.regexp_replace(
+    pg_catalog.lower(pg_catalog.pg_get_functiondef(
+      'public.resolve_team_membership_request(uuid,text)'::regprocedure
+    )),
+    '[[:space:]]+', '', 'g'
   );
 begin
-  if v_definition not ilike '%not public.can_administer_location%'
-     or v_definition not ilike '%not public.is_active_team_captain%' then
-    raise exception 'Membership approval must be restricted to assigned location administrators or the active captain of the requested team';
+  -- The serialized implementation now checks the captain's exact active
+  -- membership and the administrator's role plus location assignment under
+  -- row locks. The detailed lock-order/invariant matrix lives in
+  -- authorization_scope_regression.sql; do not require the superseded helper
+  -- calls that this implementation deliberately replaces.
+  if pg_catalog.strpos(v_definition, 'captain-handover:') = 0
+     or pg_catalog.strpos(v_definition, 'andtm.is_captain=true') = 0
+     or pg_catalog.strpos(v_definition, 'andtm.user_id=v_actor') = 0
+     or pg_catalog.strpos(v_definition, 'andtm.status=''active''') = 0
+     or pg_catalog.strpos(v_definition, 'andur.rolein(''admin'',''super_admin'')') = 0
+     or pg_catalog.strpos(v_definition, 'andur.role=''league_admin''') = 0
+     or pg_catalog.strpos(v_definition, 'andla.location_id=v_location_id') = 0
+     or pg_catalog.strpos(v_definition, 'forshare') = 0 then
+    raise exception 'Membership approval must require an active team captain or an assigned location administrator under serialized authorization';
   end if;
 end;
 $captain_membership_approval_scope$;
