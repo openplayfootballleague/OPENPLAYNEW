@@ -142,6 +142,16 @@ begin
      or pg_catalog.has_table_privilege('authenticated','public.venues','update') then
     raise exception 'Venue writes must be performed only through permission-checked RPCs';
   end if;
+  -- Finance administrators and ordinary users must not manage venue configuration.
+  perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000007',true);
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000007","role":"authenticated"}',true);
+  v_denied:=false;
+  begin
+    perform * from public.admin_create_venue(v_location_a,'Finance user venue',null,'{}'::smallint[],null,null,false);
+  exception when others then v_denied:=true;
+  end;
+  if not v_denied then raise exception 'Finance administrator was able to create a venue'; end if;
+
   if pg_catalog.has_function_privilege('anon','public.admin_create_venue(uuid,text,text,smallint[],time without time zone,time without time zone,boolean)','EXECUTE')
      or not pg_catalog.has_function_privilege('authenticated','public.admin_create_venue(uuid,text,text,smallint[],time without time zone,time without time zone,boolean)','EXECUTE')
      or pg_catalog.has_function_privilege('anon','public.admin_update_venue(uuid,text,text,smallint[],time without time zone,time without time zone,boolean)','EXECUTE')
