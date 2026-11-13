@@ -62,7 +62,7 @@ begin
     raise exception 'Amount must be non-zero and no greater than £1,000,000 in either direction';
   end if;
   if p_category is null or p_category not in (
-    'venue_hire','referee_fees','equipment','marketing','insurance','software','travel','other'
+    'venue_hire','referee_fees','equipment','marketing','insurance','software','travel','adjustment','other'
   ) then raise exception 'Choose a valid operating cost category'; end if;
   if p_amount_pence<0 and p_category<>'adjustment' then
     raise exception 'Negative amounts are only permitted for adjustment or reversal entries';
