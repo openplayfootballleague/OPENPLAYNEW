@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRequiredSession } from "../../lib/auth/use-required-session";
-import { buildAnalyticsOverview, buildCompetitionTeamPerformance, buildLocationComparisons, safeCsvCell, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup } from "../../lib/analytics/overview";
+import { buildAnalyticsOverview, buildCompetitionTeamPerformance, buildLocationComparisons, buildRegistrationConversionExportRows, safeCsvCell, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup } from "../../lib/analytics/overview";
 import { getSupabaseClient } from "../../lib/supabase/client";
 
 type ContextPreference = { location_id: string | null; league_id: string | null; season_id: string | null; is_global_admin: boolean };
@@ -513,6 +513,10 @@ function AdminAnalyticsPage() {
         ]);
       }
     }
+    const registrationExportRows = buildRegistrationConversionExportRows(registrationRows);
+    if (registrationExportRows.length > 0) {
+      rows.push([], ["Registration & conversion cohorts"], ...registrationExportRows);
+    }
     if (productAnalytics?.usageSummary.length) {
       rows.push([], ["App usage summary", "Visitor type", "Unique visitors", "Navigation views"]);
       for (const row of productAnalytics.usageSummary) {
@@ -560,15 +564,15 @@ function AdminAnalyticsPage() {
   }
 
   const tabs: Array<{ id: Tab; label: string }> = [
-    { id: "overview", label: "Overview" },
+    { id: "overview", label: "Analytics overview" },
     { id: "usage", label: "App usage" },
     { id: "growth", label: "User growth" },
-    { id: "registrations", label: "Registration" },
-    { id: "engagement", label: "Engagement" },
+    { id: "registrations", label: "Registration & conversion" },
+    { id: "engagement", label: "Engagement & retention" },
     { id: "features", label: "Feature performance" },
-    { id: "locations", label: "Locations" },
-    { id: "competition", label: "Competition" },
-    { id: "business", label: "Business" },
+    { id: "locations", label: "Location comparison" },
+    { id: "competition", label: "Competition performance" },
+    { id: "business", label: "Business performance" },
     { id: "reports", label: "Reports & exports" },
   ];
 
