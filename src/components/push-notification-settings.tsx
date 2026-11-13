@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { getSupabaseClient } from "../lib/supabase/client";
-import { isOneSignalConfigured, loadOneSignal } from "../lib/onesignal/client";
+import {
+  clearOneSignalIdentityLink,
+  isOneSignalConfigured,
+  loadOneSignal,
+  markOneSignalIdentityLinked,
+} from "../lib/onesignal/client";
 
 type CategoryKey = "match_updates" | "team_updates" | "club_messages" | "competition_announcements" | "support_updates";
 type Preferences = {
@@ -145,6 +150,7 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
     try {
       sdk = await loadOneSignal();
       await sdk.login(userId);
+      markOneSignalIdentityLinked();
       const permission = await sdk.Notifications.requestPermission();
       if (permission === false || permission === "denied") {
         throw new Error("Browser notification permission was denied. Enable notifications in your browser's site settings and try again.");
@@ -171,6 +177,7 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
       if (sdk && !serverEnabled) {
         await sdk.User.PushSubscription.optOut().catch(() => undefined);
         await sdk.logout().catch(() => undefined);
+        clearOneSignalIdentityLink();
       }
       setError(cause instanceof Error ? cause.message : "Unable to enable push notifications.");
     } finally {
@@ -203,6 +210,7 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
         body: { action: "disable" },
       });
       if (sdk) await sdk.logout().catch(() => undefined);
+      clearOneSignalIdentityLink();
       if (disableError || !data || data.error) {
         setNotice("Push delivery is disabled for this account. OneSignal could not remove every device subscription, so device cleanup may need to be retried.");
         return;
@@ -233,6 +241,7 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
       if (data.pushEnabled === false) {
         const sdk = await loadOneSignal().catch(() => null);
         if (sdk) await sdk.logout().catch(() => undefined);
+        clearOneSignalIdentityLink();
       }
       setNotice("Push notifications were removed from that device.");
       await refresh();
