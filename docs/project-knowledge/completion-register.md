@@ -44,8 +44,8 @@ Percentages: computed by `node scripts/completion-percentage.mjs`, never typed b
 | REG-10 | Join requests; captain approve/decline, safe against handover races | Captain, Join | Yes | `resolve_team_membership_request` with row locks | Captain/location scope | Yes | SQL incl. `membership_approval_authorization_locks` | `def2a4f` (#138) | Complete | 3 |
 | REG-11 | No conflicting active memberships location-wide | Membership | — | Season-level only | — | — | — | #113 (unintegrated) | Partially Complete | 2 |
 | PH-01 | Player Hub dashboard (team, fixtures, results, table, stats, notifications) | `/player` | Yes | RLS + RPCs | Session isolation (#116) | Load error kept | unit + browser | `6e41bb6` | Complete | 3 |
-| PH-02 | My Fixtures page with pagination and states (IMG_0572) | Player Hub | Embedded list only; no paginated page | Data available | RLS | — | — | — | Partially Complete | 2 |
-| PH-03 | My Results page: W/D/L outcome, detail, pagination (IMG_0573) | Player Hub | Embedded list only; no outcome or detail page | Data available | RLS | — | — | — | Partially Complete | 2 |
+| PH-02 | My Fixtures page: chronological, home/away, kick-off, pitch, postponed/cancelled states, detail, pagination (IMG_0572) | `/player/fixtures` | Yes | RLS-scoped fixtures, venues | Own team only, session boundary | Loading/empty/error/no-team | unit (domain) + browser (0px overflow) | this commit | Complete | 2 |
+| PH-03 | My Results page: published only, W/D/L from team perspective, detail, pagination (IMG_0573) | `/player/results` | Yes | RLS-scoped confirmed results | Own team only, session boundary | Loading/empty/error/no-team | unit (domain) + browser | this commit | Complete | 2 |
 | PH-04 | League table screen with Your Team highlight and position summary (IMG_0574) | Player Hub | Table exists; highlight/summary not verified to spec | Standings service | — | — | — | — | Partially Complete | 2 |
 | PH-05 | Statistics: apps 4(3), goals, assists, GPG, MOTM, contributions; season and career | Player Hub | Yes | `get_my_player_statistics`, MOTM awards | Self-scoped RPC | Unavailable states | SQL (mutation-checked) + browser | `6d94841`, `c7ec99a` | Complete | 3 |
 | PH-06 | Player profile screen: picture-only edit, read-only details, settings links (IMG_0575) | Profile | Avatar edit exists; read-only layout and Change Password / Notification Preferences links incomplete | Avatar storage own-folder | Picture-only privileges | — | SQL (profile privileges) | tip | Partially Complete | 2 |
@@ -103,6 +103,12 @@ Percentages: computed by `node scripts/completion-percentage.mjs`, never typed b
 | INF-02 | Staging environment (Supabase + Cloudflare preview) | Infra | — | — | — | — | — | staging budget approval | Blocked | 2 |
 | INF-03 | Provider configuration: Stripe test webhooks/Connect, PostHog ingestion, email/SMS | Providers | — | — | — | — | — | owner approval; no connectors attached | Blocked | 3 |
 | INF-04 | Production deployment on Cloudflare Workers | Infra | — | — | — | — | Worker dry-run passes | owner approval | Blocked | 2 |
+
+## Visual gaps recorded
+
+- The shared location/season selector (`PlayerCompetitionSelector`) renders a light cream panel inside dark player screens. The design system calls for dark charcoal surfaces; restyle it centrally.
+- The visitor bottom navigation shows five tabs and wraps at 390px (NAV-01, awaiting the owner's 4- vs 5-tab decision).
+- Messaging panel controls inherited low-contrast styles (light "Contact admin support" button, light composer).
 
 ## Integration position (recomputed 13 Nov 2026)
 
