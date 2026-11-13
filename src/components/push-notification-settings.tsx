@@ -239,7 +239,7 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
                 : <button type="button" className="button" disabled={busy} onClick={() => void enablePush()}>ENABLE PUSH ON THIS DEVICE</button>}
             </div>
             {devices.length > 0 ? <div className="push-device-list">{devices.map((device) => <article className="push-device" key={device.subscriptionId}>
-              <div><strong>{device.deviceModel || device.type || "Web browser"}{device.subscriptionId === currentSubscriptionId ? " · This device" : ""}</strong><p>{device.deviceOs || device.type} · Last active {formatDeviceDate(device.lastActive)}</p></div>
+              <div><strong>{device.deviceModel || device.type || "Web browser"}{device.subscriptionId === currentSubscriptionId ? " · This device" : ""}</strong><p>{device.deviceOs || "Web push"} · {device.enabled ? "Enabled" : "Browser permission off"} · Last active {formatDeviceDate(device.lastActive)}</p></div>
               <button type="button" className="auth-text-button" disabled={busy} onClick={() => void revokeDevice(device)}>REMOVE</button>
             </article>)}</div> : <p className="form-note">No push-enabled devices are currently registered.</p>}
           </>}
