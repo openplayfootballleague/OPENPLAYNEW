@@ -69,7 +69,11 @@ set search_path=''
 as $
 begin
   update public.support_cases
-  set updated_at=now()
+  set status=case when created_by=new.sender_id and status in ('resolved','closed') then 'open' else status end,
+      resolution_summary=case when created_by=new.sender_id and status in ('resolved','closed') then null else resolution_summary end,
+      resolved_at=case when created_by=new.sender_id and status in ('resolved','closed') then null else resolved_at end,
+      resolved_by=case when created_by=new.sender_id and status in ('resolved','closed') then null else resolved_by end,
+      updated_at=now()
   where conversation_id=new.conversation_id;
   return new;
 end;
@@ -240,9 +244,9 @@ begin
       updated_at=now()
   where id=p_case_id returning * into v_case;
 
-  update public.message_conversations
-  set closed_at=case when p_status='closed' then coalesce(closed_at,now()) else null end,
-      updated_at=now()
+  -- Keep the private conversation readable so the member retains their history.
+  -- A new member reply automatically reopens a resolved/closed case via the message trigger.
+  update public.message_conversations set updated_at=now()
   where id=v_case.conversation_id;
 
   v_after:=jsonb_build_object(
