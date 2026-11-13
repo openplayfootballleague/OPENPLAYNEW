@@ -6,6 +6,7 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { getTeamRequestDisplay, type TeamRequestStatus } from "../lib/team-request-status";
+import { getPlayerSessionTransition } from "../lib/auth/player-session";
 
 type NotificationPreferences={email_enabled:boolean;sms_enabled:boolean;in_app_enabled:boolean};
 type PlayerNotification={id:string;event_type:string;payload:unknown;created_at:string;read_at:string|null};
@@ -22,33 +23,133 @@ export const Route=createFileRoute("/player")({component:PlayerHubPage});
 function PlayerHubPage(){
  const competition=usePlayerCompetitionContext();const capture=useOpenPlayAnalytics();
  const navigate=useNavigate();const [session,setSession]=useState<Session|null>(null);const [player,setPlayer]=useState<Player|null>(null);const [profile,setProfile]=useState<Profile|null>(null);const [memberships,setMemberships]=useState<Membership[]>([]);const [teamRequestStatuses,setTeamRequestStatuses]=useState<TeamRequestStatus[]>([]);const [saving,setSaving]=useState(false);const [avatarUrl,setAvatarUrl]=useState("");const [isAdmin,setIsAdmin]=useState(false);const [fixtures,setFixtures]=useState<PlayerFixture[]>([]);const [availability,setAvailability]=useState<Availability[]>([]);const [availabilityBusy,setAvailabilityBusy]=useState("");const [teams,setTeams]=useState<Team[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [notificationPrefs,setNotificationPrefs]=useState<NotificationPreferences|null>(null);const [notificationSaving,setNotificationSaving]=useState(false);const [notifications,setNotifications]=useState<PlayerNotification[]>([]);const [transferDestinations,setTransferDestinations]=useState<TransferDestination[]>([]);const [transferRequests,setTransferRequests]=useState<TransferRequest[]>([]);const [payments,setPayments]=useState<PlayerPayment[]>([]);const [paymentBusy,setPaymentBusy]=useState("");const [transferSelection,setTransferSelection]=useState<string[]>([]);const [transferReason,setTransferReason]=useState("");const [transferSaving,setTransferSaving]=useState(false);const [playerStats,setPlayerStats]=useState<PlayerStatistics|null>(null);const [playerStatsLoading,setPlayerStatsLoading]=useState(false);const [playerStatsError,setPlayerStatsError]=useState("");
- useEffect(()=>{if(loading)return;if(player?.is_banned){void navigate({to:"/register-player",replace:true});return;}if(!session||(!(player?.registration_status==="registered")&&!memberships.some(m=>m.status==="active"&&m.is_captain))){void navigate({to:"/",replace:true});}},[loading,session,player,memberships,navigate]);
- useEffect(()=>{let alive=true;const supabase=getSupabaseClient();
-  async function load(){const {data:{session:current}}=await supabase.auth.getSession();if(!alive)return;setSession(current);
-   if(!current){setLoading(false);return;}
-   const [{data:playerData,error:playerError},{data:membershipData,error:membershipError},{data:profileData,error:profileError},{data:roleData},{data:notificationPrefsData,error:notificationPrefsError},{data:notificationRows,error:notificationRowsError},{data:transferOptions,error:transferOptionsError},{data:transferRows,error:transferRowsError},{data:paymentRows,error:paymentRowsError},{data:teamRequestRows,error:teamRequestRowsError}]=await Promise.all([
-    supabase.from("players").select("id,full_name,registration_status,is_banned,disciplinary_strikes,disciplinary_inactive").eq("user_id",current.user.id).maybeSingle(),
-    supabase.from("team_memberships").select("id,season_team_id,status,is_captain,squad_number,joined_at").eq("user_id",current.user.id).order("created_at",{ascending:false}),
-    supabase.from("profiles").select("display_name,phone,avatar_path").eq("id",current.user.id).maybeSingle(),
-    supabase.from("user_roles").select("role").eq("user_id",current.user.id),
+ useEffect(()=>{if(loading||error)return;if(player?.is_banned){void navigate({to:"/register-player",replace:true});return;}if(!session||(!(player?.registration_status==="registered")&&!memberships.some(m=>m.status==="active"&&m.is_captain))){void navigate({to:"/",replace:true});}},[loading,error,session,player,memberships,navigate]);
+ useEffect(()=>{
+  let alive=true;
+  let authEventSeen=false;
+  let activeUserId:string|null|undefined=undefined;
+  let requestGeneration=0;
+  const supabase=getSupabaseClient();
+
+  function clearPlayerData(){
+   setPlayer(null);setProfile(null);setMemberships([]);setTeamRequestStatuses([]);
+   setAvatarUrl("");setIsAdmin(false);setFixtures([]);setAvailability([]);
+   setAvailabilityBusy("");setTeams([]);setError("");
+   setNotificationPrefs(null);setNotificationSaving(false);setNotifications([]);
+   setTransferDestinations([]);setTransferRequests([]);setPayments([]);
+   setPaymentBusy("");setTransferSelection([]);setTransferReason("");
+   setTransferSaving(false);setPlayerStats(null);setPlayerStatsLoading(false);
+   setPlayerStatsError("");setSaving(false);
+  }
+
+  async function loadForSession(current:Session,generation:number){
+   const userId=current.user.id;
+   activeUserId=userId;
+   setSession(current);setLoading(true);setError("");
+   const [
+    {data:playerData,error:playerError},
+    {data:membershipData,error:membershipError},
+    {data:profileData,error:profileError},
+    {data:roleData,error:roleError},
+    {data:notificationPrefsData,error:notificationPrefsError},
+    {data:notificationRows,error:notificationRowsError},
+    {data:transferOptions,error:transferOptionsError},
+    {data:transferRows,error:transferRowsError},
+    {data:paymentRows,error:paymentRowsError},
+    {data:teamRequestRows,error:teamRequestRowsError},
+   ]=await Promise.all([
+    supabase.from("players").select("id,full_name,registration_status,is_banned,disciplinary_strikes,disciplinary_inactive").eq("user_id",userId).maybeSingle(),
+    supabase.from("team_memberships").select("id,season_team_id,status,is_captain,squad_number,joined_at").eq("user_id",userId).order("created_at",{ascending:false}),
+    supabase.from("profiles").select("display_name,phone,avatar_path").eq("id",userId).maybeSingle(),
+    supabase.from("user_roles").select("role").eq("user_id",userId),
     supabase.rpc("get_my_notification_preferences"),
-    supabase.from("notification_events").select("id,event_type,payload,created_at,read_at").eq("user_id",current.user.id).eq("channel","in_app").eq("status","sent").order("created_at",{ascending:false}).limit(20),
+    supabase.from("notification_events").select("id,event_type,payload,created_at,read_at").eq("user_id",userId).eq("channel","in_app").eq("status","sent").order("created_at",{ascending:false}).limit(20),
     supabase.rpc("get_my_transfer_destinations"),
     supabase.rpc("get_my_transfer_requests"),
     supabase.rpc("get_my_fixture_payments"),
-    supabase.rpc("get_my_team_request_statuses")
+    supabase.rpc("get_my_team_request_statuses"),
    ]);
-   if(!alive)return;
-   if(playerError||membershipError||profileError||notificationPrefsError||notificationRowsError||transferOptionsError||transferRowsError||paymentRowsError||teamRequestRowsError)setError(playerError?.message??membershipError?.message??profileError?.message??notificationPrefsError?.message??notificationRowsError?.message??transferOptionsError?.message??transferRowsError?.message??paymentRowsError?.message??teamRequestRowsError?.message??"Unable to load your player hub.");
+
+   if(!alive||generation!==requestGeneration)return;
+   const firstError=playerError??membershipError??profileError??roleError??notificationPrefsError??notificationRowsError??transferOptionsError??transferRowsError??paymentRowsError??teamRequestRowsError;
+   if(firstError)setError(firstError.message??"Unable to load your player hub.");
+
    setPlayer(playerData);setProfile(profileData);
    if(profileData?.avatar_path)setAvatarUrl(supabase.storage.from("profile-avatars").getPublicUrl(profileData.avatar_path).data.publicUrl);
-   setIsAdmin((roleData??[]).some(r=>["admin","super_admin","league_admin"].includes(r.role)));setNotificationPrefs(notificationPrefsData as unknown as NotificationPreferences);setNotifications((notificationRows??[]) as unknown as PlayerNotification[]);setTransferDestinations((transferOptions??[]) as unknown as TransferDestination[]);setTransferRequests((transferRows??[]) as unknown as TransferRequest[]);setPayments((paymentRows??[]) as unknown as PlayerPayment[]);setTeamRequestStatuses((teamRequestRows??[]) as unknown as TeamRequestStatus[]);
-   const ms=membershipData??[];setMemberships(ms);
-   if(ms.length){const {data:teamData}=await supabase.from("season_teams").select("id,name,season_id").in("id",ms.map(m=>m.season_team_id));if(alive)setTeams(teamData??[]);const activeIds=[...new Set(ms.filter(m=>m.status==="active").map(m=>m.season_team_id))];if(activeIds.length){const fixtureResults=await Promise.all(activeIds.map(id=>supabase.from("fixtures").select("id,season_id,gameweek,scheduled_at,home_team_id,away_team_id").or("home_team_id.eq."+id+",away_team_id.eq."+id).eq("status","scheduled")));const allFixtures=[...new Map(fixtureResults.flatMap(x=>x.data??[]).map(f=>[f.id,f])).values()];if(alive)setFixtures(allFixtures);if(allFixtures.length){const {data:availabilityData}=await supabase.from("fixture_availability").select("fixture_id,is_available").eq("user_id",current.user.id).in("fixture_id",allFixtures.map(f=>f.id));if(alive)setAvailability(availabilityData??[]);}}}
-   if(alive)setLoading(false);
+   setIsAdmin((roleData??[]).some(r=>["admin","super_admin","league_admin"].includes(r.role)));
+   setNotificationPrefs(notificationPrefsData as unknown as NotificationPreferences);
+   setNotifications((notificationRows??[]) as unknown as PlayerNotification[]);
+   setTransferDestinations((transferOptions??[]) as unknown as TransferDestination[]);
+   setTransferRequests((transferRows??[]) as unknown as TransferRequest[]);
+   setPayments((paymentRows??[]) as unknown as PlayerPayment[]);
+   setTeamRequestStatuses((teamRequestRows??[]) as unknown as TeamRequestStatus[]);
+   const ms=membershipData??[];
+   setMemberships(ms);
+
+   if(ms.length){
+    const {data:teamData,error:teamError}=await supabase.from("season_teams").select("id,name,season_id").in("id",ms.map(m=>m.season_team_id));
+    if(!alive||generation!==requestGeneration)return;
+    if(teamError)setError(teamError.message);
+    setTeams(teamData??[]);
+    const activeIds=[...new Set(ms.filter(m=>m.status==="active").map(m=>m.season_team_id))];
+    if(activeIds.length){
+     const fixtureResults=await Promise.all(activeIds.map(id=>supabase.from("fixtures").select("id,season_id,gameweek,scheduled_at,home_team_id,away_team_id").or("home_team_id.eq."+id+",away_team_id.eq."+id).eq("status","scheduled")));
+     if(!alive||generation!==requestGeneration)return;
+     const allFixtures=[...new Map(fixtureResults.flatMap(x=>x.data??[]).map(f=>[f.id,f])).values()];
+     setFixtures(allFixtures);
+     if(allFixtures.length){
+      const {data:availabilityData,error:availabilityError}=await supabase.from("fixture_availability").select("fixture_id,is_available").eq("user_id",userId).in("fixture_id",allFixtures.map(f=>f.id));
+      if(!alive||generation!==requestGeneration)return;
+      if(availabilityError)setError(availabilityError.message);
+      setAvailability(availabilityData??[]);
+     }
+    }
+   }
+   if(alive&&generation===requestGeneration)setLoading(false);
   }
-  void load();const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,next)=>{setSession(next);if(!next){setPlayer(null);setMemberships([]);setTeams([]);}});
-  return()=>{alive=false;subscription.unsubscribe();};
+
+  function handleSession(next:Session|null){
+   const nextUserId=next?.user.id??null;
+   const transition=getPlayerSessionTransition(activeUserId,nextUserId);
+   if(transition==="same-user"){
+    setSession(next);
+    return;
+   }
+   activeUserId=nextUserId;
+   requestGeneration++;
+   clearPlayerData();
+   setSession(next);
+   if(transition==="signed-out"){setLoading(false);return;}
+   const generation=requestGeneration;
+   void loadForSession(next!,generation).catch((cause:unknown)=>{
+    if(!alive||generation!==requestGeneration)return;
+    setLoading(false);
+    setError(cause instanceof Error?cause.message:"Unable to load your player hub.");
+   });
+  }
+
+  const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,next)=>{
+   authEventSeen=true;
+   if(alive)handleSession(next);
+  });
+  void supabase.auth.getSession().then(({data,error:sessionError})=>{
+   if(!alive||authEventSeen)return;
+   if(sessionError){
+    activeUserId=null;requestGeneration++;clearPlayerData();setSession(null);
+    setLoading(false);setError(sessionError.message);
+    return;
+   }
+   handleSession(data.session);
+  }).catch((cause:unknown)=>{
+   if(!alive||authEventSeen)return;
+   activeUserId=null;requestGeneration++;clearPlayerData();setSession(null);
+   setLoading(false);setError(cause instanceof Error?cause.message:"Unable to verify your session.");
+  });
+
+  return()=>{
+   alive=false;requestGeneration++;
+   subscription.unsubscribe();
+  };
  },[]);
  useEffect(()=>{let alive=true;
   if(!session||player?.registration_status!=="registered"||player.is_banned||!competition.selectedSeasonId){setPlayerStats(null);setPlayerStatsError("");setPlayerStatsLoading(false);return()=>{alive=false;};}
