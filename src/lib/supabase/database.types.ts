@@ -3068,26 +3068,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-        Args: { p_enabled: boolean }
-        Returns: {
-          category_preferences: Json
-          email_enabled: boolean
-          in_app_enabled: boolean
-          push_enabled: boolean
-          sms_consent_revoked_at: string | null
-          sms_consent_version: string | null
-          sms_consented_at: string | null
-          sms_enabled: boolean
-          updated_at: string
-          user_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "notification_preferences"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       get_my_team_request_statuses: {
         Args: never
         Returns: {
