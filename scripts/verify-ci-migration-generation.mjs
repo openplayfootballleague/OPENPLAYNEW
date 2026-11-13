@@ -21,6 +21,7 @@ const expectedMigrations = [
   "admin_league_admin_role_management",
   "manual_season_recruitment_activation",
   "category_notification_preferences",
+  "support_case_management",
 ];
 let checked = 0;
 const foundMigrations = [];

@@ -15,6 +15,30 @@ type Setup = {
 };
 type MessagingRpcClient = { rpc: (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> };
 const messagingRpc = () => getSupabaseClient() as unknown as MessagingRpcClient;
+type SupportCase = {
+  case_id: string;
+  conversation_id: string;
+  subject: string;
+  requester_user_id: string;
+  requester_name: string;
+  assigned_to: string | null;
+  assigned_admin_name: string | null;
+  status: "open" | "in_progress" | "waiting_for_member" | "resolved" | "closed";
+  priority: "low" | "normal" | "high" | "urgent";
+  resolution_summary: string | null;
+  created_at: string;
+  updated_at: string;
+  last_message_at: string | null;
+  last_message_preview: string | null;
+};
+type SupportAdmin = { user_id: string; display_name: string };
+type SupportCaseDraft = {
+  assigned_to: string;
+  status: SupportCase["status"];
+  priority: SupportCase["priority"];
+  resolution_summary: string;
+  reason: string;
+};
 type MessageReport = {
   report_id: string;
   message_id: string | null;
@@ -37,6 +61,9 @@ function AdminMessagesPage() {
   const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
   const [setup, setSetup] = useState<Setup>({});
   const [reports, setReports] = useState<MessageReport[]>([]);
+  const [supportCases, setSupportCases] = useState<SupportCase[]>([]);
+  const [supportAdmins, setSupportAdmins] = useState<SupportAdmin[]>([]);
+  const [supportCaseDrafts, setSupportCaseDrafts] = useState<Record<string, SupportCaseDraft>>({});
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -67,6 +94,30 @@ function AdminMessagesPage() {
     setTargetType(context?.is_global_admin ? "everyone" : "location");
     setSetup((setupData ?? {}) as Setup);
     setReports((reportData ?? []) as MessageReport[]);
+    if (context?.is_global_admin) {
+      const [{ data: caseData, error: caseError }, { data: adminData, error: adminError }] = await Promise.all([
+        messagingRpc().rpc("admin_get_support_cases", { p_status: "all", p_limit: 100, p_offset: 0 }),
+        messagingRpc().rpc("admin_get_support_case_options"),
+      ]);
+      if (caseError || adminError) {
+        setError(caseError?.message ?? adminError?.message ?? "Unable to load support cases.");
+      } else {
+        const cases = (caseData ?? []) as SupportCase[];
+        setSupportCases(cases);
+        setSupportAdmins((adminData ?? []) as SupportAdmin[]);
+        setSupportCaseDrafts(Object.fromEntries(cases.map((item) => [item.case_id, {
+          assigned_to: item.assigned_to ?? "",
+          status: item.status,
+          priority: item.priority,
+          resolution_summary: item.resolution_summary ?? "",
+          reason: "",
+        }])));
+      }
+    } else {
+      setSupportCases([]);
+      setSupportAdmins([]);
+      setSupportCaseDrafts({});
+    }
     setLoading(false);
   }, []);
 
@@ -137,6 +188,41 @@ function AdminMessagesPage() {
     setBusy(false);
   }
 
+  async function saveSupportCase(caseItem: SupportCase) {
+    const draft = supportCaseDrafts[caseItem.case_id];
+    if (!draft) return;
+    if (draft.reason.trim().length < 5) {
+      setError("Enter a support case update reason of at least five characters.");
+      return;
+    }
+    if ((draft.status === "resolved" || draft.status === "closed") && draft.resolution_summary.trim().length < 10) {
+      setError("Enter a resolution summary of at least ten characters before resolving or closing a case.");
+      return;
+    }
+    setBusy(true); setError(""); setNotice("");
+    const { error: rpcError } = await messagingRpc().rpc("admin_update_support_case", {
+      p_case_id: caseItem.case_id,
+      p_assigned_to: draft.assigned_to || null,
+      p_status: draft.status,
+      p_priority: draft.priority,
+      p_resolution_summary: draft.resolution_summary.trim() || null,
+      p_reason: draft.reason.trim(),
+    });
+    if (rpcError) setError(rpcError.message);
+    else {
+      setNotice("Support case updated and the change recorded in the audit history.");
+      await load();
+    }
+    setBusy(false);
+  }
+
+  function updateSupportCaseDraft(caseId: string, changes: Partial<SupportCaseDraft>) {
+    setSupportCaseDrafts((current) => ({
+      ...current,
+      [caseId]: { ...current[caseId], ...changes },
+    }));
+  }
+
   if (authStatus === "loading" || loading) {
     return <main className="notice-page player-facing"><section className="notice-panel"><p>Loading message administration…</p></section></main>;
   }
@@ -153,7 +239,7 @@ function AdminMessagesPage() {
         </div>
         <p className="eyebrow eyebrow-dark">ADMIN WORKSPACE</p>
         <h1>Messaging<br/><em>control.</em></h1>
-        <p className="form-note">Send targeted announcements and review member reports. Broadcasts are read-only for recipients; private support replies stay in the inbox.</p>
+        <p className="form-note">Manage member support cases, send targeted announcements and review message reports. Case changes are audited; private support replies stay in the inbox.</p>
         {error && <p className="form-error" role="alert">{error}</p>}
         {notice && <p className="form-success" role="status">{notice}</p>}
 
@@ -184,6 +270,58 @@ function AdminMessagesPage() {
           <small>Message limit: 2,000 characters. Email/SMS notifications contain an alert only; the message content remains inside the authenticated inbox.</small>
           <button type="submit" disabled={busy || announcementsEnabled !== true}>{busy ? "SENDING…" : announcementsEnabled === false ? "ANNOUNCEMENTS PAUSED" : "SEND ANNOUNCEMENT"}</button>
         </form>
+
+        {isGlobalAdmin && <section className="messaging-moderation support-case-register">
+          <div className="hub-section-heading"><span className="hub-kicker">MEMBER SUPPORT CASES</span><strong>{supportCases.length} cases</strong></div>
+          <p className="form-note">Assign ownership, prioritise requests, track progress and record a reason for every case change. Resolving or closing a case requires a written resolution summary.</p>
+          {supportCases.length === 0 ? <p className="form-note">No support cases have been raised.</p> : supportCases.map((caseItem) => {
+            const draft = supportCaseDrafts[caseItem.case_id];
+            if (!draft) return null;
+            return <article className="messaging-report-card support-case-card" key={caseItem.case_id}>
+              <div className="messaging-report-card-head">
+                <strong>{caseItem.subject}</strong>
+                <small>{new Date(caseItem.updated_at).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"})}</small>
+              </div>
+              <p><b>Requester:</b> {caseItem.requester_name} · <b>Status:</b> {caseItem.status.replaceAll("_"," ")}</p>
+              {caseItem.last_message_preview && <blockquote>{caseItem.last_message_preview}</blockquote>}
+              <div className="support-case-fields">
+                <label>Assigned administrator
+                  <select value={draft.assigned_to} disabled={busy} onChange={(event) => updateSupportCaseDraft(caseItem.case_id,{assigned_to:event.target.value})}>
+                    <option value="">Unassigned</option>
+                    {supportAdmins.map((admin) => <option key={admin.user_id} value={admin.user_id}>{admin.display_name}</option>)}
+                  </select>
+                </label>
+                <label>Case status
+                  <select value={draft.status} disabled={busy} onChange={(event) => updateSupportCaseDraft(caseItem.case_id,{status:event.target.value as SupportCase["status"]})}>
+                    <option value="open">Open</option>
+                    <option value="in_progress">In progress</option>
+                    <option value="waiting_for_member">Waiting for member</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                </label>
+                <label>Priority
+                  <select value={draft.priority} disabled={busy} onChange={(event) => updateSupportCaseDraft(caseItem.case_id,{priority:event.target.value as SupportCase["priority"]})}>
+                    <option value="low">Low</option>
+                    <option value="normal">Normal</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </label>
+                {(draft.status === "resolved" || draft.status === "closed") && <label>Resolution summary
+                  <textarea rows={2} maxLength={1000} value={draft.resolution_summary} disabled={busy} onChange={(event) => updateSupportCaseDraft(caseItem.case_id,{resolution_summary:event.target.value})} placeholder="Summarise the outcome for the case record…"/>
+                </label>}
+                <label>Reason for this change
+                  <textarea rows={2} maxLength={500} value={draft.reason} disabled={busy} onChange={(event) => updateSupportCaseDraft(caseItem.case_id,{reason:event.target.value})} placeholder="Explain the assignment, priority or status change…"/>
+                </label>
+              </div>
+              <div className="messaging-moderation-actions">
+                <button type="button" disabled={busy} onClick={() => void saveSupportCase(caseItem)}>SAVE CASE UPDATE</button>
+                <Link className="messaging-back-link" to="/messages">OPEN INBOX TO REPLY</Link>
+              </div>
+            </article>;
+          })}
+        </section>}
 
         <section className="messaging-moderation">
           <div className="hub-section-heading"><span className="hub-kicker">OPEN MEMBER REPORTS</span><strong>{reports.length} open</strong></div>
