@@ -256,6 +256,7 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
               {preferences.push_enabled
                 ? <button type="button" className="button button-secondary" disabled={busy} onClick={() => void disablePush()}>DISABLE PUSH ON ALL DEVICES</button>
                 : <button type="button" className="button" disabled={busy} onClick={() => void enablePush()}>ENABLE PUSH ON THIS DEVICE</button>}
+              {!preferences.push_enabled && devices.length > 0 && <button type="button" className="button button-secondary" disabled={busy} onClick={() => void disablePush()}>RETRY DEVICE CLEANUP</button>}
             </div>
             {devices.length > 0 ? <div className="push-device-list">{devices.map((device) => <article className="push-device" key={device.subscriptionId}>
               <div><strong>{device.deviceModel || device.type || "Web browser"}{device.subscriptionId === currentSubscriptionId ? " · This device" : ""}</strong><p>{device.deviceOs || "Web push"} · {device.enabled ? "Enabled" : "Browser permission off"} · Last active {formatDeviceDate(device.lastActive)}</p></div>
