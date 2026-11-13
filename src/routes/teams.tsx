@@ -1,4 +1,4 @@
-import { useEffect,useState } from "react";
+import { useEffect,useRef,useState } from "react";
 import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 import { PlayerCompetitionSelector, usePlayerCompetitionContext } from "../lib/competition/player-context";
 import { Link,createFileRoute } from "@tanstack/react-router";
@@ -15,6 +15,7 @@ function TeamsPage(){
  const [teams,setTeams]=useState<TeamRow[]>([]);
  const [loading,setLoading]=useState(false);
  const [error,setError]=useState("");
+ const lastTrackedSeason=useRef("");
 
  useEffect(()=>{
   if(competition.loading)return;
@@ -28,6 +29,13 @@ function TeamsPage(){
   }
   void load();return()=>{alive=false;};
  },[competition.loading,competition.selectedSeasonId,capture]);
+
+ useEffect(()=>{
+  if(loading||error||!competition.selectedSeasonId||teams.length===0||lastTrackedSeason.current===competition.selectedSeasonId)return;
+  if(capture("core_value_action",{feature:"team_directory",season_id:competition.selectedSeasonId})){
+   lastTrackedSeason.current=competition.selectedSeasonId;
+  }
+ },[capture,competition.selectedSeasonId,error,loading,teams.length]);
 
  const selectedSeason=competition.seasons.find((season)=>season.id===competition.selectedSeasonId);
 
