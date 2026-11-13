@@ -49,6 +49,10 @@ begin
      or has_function_privilege('anon','public.update_my_notification_category_preferences(boolean,boolean,boolean,boolean)','EXECUTE') then
     raise exception 'Category preference RPC grants are incorrect';
   end if;
+  if has_function_privilege('authenticated','public.enqueue_notification_event(uuid,text,jsonb)','EXECUTE')
+     or has_function_privilege('anon','public.enqueue_notification_event(uuid,text,jsonb)','EXECUTE') then
+    raise exception 'Internal notification enqueue must remain unavailable to client roles';
+  end if;
   execute 'reset role';
 
   -- Repeated disabled-category events must not create more deliveries.
