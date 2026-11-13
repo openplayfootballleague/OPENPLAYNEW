@@ -259,6 +259,21 @@ function AdminAnalyticsPage() {
     for (const location of locationComparisons) {
       rows.push([location.locationName, location.seasons, location.approvedTeams, location.squadMemberships, location.fixtures, location.publishedResults, location.goals]);
     }
+    if (growthRows.length > 0) {
+      rows.push(
+        [],
+        ["Daily user growth", "Account signups", "Player registrations", "Team applications", "Team approvals"],
+      );
+      for (const row of growthRows) {
+        rows.push([
+          row.bucket_date,
+          row.account_signups === null ? "" : Number(row.account_signups),
+          Number(row.player_registrations),
+          Number(row.team_applications),
+          Number(row.team_approvals),
+        ]);
+      }
+    }
     const csv = rows.map((row) => row.map((cell) => csvCell(cell)).join(",")).join("\r\n");
     const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -309,10 +324,10 @@ function AdminAnalyticsPage() {
         <label>Season<select value={seasonId} disabled={contextSaving} onChange={(event) => void saveContext(locationId, leagueId, event.target.value)}>
           <option value="">All seasons</option>{setup.seasons.filter((season) => (!locationId || season.location_id === locationId) && (!leagueId || season.league_id === leagueId)).map((season) => <option key={season.id} value={season.id}>{season.name} · {season.status}</option>)}
         </select></label>
-        <label>Fixture date from<input type="date" value={fromDate} max={toDate || undefined} disabled={contextSaving} onChange={(event) => setFromDate(event.target.value)} /></label>
-        <label>Fixture date to<input type="date" value={toDate} disabled={contextSaving} min={fromDate || undefined} onChange={(event) => setToDate(event.target.value)} /></label>
+        <label>Activity date from<input type="date" value={fromDate} max={toDate || undefined} disabled={contextSaving} onChange={(event) => setFromDate(event.target.value)} /></label>
+        <label>Activity date to<input type="date" value={toDate} disabled={contextSaving} min={fromDate || undefined} onChange={(event) => setToDate(event.target.value)} /></label>
       </div>
-      <p className="form-note">The selected location, league and season define this report. Date filters apply to fixture and result counts; team and queue figures remain current snapshots, and finance figures remain ledger totals for the selected season.</p>
+      <p className="form-note">The selected location, league and season define this report. Activity dates filter fixture/result and daily growth counts; team and queue figures remain current snapshots, and finance figures remain ledger totals for the selected season.</p>
     </section>
     <div className="analytics-toolbar"><span>{refreshedAt ? `Last refreshed ${refreshedAt.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}` : "Waiting for data"}</span><button type="button" className="admin-inline-action" onClick={() => void loadContextData()} disabled={loading || contextSaving}>{loading ? "REFRESHING…" : "REFRESH"}</button></div>
     <nav className="analytics-tab-list" role="tablist" aria-label="Analytics reports">
@@ -345,7 +360,7 @@ function AdminAnalyticsPage() {
         </div>
       </> : tab === "usage" ? <div className="analytics-state"><h2>App usage</h2><p>Page views, sessions, device/browser distribution and navigation trends will appear after consented analytics ingestion is approved and enabled.</p><p className="analytics-state-label">No user-activity figures are being fabricated or inferred from page loads.</p></div>  : tab === "growth" ? <>
         <h2>User growth · daily activity</h2>
-        <p className="form-note">Daily totals are calculated from account profiles, player registrations and season-team application records. Account signups are shown only in the global all-locations view; location-scoped reports never expose platform-wide account totals.</p>
+        <p className="form-note">Daily totals use Supabase account profiles, player registrations and season-team application records. In scoped views, player registrations include only players associated with the selected competition through membership history. Account signups appear only in the global all-locations view.</p>
         {growthError ? <p className="form-error" role="alert">{growthError}</p> : <>
           <div className="analytics-stat-grid">
             <article><span>Account signups</span><strong>{growthTotals.accountSignups === null ? "—" : growthTotals.accountSignups}</strong></article>
@@ -425,6 +440,8 @@ function AdminAnalyticsPage() {
       </div>}
       <h3>Location comparison</h3>
       <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.publishedResults}</td><td>{row.goals}</td></tr>)}</tbody></table></div>
+      <h3>Daily user growth</h3>
+      <div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Account signups</th><th>Player registrations</th><th>Team applications</th><th>Team approvals</th></tr></thead><tbody>{growthRows.map((row) => <tr key={row.bucket_date}><td>{row.bucket_date}</td><td>{row.account_signups === null ? "—" : Number(row.account_signups)}</td><td>{Number(row.player_registrations)}</td><td>{Number(row.team_applications)}</td><td>{Number(row.team_approvals)}</td></tr>)}</tbody></table></div>
       {financeAccess && !financeError && <p>Ledger charges: {money(financeTotals.chargesPence)} · Payments: {money(financeTotals.paymentsPence)} · Refunds: {money(financeTotals.refundsPence)} · Fines: {money(financeTotals.finesPence)} · Outstanding: {money(financeTotals.outstandingPence)}</p>}
       <p>Generated {new Date().toLocaleString("en-GB")}. Aggregate operational data only; no player personal details included.</p>
     </section>
