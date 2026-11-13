@@ -9,7 +9,7 @@ import {
 type Setup = {
   locations?: string[];
   leagues?: Array<{ id: string; location_id: string }>;
-  seasons?: Array<{ id: string; league_id: string; location_id: string }>;
+  seasons?: Array<{ id: string; league_id: string }>;
 };
 
 type RequestFilters = {
