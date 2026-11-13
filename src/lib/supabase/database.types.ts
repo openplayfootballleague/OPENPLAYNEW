@@ -3504,6 +3504,7 @@ export type Database = {
           p_sms_enabled: boolean
         }
         Returns: {
+          category_preferences: Json
           email_enabled: boolean
           in_app_enabled: boolean
           sms_consent_revoked_at: string | null
