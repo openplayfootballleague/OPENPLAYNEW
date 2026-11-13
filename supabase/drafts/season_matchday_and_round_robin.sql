@@ -144,6 +144,7 @@ declare
   v_rounds_per_leg integer;
   v_legs integer;
   v_matches_per_round integer;
+  v_slots_per_round integer;
   v_total_rounds integer;
   v_total_slot_minutes integer;
   v_last_end_time time;
@@ -200,7 +201,8 @@ begin
   v_padded_count:=cardinality(v_original_team_ids);
   v_rounds_per_leg:=v_padded_count-1;
   v_legs:=case when v_season.round_robin_mode='double' then 2 else 1 end;
-  v_matches_per_round:=v_padded_count/2;
+  v_slots_per_round:=v_padded_count/2;
+  v_matches_per_round:=v_team_count/2;
   v_total_rounds:=v_rounds_per_leg*v_legs;
   v_total_slot_minutes:=v_matches_per_round*v_season.match_duration_minutes
     +(v_matches_per_round-1)*v_season.matchday_buffer_minutes;
@@ -221,7 +223,7 @@ begin
     for v_round in 1..v_rounds_per_leg loop
       v_gameweek:=(v_leg-1)*v_rounds_per_leg+v_round;
       v_fixture_number:=0;
-      for v_slot in 1..v_matches_per_round loop
+      for v_slot in 1..v_slots_per_round loop
         v_home:=v_team_ids[v_slot];
         v_away:=v_team_ids[v_padded_count-v_slot+1];
         if v_home is not null and v_away is not null then
