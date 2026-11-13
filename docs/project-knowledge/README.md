@@ -10,7 +10,8 @@ This directory is the shared, durable project context for every human and AI con
 5. competition-and-match-operations.md
 6. admin-finance-and-analytics.md
 7. engineering-security-and-release.md
-8. current-project-status.md
+8. visual-reference-catalogue.md
+9. current-project-status.md
 
 ## Authority
 - The latest explicit owner-approved decision is authoritative.
