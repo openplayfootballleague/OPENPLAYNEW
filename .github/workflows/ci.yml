@@ -569,6 +569,10 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/title_final_season_completion.sql
+      - name: Configurable season points
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/season_points_rules.sql
       - name: Verify analytics registration conversion cohorts and location isolation
         env:
           PGPASSWORD: postgres

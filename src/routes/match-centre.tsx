@@ -4,7 +4,7 @@ import { PlayerCompetitionSelector, usePlayerCompetitionContext } from "../lib/c
 import { Link,createFileRoute } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { useOpenPlayAnalytics } from "../components/analytics-provider";
-import { buildStandings, getJointFirstTeams, type Standing } from "../lib/competition/standings";
+import { buildStandings, DEFAULT_POINTS, getJointFirstTeams, type PointsRules, type Standing } from "../lib/competition/standings";
 
 type Team={id:string;name:string};
 type Fixture={id:string;gameweek:number;scheduled_at:string|null;status:string;home_team_id:string;away_team_id:string;venue_id:string|null;is_title_final?:boolean|null};
@@ -20,6 +20,7 @@ function MatchCentrePage(){
  const [fixtures,setFixtures]=useState<Fixture[]>([]);
  const [venues,setVenues]=useState<Venue[]>([]);
  const [results,setResults]=useState<Result[]>([]);
+ const [points,setPoints]=useState<PointsRules>(DEFAULT_POINTS);
  const [loading,setLoading]=useState(false);
  const [error,setError]=useState("");
 
@@ -34,14 +35,16 @@ function MatchCentrePage(){
    if(fixtureError){setError(fixtureError.message);capture("data_load_failed",{feature:"match_centre",error_code:"network_error",outcome:"failure"});setLoading(false);return;}
    const fs=fixtureData??[];
    const venueIds=fs.flatMap(f=>f.venue_id?[f.venue_id]:[]);
-   const [teamResult,resultResult,venueResult]=await Promise.all([
+   const [teamResult,resultResult,venueResult,pointsResult]=await Promise.all([
     supabase.from("season_teams").select("id,name").eq("season_id",competition.selectedSeasonId).eq("registration_status","approved"),
     fs.length?supabase.from("fixture_results").select("fixture_id,home_score,away_score").in("fixture_id",fs.map(f=>f.id)):Promise.resolve({data:[],error:null}),
-    venueIds.length?supabase.from("venues").select("id,name,address").in("id",venueIds):Promise.resolve({data:[],error:null})
+    venueIds.length?supabase.from("venues").select("id,name,address").in("id",venueIds):Promise.resolve({data:[],error:null}),
+    // Season points rules (configurable per season). A failed read falls back to 3/1/0 rather than hiding the table.
+    supabase.from("seasons").select("points_for_win,points_for_draw,points_for_loss").eq("id",competition.selectedSeasonId).maybeSingle()
    ]);
    if(!alive)return;
    if(teamResult.error||resultResult.error||venueResult.error){setError(teamResult.error?.message??resultResult.error?.message??venueResult.error?.message??"Unable to load match data.");capture("data_load_failed",{feature:"match_centre",error_code:"network_error",outcome:"failure"});}
-   setTeams(teamResult.data??[]);setFixtures(fs);setVenues(venueResult.data??[]);setResults(resultResult.data??[]);setLoading(false);
+   setTeams(teamResult.data??[]);setFixtures(fs);setVenues(venueResult.data??[]);setResults(resultResult.data??[]);setPoints(pointsResult.data?{win:pointsResult.data.points_for_win,draw:pointsResult.data.points_for_draw,loss:pointsResult.data.points_for_loss}:DEFAULT_POINTS);setLoading(false);
   }
   void load();return()=>{alive=false;};
  },[competition.loading,competition.selectedSeasonId]);
@@ -49,7 +52,7 @@ function MatchCentrePage(){
  const teamName=(id:string)=>teams.find(t=>t.id===id)?.name??"Team";
  const resultMap=new Map(results.map(r=>[r.fixture_id,r]));
  const venueMap=new Map(venues.map(v=>[v.id,v]));
- const standings=useMemo<Standing[]>(()=>buildStandings(teams,fixtures,results),[teams,fixtures,results]);
+ const standings=useMemo<Standing[]>(()=>buildStandings(teams,fixtures,results,points),[teams,fixtures,results,points]);
  const jointFirstTeams=useMemo(()=>getJointFirstTeams(standings),[standings]);
  const lastTrackedSeason=useRef("");
  useEffect(()=>{

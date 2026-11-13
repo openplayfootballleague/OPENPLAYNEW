@@ -1370,6 +1370,9 @@ export type Database = {
           starts_on: string | null
           status: Database["public"]["Enums"]["season_status"]
           updated_at: string
+          points_for_draw: number
+          points_for_loss: number
+          points_for_win: number
         }
         Insert: {
           created_at?: string
@@ -1395,6 +1398,9 @@ export type Database = {
           starts_on?: string | null
           status?: Database["public"]["Enums"]["season_status"]
           updated_at?: string
+          points_for_draw?: number
+          points_for_loss?: number
+          points_for_win?: number
         }
         Update: {
           created_at?: string
@@ -1420,6 +1426,9 @@ export type Database = {
           starts_on?: string | null
           status?: Database["public"]["Enums"]["season_status"]
           updated_at?: string
+          points_for_draw?: number
+          points_for_loss?: number
+          points_for_win?: number
         }
         Relationships: [
           {
@@ -2705,6 +2714,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      admin_set_season_points: {
+        Args: { p_points_for_draw: number; p_points_for_loss: number; p_points_for_win: number; p_reason: string; p_season_id: string }
+        Returns: Database["public"]["Tables"]["seasons"]["Row"]
       }
       admin_transition_season: {
         Args: {

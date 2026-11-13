@@ -1592,3 +1592,5 @@ a { color: inherit; text-decoration: none; }
 .hub-section-links { display: inline-flex; gap: 12px; margin-left: auto; }
 .hub-section-links a { color: var(--orange, #ff6500); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-decoration: none; min-height: 32px; display: inline-flex; align-items: center; }
 .hub-section-links a:focus-visible { outline: 2px solid var(--orange, #ff6500); outline-offset: 2px; }
+.admin-season-points-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 480px) { .admin-season-points-grid { grid-template-columns: 1fr; } }

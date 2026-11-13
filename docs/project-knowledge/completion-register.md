@@ -68,7 +68,7 @@ Percentages: computed by `node scripts/completion-percentage.mjs`, never typed b
 | COMP-05 | Results, scorer validation, audited corrections, published-only | Admin | Yes | Yes | Scoped | Yes | SQL | tip, `abd79a1` | Complete | 3 |
 | COMP-06 | Assists and own goals as structured events | Admin | Yes | `admin_record_fixture_goal_events` | Scoped, audited | Yes | unit + SQL (mutation-checked) | `6d94841` | Complete | 2 |
 | COMP-07 | Title final for level first place; completion guard | Admin | Yes | Trigger + RPC | Scoped, audited | Draw/3+ rules pending | SQL (mutation-checked) | `9172928` | Complete | 3 |
-| COMP-08 | Configurable win/draw/loss points | Competition config | No | Hard-coded 3/1/0 | — | — | — | — | Not Started | 2 |
+| COMP-08 | Configurable win/draw/loss points, per season, locked after first published result | Admin stats, Match Centre | Admin editor + Match Centre | `seasons.points_for_*`, `admin_set_season_points`; stats and title-final helper use them | Location-scoped, audited | Ordering, lock, reason | unit + SQL (mutation-checked) | this commit | Complete | 2 |
 | COMP-09 | Season completion/recruitment guards while fixtures remain (cancelled = final; confirmed results) | Seasons | — | Triggers | — | Yes | SQL (extended, mutation-checked) | `740f771` (#111) | Complete | 1 |
 | ADM-01 | Admin information architecture (sidebar sections) | `/admin` | Section navigation present | — | — | — | — | tip | Partially Complete | 3 |
 | ADM-02 | Needs Attention task centre | `/admin` | Basic queue | — | — | — | — | #110 (unintegrated) | Partially Complete | 3 |

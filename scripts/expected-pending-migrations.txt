@@ -43,3 +43,4 @@
 20261113150000_fixture_motm_nominations.sql
 20261113160000_title_final_and_season_completion_guard.sql
 20261113170000_goal_assists_and_own_goals.sql
+20261113180000_season_points_rules.sql
