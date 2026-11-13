@@ -132,13 +132,13 @@ export function AdminVenueManager({ locations, venues, defaultLocationId, onSave
   }
 
   if (!locations.length) {
-    return <section className="admin-panel admin-venue-manager"><h3>Venues</h3><p className="form-note">No locations are assigned to this administrator.</p></section>;
+    return <section className="admin-venue-manager"><h3>Venues</h3><p className="form-note">No locations are assigned to this administrator.</p></section>;
   }
 
   return (
     <section className="admin-panel admin-venue-manager">
-      <div className="admin-panel-heading"><div><h3>Venues and operating hours</h3><p>Manage multiple venues at each location and define when fixtures can be scheduled.</p></div></div>
-      <form className="admin-venue-form" onSubmit={submitVenue}>
+      <div className="admin-venue-heading"><div><h3>Venues and operating hours</h3><p>Manage multiple venues at each location and define when fixtures can be scheduled.</p></div></div>
+      <form className="admin-setup-form admin-venue-form" onSubmit={submitVenue}>
         <div className="admin-form-grid">
           <label>Location<select value={locationId} onChange={(event) => setLocationId(event.target.value)} disabled={Boolean(editingId)} required>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></label>
           <label>Venue name<input value={name} onChange={(event) => setName(event.target.value)} maxLength={120} required placeholder="e.g. Sandymere Astro"/></label>
