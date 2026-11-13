@@ -268,6 +268,46 @@ end;
 $$;
 revoke all on function public.build_round_robin_fixture_schedule(uuid,date) from public,anon,authenticated;
 
+create or replace function public.round_robin_fixture_settings_hash(
+  p_season_id uuid,
+  p_first_matchday_date date
+) returns text
+language plpgsql stable security definer set search_path=''
+as $
+declare
+  v_season public.seasons;
+  v_venue public.venues;
+  v_approved_teams text;
+begin
+  select * into v_season from public.seasons where id=p_season_id;
+  if not found then raise exception 'Choose an existing season'; end if;
+  select * into v_venue from public.venues where id=v_season.default_venue_id;
+  if not found then raise exception 'Choose an active default venue'; end if;
+  select string_agg(st.id::text||':'||st.name,',' order by st.name,st.id)
+    into v_approved_teams
+  from public.season_teams st
+  where st.season_id=p_season_id and st.registration_status='approved';
+  return md5(concat_ws('|',
+    coalesce(v_season.matchday_weekday::text,''),
+    coalesce(v_season.matchday_start_time::text,''),
+    coalesce(v_season.match_duration_minutes::text,''),
+    coalesce(v_season.matchday_buffer_minutes::text,''),
+    coalesce(v_season.default_venue_id::text,''),
+    coalesce(v_season.round_robin_mode,''),
+    coalesce(v_season.starts_on::text,''),
+    coalesce(v_season.ends_on::text,''),
+    coalesce(v_venue.location_id::text,''),
+    coalesce(v_venue.operating_days::text,''),
+    coalesce(v_venue.opens_at::text,''),
+    coalesce(v_venue.closes_at::text,''),
+    coalesce(v_venue.is_active::text,''),
+    coalesce(v_approved_teams,''),
+    coalesce(p_first_matchday_date::text,'')
+  ));
+end;
+$;
+revoke all on function public.round_robin_fixture_settings_hash(uuid,date) from public,anon,authenticated;
+
 create or replace function public.admin_preview_round_robin_fixtures(
   p_season_id uuid,
   p_first_matchday_date date
@@ -291,9 +331,7 @@ begin
   select location_id into v_location_id from public.leagues where id=v_season.league_id;
   if not public.can_administer_location(v_location_id) then raise exception 'You are not assigned to this location'; end if;
   select * into v_venue from public.venues where id=v_season.default_venue_id;
-  v_settings_hash:=md5(concat_ws('|',v_season.matchday_weekday::text,v_season.matchday_start_time::text,
-    v_season.match_duration_minutes::text,v_season.matchday_buffer_minutes::text,
-    v_season.default_venue_id::text,v_season.round_robin_mode,p_first_matchday_date::text));
+  v_settings_hash:=public.round_robin_fixture_settings_hash(p_season_id,p_first_matchday_date);
   with schedule as materialized (
     select * from public.build_round_robin_fixture_schedule(p_season_id,p_first_matchday_date)
   )
@@ -346,9 +384,7 @@ begin
   if not found then raise exception 'Choose an existing season'; end if;
   select location_id into v_location_id from public.leagues where id=v_season.league_id;
   if not public.can_administer_location(v_location_id) then raise exception 'You are not assigned to this location'; end if;
-  v_settings_hash:=md5(concat_ws('|',v_season.matchday_weekday::text,v_season.matchday_start_time::text,
-    v_season.match_duration_minutes::text,v_season.matchday_buffer_minutes::text,
-    v_season.default_venue_id::text,v_season.round_robin_mode,p_first_matchday_date::text));
+  v_settings_hash:=public.round_robin_fixture_settings_hash(p_season_id,p_first_matchday_date);
   if p_expected_settings_hash is null or p_expected_settings_hash<>v_settings_hash then
     raise exception 'Season matchday settings changed since preview; preview the schedule again';
   end if;
