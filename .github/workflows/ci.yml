@@ -400,6 +400,21 @@ jobs:
           grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\n' "$migration_file"
+      - name: Generate season matchday and round-robin migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_season_matchday_and_round_robin.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new season_matchday_and_round_robin
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_season_matchday_and_round_robin.sql' -print -quit)"
+            cp supabase/drafts/season_matchday_and_round_robin.sql "$migration_file"
+          else
+            diff -u supabase/drafts/season_matchday_and_round_robin.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
       - name: Verify unique migration versions before replay
         shell: bash
         run: |
@@ -433,6 +448,10 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/location_venues_and_operating_hours.sql
+      - name: Verify season matchday settings and round-robin fixture generation
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/season_matchday_and_round_robin.sql
       - name: Verify database security assertions
         run: node scripts/verify-security-assertions.mjs
       - name: Verify membership, location and finance authorization regressions
