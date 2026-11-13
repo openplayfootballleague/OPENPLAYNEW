@@ -86,6 +86,15 @@ begin
   end;
   if not v_denied then raise exception 'Fixture was scheduled outside venue operating hours'; end if;
 
+  v_denied:=false;
+  begin
+    perform * from public.admin_create_fixture(
+      v_season_a,99,102,v_team_a,v_team_b,'2026-11-20T20:30:00+00:00'::timestamptz,v_location_b,'Cross-location venue should be rejected'
+    );
+  exception when others then v_denied:=true;
+  end;
+  if not v_denied then raise exception 'Fixture accepted a venue from another location'; end if;
+
   select * into v_fixture
   from public.admin_create_fixture(
     v_season_a,99,99,v_team_a,v_team_b,'2026-11-20T20:30:00+00:00'::timestamptz,v_venue.id,'Friday venue test'
