@@ -480,7 +480,8 @@ function AdminAnalyticsPage() {
       );
     }
     if (financeAccess && operatingCosts.length > 0) {
-      rows.push([], ["Cost ID", "Category", "Amount (pence)", "Date", "Location", "League", "Season"]);
+      rows.push([], ["Cost detail rows included", "Latest up to 200"]);
+      rows.push(["Cost ID", "Category", "Amount (pence)", "Date", "Location", "League", "Season"]);
       for (const cost of operatingCosts) {
         rows.push([
           cost.id,
@@ -795,7 +796,7 @@ function AdminAnalyticsPage() {
           </section>
           <section className="analytics-cost-register">
             <h3>Recorded operating costs</h3>
-            {operatingCosts.length === 0 ? <p className="form-note">No operating costs have been recorded for this reporting context and date range.</p> : <div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Location</th><th>League</th><th>Season</th><th>Amount</th></tr></thead><tbody>{operatingCosts.map((cost) => <tr key={cost.id}><td>{new Date(cost.occurred_at).toLocaleDateString("en-GB")}</td><td>{cost.category.replaceAll("_"," ")}</td><td>{cost.description}</td><td>{cost.location_name ?? "All locations"}</td><td>{cost.league_name ?? "All leagues"}</td><td>{cost.season_name ?? "All seasons"}</td><td>{money(cost.amount_pence)}</td></tr>)}</tbody></table></div>}
+            {operatingCosts.length === 0 ? <p className="form-note">No operating costs have been recorded for this reporting context and date range.</p> : <><p className="form-note">Showing the latest {operatingCosts.length === 200 ? "200" : operatingCosts.length} cost records. Headline totals include all matching records; narrow the date range for a more focused itemised view.</p><div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Location</th><th>League</th><th>Season</th><th>Amount</th></tr></thead><tbody>{operatingCosts.map((cost) => <tr key={cost.id}><td>{new Date(cost.occurred_at).toLocaleDateString("en-GB")}</td><td>{cost.category.replaceAll("_"," ")}</td><td>{cost.description}</td><td>{cost.location_name ?? "All locations"}</td><td>{cost.league_name ?? "All leagues"}</td><td>{cost.season_name ?? "All seasons"}</td><td>{money(cost.amount_pence)}</td></tr>)}</tbody></table></div></>}
           </section>
         </>}
       </> : <>
