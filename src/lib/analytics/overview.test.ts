@@ -31,6 +31,31 @@ const setup: AnalyticsSetup = {
 };
 
 describe("admin analytics aggregation", () => {
+  it("counts only locations and leagues represented by the selected season scope", () => {
+    const result = buildAnalyticsOverview(
+      setup,
+      { pending_player_reviews: 0, pending_team_applications: 0, pending_membership_requests: 0, open_seasons: 0 },
+      setup.fixtures,
+      { locationId: "", leagueId: "", seasonId: "season-b", fromDate: "", toDate: "" },
+    );
+    expect(result.locations).toBe(1);
+    expect(result.leagues).toBe(1);
+    expect(result.seasons).toBe(1);
+  });
+
+  it("does not count a selected location with no seasons in the current scoped setup", () => {
+    const emptySetup: AnalyticsSetup = { ...setup, seasons: [] };
+    const result = buildAnalyticsOverview(
+      emptySetup,
+      { pending_player_reviews: 0, pending_team_applications: 0, pending_membership_requests: 0, open_seasons: 0 },
+      [],
+      { locationId: "loc-a", leagueId: "", seasonId: "", fromDate: "", toDate: "" },
+    );
+    expect(result.locations).toBe(0);
+    expect(result.leagues).toBe(0);
+  });
+
+
   it("counts only approved teams and verified completed results in the selected context", () => {
     const result = buildAnalyticsOverview(setup, {
       pending_player_reviews: 2,
