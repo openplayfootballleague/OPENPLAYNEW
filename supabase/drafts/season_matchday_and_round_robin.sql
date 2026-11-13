@@ -288,6 +288,7 @@ begin
   from public.season_teams st
   where st.season_id=p_season_id and st.registration_status='approved';
   return md5(concat_ws('|',
+    coalesce(p_season_id::text,''),
     coalesce(v_season.matchday_weekday::text,''),
     coalesce(v_season.matchday_start_time::text,''),
     coalesce(v_season.match_duration_minutes::text,''),
