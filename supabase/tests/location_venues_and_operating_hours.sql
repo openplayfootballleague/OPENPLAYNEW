@@ -2,7 +2,8 @@
 -- Requires the location_admin_role_scope.sql fixtures to have run first.
 do $location_venues$
 declare
-  v_admin constant uuid := '94000000-0000-4000-8000-000000000001';
+  v_admin uuid := gen_random_uuid();
+  v_admin_email text := 'ci-venue-admin-' || substr(gen_random_uuid()::text,1,8) || '@openplay.invalid';
   v_location_a constant uuid := '00000000-0000-4000-8000-000000000010';
   v_location_b constant uuid := '00000000-0000-4000-8000-000000000011';
   v_season_a constant uuid := '00000000-0000-4000-8000-000000000030';
@@ -15,7 +16,7 @@ declare
   v_denied boolean;
 begin
   insert into auth.users (id,aud,role,email,encrypted_password,raw_user_meta_data,created_at,updated_at)
-  values(v_admin,'authenticated','authenticated','ci-venue-admin@openplay.invalid','','{}'::jsonb,now(),now());
+  values(v_admin,'authenticated','authenticated',v_admin_email,'','{}'::jsonb,now(),now());
   insert into public.user_roles(user_id,role,granted_by)
   values(v_admin,'league_admin','00000000-0000-4000-8000-000000000005');
   insert into public.location_admin_assignments(user_id,location_id,assigned_by)
