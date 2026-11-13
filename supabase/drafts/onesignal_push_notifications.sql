@@ -192,7 +192,7 @@ begin
   update public.notification_events e
   set status='cancelled',last_error='Delivery disabled by recipient notification preferences.',updated_at=now()
   from public.notification_preferences pref
-  where e.user_id=pref.user_id and e.status='queued'
+  where e.user_id=pref.user_id and e.status in ('queued','held')
     and (
       (e.channel='email' and not pref.email_enabled)
       or (e.channel='sms' and not pref.sms_enabled)
