@@ -1,7 +1,7 @@
 # Open Play — Owner-Supplied Visual Reference Catalogue
 
-**Reference set:** 10 screenshots uploaded by the owner on 13 November 2026.  
-**Status:** authoritative visual reference set for the screens represented below, subject to the conflict rules in this document. The uploaded originals remain available in the originating ChatGPT conversation; they are not yet stored as binary assets in this Git branch.
+**Reference sets:** 10 initial screenshots plus 10 additional screenshots uploaded by the owner on 13 November 2026 (20 source images total).  
+**Status:** authoritative visual reference set for the screens represented below, subject to the conflict rules in this document. The uploaded originals remain available in the originating ChatGPT conversation; binary assets are not yet stored in this Git branch. The source filenames below are the original upload names, not renamed assets.
 
 ## Source files and screen mapping
 
@@ -127,3 +127,34 @@ See:
 - `accounts-roles-and-workflows.md` for registration, membership, messaging and profile permissions.
 - `competition-and-match-operations.md` for team directories, league tables and standings logic.
 
+
+
+## Additional owner-supplied references — 13 November 2026
+
+These ten further screenshots extend the reference set to 20 images. They are the authoritative visual references for the additional screens/workflows below, subject to product-rule and privacy conflict checks.
+
+| Source file | Screen / component | Reference scope |
+|---|---|---|
+| `IMG_0573.jpeg` | Player Hub — My Results | Completed match list, gameweek/date, home/away layout, score, pitch, W/D/L outcome, result detail affordance and pagination |
+| `IMG_0572.jpeg` | Player Hub — My Fixtures | Upcoming match list, gameweek/date, home/away layout, kick-off, pitch, fixture detail affordance and pagination |
+| `IMG_0571(2).jpeg` | Team registration — step 4 of 4 | Final declarations, five mandatory acknowledgements, application review notice and submit action |
+| `IMG_0570(2).jpeg` | Team registration — step 3 of 4 | Optional additional information, privacy warning and continue action |
+| `IMG_0569(2).jpeg` | Team registration — step 2 of 4 | Captain name, mobile and WhatsApp contact details |
+| `IMG_0568(2).jpeg` | Team registration — step 1 of 4 | Team identity, kit colour, optional Instagram, optional crest upload and new/returning status |
+| `IMG_0567(2).jpeg` | Player registration — post-submission choice | Create a club, join a club or continue as an individual |
+| `IMG_0566(2).jpeg` | Player registration — discovery and marketing preferences | How the player found Open Play, optional detail and separate email/SMS marketing opt-ins |
+| `IMG_0565(2).jpeg` | Player registration — declarations | Fitness self-declaration and required declarations covering accuracy, age, rules, injury risk and photography/filming |
+| `IMG_0564(2).jpeg` | Player registration — emergency contact | Required emergency contact name, relationship and telephone; restricted-access privacy notice |
+
+## Additional screen-specific authority notes
+
+- Results and fixtures are Player Hub screens. Their sample team names, scores, dates, times and pitches are illustrative only. They must be generated from the selected player's approved team membership and the canonical fixture/result records.
+- The team registration flow is a four-step wizard. Persist progress safely, validate each step, prevent duplicate submissions, and show a review/confirmation state after successful submission. A step number/progress bar must reflect actual validated progress, not merely the current URL.
+- The team registration screenshot says payment for each fixture must be made in full at least 24 hours before kick-off and the captain is responsible for collecting player contributions. Treat this as a proposed declaration requiring owner/legal/operational confirmation against the current payment policy; do not implement a new financial obligation solely from screenshot text.
+- The screenshots state a minimum player age of 16. This is a material eligibility rule and must be checked against the current approved competition rules, safeguarding policy, insurance and legal requirements before implementation. Do not silently assume it applies to every location/competition.
+- Fitness-to-participate is health-related information. Minimise collection and retention, restrict access, avoid sending it to analytics, and obtain appropriate owner/legal review of the wording and handling. The UI must not imply that a self-declaration is medical clearance.
+- Emergency contact details are personal data about another person. Explain purpose, restrict access to authorised personnel, use a documented retention period, and never expose them in public player profiles, team directories, routine exports or analytics.
+- Photography/filming notice acknowledgement is distinct from optional marketing consent. Email and SMS marketing opt-ins must be separate, optional, unticked by default, and recorded with timestamp, wording/version and channel. Refusal must not block essential registration.
+- WhatsApp contact number is not automatically consent to receive WhatsApp marketing or messages. Explain its operational purpose and apply the messaging/consent policy.
+- Optional Instagram URL and team crest upload require validation, safe file handling and moderation/visibility controls. Accept only supported file types and enforce size limits server-side.
+- Preserve the four-tab registered-player navigation rule and other account-state navigation decisions even where these registration screens show a transitional Join Open Play tab.
