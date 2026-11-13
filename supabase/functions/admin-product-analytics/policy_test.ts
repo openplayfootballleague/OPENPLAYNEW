@@ -62,20 +62,20 @@ Deno.test("builds fixed, scoped aggregate queries with inclusive date boundaries
     excludes(query, /SELECT \*|distinct_id|email|full_name|phone/, "Must not return direct identifiers or raw rows");
   }
   matches(queries.appUsageSummary, /event = 'navigation_section_viewed'/, "App usage summary must use explicit navigation events");
-  matches(queries.appUsageSummary, /uniqExact\\(person_id\\)/, "App usage summary must count unique visitors");
+  matches(queries.appUsageSummary, /uniqExact\(person_id\)/, "App usage summary must count unique visitors");
   matches(queries.appUsageDaily, /event = 'navigation_section_viewed'/, "App usage must use explicit navigation events");
-  matches(queries.appUsageDaily, /properties\\['visitor_type'\\] IN \\('anonymous', 'authenticated'\\)/, "App usage must separate anonymous and authenticated visitors");
-  matches(queries.appUsageSections, /properties\\['route_category'\\] IN/, "App usage must allowlist navigation sections");
-  matches(queries.appUsageDaily, /timestamp >= toDateTime\\('2026-11-01 00:00:00'\\)/, "App usage must use the selected start date");
-  matches(queries.appUsageSections, /timestamp < toDateTime\\('2026-11-14 00:00:00'\\)/, "App usage must include the full selected end date");
+  matches(queries.appUsageDaily, /properties\['visitor_type'\] IN \('anonymous', 'authenticated'\)/, "App usage must separate anonymous and authenticated visitors");
+  matches(queries.appUsageSections, /properties\['route_category'\] IN/, "App usage must allowlist navigation sections");
+  matches(queries.appUsageDaily, /timestamp >= toDateTime\('2026-11-01 00:00:00'\)/, "App usage must use the selected start date");
+  matches(queries.appUsageSections, /timestamp < toDateTime\('2026-11-14 00:00:00'\)/, "App usage must include the full selected end date");
   matches(queries.featurePerformance, /properties\['feature'\] IN \('fixtures', 'results', 'league_table', 'player_statistics', 'team_directory'\)/, "Feature list must be allowlisted");
-  matches(queries.weeklyActivity, /timestamp < toStartOfWeek\\(now\\(\\), 1\\)/, "Weekly activity must exclude the incomplete current week");
-  matches(queries.weeklyActivity, /toStartOfWeek\\(timestamp, 1\\) >= toDateTime\\('2026-11-01 00:00:00'\\)/, "Weekly activity must exclude a partial first week");
-  matches(queries.weeklyActivity, /addWeeks\\(toStartOfWeek\\(timestamp, 1\\), 1\\) <= toDateTime\\('2026-11-14 00:00:00'\\)/, "Weekly activity must exclude a partial final week");
+  matches(queries.weeklyActivity, /timestamp < toStartOfWeek\(now\(\), 1\)/, "Weekly activity must exclude the incomplete current week");
+  matches(queries.weeklyActivity, /toStartOfWeek\(timestamp, 1\) >= toDateTime\('2026-11-01 00:00:00'\)/, "Weekly activity must exclude a partial first week");
+  matches(queries.weeklyActivity, /addWeeks\(toStartOfWeek\(timestamp, 1\), 1\) <= toDateTime\('2026-11-14 00:00:00'\)/, "Weekly activity must exclude a partial final week");
   matches(queries.retention, /timestamp < toStartOfWeek\(now\(\), 1\)/, "Retention must exclude the incomplete current week");
   matches(queries.retention, /dateDiff\('week'/, "Retention must use weekly intervals");
   matches(queries.retention, /CROSS JOIN numbers\(9\)/, "Retention must zero-fill the first nine weekly intervals");
-  matches(queries.retention, /addWeeks\\(s.cohort_week, intervals.number \\+ 1\\) <= toDateTime\\('2026-11-14 00:00:00'\\)/, "Retention must not zero-fill beyond the selected date window");
+  matches(queries.retention, /addWeeks\(s.cohort_week, intervals.number \+ 1\) <= toDateTime\('2026-11-14 00:00:00'\)/, "Retention must not zero-fill beyond the selected date window");
   matches(queries.retention, /coalesce\(r.retained_users, 0\)/, "Missing return weeks must be shown as zero");
 });
 
