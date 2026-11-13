@@ -767,6 +767,7 @@ export type Database = {
       }
       notification_preferences: {
         Row: {
+          category_preferences: Json
           email_enabled: boolean
           in_app_enabled: boolean
           sms_consent_revoked_at: string | null
@@ -777,6 +778,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category_preferences?: Json
           email_enabled?: boolean
           in_app_enabled?: boolean
           sms_consent_revoked_at?: string | null
@@ -787,6 +789,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category_preferences?: Json
           email_enabled?: boolean
           in_app_enabled?: boolean
           sms_consent_revoked_at?: string | null
@@ -3023,6 +3026,7 @@ export type Database = {
       get_my_notification_preferences: {
         Args: never
         Returns: {
+          category_preferences: Json
           email_enabled: boolean
           in_app_enabled: boolean
           sms_consent_revoked_at: string | null
@@ -3500,6 +3504,32 @@ export type Database = {
           p_sms_enabled: boolean
         }
         Returns: {
+          category_preferences: Json
+          email_enabled: boolean
+          in_app_enabled: boolean
+          sms_consent_revoked_at: string | null
+          sms_consent_version: string | null
+          sms_consented_at: string | null
+          sms_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_preferences"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_my_notification_category_preferences: {
+        Args: {
+          p_matchday_enabled: boolean
+          p_team_updates_enabled: boolean
+          p_messages_enabled: boolean
+          p_payments_enabled: boolean
+        }
+        Returns: {
+          category_preferences: Json
           email_enabled: boolean
           in_app_enabled: boolean
           sms_consent_revoked_at: string | null
