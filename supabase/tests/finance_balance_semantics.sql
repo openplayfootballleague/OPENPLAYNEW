@@ -53,6 +53,13 @@ begin
     'fine',1000,'CI finance fine'
   );
 
+  -- Seed the second team's overpayment before calculating the scoped business summary.
+  perform public.admin_create_finance_entry(
+    '00000000-0000-4000-8000-000000000051',
+    'payment',5000,'CI finance overpayment',
+    null,null,'cash'
+  );
+
   -- Record an operating cost against the same season and verify the business summary.
   select l.location_id,s.league_id into v_location_id,v_league_id
   from public.seasons s join public.leagues l on l.id=s.league_id
@@ -105,12 +112,7 @@ begin
   end;
   if not v_failed then raise exception 'Operating cost accepted a mismatched location/season context'; end if;
 
-  -- An overpaid team must not offset another team's positive debt.
-  perform public.admin_create_finance_entry(
-    '00000000-0000-4000-8000-000000000051',
-    'payment',5000,'CI finance overpayment',
-    null,null,'cash'
-  );
+  -- The overpaid second team must not offset another team's positive debt.
 
   select max(team_balance_pence)
   into v_balance
