@@ -25,7 +25,7 @@ type VenueOption = {
 type Props = {
   locations: LocationOption[];
   venues: VenueOption[];
-  defaultLocationId?: string;
+  defaultLocationId?: string | null;
   onSaved: () => void | Promise<void>;
 };
 
