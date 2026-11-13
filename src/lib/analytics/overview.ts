@@ -170,6 +170,9 @@ export function safeCsvCell(value: string | number): string {
   // as numbers in spreadsheet imports; neutralise formula-like text only.
   const formulaLikeText = typeof value === "string"
     && /^[\s\uFEFF]*[=+\-@]/u.test(text);
-  const safe = formulaLikeText ? "'" + text : text;
+  // Strip a leading UTF-8 BOM before adding the spreadsheet text marker. A BOM
+  // between the marker and formula can otherwise survive round-tripping.
+  const normalised = text.replace(/^\uFEFF+/u, "");
+  const safe = formulaLikeText ? "'" + normalised : text;
   return '"' + safe.replaceAll('"', '""') + '"';
 }
