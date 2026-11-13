@@ -29,6 +29,7 @@ Percentages: computed by `node scripts/completion-percentage.mjs`, never typed b
 | PUB-07 | Public gallery (published only) | `/gallery` | Yes | `public-gallery` function | Published only | — | SQL (gallery) | tip | Complete | 2 |
 | PUB-08 | Shared header: signed-in/out variants, notifications, location selector (IMG_0577/0578) | All | Header without location selector or notification control | — | — | — | — | — | Partially Complete | 2 |
 | PUB-09 | Privacy, policies and terms pages | `/privacy-security`, More | Yes | — | — | — | build | tip | Complete | 1 |
+| PUB-10 | Legally reviewed Terms and Conditions and privacy notice published | Profile, More | Profile shows "awaiting publication" | — | — | — | — | owner/legal content | Blocked | 1 |
 | NAV-01 | Viewer bottom navigation (4 vs 5 tabs) | All public | 5 tabs; wraps at 390px | — | — | — | — | — | Blocked | 2 |
 | NAV-02 | Registered player navigation: exactly 4 tabs | Player | Yes | — | Session-derived | — | verify-player-navigation | tip | Complete | 2 |
 | NAV-03 | Captain navigation: Club and Matchday | Captain | Yes | — | Captain RPCs | — | verify-player-navigation | tip | Complete | 1 |
@@ -48,7 +49,7 @@ Percentages: computed by `node scripts/completion-percentage.mjs`, never typed b
 | PH-03 | My Results page: published only, W/D/L from team perspective, detail, pagination (IMG_0573) | `/player/results` | Yes | RLS-scoped confirmed results | Own team only, session boundary | Loading/empty/error/no-team | unit (domain) + browser | this commit | Complete | 2 |
 | PH-04 | League table screen with Your Team highlight and position summary (IMG_0574) | Player Hub | Table exists; highlight/summary not verified to spec | Standings service | — | — | — | — | Partially Complete | 2 |
 | PH-05 | Statistics: apps 4(3), goals, assists, GPG, MOTM, contributions; season and career | Player Hub | Yes | `get_my_player_statistics`, MOTM awards | Self-scoped RPC | Unavailable states | SQL (mutation-checked) + browser | `6d94841`, `c7ec99a` | Complete | 3 |
-| PH-06 | Player profile screen: picture-only edit, read-only details, settings links (IMG_0575) | Profile | Avatar edit exists; read-only layout and Change Password / Notification Preferences links incomplete | Avatar storage own-folder | Picture-only privileges | — | SQL (profile privileges) | tip | Partially Complete | 2 |
+| PH-06 | Player profile screen: picture-only edit, read-only personal and football details, settings links, log out (IMG_0575) | `/player/profile` | Yes | Own rows under RLS; shared avatar module | Picture-only privileges; session boundary | Upload validation, loading/error | unit (avatar) + browser | this commit | Complete | 2 |
 | PH-07 | Inbox: All / Messages / Notifications (IMG_0576) | `/inbox` | Yes | Recipient-scoped reads, mark-read RPC | Session boundary | Loading/empty/error | unit + browser (0px overflow) | `7541042` | Complete | 3 |
 | PH-08 | Notification preferences by category | Profile | Global preferences only | — | — | — | — | #128 vs #129 (competing) | Partially Complete | 1 |
 | PH-09 | Account-switch isolation of protected state | All protected | Yes | — | Client isolation | — | unit (5) | `d415b81`, `6e41bb6` | Complete | 2 |

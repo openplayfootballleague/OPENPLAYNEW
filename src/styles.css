@@ -1594,3 +1594,33 @@ a { color: inherit; text-decoration: none; }
 .hub-section-links a:focus-visible { outline: 2px solid var(--orange, #ff6500); outline-offset: 2px; }
 .admin-season-points-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 @media (max-width: 480px) { .admin-season-points-grid { grid-template-columns: 1fr; } }
+
+/* Player profile (IMG_0575) */
+.player-profile-panel { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.profile-summary { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px 14px; align-items: center; margin: 16px 0; padding: 16px; border: 1px solid var(--line, #303030); border-radius: 14px; background: var(--surface-raised, #171717); }
+.profile-summary > div { display: grid; gap: 4px; min-width: 0; }
+.profile-avatar { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 2px solid var(--orange, #ff6500); }
+.profile-avatar-default { display: inline-flex; align-items: center; justify-content: center; background: #262626; color: #f5f5f5; font-family: "Oswald", sans-serif; font-size: 24px; }
+.profile-name { color: #f5f5f5; font-size: 18px; overflow-wrap: anywhere; }
+.profile-role { color: #c4c4c4; font-size: 12px; }
+.profile-status { justify-self: start; padding: 3px 9px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.profile-status-ok { background: rgba(46, 160, 67, .18); color: #7ee293; }
+.profile-status-pending { background: rgba(80, 140, 255, .16); color: #a9c4ff; }
+.profile-status-warn { background: rgba(255, 101, 0, .16); color: #ffb27a; }
+.profile-change-picture { grid-column: 1 / -1; position: relative; display: inline-flex; justify-content: center; align-items: center; min-height: 44px; border: 1px solid var(--orange, #ff6500); border-radius: 999px; color: var(--orange, #ff6500); font-size: 11px; font-weight: 800; letter-spacing: .06em; cursor: pointer; }
+.profile-change-picture input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.profile-change-picture:focus-within { outline: 2px solid var(--orange, #ff6500); outline-offset: 2px; }
+.profile-section { margin-top: 18px; }
+.profile-readonly { display: grid; gap: 0; margin: 8px 0 0; }
+.profile-readonly div { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line, #303030); }
+.profile-readonly dt { color: #9a9a9a; font-size: 12px; }
+.profile-readonly dd { margin: 0; color: #f5f5f5; font-size: 13px; text-align: right; overflow-wrap: anywhere; }
+.profile-lock { margin-left: 8px; font-size: 11px; opacity: .7; }
+.profile-settings { display: grid; }
+.profile-settings a, .profile-settings-pending { display: flex; justify-content: space-between; align-items: center; min-height: 48px; padding: 0 2px; border-top: 1px solid var(--line, #303030); color: #f5f5f5; text-decoration: none; font-size: 14px; }
+.profile-settings a span { color: var(--orange, #ff6500); font-size: 18px; }
+.profile-settings a:focus-visible { outline: 2px solid var(--orange, #ff6500); outline-offset: 2px; }
+.profile-settings-pending { color: #9a9a9a; }
+.profile-settings-pending small { font-size: 11px; color: #8a8a8a; }
+.profile-logout { width: 100%; margin-top: 20px; justify-content: center; }
+.profile-summary > p { grid-column: 1 / -1; margin: 0; }
