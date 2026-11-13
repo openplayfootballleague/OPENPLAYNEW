@@ -119,7 +119,7 @@ begin
   if not v_category_enabled then return; end if;
 
   v_dedupe := p_event_type || ':' ||
-    coalesce(p_payload->>'fixture_id',p_payload->>'membership_id',p_payload->>'season_team_id','event') ||
+    coalesce(p_payload->>'report_id',p_payload->>'message_id',p_payload->>'conversation_id',p_payload->>'fixture_id',p_payload->>'membership_id',p_payload->>'season_team_id','event') ||
     ':' || coalesce(p_payload->>'scheduled_at',p_payload->>'changed_at','') || ':' || p_user_id::text;
 
   if v_preferences.email_enabled then
@@ -137,7 +137,7 @@ begin
     values(p_user_id,'push',p_event_type,'queued',coalesce(p_payload,'{}'::jsonb),v_dedupe||':push')
     on conflict(dedupe_key) where dedupe_key is not null do nothing;
   end if;
-  if v_preferences.in_app_enabled or v_critical then
+  if v_preferences.in_app_enabled or v_critical or p_event_type = 'message.new' then
     insert into public.notification_events(user_id,channel,event_type,status,payload,dedupe_key,sent_at)
     values(p_user_id,'in_app',p_event_type,'sent',coalesce(p_payload,'{}'::jsonb),v_dedupe||':in_app',now())
     on conflict(dedupe_key) where dedupe_key is not null do nothing;
