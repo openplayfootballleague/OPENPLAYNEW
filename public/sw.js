@@ -1,3 +1,6 @@
+// OneSignal shares the root-scoped service worker with the Open Play PWA.
+importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+
 const SHELL_CACHE = "open-play-shell-v1";
 const APP_SHELL = [
   "/",
