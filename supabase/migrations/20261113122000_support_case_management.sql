@@ -67,14 +67,35 @@ language plpgsql
 security definer
 set search_path=''
 as $
+declare
+  v_case public.support_cases;
+  v_before jsonb;
 begin
-  update public.support_cases
-  set status=case when created_by=new.sender_id and status in ('resolved','closed') then 'open' else status end,
-      resolution_summary=case when created_by=new.sender_id and status in ('resolved','closed') then null else resolution_summary end,
-      resolved_at=case when created_by=new.sender_id and status in ('resolved','closed') then null else resolved_at end,
-      resolved_by=case when created_by=new.sender_id and status in ('resolved','closed') then null else resolved_by end,
-      updated_at=now()
-  where conversation_id=new.conversation_id;
+  select * into v_case
+  from public.support_cases
+  where conversation_id=new.conversation_id
+  for update;
+
+  if not found then return new; end if;
+
+  if v_case.created_by=new.sender_id and v_case.status in ('resolved','closed') then
+    v_before:=jsonb_build_object(
+      'status',v_case.status,'resolution_summary',v_case.resolution_summary,
+      'resolved_at',v_case.resolved_at,'resolved_by',v_case.resolved_by
+    );
+    update public.support_cases
+    set status='open',resolution_summary=null,resolved_at=null,resolved_by=null,updated_at=now()
+    where id=v_case.id
+    returning * into v_case;
+    insert into public.audit_log(actor_user_id,action,entity_type,entity_id,reason,before_data,after_data)
+    values(new.sender_id,'support.case.reopened_by_member','support_case',v_case.id::text,
+      'Member sent a follow-up message.',
+      v_before,jsonb_build_object('status',v_case.status,'resolution_summary',v_case.resolution_summary,
+        'resolved_at',v_case.resolved_at,'resolved_by',v_case.resolved_by));
+  else
+    update public.support_cases set updated_at=now()
+    where id=v_case.id;
+  end if;
   return new;
 end;
 $;
