@@ -15,7 +15,7 @@ This directory is the shared, durable project context for every human and AI con
 10. current-project-status.md
 
 ## Visual references
-The owner supplied ten current screen references on 2026-11-13. The catalogue maps each original filename to its screen and records visual authority/conflicts. The detailed UX specification translates those screens into explicit layout, behaviour, data, permissions, responsive and acceptance requirements. The uploaded binary screenshots are not yet committed in this branch; the catalogue states this limitation clearly. Do not treat the catalogue text as if the image files themselves are embedded.
+The owner supplied 20 current screen references across two uploads on 2026-11-13. The catalogue maps each original filename to its screen and records visual authority/conflicts. The detailed UX specification translates those screens into explicit layout, behaviour, data, permissions, responsive and acceptance requirements. The uploaded binary screenshots are not yet committed in this branch; the catalogue states this limitation clearly. Do not treat the catalogue text as if the image files themselves are embedded.
 
 ## Authority
 - The latest explicit owner-approved decision is authoritative.
