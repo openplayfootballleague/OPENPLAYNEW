@@ -279,8 +279,9 @@ function AdminAnalyticsPage() {
   }, [contextReady, loadContextData]);
 
   useEffect(() => {
-    if (!contextReady || authStatus !== "authenticated" || (tab !== "engagement" && tab !== "features" && tab !== "usage") ||
-      (tab === "usage" && !isGlobalAdmin)) return;
+    if (!contextReady || authStatus !== "authenticated" ||
+      (tab !== "engagement" && tab !== "features" && tab !== "usage" && tab !== "reports") ||
+      ((tab === "usage" || tab === "reports") && !isGlobalAdmin && tab === "usage")) return;
     let alive = true;
     setProductAnalyticsLoading(true);
     setProductAnalyticsError("");
@@ -292,7 +293,7 @@ function AdminAnalyticsPage() {
           locationId: tab === "usage" ? undefined : locationId || undefined,
           leagueId: tab === "usage" ? undefined : leagueId || undefined,
           seasonId: tab === "usage" ? undefined : seasonId || undefined,
-          includePlatformUsage: tab === "usage",
+          includePlatformUsage: tab === "usage" || (tab === "reports" && isGlobalAdmin),
         },
       });
       if (!alive) return;
