@@ -42,6 +42,12 @@ Deno.test("rejects reversed, overlong and malformed reporting filters", () => {
   }), "The reporting context contains an invalid competition season.", "Malformed season ID");
 });
 
+Deno.test("allows an empty authorised season list after validating the date window", () => {
+  equal(validateProductAnalyticsFilters({
+    fromDate: "2026-11-01", toDate: "2026-11-13", seasonIds: [],
+  }), null, "An empty scope is a valid no-data state");
+});
+
 Deno.test("builds fixed, scoped aggregate queries with inclusive date boundaries", () => {
   const queries = buildProductAnalyticsQueries({
     fromDate: "2026-11-01",
@@ -56,7 +62,8 @@ Deno.test("builds fixed, scoped aggregate queries with inclusive date boundaries
     excludes(query, /SELECT \*|distinct_id|email|full_name|phone/, "Must not return direct identifiers or raw rows");
   }
   matches(queries.featurePerformance, /properties\['feature'\] IN \('fixtures', 'results', 'league_table', 'player_statistics', 'team_directory'\)/, "Feature list must be allowlisted");
-  matches(queries.retention, /timestamp < toStartOfWeek\(now\(\), 1\)/, "Incomplete current week must be excluded");
+  matches(queries.weeklyActivity, /timestamp < toStartOfWeek\\(now\\(\\), 1\\)/, "Weekly activity must exclude the incomplete current week");
+  matches(queries.retention, /timestamp < toStartOfWeek\\(now\\(\\), 1\\)/, "Retention must exclude the incomplete current week");
   matches(queries.retention, /dateDiff\('week'/, "Retention must use weekly intervals");
 });
 
