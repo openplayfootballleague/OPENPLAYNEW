@@ -445,6 +445,7 @@ export type Database = {
           status: Database["public"]["Enums"]["fixture_status"]
           updated_at: string
           venue_id: string | null
+          is_title_final: boolean
         }
         Insert: {
           away_team_id: string
@@ -459,6 +460,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["fixture_status"]
           updated_at?: string
           venue_id?: string | null
+          is_title_final?: boolean
         }
         Update: {
           away_team_id?: string
@@ -473,6 +475,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["fixture_status"]
           updated_at?: string
           venue_id?: string | null
+          is_title_final?: boolean
         }
         Relationships: [
           {
@@ -2047,6 +2050,17 @@ export type Database = {
         Args: { p_season_id: string; p_first_matchday_date: string; p_expected_settings_hash: string }
         Returns: Json
       },
+      admin_create_title_final: {
+        Args: {
+          p_away_team_id: string
+          p_home_team_id: string
+          p_reason?: string
+          p_scheduled_at: string
+          p_season_id: string
+          p_venue_id?: string
+        }
+        Returns: Database["public"]["Tables"]["fixtures"]["Row"]
+      }
       admin_create_fixture: {
         Args: {
           p_away_team_id: string

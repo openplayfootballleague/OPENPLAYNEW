@@ -62,6 +62,17 @@ re-approval. Changes require a new dated owner decision recorded here.
 - If two or more teams finish level on points in first place, they play a **final** to decide the champion.
 - This rule applies to the league table, competition logic and the season-completion workflow: a season with a shared
   first place cannot be completed until the final has been played and recorded.
+- Implementation (migration `20261113160000_title_final_and_season_completion_guard.sql`): `fixtures.is_title_final`;
+  `admin_create_title_final` (active season, every league fixture finished with a confirmed result, exactly the two
+  joint leaders, location scope, audited); trigger `guard_season_title_final` blocks `completed` until a decisive final
+  result is confirmed; the final is excluded from league points but counts for player appearances and goals.
+
+### Open questions for the owner (not invented)
+
+1. **Three or more teams level in first place.** D7 covers two teams. The system refuses to arrange a final and keeps
+   the season open until the owner defines the format.
+2. **A drawn final.** The guard requires a decisive confirmed score. If finals are settled by extra time or penalties,
+   confirm how that should be recorded (for example, a penalty-shootout field) rather than entering a non-match score.
 
 ## Development safety (unchanged)
 

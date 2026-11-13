@@ -40,3 +40,19 @@ describe("Open Play tied first-place final", () => {
     ])).toEqual([]);
   });
 });
+
+describe("Open Play title final (owner decision D7)", () => {
+  it("does not add a title final's result to league points", () => {
+    const rows = buildStandings([{id:"a",name:"A"},{id:"b",name:"B"}],
+      [{id:"l1",home_team_id:"a",away_team_id:"b"},{id:"final",home_team_id:"a",away_team_id:"b",is_title_final:true}],
+      [{fixture_id:"l1",home_score:1,away_score:1},{fixture_id:"final",home_score:3,away_score:0}]);
+    expect(rows.map(({id,played,points,position})=>[id,played,points,position])).toEqual([["a",1,1,1],["b",1,1,1]]);
+  });
+
+  it("does not report a title tie before any team has a point", () => {
+    const rows = buildStandings([{id:"a",name:"A"},{id:"b",name:"B"}],[],[]);
+    expect(rows.every((row)=>row.position===1)).toBe(true);
+    expect(getJointFirstTeams(rows)).toEqual([]);
+  });
+});
+
