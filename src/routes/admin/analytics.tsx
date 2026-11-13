@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRequiredSession } from "../../lib/auth/use-required-session";
-import { aggregateFinanceTotals, buildAnalyticsOverview, buildLocationComparisons, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup, type FinanceSummaryRow } from "../../lib/analytics/overview";
+import { aggregateFinanceTotals, buildAnalyticsOverview, buildCompetitionTeamPerformance, buildLocationComparisons, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup, type FinanceSummaryRow } from "../../lib/analytics/overview";
 import { getSupabaseClient } from "../../lib/supabase/client";
 
 type ContextPreference = { location_id: string | null; league_id: string | null; season_id: string | null; is_global_admin: boolean };
@@ -617,7 +617,7 @@ function AdminAnalyticsPage() {
             <article><span>Team clean sheets</span><strong>{seasonStats.summary.team_clean_sheets}</strong></article>
           </div>
           <div className="analytics-section"><h3>Team performance</h3>
-            <div className="analytics-table-wrap"><table><thead><tr><th>Position</th><th>Team</th><th>Played</th><th>Won</th><th>Drawn</th><th>Lost</th><th>Goals</th><th>GD</th><th>Win rate</th><th>Clean sheets</th><th>Points</th><th>Points / game</th></tr></thead><tbody>{seasonStats.teams.map((team) => <tr key={team.team_id}><td>{team.position}</td><td>{team.name}</td><td>{team.played}</td><td>{team.wins}</td><td>{team.draws}</td><td>{team.losses}</td><td>{team.goals_for}–{team.goals_against}</td><td>{team.goal_difference}</td><td>{team.played > 0 ? (team.wins / team.played * 100).toFixed(1) + "%" : "—"}</td><td>{team.clean_sheets}</td><td>{team.points}</td><td>{team.played > 0 ? (team.points / team.played).toFixed(2) : "—"}</td></tr>)}</tbody></table></div>
+            <div className="analytics-table-wrap"><table><thead><tr><th>Position</th><th>Team</th><th>Played</th><th>Won</th><th>Drawn</th><th>Lost</th><th>Goals</th><th>GD</th><th>Win rate</th><th>Clean sheets</th><th>Points</th><th>Points / game</th></tr></thead><tbody>{buildCompetitionTeamPerformance(seasonStats.teams).map((team) => <tr key={team.team_id}><td>{team.position}</td><td>{team.name}</td><td>{team.played}</td><td>{team.wins}</td><td>{team.draws}</td><td>{team.losses}</td><td>{team.goals_for}–{team.goals_against}</td><td>{team.goal_difference}</td><td>{team.winRatePercent === null ? "—" : team.winRatePercent.toFixed(1) + "%"}</td><td>{team.clean_sheets}</td><td>{team.points}</td><td>{team.pointsPerGame === null ? "—" : team.pointsPerGame.toFixed(2)}</td></tr>)}</tbody></table></div>
           </div>
           <p className="form-note">Player identities are counted for this summary but not listed here. The player leaderboard remains available in the season statistics section of the main Admin Dashboard.</p>
         </>}
