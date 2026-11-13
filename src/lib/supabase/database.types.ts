@@ -1959,8 +1959,7 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
-      }
-
+      },
       admin_update_season_matchday_settings: {
         Args: {
           p_season_id: string
@@ -1978,11 +1977,11 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
-      }
+      },
       admin_preview_round_robin_fixtures: {
         Args: { p_season_id: string; p_first_matchday_date: string }
         Returns: Json
-      }
+      },
       admin_generate_round_robin_fixtures: {
         Args: { p_season_id: string; p_first_matchday_date: string }
         Returns: Json
