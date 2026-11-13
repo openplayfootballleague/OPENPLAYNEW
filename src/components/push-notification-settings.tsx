@@ -225,7 +225,7 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
       <div className="push-notification-settings-heading">
         <p className="eyebrow">NOTIFICATIONS</p>
         <h2 id="notification-settings-heading">Notification preferences</h2>
-        <p>Choose how Open Play contacts you. Critical account-security alerts remain enabled.</p>
+        <p>Choose how Open Play contacts you. Critical account-security alerts are always retained in your in-app notification centre; optional channels follow your preferences.</p>
       </div>
       {loading ? <p role="status">Loading notification preferences…</p> : error && !preferences ? <p className="form-error" role="alert">{error}</p> : preferences ? <>
         <div className="push-push-settings-toggle-list">
