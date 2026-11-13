@@ -93,7 +93,7 @@ begin
   on conflict(user_id) do nothing;
   select * into v_preferences from public.notification_preferences where user_id=p_user_id;
 
-  -- Account and security notices are mandatory. Other categories can be
+  -- Account and security notices are never suppressed by category settings. Other categories can be
   -- disabled independently, without changing channel-level consent.
   if v_category<>'account_security'
      and coalesce((v_preferences.category_preferences->>v_category)::boolean,true)=false then
