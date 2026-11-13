@@ -5,7 +5,7 @@ import { PermanentDeliveryError, providerHttpError } from "./shared/delivery-err
 type EventRow = {
   id: string;
   user_id: string;
-  channel: "email" | "sms";
+  channel: "email" | "sms" | "push";
   event_type: string;
   payload: Record<string, unknown>;
 };
@@ -110,6 +110,70 @@ async function sendEmail(apiKey: string, from: string, to: string, message: Rend
   return String(body.id ?? "");
 }
 
+type PushMessage = { heading: string; body: string; path: string };
+
+function renderPushMessage(event: EventRow): PushMessage {
+  switch (event.event_type) {
+    case "message.new":
+      return { heading: "New Open Play message", body: "You have a new message. Sign in to view it.", path: "/messages" };
+    case "fixture.scheduled":
+    case "fixture.reminder_24h":
+    case "fixture.reminder_3h":
+    case "fixture.rescheduled":
+    case "fixture.status_changed":
+    case "fixture.result_published":
+    case "fixture.result_corrected":
+      return { heading: "Open Play match update", body: "There is an update to one of your fixtures. Open Match Centre for details.", path: "/match-centre" };
+    case "team.membership_approved":
+    case "team.membership_rejected":
+    case "team.membership_removed":
+    case "team.registration_approved":
+    case "team.registration_rejected":
+    case "player.transfer_approved":
+    case "player.transfer_rejected":
+      return { heading: "Open Play team update", body: "There is an update to your team or membership. Sign in to view details.", path: "/player" };
+    case "player.banned":
+    case "player.unbanned":
+    case "player.guardian_consent.captain_review_required":
+      return { heading: "Open Play account update", body: "There is an update to your account that needs your attention. Sign in to view details.", path: "/player" };
+    default:
+      if (event.event_type.startsWith("referee.")) {
+        return { heading: "Open Play referee update", body: "There is an update to a match report. Sign in to view details.", path: "/referee" };
+      }
+      return { heading: "Open Play notification", body: "You have a new update. Sign in to view details.", path: "/notifications" };
+  }
+}
+
+async function sendPush(
+  appId: string,
+  restApiKey: string,
+  externalId: string,
+  eventId: string,
+  message: PushMessage,
+  appOrigin: string,
+) {
+  const targetUrl = new URL(message.path, appOrigin).toString();
+  const response = await fetch("https://api.onesignal.com/notifications", {
+    method: "POST",
+    headers: { Authorization: `Key ${restApiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      app_id: appId,
+      target_channel: "push",
+      include_aliases: { external_id: [externalId] },
+      headings: { en: message.heading },
+      contents: { en: message.body },
+      url: targetUrl,
+      data: { deep_link: message.path },
+      idempotency_key: eventId,
+    }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw providerHttpError("OneSignal", response.status, result);
+  const providerId = String(result.id ?? "");
+  if (!providerId) throw new PermanentDeliveryError("No active OneSignal subscriptions");
+  return providerId;
+}
+
 async function sendSms(accountSid: string, authToken: string, from: string, to: string, body: string) {
   const payload = new URLSearchParams({ To: to, From: from, Body: body });
   const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
@@ -167,11 +231,26 @@ Deno.serve(async (req: Request) => {
   const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
   const twilioToken = Deno.env.get("TWILIO_AUTH_TOKEN");
   const twilioFrom = Deno.env.get("TWILIO_FROM_NUMBER");
+  const oneSignalAppId = Deno.env.get("ONESIGNAL_APP_ID");
+  const oneSignalRestApiKey = Deno.env.get("ONESIGNAL_REST_API_KEY");
+  const appOrigin = Deno.env.get("APP_ORIGIN");
+  let validAppOrigin = "";
+  if (appOrigin) {
+    try {
+      const parsed = new URL(appOrigin);
+      if (parsed.protocol === "https:" || parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+        validAppOrigin = parsed.origin;
+      }
+    } catch {
+      validAppOrigin = "";
+    }
+  }
   const channels: string[] = [];
   if (resendKey && resendFrom) channels.push("email");
   if (twilioSid && twilioToken && twilioFrom) channels.push("sms");
+  if (oneSignalAppId && oneSignalRestApiKey && validAppOrigin) channels.push("push");
   if (channels.length === 0) {
-    return jsonResponse({ error: "No delivery provider is configured. Add Resend and/or Twilio secrets before processing the queue." }, 503);
+    return jsonResponse({ error: "No delivery provider is configured. Add Resend, Twilio or OneSignal secrets before processing the queue." }, 503);
   }
 
   let batchSize = 25;
@@ -199,27 +278,43 @@ Deno.serve(async (req: Request) => {
   for (const event of (claimed ?? []) as EventRow[]) {
     let providerAccepted = false;
     try {
-      const [{ data: player, error: playerError }, { data: profile, error: profileError }] = await Promise.all([
-        service.from("players").select("full_name,email,phone").eq("user_id", event.user_id).maybeSingle(),
-        service.from("profiles").select("phone").eq("id", event.user_id).maybeSingle(),
-      ]);
-      if (playerError || profileError) throw new Error("Unable to load notification recipient details");
-      const message = renderMessage(event);
       let providerReference = "";
 
-      if (event.channel === "email") {
-        const email = String(player?.email ?? "").trim();
-        if (!email) throw new PermanentDeliveryError("Recipient email is missing");
-        if (!resendKey || !resendFrom) throw new Error("Resend configuration is missing");
-        providerReference = await sendEmail(resendKey, resendFrom, email, message);
+      if (event.channel === "push") {
+        if (!oneSignalAppId || !oneSignalRestApiKey || !validAppOrigin) {
+          throw new Error("OneSignal configuration is incomplete");
+        }
+        providerReference = await sendPush(
+          oneSignalAppId,
+          oneSignalRestApiKey,
+          event.user_id,
+          event.id,
+          renderPushMessage(event),
+          validAppOrigin,
+        );
         providerAccepted = true;
       } else {
-        const rawPhone = String(player?.phone ?? profile?.phone ?? "").trim();
-        const phone = normaliseUkPhone(rawPhone);
-        if (!phone) throw new PermanentDeliveryError("Recipient phone is missing or invalid");
-        if (!twilioSid || !twilioToken || !twilioFrom) throw new Error("Twilio configuration is incomplete");
-        providerReference = await sendSms(twilioSid, twilioToken, twilioFrom, phone, message.text);
-        providerAccepted = true;
+        const [{ data: player, error: playerError }, { data: profile, error: profileError }] = await Promise.all([
+          service.from("players").select("full_name,email,phone").eq("user_id", event.user_id).maybeSingle(),
+          service.from("profiles").select("phone").eq("id", event.user_id).maybeSingle(),
+        ]);
+        if (playerError || profileError) throw new Error("Unable to load notification recipient details");
+        const message = renderMessage(event);
+
+        if (event.channel === "email") {
+          const email = String(player?.email ?? "").trim();
+          if (!email) throw new PermanentDeliveryError("Recipient email is missing");
+          if (!resendKey || !resendFrom) throw new Error("Resend configuration is missing");
+          providerReference = await sendEmail(resendKey, resendFrom, email, message);
+          providerAccepted = true;
+        } else {
+          const rawPhone = String(player?.phone ?? profile?.phone ?? "").trim();
+          const phone = normaliseUkPhone(rawPhone);
+          if (!phone) throw new PermanentDeliveryError("Recipient phone is missing or invalid");
+          if (!twilioSid || !twilioToken || !twilioFrom) throw new Error("Twilio configuration is incomplete");
+          providerReference = await sendSms(twilioSid, twilioToken, twilioFrom, phone, message.text);
+          providerAccepted = true;
+        }
       }
 
       const { error: completeError } = await service.rpc("complete_notification_event", {
@@ -234,6 +329,9 @@ Deno.serve(async (req: Request) => {
         await service.rpc("mark_notification_event_unconfirmed", { p_event_id: event.id, p_error: errorText });
         summary.unconfirmed += 1;
       } else if (cause instanceof PermanentDeliveryError) {
+        if (event.channel === "push" && errorText.includes("No active OneSignal subscriptions")) {
+          await service.from("notification_preferences").update({ push_enabled: false }).eq("user_id", event.user_id);
+        }
         await service.rpc("fail_notification_event_permanent", { p_event_id: event.id, p_error: errorText });
         summary.failed += 1;
       } else {
