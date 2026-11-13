@@ -177,6 +177,7 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
         body: { action: "disable" },
       });
       if (disableError || !data || data.error) throw new Error(data?.error ?? "Unable to disable push notifications.");
+      if (sdk) await sdk.logout().catch(() => undefined);
       setNotice("Push notifications have been disabled on all registered devices.");
       await refresh();
     } catch (cause) {
@@ -200,6 +201,10 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
         body: { action: "revoke", subscriptionId: device.subscriptionId },
       });
       if (revokeError || !data || data.error) throw new Error(data?.error ?? "Unable to remove this device.");
+      if (data.pushEnabled === false) {
+        const sdk = await loadOneSignal().catch(() => null);
+        if (sdk) await sdk.logout().catch(() => undefined);
+      }
       setNotice("Push notifications were removed from that device.");
       await refresh();
     } catch (cause) {
