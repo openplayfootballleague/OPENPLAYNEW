@@ -442,9 +442,9 @@ jobs:
             diff -u supabase/drafts/onesignal_push_notifications.sql "$migration_file"
           fi
           test -n "$migration_file"
-          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
-          printf '%s\\n' "$migration_file"
+          printf '%s\n' "$migration_file"
       - name: Preserve CLI-generated OneSignal migration for review
         uses: actions/upload-artifact@v4
         with:
