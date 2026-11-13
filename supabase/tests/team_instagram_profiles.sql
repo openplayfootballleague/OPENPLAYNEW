@@ -115,7 +115,11 @@ begin
   if not pg_catalog.has_function_privilege('authenticated','public.register_team(uuid,text,text,text,text,text)','EXECUTE') then
     raise exception 'Authenticated users must be able to submit team registrations';
   end if;
+  if position('instagram_handle' in pg_catalog.pg_get_functiondef('public.get_admin_dashboard_contextual(uuid,uuid,uuid)'::regprocedure))=0
+     or position('instagram_url' in pg_catalog.pg_get_functiondef('public.get_admin_dashboard_contextual(uuid,uuid,uuid)'::regprocedure))=0 then
+    raise exception 'Administrator team-application RPC must include the submitted Instagram profile fields';
+  end if;
 
-  raise notice 'Team Instagram profile validation, canonicalisation and registration lifecycle regressions passed';
+  raise notice 'Team Instagram profile validation, canonicalisation, approval visibility and registration lifecycle regressions passed';
 end;
 $team_instagram_profiles$;
