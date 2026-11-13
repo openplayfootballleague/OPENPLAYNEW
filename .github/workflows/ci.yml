@@ -41,9 +41,9 @@ jobs:
         with:
           deno-version: v2.x
       - name: Type-check Supabase Edge Functions
-        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts supabase/functions/player-account-retention/index.ts supabase/functions/create-referee-connect-account/index.ts supabase/functions/pay-referee-payout/index.ts supabase/functions/referee-connect-webhook/index.ts supabase/functions/create-team-fixture-checkout/index.ts supabase/functions/team-stripe-webhook/index.ts supabase/functions/process-team-payment-deadlines/index.ts supabase/functions/process-referee-payout-queue/index.ts supabase/functions/admin-postpone-gameweek/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts supabase/functions/player-account-retention/index.ts supabase/functions/create-referee-connect-account/index.ts supabase/functions/pay-referee-payout/index.ts supabase/functions/referee-connect-webhook/index.ts supabase/functions/create-team-fixture-checkout/index.ts supabase/functions/team-stripe-webhook/index.ts supabase/functions/process-team-payment-deadlines/index.ts supabase/functions/process-referee-payout-queue/index.ts supabase/functions/admin-postpone-gameweek/index.ts supabase/functions/admin-product-analytics/index.ts
       - name: Test Stripe Connect webhook signature verification
-        run: deno test --node-modules-dir=auto supabase/functions/referee-connect-webhook/signature_test.ts supabase/functions/pay-referee-payout/stripe-transfer-policy_test.ts
+        run: deno test --node-modules-dir=auto supabase/functions/referee-connect-webhook/signature_test.ts supabase/functions/pay-referee-payout/stripe-transfer-policy_test.ts supabase/functions/admin-product-analytics/policy_test.ts
       - name: Run domain tests
         run: npm test
       - name: Type-check and build
@@ -415,6 +415,21 @@ jobs:
           grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\n' "$migration_file"
+      - name: Generate minimal admin product analytics scope migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_admin_product_analytics_scope.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new admin_product_analytics_scope
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_admin_product_analytics_scope.sql' -print -quit)"
+            cp supabase/drafts/admin_product_analytics_scope.sql "$migration_file"
+          else
+            diff -u supabase/drafts/admin_product_analytics_scope.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
       - name: Verify unique migration versions before replay
         shell: bash
         run: |
@@ -474,6 +489,10 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/admin_analytics_registration_conversion.sql
+      - name: Verify minimal product analytics scope and role isolation
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/admin_product_analytics_scope.sql
       - name: Verify player identity matching and review-data access boundaries
         env:
           PGPASSWORD: postgres

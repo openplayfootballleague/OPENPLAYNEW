@@ -50,9 +50,18 @@ function MatchCentrePage(){
  useEffect(()=>{
   if(loading||error||!competition.selectedSeasonId||lastTrackedSeason.current===competition.selectedSeasonId)return;
   let captured=false;
-  if(fixtures.length>0)captured=capture("fixture_viewed",{feature:"fixtures",season_id:competition.selectedSeasonId})||captured;
-  if(results.length>0)captured=capture("result_viewed",{feature:"results",season_id:competition.selectedSeasonId})||captured;
-  if(standings.length>0)captured=capture("league_table_viewed",{feature:"league_table",season_id:competition.selectedSeasonId})||captured;
+  if(fixtures.length>0){
+   captured=capture("fixture_viewed",{feature:"fixtures",season_id:competition.selectedSeasonId})||captured;
+   captured=capture("core_value_action",{feature:"fixtures",season_id:competition.selectedSeasonId})||captured;
+  }
+  if(results.length>0){
+   captured=capture("result_viewed",{feature:"results",season_id:competition.selectedSeasonId})||captured;
+   captured=capture("core_value_action",{feature:"results",season_id:competition.selectedSeasonId})||captured;
+  }
+  if(standings.length>0){
+   captured=capture("league_table_viewed",{feature:"league_table",season_id:competition.selectedSeasonId})||captured;
+   captured=capture("core_value_action",{feature:"league_table",season_id:competition.selectedSeasonId})||captured;
+  }
   if(captured)lastTrackedSeason.current=competition.selectedSeasonId;
  },[capture,competition.selectedSeasonId,error,fixtures.length,loading,results.length,standings.length]);
 

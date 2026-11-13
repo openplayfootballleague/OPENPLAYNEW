@@ -25,6 +25,7 @@ export const OPEN_PLAY_ANALYTICS_EVENTS = [
   "gallery_viewed",
   "announcement_viewed",
   "feature_opened",
+  "core_value_action",
   "feature_action_completed",
   "feature_action_failed",
   "application_error",
@@ -123,6 +124,7 @@ export function captureOpenPlayEvent(
 ): boolean {
   if (!client || !isAnalyticsAllowed(consent, globalPrivacyControl)) return false;
   if (actor !== "anonymous" && actor !== "account_user" && actor !== "player" && actor !== "captain") return false;
+  if (event === "core_value_action" && actor !== "player" && actor !== "captain") return false;
   client.capture(event, sanitizeAnalyticsProperties(properties));
   return true;
 }

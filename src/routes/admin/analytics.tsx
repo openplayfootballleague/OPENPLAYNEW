@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRequiredSession } from "../../lib/auth/use-required-session";
-import { aggregateFinanceTotals, buildAnalyticsOverview, buildLocationComparisons, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup, type FinanceSummaryRow } from "../../lib/analytics/overview";
+import { aggregateFinanceTotals, buildAnalyticsOverview, buildCompetitionTeamPerformance, buildLocationComparisons, safeCsvCell, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup, type FinanceSummaryRow } from "../../lib/analytics/overview";
 import { getSupabaseClient } from "../../lib/supabase/client";
 
 type ContextPreference = { location_id: string | null; league_id: string | null; season_id: string | null; is_global_admin: boolean };
@@ -36,9 +36,16 @@ type RegistrationRow = {
   membership_pending: number | string;
 };
 type Tab = "overview" | "usage" | "growth" | "registrations" | "engagement" | "features" | "locations" | "competition" | "business" | "reports";
+type ProductAnalytics = {
+  status: "ready" | "no_data";
+  range: { fromDate: string; toDate: string };
+  weeklyActivity: Array<{ week_start: string; active_users: number; value_actions: number }>;
+  retention: Array<{ cohort_week: string; weeks_since_start: number; cohort_users: number; retained_users: number; retention_rate: number }>;
+  features: Array<{ feature: string; unique_users: number; value_actions: number }>;
+  definitions: { engagedUser: string; retention: string; featurePerformance: string };
+};
 
 const money = (pence: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
-const csvCell = (value: string | number) => '"' + String(value).replaceAll('"', '""') + '"';
 
 export const Route = createFileRoute("/admin/analytics")({ component: AdminAnalyticsPage });
 
@@ -69,6 +76,9 @@ function AdminAnalyticsPage() {
   const [growthError, setGrowthError] = useState("");
   const [registrationRows, setRegistrationRows] = useState<RegistrationRow[]>([]);
   const [registrationError, setRegistrationError] = useState("");
+  const [productAnalytics, setProductAnalytics] = useState<ProductAnalytics | null>(null);
+  const [productAnalyticsLoading, setProductAnalyticsLoading] = useState(false);
+  const [productAnalyticsError, setProductAnalyticsError] = useState("");
   const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
 
@@ -215,6 +225,58 @@ function AdminAnalyticsPage() {
     if (contextReady) void loadContextData();
   }, [contextReady, loadContextData]);
 
+  useEffect(() => {
+    if (!contextReady || authStatus !== "authenticated" || (tab !== "usage" && tab !== "engagement" && tab !== "features")) return;
+    let alive = true;
+    setProductAnalyticsLoading(true);
+    setProductAnalyticsError("");
+    void (async () => {
+      const { data, error: invokeError } = await getSupabaseClient().functions.invoke("admin-product-analytics", {
+        body: {
+          fromDate: fromDate || undefined,
+          toDate: toDate || undefined,
+          locationId: locationId || undefined,
+          leagueId: leagueId || undefined,
+          seasonId: seasonId || undefined,
+        },
+      });
+      if (!alive) return;
+      if (invokeError) {
+        let message = "Product analytics could not be loaded. Check the server-side PostHog query credential.";
+        const response = (invokeError as Error & { context?: Response }).context;
+        if (response) {
+          try {
+            const body = await response.clone().json() as { error?: string };
+            if (typeof body.error === "string") message = body.error;
+          } catch {
+            // Keep the generic fail-closed message when an error body is unavailable.
+          }
+        }
+        setProductAnalytics(null);
+        setProductAnalyticsError(message);
+        return;
+      }
+      const payload = data as ProductAnalytics | { error?: string } | null;
+      if (!payload || !("status" in payload)) {
+        setProductAnalytics(null);
+        setProductAnalyticsError(payload && "error" in payload && typeof payload.error === "string" && payload.error
+          ? payload.error
+          : "Product analytics returned an invalid response.");
+        return;
+      }
+      setProductAnalytics(payload);
+      setProductAnalyticsError("");
+    })().catch((cause: unknown) => {
+      if (alive) {
+        setProductAnalytics(null);
+        setProductAnalyticsError(cause instanceof Error ? cause.message : "Product analytics could not be loaded.");
+      }
+    }).finally(() => {
+      if (alive) setProductAnalyticsLoading(false);
+    });
+    return () => { alive = false; };
+  }, [authStatus, contextReady, fromDate, leagueId, locationId, seasonId, tab, toDate]);
+
   const dateRangeInvalid = Boolean(fromDate && toDate && fromDate > toDate);
   const filters: AnalyticsFilters = { locationId, leagueId, seasonId, fromDate, toDate };
   const overview = useMemo(() => dashboard && !dateRangeInvalid
@@ -302,13 +364,35 @@ function AdminAnalyticsPage() {
         ["Ledger charges (pence)", financeTotals.chargesPence],
         ["Ledger payments (pence)", financeTotals.paymentsPence],
         ["Ledger refunds (pence)", financeTotals.refundsPence],
+        ["Ledger credits (pence)", financeTotals.creditsPence],
+        ["Net payments after refunds (pence)", financeTotals.paymentsPence - financeTotals.refundsPence],
         ["Ledger fines (pence)", financeTotals.finesPence],
         ["Outstanding ledger balance (pence)", financeTotals.outstandingPence],
       );
     }
-    rows.push([], ["Location", "Seasons", "Approved teams", "Squad memberships", "Fixtures", "Published results", "Goals"]);
+    rows.push([], ["Location", "Seasons", "Approved teams", "Squad memberships", "Fixtures", "Completed fixtures", "Published results", "Result coverage (%)", "Goals", "Goals per result"]);
     for (const location of locationComparisons) {
-      rows.push([location.locationName, location.seasons, location.approvedTeams, location.squadMemberships, location.fixtures, location.publishedResults, location.goals]);
+      rows.push([
+        location.locationName, location.seasons, location.approvedTeams, location.squadMemberships,
+        location.fixtures, location.completedFixtures, location.publishedResults,
+        location.resultsCoveragePercent ?? "", location.goals, location.goalsPerResult ?? "",
+      ]);
+    }
+    if (seasonStats) {
+      rows.push(
+        [],
+        [`Competition performance · ${seasonStats.season.name}`],
+        ["Position", "Team", "Played", "Won", "Drawn", "Lost", "Goals for", "Goals against", "Goal difference", "Win rate (%)", "Clean sheets", "Points", "Points per game"],
+      );
+      for (const team of seasonStats.teams) {
+        rows.push([
+          team.position, team.name, team.played, team.wins, team.draws, team.losses,
+          team.goals_for, team.goals_against, team.goal_difference,
+          team.played > 0 ? Math.round(team.wins / team.played * 1000) / 10 : "",
+          team.clean_sheets, team.points,
+          team.played > 0 ? Math.round(team.points / team.played * 100) / 100 : "",
+        ]);
+      }
     }
     if (growthRows.length > 0) {
       rows.push(
@@ -325,7 +409,25 @@ function AdminAnalyticsPage() {
         ]);
       }
     }
-    const csv = rows.map((row) => row.map((cell) => csvCell(cell)).join(",")).join("\r\n");
+    if (productAnalytics?.weeklyActivity.length) {
+      rows.push([], ["Weekly engagement", "Active users", "Meaningful content views"]);
+      for (const row of productAnalytics.weeklyActivity) {
+        rows.push([row.week_start, row.active_users, row.value_actions]);
+      }
+    }
+    if (productAnalytics?.features.length) {
+      rows.push([], ["Feature performance", "Unique users", "Meaningful content views"]);
+      for (const row of productAnalytics.features) {
+        rows.push([row.feature, row.unique_users, row.value_actions]);
+      }
+    }
+    if (productAnalytics?.retention.length) {
+      rows.push([], ["Weekly retention", "Weeks since first observed", "Cohort users", "Retained users", "Retention rate (%)"]);
+      for (const row of productAnalytics.retention) {
+        rows.push([row.cohort_week, row.weeks_since_start, row.cohort_users, row.retained_users, row.retention_rate]);
+      }
+    }
+    const csv = rows.map((row) => row.map((cell) => safeCsvCell(cell)).join(",")).join("\r\n");
     const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
@@ -409,7 +511,22 @@ function AdminAnalyticsPage() {
           </div>
           <p className="form-note">Only fixtures marked completed with a published score contribute to result and goal totals.</p>
         </div>
-      </> : tab === "usage" ? <div className="analytics-state"><h2>App usage</h2><p>Page views, sessions, device/browser distribution and navigation trends will appear after consented analytics ingestion is approved and enabled.</p><p className="analytics-state-label">No user-activity figures are being fabricated or inferred from page loads.</p></div>  : tab === "growth" ? <>
+      </> : tab === "usage" ? <>
+        <h2>App usage · meaningful activity</h2>
+        <p className="form-note">A concise view of consented, registered-player use of real competition content. Raw page views, device fingerprinting, autocapture, heatmaps and session recordings are not included.</p>
+        {productAnalyticsLoading ? <p className="form-note">Loading product usage…</p> : productAnalyticsError ? <p className="form-error" role="alert">{productAnalyticsError}</p> : !productAnalytics || productAnalytics.status === "no_data" ? <div className="analytics-state"><h3>No consented usage data yet</h3><p>Usage figures will appear when registered players who have opted into optional analytics view fixtures, results, standings, player statistics or the approved team directory.</p></div> : <>
+          <div className="analytics-stat-grid">
+            <article><span>Latest completed week · active players</span><strong>{productAnalytics.weeklyActivity.length ? productAnalytics.weeklyActivity.at(-1)!.active_users : "—"}</strong></article>
+            <article><span>Meaningful content views</span><strong>{productAnalytics.weeklyActivity.reduce((sum, row) => sum + row.value_actions, 0)}</strong></article>
+            <article><span>Features used</span><strong>{productAnalytics.features.length}</strong></article>
+            <article><span>Top feature</span><strong>{productAnalytics.features[0]?.feature.replaceAll("_", " ") ?? "—"}</strong></article>
+          </div>
+          <div className="analytics-section"><h3>Weekly usage</h3>
+            {productAnalytics.weeklyActivity.length === 0 ? <p className="form-note">No complete week has recorded meaningful activity in the selected window.</p> : <div className="analytics-table-wrap"><table><thead><tr><th>Week commencing</th><th>Active players</th><th>Content views</th></tr></thead><tbody>{productAnalytics.weeklyActivity.map((row) => <tr key={row.week_start}><td>{row.week_start}</td><td>{row.active_users}</td><td>{row.value_actions}</td></tr>)}</tbody></table></div>}
+          </div>
+          <p className="form-note">Use Engagement &amp; Retention for cohort return rates and Feature Performance for detailed feature comparisons. Reporting period: {productAnalytics.range.fromDate} to {productAnalytics.range.toDate}.</p>
+        </>}
+      </>  : tab === "growth" ? <>
         <h2>User growth · daily activity</h2>
         <p className="form-note">Daily totals use Supabase account profiles, player registrations and season-team application records. In scoped views, player registrations include only players associated with the selected competition through membership history. Account signups appear only in the global all-locations view.</p>
         {growthError ? <p className="form-error" role="alert">{growthError}</p> : <>
@@ -468,7 +585,37 @@ function AdminAnalyticsPage() {
             {registrationRows.map((row) => <tr key={row.bucket_date}><td>{new Date(row.bucket_date + "T12:00:00Z").toLocaleDateString("en-GB", { timeZone: "Europe/London", dateStyle: "medium" })}</td><td>{Number(row.team_applications)}</td><td>{Number(row.team_approved)}</td><td>{Number(row.team_rejected)}</td><td>{Number(row.team_pending)}</td><td>{Number(row.membership_requests)}</td><td>{Number(row.membership_accepted)}</td><td>{Number(row.membership_rejected)}</td><td>{Number(row.membership_pending)}</td></tr>)}
           </tbody></table></div>}
         </>}
-      </> : tab === "engagement" ? <div className="analytics-state"><h2>Engagement &amp; retention</h2><p>Meaningful repeat visits, active-user cohorts and 1/7/30-day retention are not available until the consented event history has sufficient coverage.</p><p className="analytics-state-label">An open tab or a page render is not counted as engagement.</p></div> : tab === "features" ? <div className="analytics-state"><h2>Feature performance</h2><p>Feature adoption and repeat interactions will be reported for Player Hub, Match Centre, teams, fixtures, results, registration, team management, gallery and announcements.</p><p className="analytics-state-label">Event coverage is being expanded; incomplete feature history is not displayed as zero.</p></div> : tab === "competition" ? <>
+      </> : tab === "engagement" ? <>
+        <h2>Engagement &amp; retention</h2>
+        <p className="form-note">Meaningful activity is a consented player viewing published fixtures, results, league standings, player statistics or the approved team directory. Admin and finance activity is excluded. Retention cohorts use first observed meaningful activity in this reporting window. Only full Monday–Sunday weeks wholly contained in the selected date range are included; partial first/last weeks and the current incomplete week are excluded.</p>
+        {productAnalyticsLoading ? <p className="form-note">Loading consented engagement data…</p> : productAnalyticsError ? <div className="analytics-state"><h3>Product analytics unavailable</h3><p>{productAnalyticsError}</p><p className="analytics-state-label">The PostHog query credential is held server-side. No user-level event records are returned to this page.</p></div> : !productAnalytics || productAnalytics.status === "no_data" ? <div className="analytics-state"><h3>No consented engagement data yet</h3><p>There are no meaningful content-view events for the selected competition and reporting period. Figures will appear as players who have opted into optional analytics view available competition content.</p><p className="analytics-state-label">An app open or a generic page render is not counted as engagement.</p></div> : <>
+          <div className="analytics-stat-grid">
+            <article><span>Latest completed week · active players</span><strong>{productAnalytics.weeklyActivity.length ? productAnalytics.weeklyActivity.at(-1)!.active_users : "—"}</strong></article>
+            <article><span>Meaningful content views</span><strong>{productAnalytics.weeklyActivity.reduce((sum, row) => sum + row.value_actions, 0)}</strong></article>
+            <article><span>Retention cohorts</span><strong>{new Set(productAnalytics.retention.map((row) => row.cohort_week)).size}</strong></article>
+          </div>
+          <div className="analytics-section"><h3>Weekly active players</h3>
+            {productAnalytics.weeklyActivity.length === 0 ? <p className="form-note">No completed week has recorded meaningful activity.</p> : <div className="analytics-table-wrap"><table><thead><tr><th>Week commencing</th><th>Active players</th><th>Meaningful views</th></tr></thead><tbody>{productAnalytics.weeklyActivity.map((row) => <tr key={row.week_start}><td>{row.week_start}</td><td>{row.active_users}</td><td>{row.value_actions}</td></tr>)}</tbody></table></div>}
+          </div>
+          <div className="analytics-section"><h3>Weekly retention cohorts</h3>
+            <p className="form-note">Each cohort is players whose first observed meaningful action fell in that week. Percentages show how many returned in each subsequent week.</p>
+            {productAnalytics.retention.length === 0 ? <p className="form-note">There is not yet enough completed weekly activity to calculate retention.</p> : <div className="analytics-table-wrap"><table><thead><tr><th>Cohort week</th><th>Weeks later</th><th>Cohort size</th><th>Returned</th><th>Retention</th></tr></thead><tbody>{productAnalytics.retention.map((row) => <tr key={row.cohort_week + "-" + row.weeks_since_start}><td>{row.cohort_week}</td><td>{row.weeks_since_start}</td><td>{row.cohort_users}</td><td>{row.retained_users}</td><td>{row.retention_rate.toFixed(1)}%</td></tr>)}</tbody></table></div>}
+          </div>
+          <p className="form-note">Reporting period: {productAnalytics.range.fromDate} to {productAnalytics.range.toDate}. Source: consented PostHog events; results are aggregate-only.</p>
+        </>}
+      </> : tab === "features" ? <>
+        <h2>Feature performance</h2>
+        <p className="form-note">Counts are based on meaningful content views, not raw page loads. Only the current allowlisted competition features are shown, and only for seasons visible to the signed-in administrator.</p>
+        {productAnalyticsLoading ? <p className="form-note">Loading feature performance…</p> : productAnalyticsError ? <p className="form-error" role="alert">{productAnalyticsError}</p> : !productAnalytics || productAnalytics.status === "no_data" ? <div className="analytics-state"><h3>No feature activity yet</h3><p>Feature usage will appear once a player who has opted into optional analytics views fixtures, results, league standings, player statistics or the approved team directory.</p><p className="analytics-state-label">No missing event coverage is reported as zero usage.</p></div> : productAnalytics.features.length === 0 ? <p className="form-note">No feature activity was recorded in this reporting window.</p> : <>
+          <div className="analytics-stat-grid">
+            <article><span>Features used</span><strong>{productAnalytics.features.length}</strong></article>
+            <article><span>Unique player-feature pairs</span><strong>{productAnalytics.features.reduce((sum, row) => sum + row.unique_users, 0)}</strong></article>
+            <article><span>Meaningful views</span><strong>{productAnalytics.features.reduce((sum, row) => sum + row.value_actions, 0)}</strong></article>
+          </div>
+          <div className="analytics-table-wrap"><table><thead><tr><th>Feature</th><th>Unique players</th><th>Meaningful views</th></tr></thead><tbody>{productAnalytics.features.map((row) => <tr key={row.feature}><td>{row.feature.replaceAll("_", " ")}</td><td>{row.unique_users}</td><td>{row.value_actions}</td></tr>)}</tbody></table></div>
+          <p className="form-note">Reporting period: {productAnalytics.range.fromDate} to {productAnalytics.range.toDate}. A player may appear in more than one feature row.</p>
+        </>}
+      </> : tab === "competition" ? <>
         {!seasonId ? <p className="form-note">Choose a season above to load its verified competition statistics.</p> : seasonError ? <p className="form-error" role="alert">{seasonError}</p> : !seasonStats ? <p className="form-note">Loading season statistics…</p> : <>
           <h2>{seasonStats.season.name} · {seasonStats.season.status}</h2>
           <div className="analytics-stat-grid">
@@ -477,14 +624,20 @@ function AdminAnalyticsPage() {
             <article><span>Goals</span><strong>{seasonStats.summary.goals}</strong></article>
             <article><span>Goals / match</span><strong>{seasonStats.summary.goals_per_match}</strong></article>
             <article><span>Players with appearances</span><strong>{seasonStats.players.length}</strong></article>
+            <article><span>Teams</span><strong>{seasonStats.teams.length}</strong></article>
+            <article><span>Home wins</span><strong>{seasonStats.summary.home_wins}</strong></article>
+            <article><span>Away wins</span><strong>{seasonStats.summary.away_wins}</strong></article>
+            <article><span>Draws</span><strong>{seasonStats.summary.draws}</strong></article>
             <article><span>Team clean sheets</span><strong>{seasonStats.summary.team_clean_sheets}</strong></article>
           </div>
-          <div className="analytics-table-wrap"><table><thead><tr><th>Position</th><th>Team</th><th>Played</th><th>Won</th><th>Drawn</th><th>Lost</th><th>Goals</th><th>Points</th></tr></thead><tbody>{seasonStats.teams.map((team) => <tr key={team.team_id}><td>{team.position}</td><td>{team.name}</td><td>{team.played}</td><td>{team.wins}</td><td>{team.draws}</td><td>{team.losses}</td><td>{team.goals_for}–{team.goals_against}</td><td>{team.points}</td></tr>)}</tbody></table></div>
+          <div className="analytics-section"><h3>Team performance</h3>
+            <div className="analytics-table-wrap"><table><thead><tr><th>Position</th><th>Team</th><th>Played</th><th>Won</th><th>Drawn</th><th>Lost</th><th>Goals</th><th>GD</th><th>Win rate</th><th>Clean sheets</th><th>Points</th><th>Points / game</th></tr></thead><tbody>{buildCompetitionTeamPerformance(seasonStats.teams).map((team) => <tr key={team.team_id}><td>{team.position}</td><td>{team.name}</td><td>{team.played}</td><td>{team.wins}</td><td>{team.draws}</td><td>{team.losses}</td><td>{team.goals_for}–{team.goals_against}</td><td>{team.goal_difference}</td><td>{team.winRatePercent === null ? "—" : team.winRatePercent.toFixed(1) + "%"}</td><td>{team.clean_sheets}</td><td>{team.points}</td><td>{team.pointsPerGame === null ? "—" : team.pointsPerGame.toFixed(2)}</td></tr>)}</tbody></table></div>
+          </div>
           <p className="form-note">Player identities are counted for this summary but not listed here. The player leaderboard remains available in the season statistics section of the main Admin Dashboard.</p>
         </>}
       </> : tab === "locations" ? <>
         <h2>Location comparison</h2>
-        <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.publishedResults}</td><td>{row.goals}</td></tr>)}</tbody></table></div>
+        {locationComparisons.length === 0 ? <p className="form-note">No accessible locations have seasons matching the selected reporting context.</p> : <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Completed</th><th>Results</th><th>Result coverage</th><th>Goals</th><th>Goals / result</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.completedFixtures}</td><td>{row.publishedResults}</td><td>{row.resultsCoveragePercent === null ? "—" : row.resultsCoveragePercent.toFixed(1) + "%"}</td><td>{row.goals}</td><td>{row.goalsPerResult === null ? "—" : row.goalsPerResult.toFixed(2)}</td></tr>)}</tbody></table></div>}
         <p className="form-note">Location rows are limited to the locations returned by your administrator-scoped setup RPC. Squad memberships count current approved-team memberships, not unique people across multiple seasons.</p>
       </> : tab === "business" ? <>
         {!financeAccess ? <div className="analytics-state"><h2>Finance reporting restricted</h2><p>{financeError || "This section is available to authorised finance administrators."}</p><Link className="admin-inline-action" to="/finance">OPEN FINANCE LEDGER ↗</Link></div> : financeError ? <p className="form-error" role="alert">{financeError}</p> : <>
@@ -493,6 +646,8 @@ function AdminAnalyticsPage() {
             <article><span>Charges</span><strong>{money(financeTotals.chargesPence)}</strong></article>
             <article><span>Payments</span><strong>{money(financeTotals.paymentsPence)}</strong></article>
             <article><span>Refunds</span><strong>{money(financeTotals.refundsPence)}</strong></article>
+            <article><span>Credits</span><strong>{money(financeTotals.creditsPence)}</strong></article>
+            <article><span>Net payments after refunds</span><strong>{money(financeTotals.paymentsPence - financeTotals.refundsPence)}</strong></article>
             <article><span>Fines</span><strong>{money(financeTotals.finesPence)}</strong></article>
             <article><span>Outstanding</span><strong>{money(financeTotals.outstandingPence)}</strong></article>
             <article><span>Finance seasons</span><strong>{new Set(financeOptions.map((option) => option.season_id)).size}</strong></article>
@@ -514,14 +669,34 @@ function AdminAnalyticsPage() {
         <p>Fixtures: {overview.fixtures} · Published results: {overview.publishedResults} · Goals: {overview.goals}</p>
         <p>Open seasons: {overview.openSeasons} · Pending player reviews: {overview.pendingPlayerReviews} · Pending team applications: {overview.pendingTeamApplications} · Pending join requests: {overview.pendingMembershipRequests}</p>
       </div>}
+      {financeAccess && !financeError && <>
+        <h3>Business performance · ledger totals</h3>
+        <p>Charges: {money(financeTotals.chargesPence)} · Payments: {money(financeTotals.paymentsPence)} · Refunds: {money(financeTotals.refundsPence)} · Credits: {money(financeTotals.creditsPence)} · Net payments after refunds: {money(financeTotals.paymentsPence - financeTotals.refundsPence)} · Fines: {money(financeTotals.finesPence)} · Outstanding: {money(financeTotals.outstandingPence)}</p>
+      </>}
       <h3>Location comparison</h3>
-      <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.publishedResults}</td><td>{row.goals}</td></tr>)}</tbody></table></div>
+      <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Completed</th><th>Results</th><th>Result coverage</th><th>Goals</th><th>Goals / result</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.completedFixtures}</td><td>{row.publishedResults}</td><td>{row.resultsCoveragePercent === null ? "—" : row.resultsCoveragePercent.toFixed(1) + "%"}</td><td>{row.goals}</td><td>{row.goalsPerResult === null ? "—" : row.goalsPerResult.toFixed(2)}</td></tr>)}</tbody></table></div>
+      {seasonStats && <>
+        <h3>Competition performance · {seasonStats.season.name}</h3>
+        <div className="analytics-table-wrap"><table><thead><tr><th>Position</th><th>Team</th><th>Played</th><th>Won</th><th>Drawn</th><th>Lost</th><th>Goals</th><th>GD</th><th>Win rate</th><th>Clean sheets</th><th>Points</th><th>Points / game</th></tr></thead><tbody>{buildCompetitionTeamPerformance(seasonStats.teams).map((team) => <tr key={team.team_id}><td>{team.position}</td><td>{team.name}</td><td>{team.played}</td><td>{team.wins}</td><td>{team.draws}</td><td>{team.losses}</td><td>{team.goals_for}–{team.goals_against}</td><td>{team.goal_difference}</td><td>{team.winRatePercent === null ? "—" : team.winRatePercent.toFixed(1) + "%"}</td><td>{team.clean_sheets}</td><td>{team.points}</td><td>{team.pointsPerGame === null ? "—" : team.pointsPerGame.toFixed(2)}</td></tr>)}</tbody></table></div>
+      </>}
       <h3>Daily user growth</h3>
       <div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Account signups</th><th>Player registrations</th><th>Team applications</th><th>Team approvals</th></tr></thead><tbody>{growthRows.map((row) => <tr key={row.bucket_date}><td>{row.bucket_date}</td><td>{row.account_signups === null ? "—" : Number(row.account_signups)}</td><td>{Number(row.player_registrations)}</td><td>{Number(row.team_applications)}</td><td>{Number(row.team_approvals)}</td></tr>)}</tbody></table></div>
+      {productAnalytics && productAnalytics.weeklyActivity.length > 0 && <>
+        <h3>Weekly engagement</h3>
+        <div className="analytics-table-wrap"><table><thead><tr><th>Week commencing</th><th>Active players</th><th>Meaningful views</th></tr></thead><tbody>{productAnalytics.weeklyActivity.map((row) => <tr key={row.week_start}><td>{row.week_start}</td><td>{row.active_users}</td><td>{row.value_actions}</td></tr>)}</tbody></table></div>
+      </>}
+      {productAnalytics && productAnalytics.features.length > 0 && <>
+        <h3>Feature performance</h3>
+        <div className="analytics-table-wrap"><table><thead><tr><th>Feature</th><th>Unique players</th><th>Meaningful views</th></tr></thead><tbody>{productAnalytics.features.map((row) => <tr key={row.feature}><td>{row.feature}</td><td>{row.unique_users}</td><td>{row.value_actions}</td></tr>)}</tbody></table></div>
+      </>}
+      {productAnalytics && productAnalytics.retention.length > 0 && <>
+        <h3>Weekly retention</h3>
+        <div className="analytics-table-wrap"><table><thead><tr><th>Cohort week</th><th>Weeks later</th><th>Cohort size</th><th>Returned</th><th>Retention</th></tr></thead><tbody>{productAnalytics.retention.map((row) => <tr key={row.cohort_week + "-" + row.weeks_since_start}><td>{row.cohort_week}</td><td>{row.weeks_since_start}</td><td>{row.cohort_users}</td><td>{row.retained_users}</td><td>{row.retention_rate.toFixed(1)}%</td></tr>)}</tbody></table></div>
+      </>}
       {financeAccess && !financeError && <p>Ledger charges: {money(financeTotals.chargesPence)} · Payments: {money(financeTotals.paymentsPence)} · Refunds: {money(financeTotals.refundsPence)} · Fines: {money(financeTotals.finesPence)} · Outstanding: {money(financeTotals.outstandingPence)}</p>}
       <p>Generated {new Date().toLocaleString("en-GB")}. Aggregate operational data only; no player personal details included.</p>
     </section>
-    <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs. Fixture reporting window: {fromDate || toDate ? `${fromDate || "Any date"} to ${toDate || "Any date"}` : "all dates"} within the selected season or accessible context. Team and queue figures are current snapshots; finance figures are ledger totals for the selected season. Cohort reporting and consented app-usage metrics remain gated on the analytics release review.</p>
+    <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs for operational and financial truth; consented PostHog aggregates for product engagement and feature performance. Fixture reporting window: {fromDate || toDate ? `${fromDate || "Any date"} to ${toDate || "Any date"}` : "all dates"} within the selected season or accessible context. Team and queue figures are current snapshots; finance figures are ledger totals for the selected season. PostHog reporting requires the server-side project query credential and sufficient consented activity.</p>
     <Link className="auth-switch" to="/admin">← BACK TO ADMIN DASHBOARD</Link>
   </section></main>;
 }

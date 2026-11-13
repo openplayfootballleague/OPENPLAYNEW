@@ -45,9 +45,45 @@ export type AnalyticsLocationComparison = {
   approvedTeams: number;
   squadMemberships: number;
   fixtures: number;
+  completedFixtures: number;
   publishedResults: number;
+  resultsCoveragePercent: number | null;
   goals: number;
+  goalsPerResult: number | null;
 };
+export type CompetitionTeamRow = {
+  position: number;
+  team_id: string;
+  name: string;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goals_for: number;
+  goals_against: number;
+  goal_difference: number;
+  points: number;
+  clean_sheets: number;
+};
+export type CompetitionTeamPerformance = CompetitionTeamRow & {
+  winRatePercent: number | null;
+  pointsPerGame: number | null;
+};
+
+export function buildCompetitionTeamPerformance(
+  teams: CompetitionTeamRow[],
+): CompetitionTeamPerformance[] {
+  return teams.map((team) => ({
+    ...team,
+    winRatePercent: team.played > 0
+      ? Math.round(team.wins / team.played * 1000) / 10
+      : null,
+    pointsPerGame: team.played > 0
+      ? Math.round(team.points / team.played * 100) / 100
+      : null,
+  }));
+}
+
 export type FinanceSummaryRow = {
   charges_pence: number | string;
   payments_pence: number | string;
@@ -144,7 +180,9 @@ export function buildLocationComparisons(
       seasonIds.has(team.season_id) && team.registration_status === "approved",
     );
     const fixtures = setup.fixtures.filter((fixture) => seasonIds.has(fixture.season_id) && isWithinDateRange(fixture, { fromDate: filters.fromDate ?? "", toDate: filters.toDate ?? "" }));
-    const results = fixtures.filter(isPublishedResult);
+    const completedFixtures = fixtures.filter((fixture) => fixture.status === "completed");
+    const results = completedFixtures.filter(isPublishedResult);
+    const goals = results.reduce((total, fixture) => total + Number(fixture.home_score ?? 0) + Number(fixture.away_score ?? 0), 0);
     return [{
       locationId: location.id,
       locationName: location.name,
@@ -152,8 +190,13 @@ export function buildLocationComparisons(
       approvedTeams: teams.length,
       squadMemberships: teams.reduce((total, team) => total + Math.max(0, Number(team.member_count) || 0), 0),
       fixtures: fixtures.length,
+      completedFixtures: completedFixtures.length,
       publishedResults: results.length,
-      goals: results.reduce((total, fixture) => total + Number(fixture.home_score ?? 0) + Number(fixture.away_score ?? 0), 0),
+      resultsCoveragePercent: completedFixtures.length > 0
+        ? Math.round(results.length / completedFixtures.length * 1000) / 10
+        : null,
+      goals,
+      goalsPerResult: results.length > 0 ? Math.round(goals / results.length * 100) / 100 : null,
     }];
   });
 }
@@ -168,4 +211,17 @@ export function aggregateFinanceTotals(rows: FinanceSummaryRow[]): FinanceTotals
     finesPence: sum("fines_pence"),
     outstandingPence: sum("outstanding_pence"),
   };
+}
+
+
+/** Quote CSV values and neutralise spreadsheet formula prefixes in user-controlled text. */
+export function safeCsvCell(value: string | number): string {
+  const text = String(value);
+  // Numeric values are trusted data, not formulas. Preserve negative numbers
+  // as numbers in spreadsheet imports; neutralise formula-like text only.
+  const formulaLikeText = typeof value === "string"
+    && /^[\s\uFEFF]*[=+@\x2D]/u.test(text);
+  const normalised = text.replace(/^\uFEFF+/u, "");
+  const safe = formulaLikeText ? "'" + normalised : text;
+  return '"' + safe.replaceAll('"', '""') + '"';
 }

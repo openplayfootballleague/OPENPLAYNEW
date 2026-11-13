@@ -79,3 +79,7 @@ verify_jwt = false
 [functions.admin-postpone-gameweek]
 # Requires an authenticated administrator; the function rechecks scoped access and reconciles Stripe test payments.
 verify_jwt = true
+
+[functions.admin-product-analytics]
+# JWT is required; the function additionally validates the caller and scopes queries through get_admin_competition_setup.
+verify_jwt = true

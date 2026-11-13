@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  safeCsvCell,
   aggregateFinanceTotals,
   buildAnalyticsOverview,
+  buildCompetitionTeamPerformance,
   buildLocationComparisons,
   type AnalyticsSetup,
 } from "./overview";
@@ -94,9 +96,43 @@ describe("admin analytics aggregation", () => {
   it("compares only locations visible in the scoped admin setup", () => {
     const result = buildLocationComparisons(setup);
     expect(result).toEqual([
-      { locationId: "loc-a", locationName: "Bideford", seasons: 1, approvedTeams: 1, squadMemberships: 6, fixtures: 1, publishedResults: 1, goals: 5 },
-      { locationId: "loc-b", locationName: "Barnstaple", seasons: 1, approvedTeams: 1, squadMemberships: 5, fixtures: 1, publishedResults: 0, goals: 0 },
+      { locationId: "loc-a", locationName: "Bideford", seasons: 1, approvedTeams: 1, squadMemberships: 6, fixtures: 1, completedFixtures: 1, publishedResults: 1, resultsCoveragePercent: 100, goals: 5, goalsPerResult: 5 },
+      { locationId: "loc-b", locationName: "Barnstaple", seasons: 1, approvedTeams: 1, squadMemberships: 5, fixtures: 1, completedFixtures: 0, publishedResults: 0, resultsCoveragePercent: null, goals: 0, goalsPerResult: null },
     ]);
+  });
+
+  it("calculates team win rate and points per game without dividing by zero", () => {
+    expect(buildCompetitionTeamPerformance([
+      { position: 1, team_id: "team-a", name: "A", played: 4, wins: 3, draws: 1, losses: 0, goals_for: 12, goals_against: 5, goal_difference: 7, points: 10, clean_sheets: 2 },
+      { position: 2, team_id: "team-b", name: "B", played: 0, wins: 0, draws: 0, losses: 0, goals_for: 0, goals_against: 0, goal_difference: 0, points: 0, clean_sheets: 0 },
+    ])).toEqual([
+      { position: 1, team_id: "team-a", name: "A", played: 4, wins: 3, draws: 1, losses: 0, goals_for: 12, goals_against: 5, goal_difference: 7, points: 10, clean_sheets: 2, winRatePercent: 75, pointsPerGame: 2.5 },
+      { position: 2, team_id: "team-b", name: "B", played: 0, wins: 0, draws: 0, losses: 0, goals_for: 0, goals_against: 0, goal_difference: 0, points: 0, clean_sheets: 0, winRatePercent: null, pointsPerGame: null },
+    ]);
+  });
+
+  it("calculates result publication coverage from completed fixtures only", () => {
+    const setupWithUnpublishedCompleted: AnalyticsSetup = {
+      ...setup,
+      fixtures: [...setup.fixtures, {
+        id: "fixture-completed-without-result",
+        season_id: "season-a",
+        gameweek: 2,
+        status: "completed",
+        home_score: null,
+        away_score: null,
+        scheduled_at: "2026-10-08T20:00:00Z",
+      }],
+    };
+    const row = buildLocationComparisons(setupWithUnpublishedCompleted).find((item) => item.locationId === "loc-a");
+    expect(row).toMatchObject({
+      fixtures: 2,
+      completedFixtures: 2,
+      publishedResults: 1,
+      resultsCoveragePercent: 50,
+      goals: 5,
+      goalsPerResult: 5,
+    });
   });
 
   it("filters location comparisons by the selected league or season", () => {
@@ -131,6 +167,15 @@ describe("admin analytics aggregation", () => {
     expect(buildLocationComparisons(withUndatedFixture, {
       locationId: "loc-a", leagueId: "league-a", seasonId: "season-a", fromDate: "2026-10-02", toDate: "2026-10-09",
     })).toMatchObject([{ locationName: "Bideford", fixtures: 0, publishedResults: 0, goals: 0 }]);
+  });
+
+  it("neutralises spreadsheet formula prefixes in text while preserving numeric values", () => {
+    expect(safeCsvCell("=1+1")).toBe("\"'=1+1\"");
+    expect(safeCsvCell("  @SUM(A1:A2)")).toBe("\"'  @SUM(A1:A2)\"");
+    expect(safeCsvCell("\uFEFF=1+1")).toBe("\"'=1+1\"");
+    expect(safeCsvCell("-125")).toBe("\"'-125\"");
+    expect(safeCsvCell(-125)).toBe("\"-125\"");
+    expect(safeCsvCell('Open "Play"')).toBe("\"Open \"\"Play\"\"\"");
   });
 
   it("aggregates integer-pence finance totals without converting to floating point", () => {

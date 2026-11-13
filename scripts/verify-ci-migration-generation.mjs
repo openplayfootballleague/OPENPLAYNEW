@@ -22,6 +22,7 @@ const expectedMigrations = [
   "manual_season_recruitment_activation",
   "admin_analytics_user_growth",
   "admin_analytics_registration_conversion",
+  "admin_product_analytics_scope",
 ];
 let checked = 0;
 const foundMigrations = [];

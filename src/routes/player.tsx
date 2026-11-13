@@ -67,7 +67,11 @@ function PlayerHubPage(){
   })();
   return()=>{alive=false;};
  },[session?.user.id,player?.id,player?.registration_status,player?.is_banned,competition.selectedSeasonId]);
- useEffect(()=>{if(playerStats)capture("player_statistics_viewed",{feature:"player_statistics",season_id:playerStats.season.id});},[capture,playerStats?.season.id]);
+ useEffect(()=>{
+  if(!playerStats)return;
+  capture("player_statistics_viewed",{feature:"player_statistics",season_id:playerStats.season.id});
+  capture("core_value_action",{feature:"player_statistics",season_id:playerStats.season.id});
+ },[capture,playerStats?.season.id]);
  async function signOut(){await getSupabaseClient().auth.signOut();await navigate({to:"/"});}
  async function setFixtureAvailability(fixtureId:string,value:boolean){if(!session)return;setAvailabilityBusy(fixtureId);setError("");try{const {error:saveError}=await getSupabaseClient().from("fixture_availability").upsert({fixture_id:fixtureId,user_id:session.user.id,is_available:value},{onConflict:"fixture_id,user_id"});if(saveError)throw saveError;setAvailability(old=>[...old.filter(a=>a.fixture_id!==fixtureId),{fixture_id:fixtureId,is_available:value}]);}catch(cause){setError(cause instanceof Error?cause.message:"Unable to save your availability.");}finally{setAvailabilityBusy("");}}
  async function startFixtureCheckout(fixtureId:string,teamId:string){if(!session)return;setPaymentBusy(fixtureId);setError("");try{const {data,error:checkoutError}=await getSupabaseClient().functions.invoke("create-player-checkout",{body:{fixture_id:fixtureId,season_team_id:teamId}});if(checkoutError)throw checkoutError;if(data?.paid){const {data:rows,error:rowsError}=await getSupabaseClient().rpc("get_my_fixture_payments");if(rowsError)throw rowsError;setPayments((rows??[]) as unknown as PlayerPayment[]);return;}if(typeof data?.checkout_url!=="string"||!data.checkout_url.startsWith("https://checkout.stripe.com/"))throw new Error(data?.error??"Checkout could not be started safely.");window.location.assign(data.checkout_url);}catch(cause){setError(cause instanceof Error?cause.message:"Unable to start fixture checkout.");}finally{setPaymentBusy("");}}
