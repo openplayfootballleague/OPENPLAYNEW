@@ -98,6 +98,30 @@ describe("consent and role-gated analytics capture", () => {
     },
   );
 
+  it("captures meaningful competition-content engagement with only allowlisted scope", () => {
+    const capture = vi.fn();
+    expect(captureOpenPlayEvent(
+      { capture },
+      "granted",
+      false,
+      "player",
+      "core_value_action",
+      { feature: "fixtures", season_id: locationId, email: "private@example.com" },
+    )).toBe(true);
+    expect(capture).toHaveBeenCalledWith("core_value_action", {
+      feature: "fixtures",
+      season_id: locationId,
+    });
+    expect(captureOpenPlayEvent(
+      { capture },
+      "granted",
+      false,
+      "admin",
+      "core_value_action",
+      { feature: "fixtures", season_id: locationId },
+    )).toBe(false);
+  });
+
   it("captures a consented player event with sanitised properties only", () => {
     const capture = vi.fn();
     const allowedClient: AnalyticsCaptureClient = { capture };
