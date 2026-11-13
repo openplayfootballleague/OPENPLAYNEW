@@ -1461,3 +1461,6 @@ a { color: inherit; text-decoration: none; }
 .analytics-cost-form label { display:grid; gap:6px; min-width:0; color:var(--op-secondary); font-size:11px; font-weight:800; letter-spacing:.04em; }
 .analytics-cost-form input,.analytics-cost-form select,.analytics-cost-form textarea { width:100%; min-width:0; box-sizing:border-box; }
 @media(max-width:620px){.analytics-cost-form{grid-template-columns:minmax(0,1fr)}}
+
+
+.league-directory-card{padding:16px 0;border-top:1px solid #cfcec5}.league-directory-card h3{margin:0 0 10px;font-size:20px}.league-directory-season{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid #e0dfd7}.league-directory-season>div{display:grid;gap:5px}.league-directory-season strong{font-size:13px}.league-directory-season>div span{font-size:10px;color:#686960}.league-directory-season>.player-recruitment-status{margin:0;white-space:nowrap}
