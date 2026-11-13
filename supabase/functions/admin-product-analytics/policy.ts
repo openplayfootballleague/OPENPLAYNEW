@@ -74,20 +74,31 @@ export function buildProductAnalyticsQueries(filters: ProductAnalyticsFilters) {
       SELECT cohort_week, uniqExact(person_id) AS cohort_users
       FROM cohorts
       GROUP BY cohort_week
+    ),
+    retained_counts AS (
+      SELECT
+        c.cohort_week AS cohort_week,
+        dateDiff('week', c.cohort_week, a.active_week) AS weeks_since_start,
+        uniqExact(a.person_id) AS retained_users
+      FROM weekly_activity AS a
+      INNER JOIN cohorts AS c ON c.person_id = a.person_id
+      WHERE dateDiff('week', c.cohort_week, a.active_week) BETWEEN 0 AND 8
+      GROUP BY c.cohort_week, weeks_since_start
     )
     SELECT
-      toDate(c.cohort_week) AS cohort_week,
-      dateDiff('week', c.cohort_week, a.active_week) AS weeks_since_start,
-      any(s.cohort_users) AS cohort_users,
-      uniqExact(a.person_id) AS retained_users,
-      round(uniqExact(a.person_id) / any(s.cohort_users) * 100, 1) AS retention_rate
-    FROM weekly_activity AS a
-    INNER JOIN cohorts AS c ON c.person_id = a.person_id
-    INNER JOIN cohort_sizes AS s ON s.cohort_week = c.cohort_week
-    WHERE c.cohort_week >= toDateTime('${from}')
-      AND c.cohort_week < toDateTime('${until}')
-      AND dateDiff('week', c.cohort_week, a.active_week) BETWEEN 0 AND 8
-    GROUP BY c.cohort_week, weeks_since_start
+      toDate(s.cohort_week) AS cohort_week,
+      intervals.number AS weeks_since_start,
+      s.cohort_users AS cohort_users,
+      coalesce(r.retained_users, 0) AS retained_users,
+      round(coalesce(r.retained_users, 0) / s.cohort_users * 100, 1) AS retention_rate
+    FROM cohort_sizes AS s
+    CROSS JOIN numbers(9) AS intervals
+    LEFT JOIN retained_counts AS r
+      ON r.cohort_week = s.cohort_week
+      AND r.weeks_since_start = intervals.number
+    WHERE s.cohort_week >= toDateTime('${from}')
+      AND s.cohort_week < toDateTime('${until}')
+      AND addWeeks(s.cohort_week, intervals.number) < toStartOfWeek(now(), 1)
     ORDER BY cohort_week ASC, weeks_since_start ASC
     LIMIT 500`,
   };
