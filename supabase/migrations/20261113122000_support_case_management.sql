@@ -244,9 +244,12 @@ begin
       updated_at=now()
   where id=p_case_id returning * into v_case;
 
-  -- Keep the private conversation readable so the member retains their history.
-  -- A new member reply automatically reopens a resolved/closed case via the message trigger.
-  update public.message_conversations set updated_at=now()
+  -- Keep new support conversations readable so the member retains their history.
+  -- Legacy conversations that were already closed before case tracking are reopened
+  -- when an administrator moves their case out of the closed state.
+  update public.message_conversations
+  set closed_at=case when p_status='closed' then closed_at else null end,
+      updated_at=now()
   where id=v_case.conversation_id;
 
   v_after:=jsonb_build_object(
