@@ -114,6 +114,11 @@ begin
   if v_status<>'open' or v_closed_at is not null or v_assigned is not null then
     raise exception 'A member follow-up did not reopen the closed support case';
   end if;
+  if not exists(
+    select 1 from public.audit_log
+    where actor_user_id=v_player and action='support.case.reopened_by_member'
+      and entity_type='support_case' and entity_id=v_case_id::text
+  ) then raise exception 'Member follow-up case reopening was not audited'; end if;
   select closed_at into v_closed_at from public.message_conversations where id=v_conversation;
   if v_closed_at is not null then raise exception 'Support conversation history became inaccessible after a follow-up'; end if;
 
