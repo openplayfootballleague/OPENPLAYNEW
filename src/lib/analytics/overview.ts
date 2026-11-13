@@ -100,7 +100,12 @@ export function buildAnalyticsOverview(
   const seasons = setup.seasons.filter((season) => matchesFilters(season, filters));
   const seasonIds = new Set(seasons.map((season) => season.id));
   const teams = setup.season_teams.filter((team) => seasonIds.has(team.season_id) && team.registration_status === "approved");
-  const fixtures = contextualFixtures.filter((fixture) => isWithinDateRange(fixture, filters));
+  // Enforce the selected season scope in the pure aggregation layer as well as
+  // in the RPC. This prevents an over-broad or stale fixture response leaking
+  // activity from another season into the report.
+  const fixtures = contextualFixtures.filter((fixture) =>
+    seasonIds.has(fixture.season_id) && isWithinDateRange(fixture, filters),
+  );
   const results = fixtures.filter(isPublishedResult);
   const scopedLocationIds = new Set(seasons.map((season) => season.location_id));
   const scopedLeagueIds = new Set(seasons.map((season) => season.league_id));
