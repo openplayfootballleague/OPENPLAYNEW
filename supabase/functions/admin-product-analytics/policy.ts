@@ -42,6 +42,7 @@ export function buildProductAnalyticsQueries(filters: ProductAnalyticsFilters) {
       count() AS value_actions
     FROM events
     WHERE ${scope}
+      AND timestamp < toStartOfWeek(now(), 1)
     GROUP BY week_start
     ORDER BY week_start ASC
     LIMIT 54`,
