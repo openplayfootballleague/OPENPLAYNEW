@@ -43,6 +43,20 @@ begin
     raise exception 'Push event was enqueued while push delivery was disabled';
   end if;
 
+  update public.notification_preferences
+  set email_enabled=false,sms_enabled=false,in_app_enabled=false,push_enabled=false
+  where user_id=v_user;
+  perform public.enqueue_notification_event(
+    v_user,'player.banned',
+    jsonb_build_object('player_id','f3000000-0000-4000-8000-000000000011','changed_at','2001-02-02T10:00:00Z')
+  );
+  if not exists(select 1 from public.notification_events where user_id=v_user and event_type='player.banned' and channel='in_app'
+      and payload->>'changed_at'='2001-02-02T10:00:00Z')
+     or exists(select 1 from public.notification_events where user_id=v_user and event_type='player.banned'
+      and payload->>'changed_at'='2001-02-02T10:00:00Z' and channel in ('email','sms','push')) then
+    raise exception 'Critical account-security alert was not retained exclusively in-app when optional channels were disabled';
+  end if;
+
   perform public.update_my_notification_category_preferences('{"match_updates":true}'::jsonb);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_user,'role','service_role')::text,true);
   update public.notification_preferences set push_enabled=true where user_id=v_user;
