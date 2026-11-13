@@ -1515,3 +1515,12 @@ a { color: inherit; text-decoration: none; }
 .admin-fixture-generator-confirm input{width:auto;margin-top:2px}
 @media(max-width:760px){.admin-fixture-generator-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.admin-fixture-generator{padding:13px}.admin-fixture-generator-form{grid-template-columns:1fr}.admin-fixture-generator-actions{flex-direction:column}.admin-fixture-generator-actions button{width:100%}.admin-fixture-preview-table{min-width:560px}}
+
+/* Inbox (owner decision D4): Notifications and Messages */
+.inbox-tabs { display: flex; gap: 8px; margin: 18px 0; border-bottom: 1px solid var(--line, #303030); }
+.inbox-tabs [role="tab"] { min-height: 44px; padding: 10px 16px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: inherit; font: inherit; font-size: 12px; font-weight: 800; letter-spacing: .06em; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.inbox-tabs [role="tab"][aria-selected="true"] { border-bottom-color: var(--orange, #ff6500); color: var(--orange, #ff6500); }
+.inbox-tabs [role="tab"]:focus-visible { outline: 2px solid var(--orange, #ff6500); outline-offset: 2px; }
+.inbox-badge { min-width: 20px; padding: 2px 6px; border-radius: 999px; background: var(--orange, #ff6500); color: #111; font-size: 10px; text-align: center; }
+.inbox-announcements { margin-bottom: 18px; }
+.messaging-embedded { margin-top: 0; }
