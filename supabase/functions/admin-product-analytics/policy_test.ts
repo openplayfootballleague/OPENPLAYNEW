@@ -65,6 +65,8 @@ Deno.test("builds fixed, scoped aggregate queries with inclusive date boundaries
   matches(queries.weeklyActivity, /timestamp < toStartOfWeek\\(now\\(\\), 1\\)/, "Weekly activity must exclude the incomplete current week");
   matches(queries.retention, /timestamp < toStartOfWeek\\(now\\(\\), 1\\)/, "Retention must exclude the incomplete current week");
   matches(queries.retention, /dateDiff\('week'/, "Retention must use weekly intervals");
+  matches(queries.retention, /CROSS JOIN numbers\(9\)/, "Retention must zero-fill the first nine weekly intervals");
+  matches(queries.retention, /coalesce\(r.retained_users, 0\)/, "Missing return weeks must be shown as zero");
 });
 
 Deno.test("converts PostHog array and object result rows without exposing identifiers", () => {
