@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { MessagesPanel } from "../components/messages-panel";
 import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
 import { useRequiredSession } from "../lib/auth/use-required-session";
@@ -25,6 +26,16 @@ type Announcement = { conversation_id: string; title: string; last_message_body:
 type RpcClient = { rpc: (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> };
 
 function InboxPage() {
+  // PR #117: remount the Inbox when the signed-in account changes so no previous
+  // user's notifications or messages survive on a shared device.
+  return (
+    <AuthenticatedSessionBoundary label="INBOX">
+      <InboxWorkspace />
+    </AuthenticatedSessionBoundary>
+  );
+}
+
+function InboxWorkspace() {
   const { tab } = Route.useSearch();
   const navigate = useNavigate();
   const authStatus = useRequiredSession();
@@ -81,20 +92,6 @@ function InboxPage() {
       selectTab(tab === "notifications" ? "messages" : "notifications");
     }
   };
-
-  if (authStatus === "unauthenticated") {
-    return (
-      <main className="notice-page player-facing">
-        <section className="notice-panel">
-          <p className="eyebrow eyebrow-dark">INBOX</p>
-          <h1>Sign in to<br /><em>continue.</em></h1>
-          <p className="form-note">Your notifications and messages are available to registered Open Play members.</p>
-          <Link className="button" to="/sign-in">SIGN IN</Link>
-        </section>
-        <PlayerBottomNavigation />
-      </main>
-    );
-  }
 
   return (
     <main className="notice-page player-facing">

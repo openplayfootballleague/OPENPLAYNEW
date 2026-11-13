@@ -5,12 +5,17 @@ import { getSupabaseClient } from "../lib/supabase/client";
 import { useOpenPlayAnalytics } from "../components/analytics-provider";
 import { CaptainTeamPayments } from "../components/captain-team-payments";
 import { CaptainMotmNominations } from "../components/captain-motm-nominations";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 type CaptainRow={season_team_id:string;team_name:string;membership_id:string;player_name:string;membership_status:string;is_captain:boolean;squad_number:number|null;requested_at:string};
 type CaptainFixture={fixture_id:string;season_team_id:string;team_name:string;opponent_name:string;gameweek:number;scheduled_at:string|null;competition_format:string};
 type CaptainAvailability={fixture_id:string;season_team_id:string;team_name:string;gameweek:number;scheduled_at:string|null;player_name:string;is_available:boolean|null;response_note:string|null;responded_at:string|null};
 type CaptainTransferRequest={id:string;user_id:string;player_name:string;source_team_name:string;destination_season_team_id:string;destination_team_name:string;league_name:string;season_name:string;reason:string;status:string;requested_at:string;is_emergency:boolean;target_fixture_id:string|null};
 export const Route=createFileRoute("/captain")({component:CaptainsHubPage});
 function CaptainsHubPage(){
+ return <AuthenticatedSessionBoundary label="CAPTAINS HUB"><CaptainWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function CaptainWorkspace(){
  const capture=useOpenPlayAnalytics();
  const [rows,setRows]=useState<CaptainRow[]>([]);const [fixtures,setFixtures]=useState<CaptainFixture[]>([]);const [availability,setAvailability]=useState<CaptainAvailability[]>([]);const [transferRequests,setTransferRequests]=useState<CaptainTransferRequest[]>([]);const [transferReasons,setTransferReasons]=useState<Record<string,string>>({});const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [message,setMessage]=useState("");const [busyId,setBusyId]=useState("");const [squadEdits,setSquadEdits]=useState<Record<string,string>>({});const [selectedFixture,setSelectedFixture]=useState("");const [starters,setStarters]=useState<string[]>([]);const [subs,setSubs]=useState<string[]>([]);const [goalkeeperId,setGoalkeeperId]=useState("");const [reviewingSheet,setReviewingSheet]=useState(false);const [confirmationAccepted,setConfirmationAccepted]=useState(false);const [sheetLocked,setSheetLocked]=useState(false);const [draftSavedAt,setDraftSavedAt]=useState<string|null>(null);const [loadingDraft,setLoadingDraft]=useState(false);
  const load=useCallback(async()=>{setError("");const supabase=getSupabaseClient();const [{data,error:rpcError},{data:fixtureData,error:fixtureError},{data:availabilityData,error:availabilityError},{data:transferData,error:transferError}]=await Promise.all([supabase.rpc("get_captain_dashboard"),supabase.rpc("get_captain_fixtures"),supabase.rpc("get_captain_availability"),supabase.rpc("get_captain_transfer_requests")]);if(rpcError||fixtureError||transferError){setError(rpcError?.message??fixtureError?.message??transferError?.message??"Unable to load captain data.");setRows([]);setFixtures([]);setTransferRequests([]);}else{setRows(data??[]);setFixtures(fixtureData??[]);setTransferRequests((transferData??[]) as unknown as CaptainTransferRequest[]);}if(availabilityError){setError(availabilityError.message);setAvailability([]);}else setAvailability(availabilityData??[]);setLoading(false);},[]);

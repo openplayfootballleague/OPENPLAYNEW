@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { AuthenticatedSessionBoundary } from "../../components/authenticated-session-boundary";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RefereeBottomNavigation } from "../../components/referee-bottom-navigation";
 import { getSupabaseClient } from "../../lib/supabase/client";
@@ -64,7 +65,11 @@ type ReportOptions = {
 
 export const Route = createFileRoute("/referee/report/$fixtureId")({ component: RefereeMatchReportPage });
 
-function RefereeMatchReportPage() {
+function RefereeMatchReportPage(){
+ return <AuthenticatedSessionBoundary label="REFEREE MATCH REPORT"><RefereeMatchReportWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function RefereeMatchReportWorkspace() {
   const capture = useOpenPlayAnalytics();
   const { fixtureId } = Route.useParams();
   const navigate = useNavigate();

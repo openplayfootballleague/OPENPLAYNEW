@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 import { getSupabaseClient } from "../lib/supabase/client";
@@ -95,7 +96,11 @@ const weekdays = [
 
 export const Route = createFileRoute("/referee")({ component: RefereePage });
 
-function RefereePage() {
+function RefereePage(){
+ return <AuthenticatedSessionBoundary label="REFEREE WORKSPACE"><RefereeWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function RefereeWorkspace() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

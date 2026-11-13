@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { AuthenticatedSessionBoundary } from "../../components/authenticated-session-boundary";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRequiredSession } from "../../lib/auth/use-required-session";
 import { getSupabaseClient } from "../../lib/supabase/client";
@@ -153,7 +154,11 @@ const formatPence = (value: number) => new Intl.NumberFormat("en-GB", {
 
 export const Route = createFileRoute("/admin/referees")({ component: AdminRefereesPage });
 
-function AdminRefereesPage() {
+function AdminRefereesPage(){
+ return <AuthenticatedSessionBoundary label="REFEREE ADMIN"><AdminRefereesWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function AdminRefereesWorkspace() {
   const authStatus = useRequiredSession();
   const navigate = useNavigate();
   const [applications, setApplications] = useState<RefereeApplication[]>([]);

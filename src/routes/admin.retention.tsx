@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 
@@ -16,7 +17,11 @@ type RetentionAccount = {
 
 export const Route = createFileRoute("/admin/retention")({ component: PlayerRetentionAdminPage });
 
-function PlayerRetentionAdminPage() {
+function PlayerRetentionAdminPage(){
+ return <AuthenticatedSessionBoundary label="PLAYER RETENTION ADMIN"><PlayerRetentionAdminWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function PlayerRetentionAdminWorkspace() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<RetentionAccount[]>([]);
   const [search, setSearch] = useState("");

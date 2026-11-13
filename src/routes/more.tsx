@@ -30,11 +30,13 @@ function MorePage() {
   useEffect(() => {
     const supabase = getSupabaseClient();
     let active = true;
+    let requestGeneration = 0;
 
     async function loadAccess() {
-      setAccess((current) => ({ ...current, loading: true }));
+      const generation = ++requestGeneration;
+      setAccess({ ...initialAccess, loading: true });
       const { data: { session } } = await supabase.auth.getSession();
-      if (!active) return;
+      if (!active || generation !== requestGeneration) return;
 
       if (!session) {
         setAccess({ ...initialAccess, loading: false });
@@ -61,7 +63,7 @@ function MorePage() {
         supabase.rpc("get_finance_options"),
       ]);
 
-      if (!active) return;
+      if (!active || generation !== requestGeneration) return;
       setAccess({
         loading: false,
         signedIn: true,
@@ -74,11 +76,14 @@ function MorePage() {
 
     void loadAccess();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      requestGeneration++;
+      setAccess({ ...initialAccess, loading: true });
       void loadAccess();
     });
 
     return () => {
       active = false;
+      requestGeneration++;
       subscription.unsubscribe();
     };
   }, []);
