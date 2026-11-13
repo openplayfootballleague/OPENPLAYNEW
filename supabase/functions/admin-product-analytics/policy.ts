@@ -42,6 +42,8 @@ export function buildProductAnalyticsQueries(filters: ProductAnalyticsFilters) {
       count() AS value_actions
     FROM events
     WHERE ${scope}
+      AND toStartOfWeek(timestamp, 1) >= toDateTime('${from}')
+      AND addWeeks(toStartOfWeek(timestamp, 1), 1) <= toDateTime('${until}')
       AND timestamp < toStartOfWeek(now(), 1)
     GROUP BY week_start
     ORDER BY week_start ASC
@@ -62,6 +64,8 @@ export function buildProductAnalyticsQueries(filters: ProductAnalyticsFilters) {
         toStartOfWeek(timestamp, 1) AS active_week
       FROM events
       WHERE ${scope}
+        AND toStartOfWeek(timestamp, 1) >= toDateTime('${from}')
+        AND addWeeks(toStartOfWeek(timestamp, 1), 1) <= toDateTime('${until}')
         AND timestamp < toStartOfWeek(now(), 1)
       GROUP BY person_id, active_week
     ),
@@ -98,7 +102,8 @@ export function buildProductAnalyticsQueries(filters: ProductAnalyticsFilters) {
       AND r.weeks_since_start = intervals.number
     WHERE s.cohort_week >= toDateTime('${from}')
       AND s.cohort_week < toDateTime('${until}')
-      AND addWeeks(s.cohort_week, intervals.number) < toStartOfWeek(now(), 1)
+      AND addWeeks(s.cohort_week, intervals.number + 1) <= toDateTime('${until}')
+      AND addWeeks(s.cohort_week, intervals.number + 1) <= toStartOfWeek(now(), 1)
     ORDER BY cohort_week ASC, weeks_since_start ASC
     LIMIT 500`,
   };
