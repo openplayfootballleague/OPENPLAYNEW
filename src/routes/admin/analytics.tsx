@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRequiredSession } from "../../lib/auth/use-required-session";
-import { aggregateFinanceTotals, buildAnalyticsOverview, buildLocationComparisons, safeCsvCell, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup, type FinanceSummaryRow } from "../../lib/analytics/overview";
+import { buildAnalyticsOverview, buildLocationComparisons, safeCsvCell, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup } from "../../lib/analytics/overview";
 import { getSupabaseClient } from "../../lib/supabase/client";
 
 type ContextPreference = { location_id: string | null; league_id: string | null; season_id: string | null; is_global_admin: boolean };
@@ -13,7 +13,33 @@ type SeasonStats = {
   teams: Array<{ position: number; team_id: string; name: string; played: number; wins: number; draws: number; losses: number; goals_for: number; goals_against: number; goal_difference: number; points: number; clean_sheets: number }>;
   players: Array<{ competition_player_id: string; full_name: string; apps: number; goals: number }>;
 };
-type FinanceOption = { season_id: string; season_name: string; team_id: string; team_name: string; league_name: string; season_status: string };
+type BusinessPerformance = {
+  team_charges_pence: number | string;
+  team_receipts_pence: number | string;
+  team_refunds_pence: number | string;
+  team_credits_pence: number | string;
+  team_fines_pence: number | string;
+  outstanding_pence: number | string;
+  upcoming_team_forecast_pence: number | string;
+  upcoming_team_obligations: number | string;
+  player_card_gross_pence: number | string;
+  player_card_refunds_pence: number | string;
+  player_card_fees_pence: number | string;
+  player_card_net_pence: number | string;
+  recorded_costs_pence: number | string;
+  net_operating_surplus_pence: number | string;
+};
+type OperatingCost = {
+  id: string;
+  amount_pence: number;
+  category: string;
+  description: string;
+  occurred_at: string;
+  location_name: string | null;
+  league_name: string | null;
+  season_name: string | null;
+};
+type OperatingCostCategory = "venue_hire" | "referee_fees" | "equipment" | "marketing" | "insurance" | "software" | "travel" | "adjustment" | "other";
 type GrowthRow = {
   bucket_date: string;
   account_signups: number | string | null;
@@ -49,6 +75,10 @@ type ProductAnalytics = {
 };
 
 const money = (pence: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
+type AnalyticsRpcClient = {
+  rpc: (name: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
+};
+const analyticsRpc = () => getSupabaseClient() as unknown as AnalyticsRpcClient;
 
 export const Route = createFileRoute("/admin/analytics")({ component: AdminAnalyticsPage });
 
@@ -73,8 +103,18 @@ function AdminAnalyticsPage() {
   const [seasonError, setSeasonError] = useState("");
   const [financeAccess, setFinanceAccess] = useState(false);
   const [financeError, setFinanceError] = useState("");
-  const [financeOptions, setFinanceOptions] = useState<FinanceOption[]>([]);
-  const [financeRows, setFinanceRows] = useState<FinanceSummaryRow[]>([]);
+  const [businessPerformance, setBusinessPerformance] = useState<BusinessPerformance | null>(null);
+  const [businessError, setBusinessError] = useState("");
+  const [operatingCosts, setOperatingCosts] = useState<OperatingCost[]>([]);
+  const [costAmount, setCostAmount] = useState("");
+  const [costCategory, setCostCategory] = useState<OperatingCostCategory>("venue_hire");
+  const [costDescription, setCostDescription] = useState("");
+  const [costDate, setCostDate] = useState(() => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10));
+  const [costReference, setCostReference] = useState("");
+  const [costNotes, setCostNotes] = useState("");
+  const [costReason, setCostReason] = useState("");
+  const [costError, setCostError] = useState("");
+  const [costSaving, setCostSaving] = useState(false);
   const [growthRows, setGrowthRows] = useState<GrowthRow[]>([]);
   const [growthError, setGrowthError] = useState("");
   const [registrationRows, setRegistrationRows] = useState<RegistrationRow[]>([]);
@@ -191,27 +231,37 @@ function AdminAnalyticsPage() {
         setSeasonError("");
       }
 
-      const { data: financeOptionRows, error: financeOptionError } = await getSupabaseClient().rpc("get_finance_options");
+      const { error: financeOptionError } = await getSupabaseClient().rpc("get_finance_options");
       if (financeOptionError) {
         setFinanceAccess(false);
-        setFinanceOptions([]);
-        setFinanceRows([]);
+        setBusinessPerformance(null);
+        setOperatingCosts([]);
         setFinanceError("Finance reporting is restricted to authorised finance administrators.");
+        setBusinessError("Business performance is available to authorised finance administrators only.");
       } else {
         setFinanceAccess(true);
-        setFinanceOptions((financeOptionRows ?? []) as FinanceOption[]);
-        if (!seasonId && (locationId || leagueId)) {
-          setFinanceRows([]);
-          setFinanceError("Choose a season to view finance totals scoped to this location or league.");
+        setFinanceError("");
+        const [businessResult, costResult] = await Promise.all([
+          analyticsRpc().rpc("get_admin_business_performance", {
+            ...args,
+            p_from_date: fromDate || undefined,
+            p_to_date: toDate || undefined,
+          }),
+          analyticsRpc().rpc("get_admin_operating_costs", {
+            ...args,
+            p_from_date: fromDate || undefined,
+            p_to_date: toDate || undefined,
+            p_limit: 200,
+          }),
+        ]);
+        if (businessResult.error || costResult.error) {
+          setBusinessPerformance(null);
+          setOperatingCosts([]);
+          setBusinessError(businessResult.error?.message ?? costResult.error?.message ?? "Business performance could not be loaded for this context.");
         } else {
-          const { data: summaryRows, error: financeSummaryError } = await getSupabaseClient().rpc("get_finance_summary", { p_season_id: seasonId || undefined });
-          if (financeSummaryError) {
-            setFinanceRows([]);
-            setFinanceError("Finance summary could not be loaded for this context.");
-          } else {
-            setFinanceRows((summaryRows ?? []) as FinanceSummaryRow[]);
-            setFinanceError("");
-          }
+          setBusinessPerformance(((businessResult.data ?? []) as BusinessPerformance[])[0] ?? null);
+          setOperatingCosts((costResult.data ?? []) as OperatingCost[]);
+          setBusinessError("");
         }
       }
       setRefreshedAt(new Date());
@@ -291,7 +341,6 @@ function AdminAnalyticsPage() {
     () => buildLocationComparisons(setup, { locationId, leagueId, seasonId, fromDate, toDate }),
     [fromDate, leagueId, locationId, seasonId, setup, toDate],
   );
-  const financeTotals = useMemo(() => aggregateFinanceTotals(financeRows), [financeRows]);
   const growthTotals = useMemo(() => ({
     accountSignups: growthRows.some((row) => row.account_signups !== null)
       ? growthRows.reduce((total, row) => total + Number(row.account_signups ?? 0), 0)
@@ -347,6 +396,52 @@ function AdminAnalyticsPage() {
     }
   }
 
+  async function saveOperatingCost() {
+    const amountPence = Math.round(Number(costAmount) * 100);
+    if (!Number.isFinite(amountPence) || amountPence === 0 || Math.abs(amountPence) > 100000000) {
+      setCostError("Enter a non-zero amount up to £1,000,000 in either direction.");
+      return;
+    }
+    if (amountPence < 0 && costCategory !== "adjustment") {
+      setCostError("Negative amounts are only allowed for adjustment or reversal entries.");
+      return;
+    }
+    if (costDescription.trim().length < 3 || costReason.trim().length < 5 || !costDate) {
+      setCostError("Enter a description, date and reason for recording this cost.");
+      return;
+    }
+    setCostSaving(true);
+    setCostError("");
+    setNotice("");
+    try {
+      const { error: rpcError } = await analyticsRpc().rpc("admin_create_operating_cost", {
+        p_amount_pence: amountPence,
+        p_category: costCategory,
+        p_description: costDescription.trim(),
+        p_occurred_at: new Date(costDate + "T12:00:00.000Z").toISOString(),
+        p_location_id: locationId || null,
+        p_league_id: leagueId || null,
+        p_season_id: seasonId || null,
+        p_reference: costReference.trim() || null,
+        p_notes: costNotes.trim() || null,
+        p_reason: costReason.trim(),
+      });
+      if (rpcError) throw new Error(rpcError.message);
+      setCostError("");
+      setNotice("Operating cost recorded and added to the finance audit history.");
+      setCostAmount("");
+      setCostDescription("");
+      setCostReference("");
+      setCostNotes("");
+      setCostReason("");
+      await loadContextData();
+    } catch (cause) {
+      setCostError(cause instanceof Error ? cause.message : "Unable to record the operating cost.");
+    } finally {
+      setCostSaving(false);
+    }
+  }
+
   function exportCsv() {
     if (!overview) return;
     const rows: Array<Array<string | number>> = [
@@ -364,14 +459,40 @@ function AdminAnalyticsPage() {
       ["Pending team applications", overview.pendingTeamApplications],
       ["Pending join requests", overview.pendingMembershipRequests],
     ];
-    if (financeAccess && !financeError) {
+    if (financeAccess && businessPerformance) {
       rows.push(
-        ["Ledger charges (pence)", financeTotals.chargesPence],
-        ["Ledger payments (pence)", financeTotals.paymentsPence],
-        ["Ledger refunds (pence)", financeTotals.refundsPence],
-        ["Ledger fines (pence)", financeTotals.finesPence],
-        ["Outstanding ledger balance (pence)", financeTotals.outstandingPence],
+        [],
+        ["Business performance (pence)", "Value"],
+        ["Upcoming team payment forecast", Number(businessPerformance.upcoming_team_forecast_pence)],
+        ["Upcoming team obligations", Number(businessPerformance.upcoming_team_obligations)],
+        ["Team charges", Number(businessPerformance.team_charges_pence)],
+        ["Team receipts", Number(businessPerformance.team_receipts_pence)],
+        ["Team refunds", Number(businessPerformance.team_refunds_pence)],
+        ["Team credits (non-cash)", Number(businessPerformance.team_credits_pence)],
+        ["Team fines", Number(businessPerformance.team_fines_pence)],
+        ["Outstanding team balance", Number(businessPerformance.outstanding_pence)],
+        ["Player card gross", Number(businessPerformance.player_card_gross_pence)],
+        ["Player card refunds", Number(businessPerformance.player_card_refunds_pence)],
+        ["Player card Stripe fees", Number(businessPerformance.player_card_fees_pence)],
+        ["Player card net proceeds", Number(businessPerformance.player_card_net_pence)],
+        ["Recorded operating costs", Number(businessPerformance.recorded_costs_pence)],
+        ["Recorded operating surplus", Number(businessPerformance.net_operating_surplus_pence)],
       );
+    }
+    if (financeAccess && operatingCosts.length > 0) {
+      rows.push([], ["Cost detail rows included", "Latest up to 200"]);
+      rows.push(["Cost ID", "Category", "Amount (pence)", "Date", "Location", "League", "Season"]);
+      for (const cost of operatingCosts) {
+        rows.push([
+          cost.id,
+          cost.category,
+          cost.amount_pence,
+          cost.occurred_at,
+          cost.location_name ?? "",
+          cost.league_name ?? "",
+          cost.season_name ?? "",
+        ]);
+      }
     }
     rows.push([], ["Location", "Seasons", "Approved teams", "Squad memberships", "Fixtures", "Published results", "Goals"]);
     for (const location of locationComparisons) {
@@ -637,23 +758,52 @@ function AdminAnalyticsPage() {
         <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.publishedResults}</td><td>{row.goals}</td></tr>)}</tbody></table></div>
         <p className="form-note">Location rows are limited to the locations returned by your administrator-scoped setup RPC. Squad memberships count current approved-team memberships, not unique people across multiple seasons.</p>
       </> : tab === "business" ? <>
-        {!financeAccess ? <div className="analytics-state"><h2>Finance reporting restricted</h2><p>{financeError || "This section is available to authorised finance administrators."}</p><Link className="admin-inline-action" to="/finance">OPEN FINANCE LEDGER ↗</Link></div> : financeError ? <p className="form-error" role="alert">{financeError}</p> : <>
-          <h2>Business performance · verified ledger</h2>
+        {!financeAccess ? <div className="analytics-state"><h2>Finance reporting restricted</h2><p>{financeError || "This section is available to authorised finance administrators."}</p><Link className="admin-inline-action" to="/finance">OPEN FINANCE LEDGER ↗</Link></div> : businessError ? <p className="form-error" role="alert">{businessError}</p> : !businessPerformance ? <div className="analytics-state"><h2>Business performance unavailable</h2><p>No verified finance summary is available for this reporting context.</p></div> : <>
+          <h2>Business performance · recorded financial truth</h2>
+          <p className="form-note">Reporting uses the selected date range and location, league or season context. Charges are not receipts; credits are non-cash adjustments. The forecast includes only unpaid team obligations already created for future fixtures.</p>
           <div className="analytics-stat-grid">
-            <article><span>Charges</span><strong>{money(financeTotals.chargesPence)}</strong></article>
-            <article><span>Payments</span><strong>{money(financeTotals.paymentsPence)}</strong></article>
-            <article><span>Refunds</span><strong>{money(financeTotals.refundsPence)}</strong></article>
-            <article><span>Fines</span><strong>{money(financeTotals.finesPence)}</strong></article>
-            <article><span>Outstanding</span><strong>{money(financeTotals.outstandingPence)}</strong></article>
-            <article><span>Finance seasons</span><strong>{new Set(financeOptions.map((option) => option.season_id)).size}</strong></article>
+            <article><span>Upcoming team fee forecast</span><strong>{money(Number(businessPerformance.upcoming_team_forecast_pence))}</strong><small>{Number(businessPerformance.upcoming_team_obligations)} unpaid obligations</small></article>
+            <article><span>Team charges</span><strong>{money(Number(businessPerformance.team_charges_pence))}</strong></article>
+            <article><span>Team receipts</span><strong>{money(Number(businessPerformance.team_receipts_pence))}</strong></article>
+            <article><span>Team refunds</span><strong>{money(Number(businessPerformance.team_refunds_pence))}</strong></article>
+            <article><span>Outstanding team balance</span><strong>{money(Number(businessPerformance.outstanding_pence))}</strong></article>
+            <article><span>Team credits · non-cash</span><strong>{money(Number(businessPerformance.team_credits_pence))}</strong></article>
+            <article><span>Team fines</span><strong>{money(Number(businessPerformance.team_fines_pence))}</strong></article>
+            <article><span>Player card gross</span><strong>{money(Number(businessPerformance.player_card_gross_pence))}</strong></article>
+            <article><span>Player card refunds</span><strong>{money(Number(businessPerformance.player_card_refunds_pence))}</strong></article>
+            <article><span>Player card Stripe fees</span><strong>{money(Number(businessPerformance.player_card_fees_pence))}</strong></article>
+            <article><span>Player card net proceeds</span><strong>{money(Number(businessPerformance.player_card_net_pence))}</strong></article>
+            <article><span>Recorded operating costs</span><strong>{money(Number(businessPerformance.recorded_costs_pence))}</strong></article>
+            <article><span>Recorded operating surplus</span><strong>{money(Number(businessPerformance.net_operating_surplus_pence))}</strong></article>
           </div>
-          <p className="form-note">This is a verified ledger summary, not a profit statement. It excludes operating costs, sponsorship records and unrecorded costs; Stripe transfers or referee payouts are not treated as revenue.</p>
+          <p className="form-note">Recorded operating surplus = team receipts less team refunds, plus player-card net proceeds after refunds and Stripe fees, less recorded operating costs. It is not statutory profit and excludes unrecorded costs, tax and sponsorship income not entered into the ledger.</p>
+          <section className="analytics-cost-entry">
+            <h3>Record an operating cost</h3>
+            <p className="form-note">Costs are immutable finance records. Choose the current reporting context to associate this entry with a location, league or season. Corrections are separate audited adjustment entries; negative amounts are accepted only for adjustments or reversals.</p>
+            {costError && <p className="form-error" role="alert">{costError}</p>}
+            <div className="analytics-cost-form">
+              <label>Amount (£)<input type="number" max="1000000" step="0.01" value={costAmount} onChange={(event) => setCostAmount(event.target.value)} placeholder="0.00 (negative for adjustment)" disabled={costSaving}/></label>
+              <label>Category<select value={costCategory} onChange={(event) => setCostCategory(event.target.value as OperatingCostCategory)} disabled={costSaving}>
+                <option value="venue_hire">Venue hire</option><option value="referee_fees">Referee fees</option><option value="equipment">Equipment</option><option value="marketing">Marketing</option><option value="insurance">Insurance</option><option value="software">Software</option><option value="travel">Travel</option><option value="adjustment">Adjustment / reversal</option><option value="other">Other</option>
+              </select></label>
+              <label>Date incurred<input type="date" max={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,10)} value={costDate} onChange={(event) => setCostDate(event.target.value)} disabled={costSaving}/></label>
+              <label>Description<input type="text" maxLength={240} value={costDescription} onChange={(event) => setCostDescription(event.target.value)} placeholder="e.g. Friday venue hire" disabled={costSaving}/></label>
+              <label>Reference · optional<input type="text" maxLength={120} value={costReference} onChange={(event) => setCostReference(event.target.value)} placeholder="Invoice or receipt reference" disabled={costSaving}/></label>
+              <label>Notes · optional<textarea rows={2} maxLength={1000} value={costNotes} onChange={(event) => setCostNotes(event.target.value)} disabled={costSaving}/></label>
+              <label>Reason for recording<input type="text" maxLength={500} value={costReason} onChange={(event) => setCostReason(event.target.value)} placeholder="Why is this cost being entered?" disabled={costSaving}/></label>
+            </div>
+            <button type="button" className="button" onClick={() => void saveOperatingCost()} disabled={costSaving}>{costSaving ? "RECORDING…" : "RECORD OPERATING COST"}</button>
+          </section>
+          <section className="analytics-cost-register">
+            <h3>Recorded operating costs</h3>
+            {operatingCosts.length === 0 ? <p className="form-note">No operating costs have been recorded for this reporting context and date range.</p> : <><p className="form-note">Showing the latest {operatingCosts.length === 200 ? "200" : operatingCosts.length} cost records. Headline totals include all matching records; narrow the date range for a more focused itemised view.</p><div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Location</th><th>League</th><th>Season</th><th>Amount</th></tr></thead><tbody>{operatingCosts.map((cost) => <tr key={cost.id}><td>{new Date(cost.occurred_at).toLocaleDateString("en-GB")}</td><td>{cost.category.replaceAll("_"," ")}</td><td>{cost.description}</td><td>{cost.location_name ?? "All locations"}</td><td>{cost.league_name ?? "All leagues"}</td><td>{cost.season_name ?? "All seasons"}</td><td>{money(cost.amount_pence)}</td></tr>)}</tbody></table></div></>}
+          </section>
         </>}
       </> : <>
         <h2>Reports &amp; exports</h2>
-        <p>Export the current permission-scoped aggregate snapshot. Player names, contact details, dates of birth, message content and payment references are excluded.</p>
+        <p>Export the current permission-scoped aggregate snapshot, including verified business metrics and recorded operating costs where finance access is available. Player names, contact details, dates of birth, message content, private notes and payment references are excluded.</p>
         <div className="analytics-report-actions"><button type="button" className="button" onClick={exportCsv} disabled={!overview || dateRangeInvalid}>EXPORT CSV</button><button type="button" className="admin-inline-action" onClick={() => window.print()} disabled={!overview || dateRangeInvalid}>PRINT / SAVE PDF</button></div>
-        <p className="form-note">CSV values are in integer pence for financial totals. Use the Finance Ledger for itemised financial records.</p>
+        <p className="form-note">CSV financial totals are in integer pence. Cost exports include only date, category, amount and context; free-text descriptions, private notes and payment references are excluded.</p>
       </>}
     </section>
     <section className="analytics-print-report" data-print-report aria-label="Printable analytics summary">
@@ -664,7 +814,19 @@ function AdminAnalyticsPage() {
         <p>Fixtures: {overview.fixtures} · Published results: {overview.publishedResults} · Goals: {overview.goals}</p>
         <p>Open seasons: {overview.openSeasons} · Pending player reviews: {overview.pendingPlayerReviews} · Pending team applications: {overview.pendingTeamApplications} · Pending join requests: {overview.pendingMembershipRequests}</p>
       </div>}
-      <h3>Location comparison</h3>
+      {financeAccess && businessPerformance && <>
+         <h3>Business performance</h3>
+         <div className="analytics-print-metrics">
+           <p>Upcoming team fee forecast: {money(Number(businessPerformance.upcoming_team_forecast_pence))} · Team charges: {money(Number(businessPerformance.team_charges_pence))} · Team receipts: {money(Number(businessPerformance.team_receipts_pence))}</p>
+           <p>Team refunds: {money(Number(businessPerformance.team_refunds_pence))} · Outstanding: {money(Number(businessPerformance.outstanding_pence))} · Player card net: {money(Number(businessPerformance.player_card_net_pence))}</p>
+           <p>Recorded operating costs: {money(Number(businessPerformance.recorded_costs_pence))} · Recorded operating surplus: {money(Number(businessPerformance.net_operating_surplus_pence))}</p>
+         </div>
+       </>}
+       {financeAccess && operatingCosts.length > 0 && <>
+         <h3>Recorded operating costs</h3>
+         <div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Amount</th></tr></thead><tbody>{operatingCosts.map((cost) => <tr key={cost.id}><td>{new Date(cost.occurred_at).toLocaleDateString("en-GB")}</td><td>{cost.category.replaceAll("_"," ")}</td><td>{money(cost.amount_pence)}</td></tr>)}</tbody></table></div>
+       </>}
+       <h3>Location comparison</h3>
       <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.publishedResults}</td><td>{row.goals}</td></tr>)}</tbody></table></div>
       <h3>Daily user growth</h3>
       <div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Account signups</th><th>Player registrations</th><th>Team applications</th><th>Team approvals</th></tr></thead><tbody>{growthRows.map((row) => <tr key={row.bucket_date}><td>{row.bucket_date}</td><td>{row.account_signups === null ? "—" : Number(row.account_signups)}</td><td>{Number(row.player_registrations)}</td><td>{Number(row.team_applications)}</td><td>{Number(row.team_approvals)}</td></tr>)}</tbody></table></div>
@@ -692,10 +854,10 @@ function AdminAnalyticsPage() {
         <h3>Weekly retention</h3>
         <div className="analytics-table-wrap"><table><thead><tr><th>Cohort week</th><th>Weeks later</th><th>Cohort size</th><th>Returned</th><th>Retention</th></tr></thead><tbody>{productAnalytics.retention.map((row) => <tr key={row.cohort_week + "-" + row.weeks_since_start}><td>{row.cohort_week}</td><td>{row.weeks_since_start}</td><td>{row.cohort_users}</td><td>{row.retained_users}</td><td>{row.retention_rate.toFixed(1)}%</td></tr>)}</tbody></table></div>
       </>}
-      {financeAccess && !financeError && <p>Ledger charges: {money(financeTotals.chargesPence)} · Payments: {money(financeTotals.paymentsPence)} · Refunds: {money(financeTotals.refundsPence)} · Fines: {money(financeTotals.finesPence)} · Outstanding: {money(financeTotals.outstandingPence)}</p>}
+      
       <p>Generated {new Date().toLocaleString("en-GB")}. Aggregate operational data only; no player personal details included.</p>
     </section>
-    <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs for operational and financial truth; consented PostHog aggregates for product engagement and feature performance. Fixture reporting window: {fromDate || toDate ? `${fromDate || "Any date"} to ${toDate || "Any date"}` : "all dates"} within the selected season or accessible context. Team and queue figures are current snapshots; finance figures are ledger totals for the selected season. PostHog reporting requires the server-side project query credential and sufficient consented activity.</p>
+    <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs for operational and financial truth; consented PostHog aggregates for product engagement and feature performance. Reporting window: {fromDate || toDate ? `${fromDate || "Any date"} to ${toDate || "Any date"}` : "all dates"} within the selected context. Team and queue figures are current snapshots; business performance combines team ledger entries, player-card proceeds, future team obligations and recorded operating costs. PostHog reporting requires the server-side project query credential and sufficient consented activity.</p>
     <Link className="auth-switch" to="/admin">← BACK TO ADMIN DASHBOARD</Link>
   </section></main>;
 }
