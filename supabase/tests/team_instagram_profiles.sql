@@ -5,6 +5,7 @@ declare
   v_user_one constant uuid := '91000000-0000-4000-8000-000000000001';
   v_user_two constant uuid := '91000000-0000-4000-8000-000000000002';
   v_user_three constant uuid := '91000000-0000-4000-8000-000000000003';
+  v_user_four constant uuid := '91000000-0000-4000-8000-000000000004';
   v_location uuid;
   v_league uuid;
   v_season uuid;
@@ -15,13 +16,15 @@ begin
   values
     (v_user_one,'authenticated','authenticated','ci-instagram-one@openplay.invalid','','{}'::jsonb,now(),now()),
     (v_user_two,'authenticated','authenticated','ci-instagram-two@openplay.invalid','','{}'::jsonb,now(),now()),
-    (v_user_three,'authenticated','authenticated','ci-instagram-three@openplay.invalid','','{}'::jsonb,now(),now());
+    (v_user_three,'authenticated','authenticated','ci-instagram-three@openplay.invalid','','{}'::jsonb,now(),now()),
+    (v_user_four,'authenticated','authenticated','ci-instagram-four@openplay.invalid','','{}'::jsonb,now(),now());
 
   insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status)
   values
     (v_user_one,'Instagram Player One','+447700901101','ci-instagram-one@openplay.invalid',date '1990-01-01','registered'),
     (v_user_two,'Instagram Player Two','+447700901102','ci-instagram-two@openplay.invalid',date '1990-01-02','registered'),
-    (v_user_three,'Instagram Player Three','+447700901103','ci-instagram-three@openplay.invalid',date '1990-01-03','registered');
+    (v_user_three,'Instagram Player Three','+447700901103','ci-instagram-three@openplay.invalid',date '1990-01-03','registered'),
+    (v_user_four,'Instagram Player Four','+447700901104','ci-instagram-four@openplay.invalid',date '1990-01-04','registered');
 
   insert into public.locations(name,slug,town,region,is_active)
   values('CI Instagram Profiles','ci-instagram-profiles','Bideford','North Devon',false)
@@ -69,6 +72,14 @@ begin
   if v_team.instagram_handle is not null
      or v_team.instagram_url is distinct from 'https://www.instagram.com/OpenPlay_Link/' then
     raise exception 'Link-only registration should persist a canonical URL without inventing a handle';
+  end if;
+
+  perform set_config('request.jwt.claim.sub',v_user_four::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_user_four,'role','authenticated')::text,true);
+  select * into v_team
+  from public.register_team(v_season,'Instagram Default Port',null,null,null,'https://instagram.com:443/OpenPlay_Port');
+  if v_team.instagram_url is distinct from 'https://www.instagram.com/OpenPlay_Port/' then
+    raise exception 'Explicit default HTTPS port was not canonicalised';
   end if;
 
   v_rejected := false;
