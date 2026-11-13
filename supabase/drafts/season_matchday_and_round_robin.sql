@@ -413,6 +413,12 @@ begin
     if v_venue.location_id<>v_location_id then raise exception 'The selected venue must belong to the season location'; end if;
     if p_scheduled_at is not null then
       v_local_scheduled:=p_scheduled_at at time zone 'Europe/London';
+      if v_season.starts_on is not null and v_local_scheduled::date<v_season.starts_on then
+        raise exception 'The fixture is before the season start date';
+      end if;
+      if v_season.ends_on is not null and v_local_scheduled::date>v_season.ends_on then
+        raise exception 'The fixture is after the season end date';
+      end if;
       v_day:=extract(dow from v_local_scheduled)::smallint;
       if v_season.matchday_weekday is not null and v_day<>v_season.matchday_weekday then
         raise exception 'The fixture does not fall on the season matchday';
