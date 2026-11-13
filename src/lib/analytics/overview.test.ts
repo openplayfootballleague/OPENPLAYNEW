@@ -63,6 +63,30 @@ describe("admin analytics aggregation", () => {
     ]);
   });
 
+  it("calculates result publication coverage from completed fixtures only", () => {
+    const setupWithUnpublishedCompleted: AnalyticsSetup = {
+      ...setup,
+      fixtures: [...setup.fixtures, {
+        id: "fixture-completed-without-result",
+        season_id: "season-a",
+        gameweek: 2,
+        status: "completed",
+        home_score: null,
+        away_score: null,
+        scheduled_at: "2026-10-08T20:00:00Z",
+      }],
+    };
+    const row = buildLocationComparisons(setupWithUnpublishedCompleted).find((item) => item.locationId === "loc-a");
+    expect(row).toMatchObject({
+      fixtures: 2,
+      completedFixtures: 2,
+      publishedResults: 1,
+      resultsCoveragePercent: 50,
+      goals: 5,
+      goalsPerResult: 5,
+    });
+  });
+
   it("filters location comparisons by the selected league or season", () => {
     expect(buildLocationComparisons(setup, { locationId: "", leagueId: "league-b", seasonId: "" })).toHaveLength(1);
     expect(buildLocationComparisons(setup, { locationId: "loc-a", leagueId: "", seasonId: "" })).toHaveLength(1);
