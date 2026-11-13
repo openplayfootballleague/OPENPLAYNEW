@@ -298,7 +298,7 @@ Deno.serve(async (req: Request) => {
         summary.unconfirmed += 1;
       } else if (cause instanceof PermanentDeliveryError) {
         if (event.channel === "push" && errorText.includes("No active OneSignal subscriptions")) {
-          await service.from("notification_preferences").update({ push_enabled: false }).eq("user_id", event.user_id);
+          await service.from("notification_preferences").update({ push_enabled: false, updated_at: new Date().toISOString() }).eq("user_id", event.user_id);
         }
         await service.rpc("fail_notification_event_permanent", { p_event_id: event.id, p_error: errorText });
         summary.failed += 1;
