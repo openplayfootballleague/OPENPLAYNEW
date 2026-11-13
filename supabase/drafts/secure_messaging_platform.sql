@@ -1133,7 +1133,42 @@ create trigger sync_team_message_conversation_trigger
 after insert or update of status on public.team_memberships
 for each row execute function public.sync_team_message_conversation();
 
-do $$
+-- Backfill conversations for active memberships that existed before messaging
+-- was installed. The membership trigger only covers future row changes.
+create or replace function public.backfill_team_message_conversations()
+returns void
+language plpgsql
+security definer
+set search_path=''
+as $
+begin
+  insert into public.message_conversations(kind,title,season_team_id,season_id,location_id)
+  select 'team',st.name,st.id,st.season_id,l.location_id
+  from public.season_teams st
+  join public.seasons s on s.id=st.season_id
+  join public.leagues l on l.id=s.league_id
+  where exists (
+    select 1 from public.team_memberships tm
+    where tm.season_team_id=st.id
+      and tm.status='active'
+      and public.message_actor_is_active(tm.user_id)
+  )
+  on conflict(season_team_id) where kind='team' and closed_at is null do nothing;
+
+  insert into public.message_conversation_participants(conversation_id,user_id)
+  select c.id,tm.user_id
+  from public.message_conversations c
+  join public.team_memberships tm on tm.season_team_id=c.season_team_id
+  where c.kind='team' and c.closed_at is null
+    and tm.status='active'
+    and public.message_actor_is_active(tm.user_id)
+  on conflict(conversation_id,user_id) do nothing;
+end;
+$;
+revoke all on function public.backfill_team_message_conversations() from public,anon,authenticated;
+select public.backfill_team_message_conversations();
+
+do $
 begin
   if exists(select 1 from pg_publication where pubname='supabase_realtime') then
     if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='messages') then
