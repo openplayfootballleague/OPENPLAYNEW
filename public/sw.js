@@ -1,5 +1,10 @@
 // OneSignal shares the root-scoped service worker with the Open Play PWA.
-importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+// It is optional: a CDN outage must never prevent the offline app shell from installing.
+try {
+  importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+} catch {
+  // Push can be retried after the next service-worker update; keep the PWA available.
+}
 
 const SHELL_CACHE = "open-play-shell-v1";
 const APP_SHELL = [
