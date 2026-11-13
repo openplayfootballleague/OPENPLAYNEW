@@ -512,7 +512,7 @@ function AdminAnalyticsPage() {
           </div>
           <p className="form-note">Only fixtures marked completed with a published score contribute to result and goal totals.</p>
         </div>
-      </> : tab === "usage" ? <div className="analytics-state"><h2>App usage</h2><p>Page views, sessions, device/browser distribution and navigation trends will appear after consented analytics ingestion is approved and enabled.</p><p className="analytics-state-label">No user-activity figures are being fabricated or inferred from page loads.</p></div>  : tab === "growth" ? <>
+      </> : tab === "usage" ? <div className="analytics-state"><h2>App usage</h2><p>Raw page-view, session and device/browser reports are not currently part of the Open Play analytics release. Use Engagement &amp; Retention for consented meaningful competition-content activity and Feature Performance for feature adoption.</p><p className="analytics-state-label">PostHog autocapture, heatmaps and session recording remain disabled. Only allowlisted events after explicit consent are used.</p></div>  : tab === "growth" ? <>
         <h2>User growth · daily activity</h2>
         <p className="form-note">Daily totals use Supabase account profiles, player registrations and season-team application records. In scoped views, player registrations include only players associated with the selected competition through membership history. Account signups appear only in the global all-locations view.</p>
         {growthError ? <p className="form-error" role="alert">{growthError}</p> : <>
