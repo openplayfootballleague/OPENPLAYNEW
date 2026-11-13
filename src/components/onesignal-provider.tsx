@@ -72,7 +72,8 @@ export function OneSignalProvider({ children }: { children: ReactNode }) {
       .then(({ data: { session } }) => syncIdentity(session?.user.id ?? null))
       .catch(() => syncIdentity(null));
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!["INITIAL_SESSION", "SIGNED_IN", "SIGNED_OUT", "USER_UPDATED"].includes(event)) return;
       queueMicrotask(() => {
         if (active) void syncIdentity(session?.user.id ?? null);
       });
