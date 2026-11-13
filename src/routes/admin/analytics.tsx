@@ -413,6 +413,18 @@ function AdminAnalyticsPage() {
         ]);
       }
     }
+    if (productAnalytics?.usageSummary.length) {
+      rows.push([], ["App usage summary", "Visitor type", "Unique visitors", "Navigation views"]);
+      for (const row of productAnalytics.usageSummary) rows.push(["Platform-wide", row.visitor_type, row.unique_visitors, row.navigation_views]);
+    }
+    if (productAnalytics?.usageSections.length) {
+      rows.push([], ["Navigation sections", "Section", "Visitor type", "Unique visitors", "Navigation views"]);
+      for (const row of productAnalytics.usageSections) rows.push([row.route_category, row.visitor_type, row.unique_visitors, row.navigation_views]);
+    }
+    if (productAnalytics?.usageDaily.length) {
+      rows.push([], ["Daily app usage", "Date", "Visitor type", "Unique visitors", "Navigation views"]);
+      for (const row of productAnalytics.usageDaily) rows.push([row.day, row.visitor_type, row.unique_visitors, row.navigation_views]);
+    }
     if (productAnalytics?.weeklyActivity.length) {
       rows.push([], ["Weekly engagement", "Active users", "Meaningful content views"]);
       for (const row of productAnalytics.weeklyActivity) {
