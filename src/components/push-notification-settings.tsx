@@ -244,6 +244,7 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
           <h3>Push notifications &amp; devices</h3>
           {!isOneSignalConfigured() ? <p className="form-note">Push notifications are not yet configured for this Open Play environment. Email, SMS and in-app preferences remain available.</p> : <>
             <p>Push is optional. Enable it on each browser you use. Open Play can send to multiple registered devices linked to this account.</p>
+            <p>When enabled, OneSignal receives your Open Play account UUID and device subscription metadata. Lock-screen messages are generic and do not include private message content, contact details or dates of birth.</p>
             <div className="push-settings-action-row">
               {preferences.push_enabled
                 ? <button type="button" className="button button-secondary" disabled={busy} onClick={() => void disablePush()}>DISABLE PUSH ON ALL DEVICES</button>
