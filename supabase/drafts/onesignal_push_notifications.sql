@@ -85,6 +85,7 @@ declare
   v_dedupe text;
   v_category text;
   v_category_enabled boolean := true;
+  v_critical boolean := p_event_type in ('player.banned','player.unbanned','player.guardian_consent.captain_review_required');
 begin
   if p_user_id is null or p_event_type is null or length(btrim(p_event_type)) < 3 then return; end if;
   insert into public.notification_preferences(user_id) values(p_user_id) on conflict(user_id) do nothing;
@@ -116,7 +117,7 @@ begin
     values(p_user_id,'push',p_event_type,'queued',coalesce(p_payload,'{}'::jsonb),v_dedupe||':push')
     on conflict(dedupe_key) where dedupe_key is not null do nothing;
   end if;
-  if v_preferences.in_app_enabled then
+  if v_preferences.in_app_enabled or v_critical then
     insert into public.notification_events(user_id,channel,event_type,status,payload,dedupe_key,sent_at)
     values(p_user_id,'in_app',p_event_type,'sent',coalesce(p_payload,'{}'::jsonb),v_dedupe||':in_app',now())
     on conflict(dedupe_key) where dedupe_key is not null do nothing;
