@@ -264,9 +264,9 @@ begin
   player_cards as (
     select
       coalesce(sum(pr.amount_pence) filter(where pr.status in ('paid','partially_refunded','refunded')),0)::bigint gross,
-      coalesce(sum(pr.amount_refunded_pence) filter(where pr.status in ('paid','partially_refunded','refunded')),0)::bigint refunds,
+      coalesce(sum(coalesce(pr.amount_refunded_pence,0)) filter(where pr.status in ('paid','partially_refunded','refunded')),0)::bigint refunds,
       coalesce(sum(pr.stripe_fee_pence) filter(where pr.status in ('paid','partially_refunded','refunded')),0)::bigint fees,
-      coalesce(sum(greatest(coalesce(pr.net_amount_pence,pr.amount_pence-coalesce(pr.stripe_fee_pence,0))-pr.amount_refunded_pence,0))
+      coalesce(sum(greatest(coalesce(pr.net_amount_pence,pr.amount_pence-coalesce(pr.stripe_fee_pence,0))-coalesce(pr.amount_refunded_pence,0),0))
         filter(where pr.status in ('paid','partially_refunded','refunded')),0)::bigint net
     from public.payment_records pr
     join public.season_teams st on st.id=pr.season_team_id
