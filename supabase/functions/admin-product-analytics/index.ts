@@ -187,6 +187,7 @@ Deno.serve(async (request: Request) => {
       weeklyActivity: [],
       retention: [],
       features: [],
+      usageSummary: [],
       usageDaily: [],
       usageSections: [],
       definitions: {
@@ -218,7 +219,10 @@ Deno.serve(async (request: Request) => {
 
   const posthogQueries = buildProductAnalyticsQueries(filters);
   try {
-    const [usageDailyResult, usageSectionsResult, weeklyResult, retentionResult, featureResult] = await Promise.all([
+    const [usageSummaryResult, usageDailyResult, usageSectionsResult, weeklyResult, retentionResult, featureResult] = await Promise.all([
+      includePlatformUsage
+        ? runHogQL(host, projectId, posthogKey, posthogQueries.appUsageSummary, "Open Play app usage summary")
+        : Promise.resolve([]),
       includePlatformUsage
         ? runHogQL(host, projectId, posthogKey, posthogQueries.appUsageDaily, "Open Play daily app usage")
         : Promise.resolve([]),
@@ -236,6 +240,13 @@ Deno.serve(async (request: Request) => {
         : Promise.resolve([]),
     ]);
 
+    const usageSummary = rowsAsObjects(usageSummaryResult, ["visitor_type", "unique_visitors", "navigation_views"])
+      .filter((row) => ["anonymous", "authenticated"].includes(String(row.visitor_type)))
+      .map((row) => ({
+        visitor_type: String(row.visitor_type),
+        unique_visitors: safeNumber(row.unique_visitors),
+        navigation_views: safeNumber(row.navigation_views),
+      }));
     const usageDaily = rowsAsObjects(usageDailyResult, ["day", "visitor_type", "unique_visitors", "navigation_views"])
       .filter((row) => ["anonymous", "authenticated"].includes(String(row.visitor_type)))
       .map((row) => ({
@@ -281,6 +292,7 @@ Deno.serve(async (request: Request) => {
       weeklyActivity,
       retention,
       features,
+      usageSummary,
       usageDaily,
       usageSections,
       definitions: {
