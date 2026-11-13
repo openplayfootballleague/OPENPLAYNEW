@@ -36,6 +36,14 @@ type RegistrationRow = {
   membership_pending: number | string;
 };
 type Tab = "overview" | "usage" | "growth" | "registrations" | "engagement" | "features" | "locations" | "competition" | "business" | "reports";
+type ProductAnalytics = {
+  status: "ready" | "no_data";
+  range: { fromDate: string; toDate: string };
+  weeklyActivity: Array<{ week_start: string; active_users: number; value_actions: number }>;
+  retention: Array<{ cohort_week: string; weeks_since_start: number; cohort_users: number; retained_users: number; retention_rate: number }>;
+  features: Array<{ feature: string; unique_users: number; value_actions: number }>;
+  definitions: { engagedUser: string; retention: string; featurePerformance: string };
+};
 
 const money = (pence: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
 const csvCell = (value: string | number) => '"' + String(value).replaceAll('"', '""') + '"';
@@ -69,6 +77,9 @@ function AdminAnalyticsPage() {
   const [growthError, setGrowthError] = useState("");
   const [registrationRows, setRegistrationRows] = useState<RegistrationRow[]>([]);
   const [registrationError, setRegistrationError] = useState("");
+  const [productAnalytics, setProductAnalytics] = useState<ProductAnalytics | null>(null);
+  const [productAnalyticsLoading, setProductAnalyticsLoading] = useState(false);
+  const [productAnalyticsError, setProductAnalyticsError] = useState("");
   const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
 
@@ -215,6 +226,56 @@ function AdminAnalyticsPage() {
     if (contextReady) void loadContextData();
   }, [contextReady, loadContextData]);
 
+  useEffect(() => {
+    if (!contextReady || authStatus !== "authenticated" || (tab !== "engagement" && tab !== "features")) return;
+    let alive = true;
+    setProductAnalyticsLoading(true);
+    setProductAnalyticsError("");
+    void (async () => {
+      const { data, error: invokeError } = await getSupabaseClient().functions.invoke("admin-product-analytics", {
+        body: {
+          fromDate: fromDate || undefined,
+          toDate: toDate || undefined,
+          locationId: locationId || undefined,
+          leagueId: leagueId || undefined,
+          seasonId: seasonId || undefined,
+        },
+      });
+      if (!alive) return;
+      if (invokeError) {
+        let message = "Product analytics could not be loaded. Check the server-side PostHog query credential.";
+        const response = (invokeError as Error & { context?: Response }).context;
+        if (response) {
+          try {
+            const body = await response.clone().json() as { error?: string };
+            if (typeof body.error === "string") message = body.error;
+          } catch {
+            // Keep the generic fail-closed message when an error body is unavailable.
+          }
+        }
+        setProductAnalytics(null);
+        setProductAnalyticsError(message);
+        return;
+      }
+      const payload = data as ProductAnalytics | { error?: string };
+      if (!payload || "error" in payload) {
+        setProductAnalytics(null);
+        setProductAnalyticsError(payload && "error" in payload && payload.error ? payload.error : "Product analytics returned an invalid response.");
+        return;
+      }
+      setProductAnalytics(payload);
+      setProductAnalyticsError("");
+    })().catch((cause: unknown) => {
+      if (alive) {
+        setProductAnalytics(null);
+        setProductAnalyticsError(cause instanceof Error ? cause.message : "Product analytics could not be loaded.");
+      }
+    }).finally(() => {
+      if (alive) setProductAnalyticsLoading(false);
+    });
+    return () => { alive = false; };
+  }, [authStatus, contextReady, fromDate, leagueId, locationId, seasonId, tab, toDate]);
+
   const dateRangeInvalid = Boolean(fromDate && toDate && fromDate > toDate);
   const filters: AnalyticsFilters = { locationId, leagueId, seasonId, fromDate, toDate };
   const overview = useMemo(() => dashboard && !dateRangeInvalid
@@ -323,6 +384,24 @@ function AdminAnalyticsPage() {
           Number(row.team_applications),
           Number(row.team_approvals),
         ]);
+      }
+    }
+    if (productAnalytics?.weeklyActivity.length) {
+      rows.push([], ["Weekly engagement", "Active users", "Meaningful content views"]);
+      for (const row of productAnalytics.weeklyActivity) {
+        rows.push([row.week_start, row.active_users, row.value_actions]);
+      }
+    }
+    if (productAnalytics?.features.length) {
+      rows.push([], ["Feature performance", "Unique users", "Meaningful content views"]);
+      for (const row of productAnalytics.features) {
+        rows.push([row.feature, row.unique_users, row.value_actions]);
+      }
+    }
+    if (productAnalytics?.retention.length) {
+      rows.push([], ["Weekly retention", "Weeks since first observed", "Cohort users", "Retained users", "Retention rate (%)"]);
+      for (const row of productAnalytics.retention) {
+        rows.push([row.cohort_week, row.weeks_since_start, row.cohort_users, row.retained_users, row.retention_rate]);
       }
     }
     const csv = rows.map((row) => row.map((cell) => csvCell(cell)).join(",")).join("\r\n");
@@ -468,7 +547,37 @@ function AdminAnalyticsPage() {
             {registrationRows.map((row) => <tr key={row.bucket_date}><td>{new Date(row.bucket_date + "T12:00:00Z").toLocaleDateString("en-GB", { timeZone: "Europe/London", dateStyle: "medium" })}</td><td>{Number(row.team_applications)}</td><td>{Number(row.team_approved)}</td><td>{Number(row.team_rejected)}</td><td>{Number(row.team_pending)}</td><td>{Number(row.membership_requests)}</td><td>{Number(row.membership_accepted)}</td><td>{Number(row.membership_rejected)}</td><td>{Number(row.membership_pending)}</td></tr>)}
           </tbody></table></div>}
         </>}
-      </> : tab === "engagement" ? <div className="analytics-state"><h2>Engagement &amp; retention</h2><p>Meaningful repeat visits, active-user cohorts and 1/7/30-day retention are not available until the consented event history has sufficient coverage.</p><p className="analytics-state-label">An open tab or a page render is not counted as engagement.</p></div> : tab === "features" ? <div className="analytics-state"><h2>Feature performance</h2><p>Feature adoption and repeat interactions will be reported for Player Hub, Match Centre, teams, fixtures, results, registration, team management, gallery and announcements.</p><p className="analytics-state-label">Event coverage is being expanded; incomplete feature history is not displayed as zero.</p></div> : tab === "competition" ? <>
+      </> : tab === "engagement" ? <>
+        <h2>Engagement &amp; retention</h2>
+        <p className="form-note">Meaningful activity is a consented player viewing published fixtures, results, league standings, player statistics or the approved team directory. Admin and finance activity is excluded. Retention cohorts use first observed meaningful activity in this reporting window; the incomplete current week is excluded.</p>
+        {productAnalyticsLoading ? <p className="form-note">Loading consented engagement data…</p> : productAnalyticsError ? <div className="analytics-state"><h3>Product analytics unavailable</h3><p>{productAnalyticsError}</p><p className="analytics-state-label">The PostHog query credential is held server-side. No user-level event records are returned to this page.</p></div> : !productAnalytics || productAnalytics.status === "no_data" ? <div className="analytics-state"><h3>No consented engagement data yet</h3><p>There are no meaningful content-view events for the selected competition and reporting period. Figures will appear as players who have opted into optional analytics view available competition content.</p><p className="analytics-state-label">An app open or a generic page render is not counted as engagement.</p></div> : <>
+          <div className="analytics-stat-grid">
+            <article><span>Latest completed week · active players</span><strong>{productAnalytics.weeklyActivity.at(-1)?.active_users ?? 0}</strong></article>
+            <article><span>Meaningful content views</span><strong>{productAnalytics.weeklyActivity.reduce((sum, row) => sum + row.value_actions, 0)}</strong></article>
+            <article><span>Retention cohorts</span><strong>{new Set(productAnalytics.retention.map((row) => row.cohort_week)).size}</strong></article>
+          </div>
+          <div className="analytics-section"><h3>Weekly active players</h3>
+            {productAnalytics.weeklyActivity.length === 0 ? <p className="form-note">No completed week has recorded meaningful activity.</p> : <div className="analytics-table-wrap"><table><thead><tr><th>Week commencing</th><th>Active players</th><th>Meaningful views</th></tr></thead><tbody>{productAnalytics.weeklyActivity.map((row) => <tr key={row.week_start}><td>{row.week_start}</td><td>{row.active_users}</td><td>{row.value_actions}</td></tr>)}</tbody></table></div>}
+          </div>
+          <div className="analytics-section"><h3>Weekly retention cohorts</h3>
+            <p className="form-note">Each cohort is players whose first observed meaningful action fell in that week. Percentages show how many returned in each subsequent week.</p>
+            {productAnalytics.retention.length === 0 ? <p className="form-note">There is not yet enough completed weekly activity to calculate retention.</p> : <div className="analytics-table-wrap"><table><thead><tr><th>Cohort week</th><th>Weeks later</th><th>Cohort size</th><th>Returned</th><th>Retention</th></tr></thead><tbody>{productAnalytics.retention.map((row) => <tr key={row.cohort_week + "-" + row.weeks_since_start}><td>{row.cohort_week}</td><td>{row.weeks_since_start}</td><td>{row.cohort_users}</td><td>{row.retained_users}</td><td>{row.retention_rate.toFixed(1)}%</td></tr>)}</tbody></table></div>}
+          </div>
+          <p className="form-note">Reporting period: {productAnalytics.range.fromDate} to {productAnalytics.range.toDate}. Source: consented PostHog events; results are aggregate-only.</p>
+        </>}
+      </> : tab === "features" ? <>
+        <h2>Feature performance</h2>
+        <p className="form-note">Counts are based on meaningful content views, not raw page loads. Only the current allowlisted competition features are shown, and only for seasons visible to the signed-in administrator.</p>
+        {productAnalyticsLoading ? <p className="form-note">Loading feature performance…</p> : productAnalyticsError ? <p className="form-error" role="alert">{productAnalyticsError}</p> : !productAnalytics || productAnalytics.status === "no_data" ? <div className="analytics-state"><h3>No feature activity yet</h3><p>Feature usage will appear once a player who has opted into optional analytics views fixtures, results, league standings, player statistics or the approved team directory.</p><p className="analytics-state-label">No missing event coverage is reported as zero usage.</p></div> : productAnalytics.features.length === 0 ? <p className="form-note">No feature activity was recorded in this reporting window.</p> : <>
+          <div className="analytics-stat-grid">
+            <article><span>Features used</span><strong>{productAnalytics.features.length}</strong></article>
+            <article><span>Unique player-feature pairs</span><strong>{productAnalytics.features.reduce((sum, row) => sum + row.unique_users, 0)}</strong></article>
+            <article><span>Meaningful views</span><strong>{productAnalytics.features.reduce((sum, row) => sum + row.value_actions, 0)}</strong></article>
+          </div>
+          <div className="analytics-table-wrap"><table><thead><tr><th>Feature</th><th>Unique players</th><th>Meaningful views</th></tr></thead><tbody>{productAnalytics.features.map((row) => <tr key={row.feature}><td>{row.feature.replaceAll("_", " ")}</td><td>{row.unique_users}</td><td>{row.value_actions}</td></tr>)}</tbody></table></div>
+          <p className="form-note">Reporting period: {productAnalytics.range.fromDate} to {productAnalytics.range.toDate}. A player may appear in more than one feature row.</p>
+        </>}
+      </> : tab === "competition" ? <>
         {!seasonId ? <p className="form-note">Choose a season above to load its verified competition statistics.</p> : seasonError ? <p className="form-error" role="alert">{seasonError}</p> : !seasonStats ? <p className="form-note">Loading season statistics…</p> : <>
           <h2>{seasonStats.season.name} · {seasonStats.season.status}</h2>
           <div className="analytics-stat-grid">
