@@ -33,7 +33,8 @@ re-approval. Changes require a new dated owner decision recorded here.
 
 ## D4 — Inbox: Notifications and Messages
 
-- Messaging is required. The member experience is a single **Inbox** at `/inbox` with two separate sections:
+- Messaging is required. The member experience is a single **Inbox** at `/inbox` with two separate sections
+  (implemented 13 Nov 2026; `/messages` redirects to the Messages section):
   - **Notifications** — automated league alerts and official announcements.
   - **Messages** — player-to-player messaging, including captains.
 - Administrators communicate through automated notifications and announcements, **not** direct messages.
@@ -73,6 +74,12 @@ re-approval. Changes require a new dated owner decision recorded here.
    the season open until the owner defines the format.
 2. **A drawn final.** The guard requires a decisive confirmed score. If finals are settled by extra time or penalties,
    confirm how that should be recorded (for example, a penalty-shootout field) rather than entering a non-match score.
+3. **Support conversations (D4).** Players can open a private support conversation that administrators answer
+   in-thread. This predates D4 and is kept; confirm whether it is acceptable or should become a ticket workflow
+   without admin replies.
+4. **Visitor bottom navigation.** The integration line shows visitors five tabs (Home, Match Centre, Teams, Join Open
+   Play, More), contradicting the Blueprint's four (Home, Match Centre, Join Open Play, More); at 390px the fifth tab
+   wraps. Confirm the four-tab baseline so it can be implemented.
 
 ## Development safety (unchanged)
 
