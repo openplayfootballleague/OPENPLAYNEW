@@ -24,6 +24,9 @@ declare
   v_broadcast uuid;
   v_message uuid;
   v_message_two uuid;
+  v_cursor_id uuid;
+  v_next_id uuid;
+  v_cursor_at timestamptz;
   v_report uuid;
   v_count integer;
   v_unread bigint;
@@ -113,6 +116,21 @@ begin
   where conversation_id=v_team_conversation and left_at is null;
   if v_count<>4 then raise exception 'Team conversation should include all four active team members; found %',v_count; end if;
 
+  -- Simulate an active team that predates messaging: remove its auto-created
+  -- conversation, then verify the migration backfill can restore it idempotently.
+  delete from public.message_conversations where id=v_team_conversation;
+  perform public.backfill_team_message_conversations();
+  select id into v_team_conversation from public.message_conversations
+  where kind='team' and season_team_id=v_season_team_one and closed_at is null;
+  if v_team_conversation is null then raise exception 'Backfill did not restore a team conversation for existing active memberships'; end if;
+  select count(*) into v_count from public.message_conversation_participants
+  where conversation_id=v_team_conversation and left_at is null;
+  if v_count<>4 then raise exception 'Backfilled team conversation should include all four active members; found %',v_count; end if;
+  if pg_catalog.has_function_privilege('anon','public.backfill_team_message_conversations()','EXECUTE')
+     or pg_catalog.has_function_privilege('authenticated','public.backfill_team_message_conversations()','EXECUTE') then
+    raise exception 'Internal team-conversation backfill must not be executable by clients';
+  end if;
+
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_player_a::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_a::text,'role','authenticated')::text,true);
@@ -175,6 +193,35 @@ begin
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_player_b::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_b::text,'role','authenticated')::text,true);
+  -- Equal timestamps must not cause older messages to disappear between pages.
+  execute 'reset role';
+  v_cursor_at:=clock_timestamp()-interval '1 day';
+  insert into public.messages(id,conversation_id,sender_id,body,created_at)
+  values
+    (gen_random_uuid(),v_direct,v_player_a,'Pagination tie A',v_cursor_at),
+    (gen_random_uuid(),v_direct,v_player_a,'Pagination tie B',v_cursor_at);
+  select id into v_cursor_id from public.messages
+  where conversation_id=v_direct and created_at=v_cursor_at
+  order by id desc limit 1;
+  select id into v_next_id from public.messages
+  where conversation_id=v_direct and created_at=v_cursor_at
+  order by id asc limit 1;
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_player_b::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_b::text,'role','authenticated')::text,true);
+  if not exists (
+    select 1 from public.get_message_history(v_direct,1,v_cursor_at+interval '1 microsecond',null)
+    where message_id=v_cursor_id
+  ) then
+    raise exception 'Newest message was not returned as the first pagination cursor';
+  end if;
+  if not exists (
+    select 1 from public.get_message_history(v_direct,1,v_cursor_at,v_cursor_id)
+    where message_id=v_next_id
+  ) then
+    raise exception 'Message sharing a pagination timestamp was skipped';
+  end if;
+
   select body into v_body from public.get_message_history(v_direct,50,null)
   where message_id=v_message;
   if v_body<>'Hello from Player A' then raise exception 'Direct message history was not returned to its participant'; end if;

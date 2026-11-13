@@ -19,7 +19,7 @@ There is no unrestricted member directory or open DM capability. Recipient searc
 - Conversation, participant and message tables have RLS enabled.
 - Authenticated clients have read-only table grants; all writes go through security-definer RPCs with a fixed search path.
 - Direct messages require a shared active team and are denied if either participant has blocked the other.
-- Team conversations enrol active team members. Leaving a team immediately removes access; a later active membership can restore access.
+- Team conversations enrol active team members. The migration backfills conversations for memberships that predate messaging, and a database trigger keeps later membership changes in sync. Leaving a team immediately removes access; a later active membership can restore access.
 - Support threads are private to their opener and the administrator participants.
 - Broadcast audiences are validated server-side. Location administrators are restricted to assigned locations; platform-wide audiences require a global administrator.
 - Admin report review is location-scoped. Hiding a message and resolving a report requires an audit reason and is written to the audit log.

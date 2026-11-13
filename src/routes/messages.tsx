@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useRequiredSession } from "../lib/auth/use-required-session";
@@ -67,6 +67,8 @@ function MessagesPage() {
   const [supportBody, setSupportBody] = useState("");
   const [reportingId, setReportingId] = useState("");
   const [reportReason, setReportReason] = useState("");
+  const selectedConversationRef = useRef(selectedId);
+  selectedConversationRef.current = selectedId;
 
   const loadConversations = useCallback(async () => {
     const { data, error: rpcError } = await messagingRpc().rpc("get_my_message_conversations", { p_limit: 100 });
@@ -85,13 +87,19 @@ function MessagesPage() {
   }, []);
 
   const loadMessages = useCallback(async (conversationId: string) => {
-    if (!conversationId) { setMessages([]); return; }
+    if (!conversationId) {
+      if (selectedConversationRef.current === "") setMessages([]);
+      return;
+    }
     setThreadLoading(true);
     const { data, error: rpcError } = await messagingRpc().rpc("get_message_history", {
       p_conversation_id: conversationId,
       p_limit: 100,
       p_before: null,
+      p_before_id: null,
     });
+    // Ignore a slow response for the previously selected conversation.
+    if (selectedConversationRef.current !== conversationId) return;
     if (rpcError) {
       setError(rpcError.message);
       setMessages([]);
@@ -106,11 +114,14 @@ function MessagesPage() {
   async function loadOlderMessages() {
     if (!selectedId || !messages.length || olderLoading) return;
     setOlderLoading(true); setError("");
+    const requestedConversationId = selectedId;
     const { data, error: rpcError } = await messagingRpc().rpc("get_message_history", {
-      p_conversation_id: selectedId,
+      p_conversation_id: requestedConversationId,
       p_limit: 100,
       p_before: messages[0].created_at,
+      p_before_id: messages[0].message_id,
     });
+    if (selectedConversationRef.current !== requestedConversationId) return;
     if (rpcError) setError(rpcError.message);
     else {
       const older = ((data ?? []) as MessageRow[]).slice().reverse();
@@ -161,7 +172,13 @@ function MessagesPage() {
   }, [authStatus, loadConversations, loadBlockedUsers]);
 
   useEffect(() => {
-    if (!selectedId) { setMessages([]); return; }
+    setOlderLoading(false);
+    setHasMoreMessages(false);
+    if (!selectedId) {
+      setMessages([]);
+      setThreadLoading(false);
+      return;
+    }
     let active = true;
     const supabase = getSupabaseClient() as unknown as SupabaseClient<any>;
     void (async () => {
