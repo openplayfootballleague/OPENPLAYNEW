@@ -14,10 +14,12 @@ const expectedMigrations = [
   "referee_approved_report_correction_options",
   "referee_connect_payouts",
   "referee_payout_transfer_outbox",
+  "referee_connect_transfer_reconciliation_corrections",
   "secure_messaging_platform",
   "player_self_service_statistics",
   "optional_goal_attribution",
   "admin_league_admin_role_management",
+  "manual_season_recruitment_activation",
 ];
 let checked = 0;
 const foundMigrations = [];

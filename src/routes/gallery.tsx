@@ -1,17 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { groupGalleryItems, type PublicGalleryResponse } from "../lib/gallery";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { useOpenPlayAnalytics } from "../components/analytics-provider";
 
 export const Route = createFileRoute("/gallery")({
   component: GalleryPage,
 });
 
 function GalleryPage() {
+  const capture = useOpenPlayAnalytics();
   const [gallery, setGallery] = useState<PublicGalleryResponse>({ locations: [], items: [] });
   const [selectedLocationId, setSelectedLocationId] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [loadedSuccessfully, setLoadedSuccessfully] = useState(false);
+  const galleryViewCaptured = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -24,9 +28,15 @@ function GalleryPage() {
           });
 
         if (invokeError) throw invokeError;
-        if (active) setGallery(data ?? { locations: [], items: [] });
+        if (active) {
+          setGallery(data ?? { locations: [], items: [] });
+          setLoadedSuccessfully(true);
+        }
       } catch {
-        if (active) setError("The gallery is temporarily unavailable. Please try again shortly.");
+        if (active) {
+          setError("The gallery is temporarily unavailable. Please try again shortly.");
+          capture("data_load_failed", { feature: "gallery", error_code: "network_error", outcome: "failure" });
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -36,7 +46,12 @@ function GalleryPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [capture]);
+
+  useEffect(() => {
+    if (!loadedSuccessfully || galleryViewCaptured.current) return;
+    if (capture("gallery_viewed", { feature: "gallery" })) galleryViewCaptured.current = true;
+  }, [capture, loadedSuccessfully]);
 
   const groups = useMemo(
     () => groupGalleryItems(gallery.locations, gallery.items, selectedLocationId),

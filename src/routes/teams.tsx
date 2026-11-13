@@ -3,6 +3,7 @@ import { RefereeBottomNavigation } from "../components/referee-bottom-navigation
 import { PlayerCompetitionSelector, usePlayerCompetitionContext } from "../lib/competition/player-context";
 import { Link,createFileRoute } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { useOpenPlayAnalytics } from "../components/analytics-provider";
 
 type TeamRow={id:string;name:string;season_id:string;primary_colour:string|null;secondary_colour:string|null};
 
@@ -10,6 +11,7 @@ export const Route=createFileRoute("/teams")({component:TeamsPage});
 
 function TeamsPage(){
  const competition=usePlayerCompetitionContext();
+ const capture=useOpenPlayAnalytics();
  const [teams,setTeams]=useState<TeamRow[]>([]);
  const [loading,setLoading]=useState(false);
  const [error,setError]=useState("");
@@ -21,11 +23,11 @@ function TeamsPage(){
   async function load(){
    const {data,error:teamError}=await getSupabaseClient().from("season_teams").select("id,name,season_id,primary_colour,secondary_colour").eq("season_id",competition.selectedSeasonId).eq("registration_status","approved").order("name");
    if(!alive)return;
-   if(teamError)setError(teamError.message);
+   if(teamError){setError(teamError.message);capture("data_load_failed",{feature:"team_directory",error_code:"network_error",outcome:"failure"});}
    setTeams(data??[]);setLoading(false);
   }
   void load();return()=>{alive=false;};
- },[competition.loading,competition.selectedSeasonId]);
+ },[competition.loading,competition.selectedSeasonId,capture]);
 
  const selectedSeason=competition.seasons.find((season)=>season.id===competition.selectedSeasonId);
 

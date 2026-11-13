@@ -2,16 +2,19 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const navigation = readFileSync("src/components/player-bottom-navigation.tsx", "utf8");
-assert.ok(navigation.includes('id: "home", to: mode === "player" ? "/player" : "/"'), "Viewer Home must open public Home and registered-player Home must open Player Hub");
-assert.ok(navigation.includes('id: "match-centre", to: "/match-centre"') && navigation.includes('id: "teams", to: "/teams"'), "Viewer and registered-player navigation must include Match Centre and Teams");
+assert.ok(navigation.includes('id: "home", to: "/", label: "Home"') && navigation.includes('id: "home", to: "/player", label: "Player Hub"'), "Viewer Home and registered Player Hub must have distinct destinations");
+assert.ok(navigation.includes('id: "match-centre", to: "/match-centre"') && navigation.includes('id: "teams", to: "/teams"') && navigation.includes('id: "join", to: "/join", label: "Join Open Play"'), "Viewer navigation must include Match Centre, Teams and Join Open Play");
 assert.ok(navigation.includes('id: "club", to: "/captain", hash: "#captain-club"') && navigation.includes('id: "matchday", to: "/captain", hash: "#captain-matchday"'), "Captain navigation must expose Club and Matchday as distinct destinations");
 assert.ok(navigation.includes('id: "home", to: "/player"') && navigation.includes('id: "more", to: "/more"'), "Captain navigation must retain Player Hub Home and More");
 assert.ok(navigation.includes('registration_status !== "registered"') && navigation.includes('.eq("is_captain", true)') && navigation.includes('setMode((captainRows ?? []).length > 0 ? "captain" : "player")'), "Navigation must derive viewer, registered-player and captain states from authorised account data");
-const captainNavBlock = navigation.match(/const items: NavigationItem\[\] = mode === "captain"\s*\?\s*\[([\s\S]*?)\]\s*:\s*\[([\s\S]*?)\];/);
-assert.ok(captainNavBlock, "Account-specific navigation arrays must be present");
-for (const [index, block] of captainNavBlock.slice(1).entries()) {
-  assert.equal((block.match(/\{ id:/g) ?? []).length, 4, index === 0 ? "Captain navigation must contain exactly four tabs" : "Viewer/player navigation must contain exactly four tabs");
-}
+const navBlock = navigation.slice(navigation.indexOf("const items: NavigationItem[] ="), navigation.indexOf("\n\n  function isActive"));
+const captainNav = navBlock.match(/mode === "captain"\s*\?\s*\[([\s\S]*?)\]\s*:/)?.[1];
+const playerNav = navBlock.match(/mode === "player"\s*\?\s*\[([\s\S]*?)\]\s*:/)?.[1];
+const viewerNav = navBlock.match(/:\s*\[([\s\S]*?)\];/)?.[1];
+assert.ok(captainNav && playerNav && viewerNav, "Captain, registered-player and viewer navigation arrays must be present");
+assert.equal((captainNav.match(/\{ id:/g) ?? []).length, 4, "Captain navigation must contain exactly four tabs");
+assert.equal((playerNav.match(/\{ id:/g) ?? []).length, 4, "Registered-player navigation must contain exactly four tabs");
+assert.equal((viewerNav.match(/\{ id:/g) ?? []).length, 5, "Viewer navigation must contain Home, Match Centre, Teams, Join Open Play and More");
 assert.ok(navigation.includes('pathname === "/" || pathname === "/player"'), "Home must be active on public Home and Player Hub only");
 
 const more = readFileSync("src/routes/more.tsx", "utf8");
@@ -51,7 +54,7 @@ const globalStyles = readFileSync("src/styles.css", "utf8");
 assert.ok(globalStyles.includes('font-family: "Inter", sans-serif;') && globalStyles.includes('font-family: "Oswald", sans-serif;'), "The global Open Play typography must use Inter for body copy and Oswald for display headings");
 assert.ok(!globalStyles.includes("DM Sans") && !globalStyles.includes("Barlow Condensed"), "Legacy font families must not override the approved Inter/Oswald visual system");
 
-console.log("Open Play account-aware four-tab navigation and global typography assertions passed.");
+console.log("Open Play role-aware viewer, player and captain navigation assertions passed.");
 
 const playerHub = readFileSync("src/routes/player.tsx", "utf8");
 assert.ok(playerHub.includes('if(player?.is_banned){void navigate({to:"/register-player",replace:true});return;}'), "Banned players must be redirected away from Player Hub to the restricted registration-status screen");

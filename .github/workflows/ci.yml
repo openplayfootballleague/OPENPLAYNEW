@@ -43,13 +43,40 @@ jobs:
       - name: Type-check Supabase Edge Functions
         run: deno check --node-modules-dir=auto supabase/functions/deliver-notifications/index.ts supabase/functions/create-player-checkout/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/public-gallery/index.ts supabase/functions/guardian-consent/index.ts supabase/functions/player-account-retention/index.ts supabase/functions/create-referee-connect-account/index.ts supabase/functions/pay-referee-payout/index.ts supabase/functions/referee-connect-webhook/index.ts supabase/functions/create-team-fixture-checkout/index.ts supabase/functions/team-stripe-webhook/index.ts supabase/functions/process-team-payment-deadlines/index.ts supabase/functions/process-referee-payout-queue/index.ts supabase/functions/admin-postpone-gameweek/index.ts
       - name: Test Stripe Connect webhook signature verification
-        run: deno test --node-modules-dir=auto supabase/functions/referee-connect-webhook/signature_test.ts
+        run: deno test --node-modules-dir=auto supabase/functions/referee-connect-webhook/signature_test.ts supabase/functions/pay-referee-payout/stripe-transfer-policy_test.ts
       - name: Run domain tests
         run: npm test
       - name: Type-check and build
         run: npm run build
       - name: Validate Cloudflare Worker bundle (dry run only)
         run: npx wrangler deploy --dry-run
+
+  analytics-consent-browser:
+    name: PostHog consent and network acceptance
+    runs-on: ubuntu-24.04
+    needs: build
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Create isolated Playwright package workspace
+        run: mkdir -p /tmp/openplay-playwright
+      - name: Install isolated Playwright test runner
+        run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+        working-directory: /tmp/openplay-playwright
+      - name: Link isolated Playwright runner into the application workspace
+        run: mkdir -p node_modules/@playwright node_modules/.bin && ln -sfn /tmp/openplay-playwright/node_modules/@playwright/test node_modules/@playwright/test && ln -sfn /tmp/openplay-playwright/node_modules/playwright node_modules/playwright && ln -sfn /tmp/openplay-playwright/node_modules/playwright-core node_modules/playwright-core && ln -sfn /tmp/openplay-playwright/node_modules/.bin/playwright node_modules/.bin/playwright
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run consent and network acceptance tests
+        run: npx playwright test --config=playwright.analytics.config.ts
 
   database-replay:
     name: Clean Supabase migration replay and security assertions
@@ -250,6 +277,28 @@ jobs:
           path: supabase/migrations/*_referee_payout_transfer_outbox.sql
           if-no-files-found: error
           retention-days: 1
+      - name: Generate referee Connect transfer safety corrections migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_connect_transfer_reconciliation_corrections.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new referee_connect_transfer_reconciliation_corrections
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_referee_connect_transfer_reconciliation_corrections.sql' -print -quit)"
+            cp supabase/drafts/referee_connect_transfer_reconciliation_corrections.sql "$migration_file"
+          else
+            diff -u supabase/drafts/referee_connect_transfer_reconciliation_corrections.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\\n' "$migration_file"
+      - name: Preserve CLI-generated referee Connect safety correction migration
+        uses: actions/upload-artifact@v4
+        with:
+          name: referee-connect-transfer-safety-migration
+          path: supabase/migrations/*_referee_connect_transfer_reconciliation_corrections.sql
+          if-no-files-found: error
+          retention-days: 1
       - name: Preserve CLI-generated referee migrations for review
         uses: actions/upload-artifact@v4
         with:
@@ -316,6 +365,21 @@ jobs:
             cp supabase/drafts/admin_league_admin_role_management.sql "$migration_file"
           else
             diff -u supabase/drafts/admin_league_admin_role_management.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
+      - name: Generate manual season recruitment activation migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_manual_season_recruitment_activation.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new manual_season_recruitment_activation
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_manual_season_recruitment_activation.sql' -print -quit)"
+            cp supabase/drafts/manual_season_recruitment_activation.sql "$migration_file"
+          else
+            diff -u supabase/drafts/manual_season_recruitment_activation.sql "$migration_file"
           fi
           test -n "$migration_file"
           grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
@@ -462,6 +526,11 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/captain_next_required_fixture_integration_regression.sql
+
+      - name: Verify manual season recruitment activation and previous-season completion gate
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/manual_season_recruitment_activation.sql
 
       - name: Verify Auth signup, email confirmation and password recovery
         shell: bash

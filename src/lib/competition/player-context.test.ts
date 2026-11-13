@@ -20,6 +20,7 @@ function season(
     location_id,
     location_name: "Bideford",
     status,
+    recruitment_status: status === "registration_open" ? "open" : "closed",
     starts_on,
   };
 }
@@ -49,6 +50,15 @@ describe("player competition context", () => {
 
   it("returns null when the selected location has no public seasons", () => {
     expect(getPreferredPlayerSeason([])).toBeNull();
+  });
+
+  it("uses a closed upcoming season when no active or registration-open season exists", () => {
+    const selected = getPreferredPlayerSeason([
+      season("upcoming", "draft", "2027-01-01"),
+      season("completed", "completed", "2026-10-01"),
+    ]);
+    expect(selected?.id).toBe("upcoming");
+    expect(selected?.recruitment_status).toBe("closed");
   });
 
   it("retains a saved location and season only when both are still available", () => {

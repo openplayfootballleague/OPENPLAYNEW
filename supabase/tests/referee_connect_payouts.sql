@@ -5,6 +5,10 @@ declare
   v_admin constant uuid:='97000000-0000-4000-8000-000000000001';
   v_referee constant uuid:='97000000-0000-4000-8000-000000000002';
   v_location_admin constant uuid:='97000000-0000-4000-8000-000000000003';
+  v_home_user constant uuid:='97000000-0000-4000-8000-000000000004';
+  v_away_user constant uuid:='97000000-0000-4000-8000-000000000005';
+  v_home_identity constant uuid:='97000000-0000-4000-8000-000000000006';
+  v_away_identity constant uuid:='97000000-0000-4000-8000-000000000007';
   v_location uuid;
   v_league uuid;
   v_season uuid;
@@ -13,6 +17,8 @@ declare
   v_home_season_team uuid;
   v_away_season_team uuid;
   v_fixture uuid;
+  v_home_sheet uuid;
+  v_away_sheet uuid;
   v_application uuid;
   v_report uuid;
   v_match_payout uuid;
@@ -28,12 +34,30 @@ begin
   values
     (v_admin,'authenticated','authenticated','ci-connect-admin@openplay.invalid','','{}'::jsonb,now(),now(),now()),
     (v_referee,'authenticated','authenticated','ci-connect-referee@openplay.invalid','','{}'::jsonb,now(),now(),now()),
-    (v_location_admin,'authenticated','authenticated','ci-connect-location-admin@openplay.invalid','','{}'::jsonb,now(),now(),now());
+    (v_location_admin,'authenticated','authenticated','ci-connect-location-admin@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    (v_home_user,'authenticated','authenticated','ci-connect-home-player@openplay.invalid','','{}'::jsonb,now(),now(),now()),
+    (v_away_user,'authenticated','authenticated','ci-connect-away-player@openplay.invalid','','{}'::jsonb,now(),now(),now());
+  insert into public.competition_player_identities(id,display_name,counts_for_statistics)
+  values
+    (v_home_identity,'Connect Home Player',true),
+    (v_away_identity,'Connect Away Player',true);
+  insert into public.players(user_id,competition_player_id,full_name,phone,email,date_of_birth,registration_status,is_genuine)
+  values
+    (v_home_user,v_home_identity,'Connect Home Player','07700909004','ci-connect-home-player@openplay.invalid',date '1990-04-04','registered',true),
+    (v_away_user,v_away_identity,'Connect Away Player','07700909005','ci-connect-away-player@openplay.invalid',date '1990-04-05','registered',true);
   insert into public.user_roles(user_id,role,granted_by) values
     (v_admin,'admin',v_admin),(v_location_admin,'league_admin',v_admin);
 
-  select id into v_location from public.locations where is_active=true order by created_at limit 1;
-  if v_location is null then raise exception 'Expected an active location from earlier database regressions'; end if;
+  -- Reuse the active CI location fixture. The production schema deliberately
+  -- permits only its configured first-release location to be active.
+  select id into v_location
+  from public.locations
+  where is_active=true
+  order by created_at
+  limit 1;
+  if v_location is null then
+    raise exception 'Expected the active CI location fixture from the database setup';
+  end if;
   insert into public.location_admin_assignments(user_id,location_id,assigned_by)
   values(v_location_admin,v_location,v_admin);
   insert into public.leagues(location_id,name,slug,is_published)
@@ -67,26 +91,46 @@ begin
   insert into public.fixtures(
     season_id,gameweek,fixture_number,home_team_id,away_team_id,venue_id,scheduled_at,status
   ) values(
-    v_season,1,1,v_home_season_team,v_away_season_team,v_location,now()-interval '1 day','completed'
+    v_season,1,1,v_home_season_team,v_away_season_team,v_location,now()+interval '1 day','scheduled'
   ) returning id into v_fixture;
-  insert into public.fixture_results(fixture_id,home_score,away_score,confirmed_at,confirmed_by)
-  values(v_fixture,0,0,now(),v_admin);
+
+  -- Reproduce the real matchday lifecycle: both sheets are submitted and
+  -- locked before kickoff, then the fixture moves into progress. Service-role
+  -- setup is used only for this isolated regression fixture.
+  perform set_config('request.jwt.claim.role','service_role',true);
+  insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)
+  values(v_fixture,v_home_season_team,v_home_user,true)
+  returning id into v_home_sheet;
+  insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)
+  values(v_fixture,v_away_season_team,v_away_user,true)
+  returning id into v_away_sheet;
+  insert into public.fixture_team_sheet_players(team_sheet_id,user_id,competition_player_id,role,is_goalkeeper,did_appear)
+  values
+    (v_home_sheet,v_home_user,v_home_identity,'starter',false,true),
+    (v_away_sheet,v_away_user,v_away_identity,'starter',false,true);
+  perform set_config('request.jwt.claim.role','authenticated',true);
+  update public.fixtures
+  set scheduled_at=now()-interval '1 hour',status='completed'
+  where id=v_fixture;
   insert into public.referee_match_reports(
     fixture_id,referee_user_id,report_source,submitted_by,status,
-    home_score,away_score,reviewed_at,reviewed_by,approved_at,approved_by
+    home_score,away_score
   ) values(
-    v_fixture,v_referee,'referee',v_referee,'approved',0,0,now(),v_admin,now(),v_admin
+    v_fixture,v_referee,'referee',v_referee,'submitted',0,0
   ) returning id into v_report;
-  insert into public.referee_report_payouts(
-    report_id,referee_user_id,gross_allocation_pence,deductions_pence,
-    referee_net_pence,open_play_top_up_pence,status
-  ) values(v_report,v_referee,2200,0,2200,0,'pending_connect')
-  returning id into v_match_payout;
-  if not exists(
-    select 1 from public.referee_payout_transfer_jobs
-    where payout_id=v_match_payout and status='queued'
-  ) then
-    raise exception 'Approved referee payout was not atomically enqueued for transfer';
+
+  -- Exercise the actual administrator approval RPC: entitlement and outbox
+  -- creation must happen together, exactly once, in its transaction.
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  perform public.admin_review_referee_match_report(v_report,'approved','CI approval-to-outbox regression');
+  execute 'reset role';
+
+  select id into v_match_payout from public.referee_report_payouts where report_id=v_report;
+  if v_match_payout is null
+     or (select count(*) from public.referee_report_payouts where report_id=v_report)<>1
+     or (select count(*) from public.referee_payout_transfer_jobs where payout_id=v_match_payout and status='queued')<>1 then
+    raise exception 'Administrator approval did not create exactly one £22 entitlement and one queued outbox job';
   end if;
 
   insert into public.referee_milestone_rewards(
@@ -203,6 +247,15 @@ begin
     v_rejected:=sqlerrm like '%amount does not match%';
   end;
   if not v_rejected then raise exception 'A transfer with an incorrect amount was accepted'; end if;
+  -- Reversal may arrive before transfer.created. Preserve the unmatched
+  -- reversal as unprocessed so Stripe can retry after creation is reconciled.
+  v_status:=public.record_referee_payout_transfer_failure(
+    'match_report',v_match_payout,'Reversal arrived before transfer creation',true,'tr_ci_referee_match_000001'
+  );
+  if v_status<>'unmatched_reversal'
+     or (select status from public.referee_report_payouts where id=v_match_payout)<>'processing' then
+    raise exception 'A reversal arriving before transfer creation was not retained as unmatched';
+  end if;
   v_status:=public.record_referee_payout_transfer_success(
     'match_report',v_match_payout,'tr_ci_referee_match_000001',v_account_id,2200,'gbp'
   );

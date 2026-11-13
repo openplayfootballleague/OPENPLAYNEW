@@ -29,14 +29,14 @@ function MatchCentrePage(){
    const supabase=getSupabaseClient();
    const {data:fixtureData,error:fixtureError}=await supabase.from("fixtures").select("id,gameweek,scheduled_at,status,home_team_id,away_team_id").eq("season_id",competition.selectedSeasonId).order("scheduled_at",{ascending:true});
    if(!alive)return;
-   if(fixtureError){setError(fixtureError.message);setLoading(false);return;}
+   if(fixtureError){setError(fixtureError.message);capture("data_load_failed",{feature:"match_centre",error_code:"network_error",outcome:"failure"});setLoading(false);return;}
    const fs=fixtureData??[];
    const [teamResult,resultResult]=await Promise.all([
     supabase.from("season_teams").select("id,name").eq("season_id",competition.selectedSeasonId).eq("registration_status","approved"),
     fs.length?supabase.from("fixture_results").select("fixture_id,home_score,away_score").in("fixture_id",fs.map(f=>f.id)):Promise.resolve({data:[],error:null})
    ]);
    if(!alive)return;
-   if(teamResult.error||resultResult.error)setError(teamResult.error?.message??resultResult.error?.message??"Unable to load match data.");
+   if(teamResult.error||resultResult.error){setError(teamResult.error?.message??resultResult.error?.message??"Unable to load match data.");capture("data_load_failed",{feature:"match_centre",error_code:"network_error",outcome:"failure"});}
    setTeams(teamResult.data??[]);setFixtures(fs);setResults(resultResult.data??[]);setLoading(false);
   }
   void load();return()=>{alive=false;};

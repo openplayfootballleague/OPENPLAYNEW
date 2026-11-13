@@ -106,7 +106,8 @@ assert.ok(connectOnboarding.includes("metadata[openplay_referee_user_id]"), "Con
 const refereePayout = readFileSync("supabase/functions/pay-referee-payout/index.ts", "utf8");
 assert.ok(refereePayout.includes("userClient!.auth.getUser()") && refereePayout.includes('req.headers.get("x-referee-payout-cron-secret")'), "Referee payout transfers must validate the signed-in administrator or protected cron worker");
 assert.ok(refereePayout.includes('rpc("claim_referee_payout_transfer",'), "Referee payout transfers must be claimed through the location-scoped approval RPC");
-assert.ok(refereePayout.includes("Idempotency-Key") && refereePayout.includes("openplay-referee-"), "Referee payout transfers must use attempt-scoped Stripe idempotency keys");
+assert.ok(refereePayout.includes("Idempotency-Key") && refereePayout.includes("stripeTransferIdempotencyKey(payoutType,payoutId,payout.attempt)"), "Referee payout transfers must use a validated, attempt-scoped Stripe idempotency key");
+assert.ok(refereePayout.includes("canMarkStripeTransferFailed(response.status)"), "Ambiguous Stripe HTTP responses must use the tested conservative failure classifier");
 assert.ok(refereePayout.includes('stripeKey?.startsWith("sk_test_")'), "Referee payout transfers must remain test-mode only");
 assert.ok(refereePayout.includes("if(!transferCreated&&canMarkFailed)"), "Ambiguous or already-created transfers must remain in reconciliation instead of becoming retryable");
 
@@ -139,7 +140,11 @@ assert.ok(reportClaim.includes("not v_account.transfers_enabled then") && !repor
 
 const adminReferees = readFileSync("src/routes/admin/referees.tsx", "utf8");
 const reportReview = adminReferees.slice(adminReferees.indexOf("async function reviewReport"), adminReferees.indexOf("async function decide("));
-assert.ok(reportReview.includes('functions.invoke("pay-referee-payout"'), "Approving a referee match report must invoke the referee transfer workflow");
+const approvalRpcPosition=reportReview.indexOf('rpc("admin_review_referee_match_report"');
+const immediateTransferPosition=reportReview.indexOf('functions.invoke("pay-referee-payout"');
+const payoutInvocations=reportReview.split('functions.invoke("pay-referee-payout"').length-1;
+assert.ok(approvalRpcPosition>=0 && immediateTransferPosition>approvalRpcPosition, "The immediate referee transfer must be invoked only after the approval RPC succeeds");
+assert.equal(payoutInvocations,1, "One administrator approval handler must make exactly one immediate transfer invocation");
 assert.ok(reportReview.includes("report_id:report.report_id"), "The approval trigger must identify the report, not trust a browser-supplied payout amount or destination");
 assert.ok(adminReferees.includes("payout.transfers_enabled") && !adminReferees.includes("payout.transfers_enabled&&payout.payouts_enabled"), "Match-report transfer controls must not require bank-payout enablement");
 assert.ok(adminReferees.includes("reward.transfers_enabled") && !adminReferees.includes("reward.transfers_enabled&&reward.payouts_enabled"), "Milestone transfer controls must not require bank-payout enablement");
@@ -175,3 +180,24 @@ for (const legacyRpc of [
 ]) {
   assert.ok(!new RegExp(`rpc\\(["']${legacyRpc}["']`).test(adminRoute), `Admin Dashboard must not call revoked legacy RPC: ${legacyRpc}`);
 }
+
+
+// Regression guards retained from the backend integration line and aligned to the reconciled candidate.
+assert.ok(teamWebhook.includes('intent.status!=="succeeded"') && teamWebhook.includes("Number(intent.amount_received)!==obligation.amount_pence"), "Team payment webhook must verify the fully settled PaymentIntent");
+assert.ok(teamWebhook.includes('intentMetadata?.team_fixture_payment_obligation_id!==obligationId') && teamWebhook.includes("Number.isSafeInteger(paidAt)"), "Team payment webhook must verify PaymentIntent metadata and the actual charge timestamp");
+assert.ok(teamDeadlineWorker.includes('.order("id").range(offset,offset+499)'), "Team payment and refund queues must be fully paginated in stable batches");
+assert.ok(teamDeadlineWorker.includes("[400,402,404,422].includes(stripeResponse.status)"), "Transient Stripe refund errors must not be recorded as definitive failures");
+assert.ok(teamDeadlineWorker.includes('result.status==="failed"||result.status==="canceled"'), "Provider-confirmed refund failures must be recorded for administrator review");
+assert.ok(teamDeadlineWorker.includes("result.payment_intent===refund.stripe_payment_intent_id") && teamDeadlineWorker.includes("Number(result.amount)===Number(refund.amount_pence)"), "Successful Stripe refunds must match the intended PaymentIntent and exact amount");
+assert.ok(teamDeadlineWorker.includes('.in("status",["due","grace_period","admin_review","weather_cancelled"])'), "Weather-cancelled payment obligations must remain eligible for provider reconciliation");
+
+const adminPostpone = readFileSync("supabase/functions/admin-postpone-gameweek/index.ts", "utf8");
+assert.ok(adminPostpone.includes("userClient.auth.getUser(token)"), "Gameweek postponement must validate the signed-in administrator");
+assert.ok(adminPostpone.includes('rpc("admin_postpone_gameweek"'), "Gameweek postponement must use the location-scoped database workflow");
+assert.ok(adminPostpone.includes('stripeKey?.startsWith("sk_test_")'), "Gameweek postponement refunds must remain test-mode only");
+assert.ok(adminPostpone.includes('intent.status!=="succeeded"') && adminPostpone.includes("Number(session.amount_total)!==obligation.amount_pence"), "Completed Checkout reconciliation must verify the settled PaymentIntent and Checkout amount");
+
+assert.ok(adminRoute.includes('to="/admin-messages"'), "Administrators must have a visible route to messaging and moderation controls");
+const adminMessagingRoute = readFileSync("src/routes/admin-messages.tsx", "utf8");
+assert.ok(adminMessagingRoute.includes('rpc("admin_get_message_reports"') && adminMessagingRoute.includes('rpc("admin_resolve_message_report"'), "Admin messaging workspace must expose the protected moderation queue and resolution action");
+assert.ok(adminMessagingRoute.includes('rpc("admin_create_message_broadcast"'), "Admin messaging workspace must expose targeted announcements");
