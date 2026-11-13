@@ -102,9 +102,11 @@ export function buildAnalyticsOverview(
   const teams = setup.season_teams.filter((team) => seasonIds.has(team.season_id) && team.registration_status === "approved");
   const fixtures = contextualFixtures.filter((fixture) => isWithinDateRange(fixture, filters));
   const results = fixtures.filter(isPublishedResult);
+  const scopedLocationIds = new Set(seasons.map((season) => season.location_id));
+  const scopedLeagueIds = new Set(seasons.map((season) => season.league_id));
   return {
-    locations: filters.locationId ? 1 : setup.locations.length,
-    leagues: setup.leagues.filter((league) => (!filters.locationId || league.location_id === filters.locationId) && (!filters.leagueId || league.id === filters.leagueId)).length,
+    locations: filters.locationId ? (scopedLocationIds.has(filters.locationId) ? 1 : 0) : scopedLocationIds.size,
+    leagues: scopedLeagueIds.size,
     seasons: seasons.length,
     openSeasons: Number(dashboard.open_seasons ?? 0),
     approvedTeams: teams.length,
