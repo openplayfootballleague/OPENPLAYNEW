@@ -249,10 +249,16 @@ function PostHogCaptureProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (actor === "unknown") return;
     const category = routeCategory(location.pathname);
+    const feature = routeFeature(category);
     capture("navigation_section_viewed", {
       route_category: category,
-      feature: routeFeature(category),
+      feature,
     });
+    // Record feature entry separately so adoption reporting can distinguish
+    // navigation volume from which product areas are actually opened.
+    if (feature) {
+      capture("feature_opened", { feature });
+    }
   }, [actor, capture, consentRevision, location.pathname]);
 
   return (
