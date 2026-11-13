@@ -2,7 +2,7 @@
 
 **Single authoritative register.** Branch `claude/open-play-master-blueprint-rhtuih`, which is built on integration tip PR #140 (`6445e3f`).
 Requirement sources: `docs/project-knowledge/*`, `docs/owner-decisions-2026-11-13.md`, visual references `IMG_0564`–`IMG_0583`.
-Percentage: computed by `node scripts/completion-percentage.mjs`, never typed by hand.
+Percentages: computed by `node scripts/completion-percentage.mjs`, never typed by hand. Four separate stages: **Feature implementation** (all rows except INT-/INF-/SEC-), **Integration** (INT-), **Security & infrastructure** (SEC- and INF-), **Formal acceptance** (rows with status Accepted, across everything).
 
 ## Rules
 
@@ -54,13 +54,13 @@ Percentage: computed by `node scripts/completion-percentage.mjs`, never typed by
 | PH-09 | Account-switch isolation of protected state | All protected | Yes | — | Client isolation | — | unit (5) | `d415b81`, `6e41bb6` | Complete | 2 |
 | CAP-01 | Captain dashboard, squad, squad numbers | `/captain` | Yes | Captain RPCs | Captain-scoped | Yes | SQL | tip | Complete | 3 |
 | CAP-02 | Team sheets: 6+3 / 7+4, GK among starters, drafts, lock, next-required fixture | `/captain` | Yes | `submit_team_sheet` | Captain-scoped | Yes | unit + SQL | tip | Complete | 5 |
-| CAP-03 | Former players preserved on historical team sheets | Admin sheets | — | — | — | — | — | #137 (unintegrated) | Partially Complete | 1 |
+| CAP-03 | Former players preserved on historical team sheets | Admin sheets | Yes | `get_admin_team_sheets_contextual` | Admin-scoped | Former-player fallback | SQL (fixed test, mutation-checked) | `49c9d29` (#137) | Complete | 1 |
 | CAP-04 | Man of the Match nominations; self-nomination when on the sheet | `/captain`, Admin | Yes | `submit_fixture_motm_nomination` | Eligibility enforced | Yes | SQL | `c7ec99a` | Complete | 2 |
 | CAP-05 | Captain-requested removal needs player approval | Captain | No | No | — | — | — | #112 (unintegrated) | Not Started | 1 |
 | CAP-06 | Future-season membership and captaincy transitions | Seasons | No | No | — | — | — | #93 (unintegrated) | Not Started | 2 |
 | REF-01 | Referee applications, portal, assigned fixtures | `/referee` | Yes | Referee RPCs | Assigned fixtures only | Yes | SQL (applications, assignments) | tip | Complete | 3 |
 | REF-02 | Match reports, approval, corrections, discipline, return queue | `/referee/*`, Admin | Yes | Yes | Scoped, audited | Yes | SQL (match reports) | tip | Complete | 3 |
-| REF-03 | Referee Stripe Connect payouts (test mode) | Referee, Finance | Yes | Payout functions | Signature-verified webhook | — | SQL (connect payouts) | tip; #114 unintegrated | Blocked | 3 |
+| REF-03 | Referee Stripe Connect payouts (test mode); ambiguous responses never marked failed | Referee, Finance | Yes | Payout functions + transfer policy | Signature-verified webhook, idempotency keys | Timeout/409/429/5xx stay ambiguous | SQL (connect payouts) + Deno tests (CI) | #64, #114 integrated via `eadd1059` | Blocked | 3 |
 | COMP-01 | Locations, leagues, seasons, lifecycle, manual recruitment | Admin | Yes | Yes | Location-scoped | Yes | SQL | tip | Complete | 3 |
 | COMP-02 | Venues and operating hours | Admin | Yes | `venues` + scoped RPCs | Location-scoped | Yes | SQL (behavioural, mutation-checked) | `259b2b5` | Complete | 2 |
 | COMP-03 | Round-robin generator: single and double (8 teams: 56/14/4), review before publish | Admin Fixtures | Yes | `admin_generate_round_robin_fixtures` | Location-scoped, preview hash | Yes | SQL (56/14/4, 7+7, single 28/7) | `259b2b5` | Complete | 3 |
@@ -69,7 +69,7 @@ Percentage: computed by `node scripts/completion-percentage.mjs`, never typed by
 | COMP-06 | Assists and own goals as structured events | Admin | Yes | `admin_record_fixture_goal_events` | Scoped, audited | Yes | unit + SQL (mutation-checked) | `6d94841` | Complete | 2 |
 | COMP-07 | Title final for level first place; completion guard | Admin | Yes | Trigger + RPC | Scoped, audited | Draw/3+ rules pending | SQL (mutation-checked) | `9172928` | Complete | 3 |
 | COMP-08 | Configurable win/draw/loss points | Competition config | No | Hard-coded 3/1/0 | — | — | — | — | Not Started | 2 |
-| COMP-09 | Season completion/recruitment guards while fixtures remain | Seasons | — | — | — | — | — | #111 (unintegrated) | Partially Complete | 1 |
+| COMP-09 | Season completion/recruitment guards while fixtures remain (cancelled = final; confirmed results) | Seasons | — | Triggers | — | Yes | SQL (extended, mutation-checked) | `740f771` (#111) | Complete | 1 |
 | ADM-01 | Admin information architecture (sidebar sections) | `/admin` | Section navigation present | — | — | — | — | tip | Partially Complete | 3 |
 | ADM-02 | Needs Attention task centre | `/admin` | Basic queue | — | — | — | — | #110 (unintegrated) | Partially Complete | 3 |
 | ADM-03 | Approvals: player and team applications | `/admin` | Yes | Yes | Scoped | Yes | SQL | tip | Complete | 3 |
@@ -84,24 +84,32 @@ Percentage: computed by `node scripts/completion-percentage.mjs`, never typed by
 | FIN-03 | Operating costs and business performance reporting | Analytics | Yes | Yes | Finance scope | Insufficient-data states | SQL | tip (#133/#135) | Complete | 2 |
 | ANA-01 | 10-tab Analytics & Reports workspace | `/admin/analytics` | Yes | Scoped RPCs | Scope + finance gating | Unavailable states | SQL + browser CI | tip | Complete | 3 |
 | ANA-02 | Consent-gated PostHog with allow-list and GPC | All | Yes | — | No PII | — | CI PostHog acceptance | tip | Blocked | 2 |
-| ANA-03 | CSV export formula-injection protection | Analytics | Partial | — | — | — | — | #118 (unintegrated) | Partially Complete | 1 |
-| ANA-04 | Registration conversion cohorts in exports | Analytics | — | — | — | — | — | #136 (unintegrated) | Partially Complete | 1 |
+| ANA-03 | CSV export formula-injection protection | Analytics | Yes | — | — | — | unit (7 assertions) | integration line (#118 superseded) | Complete | 1 |
+| ANA-04 | Registration conversion cohorts in exports | Analytics | Yes | Aggregate RPC | Scoped | — | unit | `3e4a09c` (#136) | Complete | 1 |
 | NOT-01 | In-app notification outbox and fixture reminders | Inbox | Yes | Outbox + pg_cron | Recipient-scoped | — | unit + SQL | tip | Complete | 3 |
 | NOT-02 | Email/SMS delivery | Providers | — | Edge function | — | — | unit | tip | Blocked | 2 |
 | NOT-03 | Push notifications and devices | — | — | — | — | — | — | #130 (unintegrated) | Not Started | 1 |
 | MSG-01 | Secure messaging: same-team direct, team groups, blocks, reports, admin moderation | Inbox Messages | Yes | Messaging RPCs | Same-active-team rule | Yes | SQL (messaging) | tip | Complete | 3 |
 | SEC-01 | RLS, SECURITY DEFINER guards, no anon definer functions | DB | — | Yes | Yes | — | 26 security assertions + SQL | `6e41bb6` | Complete | 5 |
 | SEC-02 | Database recreatable from repository migrations (D3) | DB | — | 99 sources match hosted ledger | — | — | migration-source verifier + replay | tip, `def2a4f` | Complete | 5 |
-| SEC-03 | Accessibility: global focus states, reduced motion | All | Partial | — | — | — | — | #141 (unintegrated) | Partially Complete | 2 |
+| SEC-03 | Accessibility: global focus states, reduced motion | All | Yes | — | — | — | build | `2548a95` (#141) | Complete | 2 |
 | SEC-04 | Official logo asset (D5) | All | 192×115 placeholder | — | — | — | — | issue #18 | Blocked | 1 |
 | SEC-05 | Local development and Worker build tooling | Tooling | — | — | — | — | dev server + dry-run | `1798158` | Complete | 1 |
 | SEC-06 | PWA install shell | All | Yes | — | No auth caching | — | CI PWA acceptance | tip | Complete | 1 |
+| INT-01 | Working branch published to GitHub with green exact-head CI | GitHub | — | — | — | — | Local equivalents only | push returns 403 | Blocked | 3 |
+| INT-02 | Open PRs on the current lineage consolidated into one integration branch | GitHub | — | — | — | — | Per-PR verification recorded | 11 integrated or superseded this session; 10 remain (#131, #130, #129/#128, #122, #115, #113, #112, #110, #106, #105) | Partially Complete | 3 |
+| INT-03 | Consolidated line promoted to `main` (owner-approved merge) | GitHub | — | — | — | — | — | — | Not Started | 3 |
+| INF-01 | Pending migrations applied to the hosted Supabase project | Supabase | — | 46 pending forward migrations | — | — | Clean replay only | owner approval required | Blocked | 3 |
+| INF-02 | Staging environment (Supabase + Cloudflare preview) | Infra | — | — | — | — | — | staging budget approval | Blocked | 2 |
+| INF-03 | Provider configuration: Stripe test webhooks/Connect, PostHog ingestion, email/SMS | Providers | — | — | — | — | — | owner approval; no connectors attached | Blocked | 3 |
+| INF-04 | Production deployment on Cloudflare Workers | Infra | — | — | — | — | Worker dry-run passes | owner approval | Blocked | 2 |
 
 ## Integration position (recomputed 13 Nov 2026)
 
 - Working head: see `git log -1`. GitHub CI has not run on it; every push is refused with 403.
 - **Fully included:** #6, #28, #38, #41, #43, #44, #89, #100, #102, #104, #121, #125, #135, #139, #140.
-- **Integrated this session:** #143 (docs), #138, #117, #116, plus the generator branch, #124 venues and #91 MOTM (ported).
-- **Unique work not yet integrated (recent lineage):** #141, #137, #136, #131, #130, #129/#128 (competing), #122, #120, #119, #118, #115, #114, #113, #112, #111, #110, #106, #105.
+- **Integrated:** #143 (docs), #138, #117, #116, #136, #141, #120, #137 (test fixed), #111 (defects fixed), plus the generator branch, #124 venues and #91 MOTM (ported).
+- **Verified superseded (content already on branch):** #118, #119, #49 (registration safeguards; `registration_safeguards.sql` passes), #64 and #114 (referee Connect; integrated via `eadd1059`).
+- **Unique work not yet integrated (recent lineage):** #131, #130, #129/#128 (competing), #122, #115, #113, #112, #110, #106, #105.
 - **Superseded / stale (older bases, functionality since reworked on the integration line):** #1, #2, #4, #8, #12, #13, #20, #21, #26, #27, #29, #32, #35, #36, #49, #51–#57, #59, #63, #64, #70, #72–#75, #78, #82, #83, #86, #87, #92, #93 (its unique future-season work is still Not Started here), #94, #103, #108 (docs only).
-- **Exact-head CI:** green for #116, #117, #138 and #140. Failed for `feat/round-robin-fixture-generator-2026-11-13` at `24e1fe0` (run 43419405437); the defects were fixed during integration.
+- **Exact-head CI:** green for #116, #117, #138 and #140. Failed for `feat/round-robin-fixture-generator-2026-11-13` at `24e1fe0` (run 43419405437) and for #137 at `5fb544e` (runs 43448347397/43448362145); both were fixed during integration.
