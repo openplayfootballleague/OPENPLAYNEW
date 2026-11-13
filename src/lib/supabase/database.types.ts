@@ -3068,7 +3068,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      set_my_push_enabled: {
         Args: { p_enabled: boolean }
         Returns: {
           category_preferences: Json
