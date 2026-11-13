@@ -149,3 +149,7 @@ Added `20261111205000_admin_league_admin_role_management.sql` and its byte-ident
 ## Membership approval authorization serialization — 13 November 2026
 
 Added the forward-only migration `20261113140000_serialize_membership_approval_authorization.sql` with a byte-identical draft and SQL regression assertion. Membership approval now shares the captain-handover transaction lock and locks the active captain row; the league-admin path locks the role and matching location-assignment rows before changing the pending request. This coordinates authorization with the existing handover and role/assignment revocation workflows. CI includes the authorization-lock regression. The migration is development-only and has not been applied to the hosted project.
+
+## Historical Admin team-sheet preservation — 13 November 2026
+
+Added the forward-only migration `20261113131500_preserve_historical_admin_team_sheet_players.sql` with its byte-identical canonical draft and SQL regression assertion. Submitted team-sheet selections now retain players recorded at submission even after their current membership becomes inactive; the separate current roster remains limited to active, registered, non-banned players. CI checks the migration source manifest and runs the SQL regression. This is a pending development migration only and has not been applied to the hosted project.
