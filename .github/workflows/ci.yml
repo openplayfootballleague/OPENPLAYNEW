@@ -385,6 +385,21 @@ jobs:
           grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\n' "$migration_file"
+      - name: Generate location-wide membership and captaincy migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_location_wide_membership_and_captaincy_guards.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new location_wide_membership_and_captaincy_guards
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_location_wide_membership_and_captaincy_guards.sql' -print -quit)"
+            cp supabase/drafts/location_wide_membership_and_captaincy_guards.sql "$migration_file"
+          else
+            diff -u supabase/drafts/location_wide_membership_and_captaincy_guards.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
       - name: Verify unique migration versions before replay
         shell: bash
         run: |
@@ -436,6 +451,12 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/player_transfer_workflow.sql
+
+      - name: Verify location-wide membership exclusivity and future captaincy
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/location_wide_membership_and_captaincy_guards.sql
+
       - name: Verify fixture venue location boundaries
         env:
           PGPASSWORD: postgres

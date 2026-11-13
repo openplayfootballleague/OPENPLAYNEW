@@ -16,8 +16,8 @@ declare
 begin
   -- Membership resolution: captains may act for their own team and assigned
   -- location administrators may act within their location. The current transfer
-  -- model enforces one club per player per league (including across seasons),
-  -- with row/advisory locks, eligibility checks and an audit write.
+  -- model enforces one active club per player across an area while a season is
+  -- registration-open or active, with location advisory locks and audit writes.
   if pg_catalog.strpos(v_membership,
        'if not public.is_active_team_captain(v_membership.season_team_id)') = 0
      or pg_catalog.strpos(v_membership, 'and not public.can_administer_location(v_location_id)') = 0
@@ -25,7 +25,7 @@ begin
      or pg_catalog.strpos(v_membership, 'for update') = 0
      or pg_catalog.strpos(v_membership, 'pg_advisory_xact_lock') = 0
      or pg_catalog.strpos(v_membership, 'tm.status=''active''') = 0
-     or pg_catalog.strpos(v_membership, 'other_season.league_id=v_season.league_id') = 0
+     or pg_catalog.strpos(v_membership, 'other_league.location_id=v_location_id') = 0
      or pg_catalog.strpos(v_membership, 'other_team.team_id<>v_team.team_id') = 0
      or pg_catalog.strpos(v_membership, 'public.membership_status') = 0
      or pg_catalog.strpos(v_membership, 'insert into public.audit_log') = 0 then
