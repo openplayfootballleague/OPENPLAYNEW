@@ -30,7 +30,7 @@ export function OneSignalProvider({ children }: { children: ReactNode }) {
         if (!active) return;
         if (error || preferences?.push_enabled !== true) {
           const existingSdk = sdk ?? window.OneSignal ?? null;
-          if (existingSdk && previousUserId && previousUserId !== userId) {
+          if (existingSdk) {
             try { await existingSdk.logout(); } catch { /* optional push cleanup */ }
           }
           return;
