@@ -26,6 +26,7 @@ const expectedMigrations = [
   "admin_product_analytics_scope",
   "location_venues_and_operating_hours",
   "season_matchday_and_round_robin",
+  "season_completion_recruitment_guards",
 ];
 let checked = 0;
 const foundMigrations = [];
