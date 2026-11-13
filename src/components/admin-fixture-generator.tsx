@@ -83,10 +83,11 @@ export function AdminFixtureGenerator({ seasons, venues, locations, defaultSeaso
   const [firstMatchdayDate, setFirstMatchdayDate] = useState("");
   const [weekday, setWeekday] = useState("");
   const [startTime, setStartTime] = useState("");
-  const [duration, setDuration] = useState("30");
+  const [duration, setDuration] = useState("");
   const [buffer, setBuffer] = useState("0");
   const [venueId, setVenueId] = useState("");
   const [roundRobinMode, setRoundRobinMode] = useState("double");
+  const [settingsSaved, setSettingsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -108,7 +109,7 @@ export function AdminFixtureGenerator({ seasons, venues, locations, defaultSeaso
     if (!selectedSeason) return;
     setWeekday(selectedSeason.matchday_weekday === null ? "" : String(selectedSeason.matchday_weekday));
     setStartTime(selectedSeason.matchday_start_time?.slice(0, 5) || "");
-    setDuration(selectedSeason.match_duration_minutes === null ? "30" : String(selectedSeason.match_duration_minutes));
+    setDuration(selectedSeason.match_duration_minutes === null ? "" : String(selectedSeason.match_duration_minutes));
     setBuffer(String(selectedSeason.matchday_buffer_minutes ?? 0));
     setVenueId(selectedSeason.default_venue_id || "");
     setRoundRobinMode(selectedSeason.round_robin_mode || "double");
@@ -116,8 +117,8 @@ export function AdminFixtureGenerator({ seasons, venues, locations, defaultSeaso
     setPreview(null);
     setConfirmGenerate(false);
     setError("");
-    setNotice("");
-  }, [selectedSeason]);
+    setSettingsSaved(Boolean(selectedSeason.matchday_weekday !== null && selectedSeason.matchday_start_time && selectedSeason.match_duration_minutes !== null && selectedSeason.default_venue_id));
+  }, [seasonId]);
 
   async function saveSettings(event: FormEvent) {
     event.preventDefault();
@@ -138,8 +139,9 @@ export function AdminFixtureGenerator({ seasons, venues, locations, defaultSeaso
         p_round_robin_mode: roundRobinMode,
       });
       if (result.error) throw result.error;
-      setNotice("Season matchday settings saved. Preview the schedule before generating fixtures.");
       await onGenerated();
+      setSettingsSaved(true);
+      setNotice("Season matchday settings saved. Preview the schedule before generating fixtures.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Season settings could not be saved.");
     } finally {
@@ -148,6 +150,10 @@ export function AdminFixtureGenerator({ seasons, venues, locations, defaultSeaso
   }
 
   async function previewSchedule() {
+    if (!settingsSaved) {
+      setError("Save the matchday settings before previewing the schedule.");
+      return;
+    }
     if (!seasonId || !firstMatchdayDate) {
       setError("Choose a season and the first matchday date.");
       return;
@@ -183,10 +189,10 @@ export function AdminFixtureGenerator({ seasons, venues, locations, defaultSeaso
       });
       if (result.error) throw result.error;
       const summary = result.data as { fixture_count?: number; round_count?: number; last_matchday_date?: string } | null;
-      setNotice(`Created ${summary?.fixture_count ?? preview.fixture_count} fixtures across ${summary?.round_count ?? preview.round_count} gameweeks. The fixtures are ready for administrative review.`);
       setPreview(null);
       setConfirmGenerate(false);
       await onGenerated();
+      setNotice(`Created ${summary?.fixture_count ?? preview.fixture_count} fixtures across ${summary?.round_count ?? preview.round_count} gameweeks. The fixtures are ready for administrative review.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Fixtures could not be generated.");
     } finally {
@@ -205,12 +211,12 @@ export function AdminFixtureGenerator({ seasons, venues, locations, defaultSeaso
       </div>
       <form className="admin-setup-form admin-fixture-generator-form" onSubmit={saveSettings}>
         <label>Season
-          <select value={seasonId} onChange={(event) => { setSeasonId(event.target.value); setPreview(null); setConfirmGenerate(false); }} required>
+          <select value={seasonId} onChange={(event) => { setSeasonId(event.target.value); setPreview(null); setConfirmGenerate(false); setSettingsSaved(false); setNotice(""); setError(""); }} required>
             {seasons.map((season) => <option key={season.id} value={season.id}>{season.name}</option>)}
           </select>
         </label>
         <label>Matchday
-          <select value={weekday} onChange={(event) => { setWeekday(event.target.value); setPreview(null); }} required>
+          <select value={weekday} onChange={(event) => { setWeekday(event.target.value); setPreview(null); setSettingsSaved(false); }} required>
             <option value="">Choose day</option>
             {WEEKDAYS.map((day) => <option key={day.value} value={day.value}>{day.label}</option>)}
           </select>
@@ -219,29 +225,29 @@ export function AdminFixtureGenerator({ seasons, venues, locations, defaultSeaso
           <input type="date" value={firstMatchdayDate} onChange={(event) => { setFirstMatchdayDate(event.target.value); setPreview(null); setConfirmGenerate(false); }} required />
         </label>
         <label>First kick-off
-          <input type="time" value={startTime} onChange={(event) => { setStartTime(event.target.value); setPreview(null); }} required />
+          <input type="time" value={startTime} onChange={(event) => { setStartTime(event.target.value); setPreview(null); setSettingsSaved(false); }} required />
         </label>
         <label>Match duration (minutes)
-          <input type="number" min="5" max="120" value={duration} onChange={(event) => { setDuration(event.target.value); setPreview(null); }} required />
+          <input type="number" min="5" max="120" value={duration} onChange={(event) => { setDuration(event.target.value); setPreview(null); setSettingsSaved(false); }} required />
         </label>
         <label>Interval between matches (minutes)
-          <input type="number" min="0" max="30" value={buffer} onChange={(event) => { setBuffer(event.target.value); setPreview(null); }} required />
+          <input type="number" min="0" max="30" value={buffer} onChange={(event) => { setBuffer(event.target.value); setPreview(null); setSettingsSaved(false); }} required />
         </label>
         <label>Venue
-          <select value={venueId} onChange={(event) => { setVenueId(event.target.value); setPreview(null); }} required>
+          <select value={venueId} onChange={(event) => { setVenueId(event.target.value); setPreview(null); setSettingsSaved(false); }} required>
             <option value="">Choose active venue</option>
             {availableVenues.map((venue) => <option key={venue.id} value={venue.id}>{venue.name}</option>)}
           </select>
         </label>
         <label>Round-robin format
-          <select value={roundRobinMode} onChange={(event) => { setRoundRobinMode(event.target.value); setPreview(null); }}>
+          <select value={roundRobinMode} onChange={(event) => { setRoundRobinMode(event.target.value); setPreview(null); setSettingsSaved(false); }}>
             <option value="double">Double round-robin (home and away)</option>
             <option value="single">Single round-robin</option>
           </select>
         </label>
         <div className="admin-fixture-generator-actions">
           <button type="submit" disabled={saving}>{saving ? "Saving…" : "Save matchday settings"}</button>
-          <button type="button" className="button-secondary" onClick={previewSchedule} disabled={previewing || saving || !weekday || !startTime || !duration || !venueId || !firstMatchdayDate}>{previewing ? "Building preview…" : "Preview schedule"}</button>
+          <button type="button" className="button-secondary" onClick={previewSchedule} disabled={previewing || saving || !settingsSaved || !weekday || !startTime || !duration || !venueId || !firstMatchdayDate}>{previewing ? "Building preview…" : "Preview schedule"}</button>
         </div>
       </form>
       {error && <p className="form-error" role="alert">{error}</p>}
