@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { PermanentDeliveryError, providerHttpError } from "./shared/delivery-errors.ts";
-import { buildOneSignalPayload, renderPushMessage, type PushMessage } from "./push-policy.ts";
+import { buildOneSignalPayload, renderPushMessage, type PushMessage } from "../_shared/onesignal-push-policy.ts";
 
 type EventRow = {
   id: string;
