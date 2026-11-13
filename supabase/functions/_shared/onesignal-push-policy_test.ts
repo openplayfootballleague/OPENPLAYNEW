@@ -2,7 +2,7 @@ import {
   buildOneSignalPayload,
   renderPushMessage,
   sanitisePushDevice,
-} from "./push-policy.ts";
+} from "./onesignal-push-policy.ts";
 
 Deno.test("push content is generic and does not expose notification payload details", () => {
   const sensitive = renderPushMessage("player.guardian_consent.captain_review_required");
