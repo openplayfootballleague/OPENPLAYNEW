@@ -214,6 +214,59 @@ export function aggregateFinanceTotals(rows: FinanceSummaryRow[]): FinanceTotals
 }
 
 
+
+export type RegistrationConversionExportRow = {
+  bucket_date: string;
+  player_registered: number | string | null;
+  player_pending_review: number | string | null;
+  player_rejected: number | string | null;
+  team_applications: number | string;
+  team_approved: number | string;
+  team_rejected: number | string;
+  team_pending: number | string;
+  membership_requests: number | string;
+  membership_accepted: number | string;
+  membership_rejected: number | string;
+  membership_pending: number | string;
+};
+
+/** Build a privacy-safe, complete registration conversion CSV section from aggregate cohort rows. */
+export function buildRegistrationConversionExportRows(
+  rows: RegistrationConversionExportRow[],
+): Array<Array<string | number>> {
+  if (rows.length === 0) return [];
+  return [
+    [
+      "Created date",
+      "Player registrations",
+      "Player pending review",
+      "Player rejected",
+      "Team applications",
+      "Teams approved",
+      "Teams rejected",
+      "Teams pending",
+      "Membership requests",
+      "Memberships accepted",
+      "Memberships rejected",
+      "Memberships pending",
+    ],
+    ...rows.map((row) => [
+      row.bucket_date,
+      row.player_registered === null ? "" : Number(row.player_registered),
+      row.player_pending_review === null ? "" : Number(row.player_pending_review),
+      row.player_rejected === null ? "" : Number(row.player_rejected),
+      Number(row.team_applications),
+      Number(row.team_approved),
+      Number(row.team_rejected),
+      Number(row.team_pending),
+      Number(row.membership_requests),
+      Number(row.membership_accepted),
+      Number(row.membership_rejected),
+      Number(row.membership_pending),
+    ]),
+  ];
+}
+
 /** Quote CSV values and neutralise spreadsheet formula prefixes in user-controlled text. */
 export function safeCsvCell(value: string | number): string {
   const text = String(value);
