@@ -92,6 +92,14 @@ begin
   end;
   if not v_denied then raise exception 'Unknown notification category was accepted'; end if;
 
+  begin
+    perform public.update_my_notification_category_preferences(null);
+    v_denied := false;
+  exception when others then
+    v_denied := true;
+  end;
+  if not v_denied then raise exception 'Null notification category preferences were accepted'; end if;
+
   if pg_catalog.has_function_privilege('anon','public.update_my_notification_category_preferences(jsonb)','EXECUTE') then
     raise exception 'Anonymous role must not update notification categories';
   end if;
