@@ -356,7 +356,7 @@ begin
   perform public.assert_admin_location_context(v_location);
   return query
   select f.id,f.season_id,se.name,f.gameweek,f.fixture_number,f.home_team_id,f.away_team_id,
-    ht.name,at.name,f.venue_id,venue.name,f.scheduled_at,f.status::text,r.home_score,r.away_score,f.notes
+    ht.name,at.name,f.venue_id,venue.name,f.scheduled_at,f.status::text,r.home_score::integer,r.away_score::integer,f.notes
   from public.fixtures f
   join public.seasons se on se.id=f.season_id
   join public.leagues l on l.id=se.league_id
