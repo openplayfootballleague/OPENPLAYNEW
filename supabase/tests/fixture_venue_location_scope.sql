@@ -8,10 +8,17 @@ begin
   ) into v_definition;
 
   if position(
-    'id=p_venue_id and is_active=true and id=(select l.location_id from public.seasons s join public.leagues l on l.id=s.league_id where s.id=p_season_id)'
+    'v.id=p_venue_id and v.is_active=true and loc.is_active=true'
     in v_definition
   ) = 0 then
-    raise exception 'admin_create_fixture must require an active venue belonging to the season location';
+    raise exception 'admin_create_fixture must require an active venue at an active location';
+  end if;
+
+  if position(
+    'v_venue.location_id<>v_location_id'
+    in v_definition
+  ) = 0 then
+    raise exception 'admin_create_fixture must require the venue to belong to the season location';
   end if;
 
   if position(
