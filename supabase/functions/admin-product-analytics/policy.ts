@@ -41,6 +41,15 @@ export function buildProductAnalyticsQueries(filters: ProductAnalyticsFilters) {
     AND properties['visitor_type'] IN ('anonymous', 'authenticated')`;
 
   return {
+    appUsageSummary: `SELECT
+      properties['visitor_type'] AS visitor_type,
+      uniqExact(person_id) AS unique_visitors,
+      count() AS navigation_views
+    FROM events
+    WHERE ${usageScope}
+    GROUP BY visitor_type
+    ORDER BY visitor_type ASC
+    LIMIT 2`,
     appUsageDaily: `SELECT
       toDate(timestamp) AS day,
       properties['visitor_type'] AS visitor_type,
