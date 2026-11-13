@@ -53,7 +53,7 @@ begin
   if jsonb_array_length(v_preview->'fixtures')<>56 then raise exception 'Fixture preview did not return all 56 fixtures'; end if;
   if exists(select 1 from public.fixtures where season_id=v_season) then raise exception 'Preview must not create fixtures'; end if;
 
-  v_generated:=public.admin_generate_round_robin_fixtures(v_season,date '2026-11-20');
+  v_generated:=public.admin_generate_round_robin_fixtures(v_season,date '2026-11-20',v_preview->>'settings_hash');
   if (v_generated->>'fixture_count')::integer<>56 or (v_generated->>'round_count')::integer<>14 then
     raise exception 'Fixture generation returned an unexpected summary: %',v_generated;
   end if;
