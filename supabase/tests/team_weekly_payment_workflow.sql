@@ -22,6 +22,7 @@ declare
   v_deadline timestamptz;
   v_grace_ends timestamptz;
   v_status text;
+  v_business record;
   v_refund uuid;
   v_count integer;
   v_attempt integer;
@@ -82,7 +83,7 @@ begin
     (v_away_captain,'Team Payment Away Captain','07700900811','ci-team-payment-away-player@openplay.invalid',date '1990-03-11','registered',false,true);
 
   insert into public.user_roles(user_id,role,granted_by)
-  values(v_admin,'admin',v_admin);
+  values(v_admin,'admin',v_admin),(v_admin,'finance_admin',v_admin);
 
   select id into v_location from public.locations where is_active=true order by created_at limit 1;
   if v_location is null then raise exception 'Expected an active location from earlier database regressions'; end if;
@@ -143,6 +144,19 @@ begin
     raise exception 'Each team must receive exactly one append-only fee charge';
   end if;
 
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_admin::text,'role','authenticated')::text,true);
+  select * into v_business
+  from public.get_admin_business_performance(v_location,v_league,v_season);
+  if v_business.upcoming_team_forecast_pence<>7000
+     or v_business.upcoming_team_obligations<>2
+     or v_business.team_charges_pence<>7000
+     or v_business.outstanding_pence<>7000 then
+    raise exception 'Business forecast must include only the two unpaid future team obligations: %',row_to_json(v_business);
+  end if;
+  execute 'reset role';
+
   -- Stripe Checkout retries use compare-and-set attempts and never attach stale sessions.
   execute 'set local role service_role';
   select public.claim_team_fixture_payment_checkout_attempt(v_home_obligation,null) into v_attempt;
@@ -192,6 +206,21 @@ begin
   if (select status from public.team_fixture_payment_obligations where id=v_away_obligation)<>'refund_pending' then
     raise exception 'The compliant opponent payment was not queued for refund';
   end if;
+
+  execute 'reset role';
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claim.sub',v_admin::text,true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_admin::text,'role','authenticated')::text,true);
+  select * into v_business
+  from public.get_admin_business_performance(v_location,v_league,v_season);
+  if v_business.team_receipts_pence<>3500
+     or v_business.upcoming_team_forecast_pence<>3500
+     or v_business.upcoming_team_obligations<>1
+     or v_business.outstanding_pence<>3500 then
+    raise exception 'Business performance did not distinguish the paid receipt from the remaining forecast: %',row_to_json(v_business);
+  end if;
+  execute 'reset role';
+  execute 'set local role service_role';
   select id into v_refund from public.team_fixture_payment_refunds where obligation_id=v_away_obligation;
   if v_refund is null then raise exception 'A refund obligation was not created for the paid opponent'; end if;
 
