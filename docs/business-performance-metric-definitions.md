@@ -28,7 +28,7 @@
 
 ## Cost recording
 
-Operating costs are immutable entries. Each record has a category, amount in integer pence, description, incurred date, optional location/league/season context, optional reference and notes, creator and audit record. Direct client table access is revoked; finance-authorised RPCs validate context and create the entry. Corrections are separate audited entries rather than edits or deletion.
+Operating costs are immutable entries. Each record has a category, signed amount in integer pence, description, incurred date, optional location/league/season context, optional reference and notes, creator and audit record. Direct client table access is revoked; finance-authorised RPCs validate context and create the entry. Negative amounts are allowed only for the explicit adjustment/reversal category; corrections are separate audited entries rather than edits or deletion.
 
 ## Scope and limitations
 
