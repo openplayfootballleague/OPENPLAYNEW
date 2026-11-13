@@ -281,7 +281,7 @@ export function AdminFixtureGenerator({ seasons, venues, locations, fixtures, de
             <input type="checkbox" checked={confirmGenerate} onChange={(event) => setConfirmGenerate(event.target.checked)} />
             I have reviewed this schedule. Generate these fixtures for this season.
           </label>
-          <button type="button" onClick={generateFixtures} disabled={!confirmGenerate || generating}>{generating ? "Generating…" : `Generate ${preview.fixture_count} fixtures`}</button>
+          <button type="button" onClick={generateFixtures} disabled={!confirmGenerate || generating || seasonHasFixtures}>{generating ? "Generating…" : `Generate ${preview.fixture_count} fixtures`}</button>
         </div>
       )}
     </section>
