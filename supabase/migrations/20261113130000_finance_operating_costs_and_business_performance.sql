@@ -3,9 +3,9 @@
 
 create table public.finance_operating_costs (
   id uuid primary key default gen_random_uuid(),
-  amount_pence integer not null check (amount_pence between 1 and 100000000),
+  amount_pence integer not null check (amount_pence between -100000000 and 100000000 and amount_pence<>0),
   category text not null check (category in (
-    'venue_hire','referee_fees','equipment','marketing','insurance','software','travel','other'
+    'venue_hire','referee_fees','equipment','marketing','insurance','software','travel','adjustment','other'
   )),
   description text not null check (length(btrim(description)) between 3 and 240),
   occurred_at timestamptz not null default now(),
@@ -58,12 +58,15 @@ begin
   if v_actor is null or not public.has_finance_access() then
     raise exception 'Finance permission required';
   end if;
-  if p_amount_pence is null or p_amount_pence<1 or p_amount_pence>100000000 then
-    raise exception 'Amount must be between 1 penny and £1,000,000';
+  if p_amount_pence is null or p_amount_pence=0 or abs(p_amount_pence)>100000000 then
+    raise exception 'Amount must be non-zero and no greater than £1,000,000 in either direction';
   end if;
   if p_category is null or p_category not in (
     'venue_hire','referee_fees','equipment','marketing','insurance','software','travel','other'
   ) then raise exception 'Choose a valid operating cost category'; end if;
+  if p_amount_pence<0 and p_category<>'adjustment' then
+    raise exception 'Negative amounts are only permitted for adjustment or reversal entries';
+  end if;
   if p_description is null or length(btrim(p_description)) not between 3 and 240 then
     raise exception 'Description must be between 3 and 240 characters';
   end if;
