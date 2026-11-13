@@ -11,7 +11,11 @@ This directory is the shared, durable project context for every human and AI con
 6. admin-finance-and-analytics.md
 7. engineering-security-and-release.md
 8. visual-reference-catalogue.md
-9. current-project-status.md
+9. join-open-play-and-player-screens.md
+10. current-project-status.md
+
+## Visual references
+The owner supplied ten current screen references on 2026-11-13. The catalogue maps each original filename to its screen and records visual authority/conflicts. The detailed UX specification translates those screens into explicit layout, behaviour, data, permissions, responsive and acceptance requirements. The uploaded binary screenshots are not yet committed in this branch; the catalogue states this limitation clearly. Do not treat the catalogue text as if the image files themselves are embedded.
 
 ## Authority
 - The latest explicit owner-approved decision is authoritative.
