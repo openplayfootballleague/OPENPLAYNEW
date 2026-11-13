@@ -480,6 +480,8 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/authorization_scope_regression.sql
+      - name: Verify membership approval authorization locks
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/membership_approval_authorization_locks.sql
       - name: Verify finance ledger balance semantics
         env:
           PGPASSWORD: postgres
