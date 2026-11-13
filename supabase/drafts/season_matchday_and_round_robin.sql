@@ -283,6 +283,7 @@ declare
   v_round_count integer;
   v_last_date date;
   v_fixtures jsonb;
+  v_settings_hash text;
 begin
   if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
   select * into v_season from public.seasons where id=p_season_id;
@@ -290,6 +291,9 @@ begin
   select location_id into v_location_id from public.leagues where id=v_season.league_id;
   if not public.can_administer_location(v_location_id) then raise exception 'You are not assigned to this location'; end if;
   select * into v_venue from public.venues where id=v_season.default_venue_id;
+  v_settings_hash:=md5(concat_ws('|',v_season.matchday_weekday::text,v_season.matchday_start_time::text,
+    v_season.match_duration_minutes::text,v_season.matchday_buffer_minutes::text,
+    v_season.default_venue_id::text,v_season.round_robin_mode,p_first_matchday_date::text));
   with schedule as materialized (
     select * from public.build_round_robin_fixture_schedule(p_season_id,p_first_matchday_date)
   )
@@ -310,7 +314,7 @@ begin
     'season_id',v_season.id,'season_name',v_season.name,
     'venue_id',v_venue.id,'venue_name',v_venue.name,
     'first_matchday_date',p_first_matchday_date,'last_matchday_date',v_last_date,
-    'round_count',v_round_count,'fixture_count',v_fixture_count,
+    'round_count',v_round_count,'fixture_count',v_fixture_count,'settings_hash',v_settings_hash,
     'fixtures',coalesce(v_fixtures,'[]'::jsonb)
   );
 end;
@@ -320,7 +324,8 @@ grant execute on function public.admin_preview_round_robin_fixtures(uuid,date) t
 
 create or replace function public.admin_generate_round_robin_fixtures(
   p_season_id uuid,
-  p_first_matchday_date date
+  p_first_matchday_date date,
+  p_expected_settings_hash text
 ) returns jsonb
 language plpgsql security definer set search_path=''
 as $$
@@ -334,12 +339,19 @@ declare
   v_expected_fixtures integer;
   v_inserted integer;
   v_last_date date;
+  v_settings_hash text;
 begin
   if v_actor is null or not public.has_platform_role() then raise exception 'Administrator permission required'; end if;
   select * into v_season from public.seasons where id=p_season_id for update;
   if not found then raise exception 'Choose an existing season'; end if;
   select location_id into v_location_id from public.leagues where id=v_season.league_id;
   if not public.can_administer_location(v_location_id) then raise exception 'You are not assigned to this location'; end if;
+  v_settings_hash:=md5(concat_ws('|',v_season.matchday_weekday::text,v_season.matchday_start_time::text,
+    v_season.match_duration_minutes::text,v_season.matchday_buffer_minutes::text,
+    v_season.default_venue_id::text,v_season.round_robin_mode,p_first_matchday_date::text));
+  if p_expected_settings_hash is null or p_expected_settings_hash<>v_settings_hash then
+    raise exception 'Season matchday settings changed since preview; preview the schedule again';
+  end if;
   if exists(select 1 from public.fixtures where season_id=p_season_id) then
     raise exception 'Fixtures already exist for this season; generation will not overwrite them';
   end if;
@@ -366,12 +378,12 @@ begin
       'round_count',v_rounds_per_leg*v_legs,'first_matchday_date',p_first_matchday_date,
       'last_matchday_date',v_last_date,'venue_id',v_season.default_venue_id));
   return jsonb_build_object('season_id',p_season_id,'season_name',v_season.name,
-    'fixture_count',v_inserted,'round_count',v_rounds_per_leg*v_legs,
+    'fixture_count',v_inserted,'round_count',v_rounds_per_leg*v_legs,'settings_hash',v_settings_hash,
     'first_matchday_date',p_first_matchday_date,'last_matchday_date',v_last_date);
 end;
 $$;
-revoke all on function public.admin_generate_round_robin_fixtures(uuid,date) from public,anon;
-grant execute on function public.admin_generate_round_robin_fixtures(uuid,date) to authenticated;
+revoke all on function public.admin_generate_round_robin_fixtures(uuid,date,text) from public,anon;
+grant execute on function public.admin_generate_round_robin_fixtures(uuid,date,text) to authenticated;
 
 -- Manual fixture creation inherits the season's configured venue and checks full match duration.
 create or replace function public.admin_create_fixture(
