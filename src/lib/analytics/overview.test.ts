@@ -80,6 +80,18 @@ describe("admin analytics aggregation", () => {
     });
   });
 
+  it("excludes fixtures returned outside the selected season scope", () => {
+    const result = buildAnalyticsOverview(
+      setup,
+      { pending_player_reviews: 0, pending_team_applications: 0, pending_membership_requests: 0, open_seasons: 1 },
+      setup.fixtures,
+      { locationId: "loc-a", leagueId: "league-a", seasonId: "season-a", fromDate: "", toDate: "" },
+    );
+    expect(result.fixtures).toBe(1);
+    expect(result.publishedResults).toBe(1);
+    expect(result.goals).toBe(5);
+  });
+
   it("compares only locations visible in the scoped admin setup", () => {
     const result = buildLocationComparisons(setup);
     expect(result).toEqual([
