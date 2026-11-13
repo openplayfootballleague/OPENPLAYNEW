@@ -35,8 +35,17 @@ begin
   values(v_location,'CI Instagram Profiles',v_slug,false)
   returning id into v_league;
 
-  insert into public.seasons(league_id,name,season_number,status,is_public)
-  values(v_league,'CI Instagram Profiles',991,'registration_open',false)
+  -- This feature test exercises optional Instagram persistence, not the
+  -- manual recruitment activation workflow. Seed an already-open season
+  -- state so the production registration guard remains enabled and respected.
+  insert into public.seasons(
+    league_id,name,season_number,status,is_public,
+    recruitment_status,recruitment_opened_at,recruitment_opened_by
+  )
+  values(
+    v_league,'CI Instagram Profiles',991,'registration_open',false,
+    'open',now(),v_user_one
+  )
   returning id into v_season;
 
   perform set_config('request.jwt.claim.sub',v_user_one::text,true);
