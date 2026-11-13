@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   safeCsvCell,
+  buildRegistrationConversionExportRows,
   aggregateFinanceTotals,
   buildAnalyticsOverview,
   buildCompetitionTeamPerformance,
@@ -167,6 +168,28 @@ describe("admin analytics aggregation", () => {
     expect(buildLocationComparisons(withUndatedFixture, {
       locationId: "loc-a", leagueId: "league-a", seasonId: "season-a", fromDate: "2026-10-02", toDate: "2026-10-09",
     })).toMatchObject([{ locationName: "Bideford", fixtures: 0, publishedResults: 0, goals: 0 }]);
+  });
+
+
+  it("exports all registration and conversion cohort aggregates without player identity fields", () => {
+    expect(buildRegistrationConversionExportRows([{
+      bucket_date: "2026-11-13",
+      player_registered: 4,
+      player_pending_review: 1,
+      player_rejected: 2,
+      team_applications: 3,
+      team_approved: 2,
+      team_rejected: 0,
+      team_pending: 1,
+      membership_requests: 8,
+      membership_accepted: 5,
+      membership_rejected: 1,
+      membership_pending: 2,
+    }])).toEqual([
+      ["Created date", "Player registrations", "Player pending review", "Player rejected", "Team applications", "Teams approved", "Teams rejected", "Teams pending", "Membership requests", "Memberships accepted", "Memberships rejected", "Memberships pending"],
+      ["2026-11-13", 4, 1, 2, 3, 2, 0, 1, 8, 5, 1, 2],
+    ]);
+    expect(buildRegistrationConversionExportRows([])).toEqual([]);
   });
 
   it("neutralises spreadsheet formula prefixes in text while preserving numeric values", () => {
