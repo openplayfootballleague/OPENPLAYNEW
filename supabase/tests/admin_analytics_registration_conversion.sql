@@ -21,7 +21,8 @@ begin
     ('f1000000-0000-4000-8000-000000000003','authenticated','authenticated','ci-conv-player-a@openplay.invalid','','{}'::jsonb,now(),now()),
     ('f1000000-0000-4000-8000-000000000004','authenticated','authenticated','ci-conv-player-b@openplay.invalid','','{}'::jsonb,now(),now()),
     ('f1000000-0000-4000-8000-000000000005','authenticated','authenticated','ci-conv-player-c@openplay.invalid','','{}'::jsonb,now(),now()),
-    ('f1000000-0000-4000-8000-000000000006','authenticated','authenticated','ci-conv-player-d@openplay.invalid','','{}'::jsonb,now(),now());
+    ('f1000000-0000-4000-8000-000000000006','authenticated','authenticated','ci-conv-player-d@openplay.invalid','','{}'::jsonb,now(),now()),
+    ('f1000000-0000-4000-8000-000000000007','authenticated','authenticated','ci-conv-player-pending@openplay.invalid','','{}'::jsonb,now(),now());
 
   insert into public.user_roles(user_id,role,granted_by)
   values
@@ -65,15 +66,17 @@ begin
     ('f1000000-0000-4000-8000-000000000003','active'),
     ('f1000000-0000-4000-8000-000000000004','active'),
     ('f1000000-0000-4000-8000-000000000005','active'),
-    ('f1000000-0000-4000-8000-000000000006','active')
+    ('f1000000-0000-4000-8000-000000000006','active'),
+    ('f1000000-0000-4000-8000-000000000007','active')
   on conflict (id) do update set account_retention_status='active';
 
   insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status,created_at)
   values
     ('f1000000-0000-4000-8000-000000000003','Conversion Player A','+447700901103','ci-conv-player-a@openplay.invalid',date '1990-02-01','registered',timestamptz '2001-02-01 10:00:00+00'),
-    ('f1000000-0000-4000-8000-000000000004','Conversion Player B','+447700901104','ci-conv-player-b@openplay.invalid',date '1990-02-02','pending_review',timestamptz '2001-02-01 10:00:00+00'),
+    ('f1000000-0000-4000-8000-000000000004','Conversion Player B','+447700901104','ci-conv-player-b@openplay.invalid',date '1990-02-02','registered',timestamptz '2001-02-01 10:00:00+00'),
     ('f1000000-0000-4000-8000-000000000005','Conversion Player C','+447700901105','ci-conv-player-c@openplay.invalid',date '1990-02-03','rejected',timestamptz '2001-02-01 10:00:00+00'),
-    ('f1000000-0000-4000-8000-000000000006','Conversion Player D','+447700901106','ci-conv-player-d@openplay.invalid',date '1990-02-04','registered',timestamptz '2001-02-01 10:00:00+00');
+    ('f1000000-0000-4000-8000-000000000006','Conversion Player D','+447700901106','ci-conv-player-d@openplay.invalid',date '1990-02-04','registered',timestamptz '2001-02-01 10:00:00+00'),
+    ('f1000000-0000-4000-8000-000000000007','Conversion Player Pending','+447700901107','ci-conv-player-pending@openplay.invalid',date '1990-02-05','pending_review',timestamptz '2001-02-01 10:00:00+00');
 
   insert into public.team_memberships(id,season_team_id,user_id,status,is_captain,created_at,joined_at)
   values
