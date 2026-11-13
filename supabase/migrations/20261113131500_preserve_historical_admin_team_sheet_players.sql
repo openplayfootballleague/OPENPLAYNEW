@@ -30,7 +30,7 @@ begin
   select sh.id,sh.fixture_id,sh.season_team_id,st.name,opponent.name,f.gameweek,f.scheduled_at,l.format,sh.is_locked,sh.submitted_at,
     coalesce((select jsonb_agg(jsonb_build_object('membership_id',tm.id,'player_name',coalesce(cpi.display_name,p.full_name,'Former player'),'role',tsp.role,'is_goalkeeper',tsp.is_goalkeeper,'squad_number_snapshot',tsp.squad_number_snapshot) order by case when tsp.role='starter' then 0 else 1 end,coalesce(cpi.display_name,p.full_name,'Former player'))
       from public.fixture_team_sheet_players tsp
-      left join public.team_memberships tm on tm.user_id=tsp.user_id and tm.season_team_id=sh.season_team_id
+      left join public.team_memberships tm on tm.user_id=tsp.user_id and tm.season_team_id=sh.season_team_id and tm.status='active'
       left join public.players p on p.user_id=tsp.user_id
       left join public.competition_player_identities cpi on cpi.id=tsp.competition_player_id
       where tsp.team_sheet_id=sh.id),'[]'::jsonb),
