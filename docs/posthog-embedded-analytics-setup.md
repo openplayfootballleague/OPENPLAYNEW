@@ -21,6 +21,17 @@ Do not put the personal API key in `VITE_*` variables, GitHub source files, brow
 
 The query API is intended for embedded aggregate analytics, not bulk event export. This implementation returns only three small aggregates and does not paginate or extract raw event records.
 
+## App Usage reporting
+
+The App Usage tab uses explicit `navigation_section_viewed` events, not PostHog autocapture or raw pageviews. The application adds a coarse `visitor_type` property to events after actor resolution:
+
+- `anonymous` — no authenticated session
+- `authenticated` — verified active account, player or captain
+
+The visitor type is an allowlisted enum. No account ID, role-specific identifier, email or contact information is attached to the event. The platform-wide App Usage report is restricted by the Edge Function to global administrators using the authenticated `get_admin_context_preference` RPC. Location administrators cannot request it, and location/league/season filters are deliberately rejected because navigation events are not attributed to a competition location.
+
+The report shows unique visitors by audience, navigation-section views and daily section navigation. It does not claim to measure sessions, device/browser distribution, raw pageviews, session replay or time-on-page; those collection modes remain disabled by the privacy configuration. Only events captured after visitor-type classification is deployed are included.
+
 ## Meaningful engagement event
 
 `core_value_action` is captured only after explicit analytics consent and only for a verified non-privileged player/account/captain actor. Global Privacy Control, denied/unset consent, and admin/finance roles remain excluded.
