@@ -143,8 +143,10 @@ declare
     'public.admin_create_fixture(uuid,integer,integer,uuid,uuid,timestamp with time zone,uuid,text)'::regprocedure
   );
 begin
-  if v_definition not ilike '%v.id=p_venue_id and v.is_active=true and loc.is_active=true%'
-     or v_definition not ilike '%v_venue.location_id<>v_location_id%' then
+  if v_definition !~* 'v\.id\s*=\s*p_venue_id'
+     or v_definition !~* 'v\.is_active\s*=\s*true'
+     or v_definition !~* 'loc\.is_active\s*=\s*true'
+     or v_definition !~* 'v_venue\.location_id\s*<>\s*v_location_id' then
     raise exception 'Fixture venue must be active and constrained to the season location';
   end if;
 end;
