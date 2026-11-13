@@ -1,4 +1,10 @@
 -- OneSignal push delivery, account category preferences and privacy-safe retry behavior.
+alter table public.notification_events
+  drop constraint if exists notification_events_channel_check;
+alter table public.notification_events
+  add constraint notification_events_channel_check
+  check (channel in ('email','sms','in_app','push'));
+
 -- Preference mutations go through narrowly scoped security-definer RPCs or the
 -- authenticated OneSignal device manager; do not expose direct table updates.
 revoke update on public.notification_preferences from authenticated;
