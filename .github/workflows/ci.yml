@@ -415,6 +415,21 @@ jobs:
           grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
           printf '%s\n' "$migration_file"
+      - name: Generate minimal admin product analytics scope migration using the pinned Supabase CLI
+        run: |
+          migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_admin_product_analytics_scope.sql' -print -quit)"
+          if [ -z "$migration_file" ]; then
+            sleep 1
+            supabase migration new admin_product_analytics_scope
+            migration_file="$(find supabase/migrations -maxdepth 1 -type f -name '*_admin_product_analytics_scope.sql' -print -quit)"
+            cp supabase/drafts/admin_product_analytics_scope.sql "$migration_file"
+          else
+            diff -u supabase/drafts/admin_product_analytics_scope.sql "$migration_file"
+          fi
+          test -n "$migration_file"
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
+          printf '%s\n' "$migration_file"
       - name: Verify unique migration versions before replay
         shell: bash
         run: |
@@ -474,6 +489,10 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/admin_analytics_registration_conversion.sql
+      - name: Verify minimal product analytics scope and role isolation
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/admin_product_analytics_scope.sql
       - name: Verify player identity matching and review-data access boundaries
         env:
           PGPASSWORD: postgres
