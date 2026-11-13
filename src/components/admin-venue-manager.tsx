@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { getSupabaseClient } from "../lib/supabase";
 
 type LocationOption = {
@@ -97,7 +97,7 @@ export function AdminVenueManager({ locations, venues, defaultLocationId, onSave
     );
   }
 
-  async function submitVenue(event: React.FormEvent<HTMLFormElement>) {
+  async function submitVenue(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
     setError("");
