@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 import { PlayerCompetitionSelector, usePlayerCompetitionContext } from "../lib/competition/player-context";
 import { Link, createFileRoute } from "@tanstack/react-router";
@@ -12,7 +13,11 @@ type PlayerState = { registration_status: "registered" | "pending_review" | "rej
 
 export const Route = createFileRoute("/join")({ component: JoinPage });
 
-function JoinPage() {
+function JoinPage(){
+ return <AuthenticatedSessionBoundary label="JOIN OPEN PLAY" allowSignUp><JoinWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function JoinWorkspace() {
   const competition = usePlayerCompetitionContext();
   const capture = useOpenPlayAnalytics();
   const [session,setSession]=useState<Session|null>(null);
