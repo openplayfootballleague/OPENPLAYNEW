@@ -116,6 +116,21 @@ begin
   where conversation_id=v_team_conversation and left_at is null;
   if v_count<>4 then raise exception 'Team conversation should include all four active team members; found %',v_count; end if;
 
+  -- Simulate an active team that predates messaging: remove its auto-created
+  -- conversation, then verify the migration backfill can restore it idempotently.
+  delete from public.message_conversations where id=v_team_conversation;
+  perform public.backfill_team_message_conversations();
+  select id into v_team_conversation from public.message_conversations
+  where kind='team' and season_team_id=v_season_team_one and closed_at is null;
+  if v_team_conversation is null then raise exception 'Backfill did not restore a team conversation for existing active memberships'; end if;
+  select count(*) into v_count from public.message_conversation_participants
+  where conversation_id=v_team_conversation and left_at is null;
+  if v_count<>4 then raise exception 'Backfilled team conversation should include all four active members; found %',v_count; end if;
+  if pg_catalog.has_function_privilege('anon','public.backfill_team_message_conversations()','EXECUTE')
+     or pg_catalog.has_function_privilege('authenticated','public.backfill_team_message_conversations()','EXECUTE') then
+    raise exception 'Internal team-conversation backfill must not be executable by clients';
+  end if;
+
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_player_a::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_player_a::text,'role','authenticated')::text,true);
