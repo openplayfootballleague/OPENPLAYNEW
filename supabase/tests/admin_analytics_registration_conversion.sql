@@ -10,6 +10,8 @@ declare
   v_pending bigint;
   v_requests bigint;
   v_accepted bigint;
+  v_membership_rejected bigint;
+  v_membership_pending bigint;
   v_denied boolean := false;
 begin
   insert into auth.users (id,aud,role,email,encrypted_password,raw_user_meta_data,created_at,updated_at)
@@ -74,12 +76,12 @@ begin
     sum(team_applications),sum(team_approved),sum(team_rejected),sum(team_pending),
     sum(membership_requests),sum(membership_accepted),sum(membership_rejected),sum(membership_pending)
   into v_players,v_pending_players,v_rejected_players,v_applications,v_approved,v_rejected,v_pending,
-    v_requests,v_accepted,v_denied,v_pending
+    v_requests,v_accepted,v_membership_rejected,v_membership_pending
   from public.get_admin_registration_conversion(date '2001-02-01',date '2001-02-01');
 
   if v_players<>1 or v_pending_players<>1 or v_rejected_players<>1
      or v_applications<>3 or v_approved<>1 or v_rejected<>1 or v_pending<>1
-     or v_requests<>3 or v_accepted<>1 then
+     or v_requests<>3 or v_accepted<>1 or v_membership_rejected<>1 or v_membership_pending<>1 then
     raise exception 'Global registration conversion cohort totals are incorrect';
   end if;
 
@@ -88,11 +90,12 @@ begin
 
   select sum(player_registered),sum(team_applications),sum(team_approved),sum(team_rejected),sum(team_pending),
     sum(membership_requests),sum(membership_accepted),sum(membership_rejected),sum(membership_pending)
-  into v_players,v_applications,v_approved,v_rejected,v_pending,v_requests,v_accepted,v_denied,v_pending_players
+  into v_players,v_applications,v_approved,v_rejected,v_pending,v_requests,v_accepted,v_membership_rejected,v_membership_pending
   from public.get_admin_registration_conversion(date '2001-02-01',date '2001-02-01','f1000000-0000-4000-8000-000000000010');
 
   if v_players is not null or v_applications<>3 or v_approved<>1 or v_rejected<>1
-     or v_pending<>1 or v_requests<>3 or v_accepted<>1 then
+     or v_pending<>1 or v_requests<>3 or v_accepted<>1
+     or v_membership_rejected<>1 or v_membership_pending<>1 then
     raise exception 'Location-scoped conversion reporting leaked player identity workflow totals or returned incorrect outcomes';
   end if;
 
