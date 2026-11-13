@@ -1452,3 +1452,37 @@ a { color: inherit; text-decoration: none; }
 .admin-gameweek-postponements { margin: 18px 0 24px; }
 .admin-gameweek-postponements .admin-gameweek-confirm { display: flex; align-items: flex-start; gap: 10px; }
 .admin-gameweek-postponements .admin-gameweek-confirm input { width: 18px; min-width: 18px; min-height: 18px; margin-top: 2px; }
+
+/* Location venue management */
+.admin-venue-manager{margin-top:18px;padding:16px;border:1px solid #d8d7ce;background:#f5f3ec}
+.admin-venue-heading{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.admin-venue-heading h3{margin:0 0 5px;color:#171c18;font-size:13px;font-weight:850;letter-spacing:.06em;text-transform:uppercase}
+.admin-venue-heading p{margin:0;color:#77786f;font-size:11px;line-height:1.5}
+.admin-venue-form{max-width:none;margin:0;padding:14px;background:#fffefa}
+.admin-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.admin-venue-form .admin-form-grid label{display:grid;gap:5px}
+.admin-venue-form .admin-form-grid input,.admin-venue-form .admin-form-grid select{box-sizing:border-box;width:100%;min-width:0;min-height:40px;padding:9px 10px;border:1px solid #cfcec5;background:#fff;color:#171c18;font:inherit;font-size:12px}
+.admin-venue-address{grid-column:span 2}
+.admin-venue-days{margin:12px 0 0;padding:12px;border:1px solid #d8d7ce}
+.admin-venue-days legend{padding:0 5px;color:#55564f;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.admin-venue-days>div{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.admin-venue-days label{display:flex;align-items:center;gap:6px;color:#55564f;font-size:10px;font-weight:700}
+.admin-venue-days input,.admin-venue-active input{width:15px;height:15px;min-height:0;margin:0;accent-color:#e96831}
+.admin-venue-days small{display:block;margin-top:9px;color:#77786f;font-size:10px}
+.admin-venue-hours{align-items:end;margin-top:12px}
+.admin-venue-active{display:flex!important;align-items:center;gap:8px;min-height:40px}
+.admin-venue-actions{display:flex;gap:8px;flex-wrap:wrap}
+.admin-venue-actions button,.admin-venue-list button{min-height:38px;padding:9px 14px;border:0;background:#171c18;color:#fff;font:inherit;font-size:11px;font-weight:800;cursor:pointer}
+.admin-venue-actions .button-secondary,.admin-venue-list .button-secondary{border:1px solid #cfcec5;background:#fff;color:#171c18}
+.admin-venue-actions button:disabled{opacity:.55;cursor:wait}
+.admin-venue-list{display:grid;gap:8px;margin-top:14px}
+.admin-venue-list article{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:12px;background:#fffefa;border:1px solid #d8d7ce}
+.admin-venue-list article>div{display:grid;gap:3px;min-width:0}
+.admin-venue-list strong{color:#171c18;font-size:12px}
+.admin-venue-list span{color:#77786f;font-size:10px}
+.admin-venue-list .admin-status-active{padding:4px 7px;background:#e7f1e7;color:#24512d;font-weight:800}
+.admin-venue-list .admin-status-inactive{padding:4px 7px;background:#e7e5dc;color:#66675f;font-weight:800}
+@media(max-width:760px){.admin-form-grid{grid-template-columns:1fr}.admin-venue-address{grid-column:auto}.admin-venue-days>div{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-venue-list article{grid-template-columns:minmax(0,1fr) auto}.admin-venue-list article button{grid-column:1/-1}}
+
+.match-meta span:last-child{flex:1;min-width:0;text-align:right;overflow-wrap:anywhere}
+@media(max-width:520px){.match-meta{flex-wrap:wrap}.match-meta span:last-child{flex-basis:100%;text-align:left}}
