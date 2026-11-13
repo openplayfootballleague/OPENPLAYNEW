@@ -140,7 +140,7 @@ Deno.serve(async (request: Request) => {
         return respond({ error: "Allow notifications on this browser first, then try again." }, 409);
       }
       const { error } = await service.from("notification_preferences").upsert(
-        { user_id: user.id, push_enabled: true },
+        { user_id: user.id, push_enabled: true, updated_at: new Date().toISOString() },
         { onConflict: "user_id" },
       );
       if (error) return respond({ error: "Unable to save push notification preference" }, 500);
@@ -149,7 +149,7 @@ Deno.serve(async (request: Request) => {
 
     if (action === "disable") {
       const { error: preferenceError } = await service.from("notification_preferences").upsert(
-        { user_id: user.id, push_enabled: false },
+        { user_id: user.id, push_enabled: false, updated_at: new Date().toISOString() },
         { onConflict: "user_id" },
       );
       if (preferenceError) return respond({ error: "Unable to disable push notifications" }, 500);
@@ -171,7 +171,7 @@ Deno.serve(async (request: Request) => {
     const remaining = pushSubscriptions.filter((item) => item.id !== subscriptionId && item.enabled === true);
     const pushEnabled = remaining.length > 0;
     const { error: preferenceError } = await service.from("notification_preferences").upsert(
-      { user_id: user.id, push_enabled: pushEnabled },
+      { user_id: user.id, push_enabled: pushEnabled, updated_at: new Date().toISOString() },
       { onConflict: "user_id" },
     );
     if (preferenceError) return respond({ error: "Device removed but push preference could not be updated" }, 500);
