@@ -1537,3 +1537,25 @@ a { color: inherit; text-decoration: none; }
 /* Design system: readable secondary text on dark surfaces. */
 .inbox-panel .player-notification p { color: #c4c4c4; }
 .inbox-panel .player-notification small { color: #9a9a9a; }
+/* Global keyboard accessibility: keep focus visible across dark and light surfaces. */
+:where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--orange);
+}
+
+/* Honour the operating-system reduced-motion preference throughout the app. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
