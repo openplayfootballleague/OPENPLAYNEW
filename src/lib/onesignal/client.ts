@@ -13,6 +13,32 @@ declare global {
   }
 }
 
+const LINKED_IDENTITY_STORAGE_KEY = "openplay.onesignal.identity-linked";
+
+export function hasOneSignalIdentityLink(): boolean {
+  try {
+    return typeof window !== "undefined" && window.localStorage.getItem(LINKED_IDENTITY_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function markOneSignalIdentityLinked(): void {
+  try {
+    if (typeof window !== "undefined") window.localStorage.setItem(LINKED_IDENTITY_STORAGE_KEY, "true");
+  } catch {
+    // Storage is optional; OneSignal identity cleanup still runs while the page is open.
+  }
+}
+
+export function clearOneSignalIdentityLink(): void {
+  try {
+    if (typeof window !== "undefined") window.localStorage.removeItem(LINKED_IDENTITY_STORAGE_KEY);
+  } catch {
+    // Storage is optional; do not block account sign-out or push preference changes.
+  }
+}
+
 let oneSignalPromise: Promise<OneSignalSdk> | null = null;
 
 export function isOneSignalConfigured(): boolean {
