@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { getSupabaseClient } from "../lib/supabase/client";
 
 type SeasonOption = {
@@ -97,6 +97,7 @@ export function AdminFixtureGenerator({ seasons, venues, locations, fixtures, de
   const [preview, setPreview] = useState<FixturePreview | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const previousSeasonId = useRef<string | null>(null);
 
   const seasonHasFixtures = fixtures.some((fixture) => fixture.season_id === seasonId);\n\n  const availableVenues = useMemo(() => {
     if (!selectedSeason) return [];
@@ -108,7 +109,8 @@ export function AdminFixtureGenerator({ seasons, venues, locations, fixtures, de
   }, [locations, selectedSeason, venues]);
 
   useEffect(() => {
-    if (!selectedSeason) return;
+    if (!selectedSeason || previousSeasonId.current === selectedSeason.id) return;
+    previousSeasonId.current = selectedSeason.id;
     setWeekday(selectedSeason.matchday_weekday === null ? "" : String(selectedSeason.matchday_weekday));
     setStartTime(selectedSeason.matchday_start_time?.slice(0, 5) || "");
     setDuration(selectedSeason.match_duration_minutes === null ? "" : String(selectedSeason.match_duration_minutes));
@@ -120,7 +122,7 @@ export function AdminFixtureGenerator({ seasons, venues, locations, fixtures, de
     setConfirmGenerate(false);
     setError("");
     setSettingsSaved(Boolean(selectedSeason.matchday_weekday !== null && selectedSeason.matchday_start_time && selectedSeason.match_duration_minutes !== null && selectedSeason.default_venue_id));
-  }, [seasonId]);
+  }, [selectedSeason]);
 
   async function saveSettings(event: FormEvent) {
     event.preventDefault();
