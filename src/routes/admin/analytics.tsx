@@ -642,7 +642,7 @@ function AdminAnalyticsPage() {
       {financeAccess && !financeError && <p>Ledger charges: {money(financeTotals.chargesPence)} · Payments: {money(financeTotals.paymentsPence)} · Refunds: {money(financeTotals.refundsPence)} · Fines: {money(financeTotals.finesPence)} · Outstanding: {money(financeTotals.outstandingPence)}</p>}
       <p>Generated {new Date().toLocaleString("en-GB")}. Aggregate operational data only; no player personal details included.</p>
     </section>
-    <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs. Fixture reporting window: {fromDate || toDate ? `${fromDate || "Any date"} to ${toDate || "Any date"}` : "all dates"} within the selected season or accessible context. Team and queue figures are current snapshots; finance figures are ledger totals for the selected season. Cohort reporting and consented app-usage metrics remain gated on the analytics release review.</p>
+    <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs for operational and financial truth; consented PostHog aggregates for product engagement and feature performance. Fixture reporting window: {fromDate || toDate ? `${fromDate || "Any date"} to ${toDate || "Any date"}` : "all dates"} within the selected season or accessible context. Team and queue figures are current snapshots; finance figures are ledger totals for the selected season. PostHog reporting requires the server-side project query credential and sufficient consented activity.</p>
     <Link className="auth-switch" to="/admin">← BACK TO ADMIN DASHBOARD</Link>
   </section></main>;
 }
