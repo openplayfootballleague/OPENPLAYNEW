@@ -62,8 +62,8 @@ Deno.test("builds fixed, scoped aggregate queries with inclusive date boundaries
     excludes(query, /SELECT \*|distinct_id|email|full_name|phone/, "Must not return direct identifiers or raw rows");
   }
   matches(queries.featurePerformance, /properties\['feature'\] IN \('fixtures', 'results', 'league_table', 'player_statistics', 'team_directory'\)/, "Feature list must be allowlisted");
-  matches(queries.weeklyActivity, /timestamp < toStartOfWeek\\(now\\(\\), 1\\)/, "Weekly activity must exclude the incomplete current week");
-  matches(queries.retention, /timestamp < toStartOfWeek\\(now\\(\\), 1\\)/, "Retention must exclude the incomplete current week");
+  matches(queries.weeklyActivity, /timestamp < toStartOfWeek\(now\(\), 1\)/, "Weekly activity must exclude the incomplete current week");
+  matches(queries.retention, /timestamp < toStartOfWeek\(now\(\), 1\)/, "Retention must exclude the incomplete current week");
   matches(queries.retention, /dateDiff\('week'/, "Retention must use weekly intervals");
   matches(queries.retention, /CROSS JOIN numbers\(9\)/, "Retention must zero-fill the first nine weekly intervals");
   matches(queries.retention, /coalesce\(r.retained_users, 0\)/, "Missing return weeks must be shown as zero");
