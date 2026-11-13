@@ -85,7 +85,7 @@ begin
     when p_event_type like '%payment%' or p_event_type like 'finance.%'
       or p_event_type like 'referee.payout.%' then 'payments'
     when p_event_type like 'team.%' or p_event_type like 'player.transfer_%' then 'team_updates'
-    when p_event_type like 'message.%' then 'messages'
+    when p_event_type like 'message.%' or p_event_type like 'announcement.%' or p_event_type='admin.announcement' then 'messages'
     else 'account_security'
   end;
 
