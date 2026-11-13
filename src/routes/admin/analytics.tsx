@@ -14,6 +14,33 @@ type SeasonStats = {
   players: Array<{ competition_player_id: string; full_name: string; apps: number; goals: number }>;
 };
 type FinanceOption = { season_id: string; season_name: string; team_id: string; team_name: string; league_name: string; season_status: string };
+type BusinessPerformance = {
+  team_charges_pence: number | string;
+  team_receipts_pence: number | string;
+  team_refunds_pence: number | string;
+  team_credits_pence: number | string;
+  team_fines_pence: number | string;
+  outstanding_pence: number | string;
+  upcoming_team_forecast_pence: number | string;
+  upcoming_team_obligations: number | string;
+  player_card_gross_pence: number | string;
+  player_card_refunds_pence: number | string;
+  player_card_fees_pence: number | string;
+  player_card_net_pence: number | string;
+  recorded_costs_pence: number | string;
+  net_operating_surplus_pence: number | string;
+};
+type OperatingCost = {
+  id: string;
+  amount_pence: number;
+  category: string;
+  description: string;
+  occurred_at: string;
+  location_name: string | null;
+  league_name: string | null;
+  season_name: string | null;
+};
+type OperatingCostCategory = "venue_hire" | "referee_fees" | "equipment" | "marketing" | "insurance" | "software" | "travel" | "other";
 type GrowthRow = {
   bucket_date: string;
   account_signups: number | string | null;
@@ -75,6 +102,17 @@ function AdminAnalyticsPage() {
   const [financeError, setFinanceError] = useState("");
   const [financeOptions, setFinanceOptions] = useState<FinanceOption[]>([]);
   const [financeRows, setFinanceRows] = useState<FinanceSummaryRow[]>([]);
+  const [businessPerformance, setBusinessPerformance] = useState<BusinessPerformance | null>(null);
+  const [businessError, setBusinessError] = useState("");
+  const [operatingCosts, setOperatingCosts] = useState<OperatingCost[]>([]);
+  const [costAmount, setCostAmount] = useState("");
+  const [costCategory, setCostCategory] = useState<OperatingCostCategory>("venue_hire");
+  const [costDescription, setCostDescription] = useState("");
+  const [costDate, setCostDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [costReference, setCostReference] = useState("");
+  const [costNotes, setCostNotes] = useState("");
+  const [costReason, setCostReason] = useState("");
+  const [costSaving, setCostSaving] = useState(false);
   const [growthRows, setGrowthRows] = useState<GrowthRow[]>([]);
   const [growthError, setGrowthError] = useState("");
   const [registrationRows, setRegistrationRows] = useState<RegistrationRow[]>([]);
