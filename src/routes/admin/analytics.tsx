@@ -392,6 +392,24 @@ function AdminAnalyticsPage() {
         ]);
       }
     }
+    if (productAnalytics?.usageSummary.length) {
+      rows.push([], ["App usage summary", "Visitor type", "Unique visitors", "Navigation views"]);
+      for (const row of productAnalytics.usageSummary) {
+        rows.push(["Platform-wide", row.visitor_type, row.unique_visitors, row.navigation_views]);
+      }
+    }
+    if (productAnalytics?.usageSections.length) {
+      rows.push([], ["Navigation sections", "Section", "Visitor type", "Unique visitors", "Navigation views"]);
+      for (const row of productAnalytics.usageSections) {
+        rows.push([row.route_category, row.visitor_type, row.unique_visitors, row.navigation_views]);
+      }
+    }
+    if (productAnalytics?.usageDaily.length) {
+      rows.push([], ["Daily app usage", "Date", "Visitor type", "Unique visitors", "Navigation views"]);
+      for (const row of productAnalytics.usageDaily) {
+        rows.push([row.day, row.visitor_type, row.unique_visitors, row.navigation_views]);
+      }
+    }
     if (productAnalytics?.weeklyActivity.length) {
       rows.push([], ["Weekly engagement", "Active users", "Meaningful content views"]);
       for (const row of productAnalytics.weeklyActivity) {
@@ -650,6 +668,18 @@ function AdminAnalyticsPage() {
       <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.publishedResults}</td><td>{row.goals}</td></tr>)}</tbody></table></div>
       <h3>Daily user growth</h3>
       <div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Account signups</th><th>Player registrations</th><th>Team applications</th><th>Team approvals</th></tr></thead><tbody>{growthRows.map((row) => <tr key={row.bucket_date}><td>{row.bucket_date}</td><td>{row.account_signups === null ? "—" : Number(row.account_signups)}</td><td>{Number(row.player_registrations)}</td><td>{Number(row.team_applications)}</td><td>{Number(row.team_approvals)}</td></tr>)}</tbody></table></div>
+      {productAnalytics && productAnalytics.usageSummary.length > 0 && <>
+        <h3>Platform-wide app usage</h3>
+        <div className="analytics-table-wrap"><table><thead><tr><th>Visitor type</th><th>Unique visitors</th><th>Navigation views</th></tr></thead><tbody>{productAnalytics.usageSummary.map((row) => <tr key={row.visitor_type}><td>{row.visitor_type}</td><td>{row.unique_visitors}</td><td>{row.navigation_views}</td></tr>)}</tbody></table></div>
+      </>}
+      {productAnalytics && productAnalytics.usageSections.length > 0 && <>
+        <h3>Navigation sections</h3>
+        <div className="analytics-table-wrap"><table><thead><tr><th>Section</th><th>Visitor type</th><th>Unique visitors</th><th>Section views</th></tr></thead><tbody>{productAnalytics.usageSections.map((row) => <tr key={row.route_category + "-" + row.visitor_type}><td>{row.route_category}</td><td>{row.visitor_type}</td><td>{row.unique_visitors}</td><td>{row.navigation_views}</td></tr>)}</tbody></table></div>
+      </>}
+      {productAnalytics && productAnalytics.usageDaily.length > 0 && <>
+        <h3>Daily navigation activity</h3>
+        <div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Visitor type</th><th>Unique visitors</th><th>Section views</th></tr></thead><tbody>{productAnalytics.usageDaily.map((row) => <tr key={row.day + "-" + row.visitor_type}><td>{row.day}</td><td>{row.visitor_type}</td><td>{row.unique_visitors}</td><td>{row.navigation_views}</td></tr>)}</tbody></table></div>
+      </>}
       {productAnalytics && productAnalytics.weeklyActivity.length > 0 && <>
         <h3>Weekly engagement</h3>
         <div className="analytics-table-wrap"><table><thead><tr><th>Week commencing</th><th>Active players</th><th>Meaningful views</th></tr></thead><tbody>{productAnalytics.weeklyActivity.map((row) => <tr key={row.week_start}><td>{row.week_start}</td><td>{row.active_users}</td><td>{row.value_actions}</td></tr>)}</tbody></table></div>
