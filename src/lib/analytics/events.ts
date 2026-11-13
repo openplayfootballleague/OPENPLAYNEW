@@ -124,6 +124,7 @@ export function captureOpenPlayEvent(
 ): boolean {
   if (!client || !isAnalyticsAllowed(consent, globalPrivacyControl)) return false;
   if (actor !== "anonymous" && actor !== "account_user" && actor !== "player" && actor !== "captain") return false;
+  if (event === "core_value_action" && actor !== "player" && actor !== "captain") return false;
   client.capture(event, sanitizeAnalyticsProperties(properties));
   return true;
 }
