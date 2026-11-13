@@ -2,15 +2,15 @@
 
 ## Status
 
-The canonical integration candidate is PR #109 at the currently verified head commit `8a970a05a6d200cc9996df61305362d51f684c44`.
+The canonical integration candidate is PR #109 at verified code head `a6163e8cc828aa00e70f220eb8373bf2b4a9e1ba`.
 
-Exact-head GitHub Actions run [#43413249238](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/43413249238) completed successfully with all four jobs:
+Exact-head GitHub Actions run [#43421928507](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/43421928507) completed successfully with all four jobs:
 - Application build, Deno type checks, Stripe webhook signature tests, domain tests, migration-source/security configuration checks, and Cloudflare Worker dry-run.
 - Clean Supabase migration replay and database security/role/lifecycle regression assertions.
 - Chromium responsive-route, manifest and offline PWA checks.
 - PostHog consent and network acceptance.
 
-The earlier verified head `5a368326b7e6ceb95612864b53faff57a34b9418` and run [#43409054653](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/43409054653) are historical evidence, not the current head. The earlier referee payment-safety head `dc31eb4e61bdd8696184d454d3b2e5174b88f2c1` and run [#43408070272](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/43408070272) are also historical evidence. The current PR #109 head has its own fresh four-job passing run.
+The current code head is verified by all four passing jobs. This readiness-document correction is a new documentation-only commit and will receive its own CI run; its resulting head and run should be recorded separately after completion.
 
 These automated checks are implementation-level CI and targeted browser/security checks. They are not the coordinated full end-to-end acceptance campaign described in the product backlog, and they do not prove that every agreed feature is complete.
 
