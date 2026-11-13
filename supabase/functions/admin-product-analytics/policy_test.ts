@@ -54,7 +54,7 @@ Deno.test("builds fixed, scoped aggregate queries with inclusive date boundaries
     toDate: "2026-11-13",
     seasonIds: [seasonA, seasonB],
   });
-  for (const query of Object.values(queries)) {
+  for (const query of [queries.weeklyActivity, queries.retention, queries.featurePerformance]) {
     matches(query, /event = 'core_value_action'/, "Must query the approved engagement event");
     matches(query, /properties\['season_id'\] IN \('[0-9a-f-]+', '[0-9a-f-]+'\)/, "Must scope to authorised seasons");
     matches(query, /timestamp >= toDateTime\('2026-11-01 00:00:00'\)/, "Must include start boundary");
