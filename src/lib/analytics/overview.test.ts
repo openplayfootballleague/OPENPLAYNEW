@@ -58,8 +58,8 @@ describe("admin analytics aggregation", () => {
   it("compares only locations visible in the scoped admin setup", () => {
     const result = buildLocationComparisons(setup);
     expect(result).toEqual([
-      { locationId: "loc-a", locationName: "Bideford", seasons: 1, approvedTeams: 1, squadMemberships: 6, fixtures: 1, publishedResults: 1, goals: 5 },
-      { locationId: "loc-b", locationName: "Barnstaple", seasons: 1, approvedTeams: 1, squadMemberships: 5, fixtures: 1, publishedResults: 0, goals: 0 },
+      { locationId: "loc-a", locationName: "Bideford", seasons: 1, approvedTeams: 1, squadMemberships: 6, fixtures: 1, completedFixtures: 1, publishedResults: 1, resultsCoveragePercent: 100, goals: 5, goalsPerResult: 5 },
+      { locationId: "loc-b", locationName: "Barnstaple", seasons: 1, approvedTeams: 1, squadMemberships: 5, fixtures: 1, completedFixtures: 0, publishedResults: 0, resultsCoveragePercent: null, goals: 0, goalsPerResult: null },
     ]);
   });
 
