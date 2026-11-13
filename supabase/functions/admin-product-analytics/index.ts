@@ -7,7 +7,7 @@ import {
 } from "./policy.ts";
 
 type Setup = {
-  locations?: Array<{ id: string }>;
+  locations?: string[];
   leagues?: Array<{ id: string; location_id: string }>;
   seasons?: Array<{ id: string; league_id: string; location_id: string }>;
 };
@@ -128,9 +128,9 @@ Deno.serve(async (request: Request) => {
   const fromDate = typeof input.fromDate === "string" && input.fromDate ? input.fromDate : defaults.fromDate;
   const toDate = typeof input.toDate === "string" && input.toDate ? input.toDate : defaults.toDate;
 
-  // This RPC is the authority for the caller's administrator role and accessible
-  // competition scope. Never trust location, league or season IDs supplied by UI.
-  const { data: setupData, error: setupError } = await userClient.rpc("get_admin_competition_setup");
+  // This narrow RPC returns only permitted competition IDs, never player/profile
+  // records. Never trust location, league or season IDs supplied by the UI.
+  const { data: setupData, error: setupError } = await userClient.rpc("get_admin_product_analytics_scope");
   if (setupError || !setupData || typeof setupData !== "object" || Array.isArray(setupData)) {
     return json({ error: "Administrator reporting access is required" }, 403, allowedOrigin);
   }
@@ -139,7 +139,7 @@ Deno.serve(async (request: Request) => {
   const leagues = Array.isArray(setup.leagues) ? setup.leagues : [];
   const seasons = Array.isArray(setup.seasons) ? setup.seasons : [];
 
-  if (input.locationId && !locations.some((item) => item.id === input.locationId)) {
+  if (input.locationId && !locations.includes(input.locationId)) {
     return json({ error: "You do not have access to this location" }, 403, allowedOrigin);
   }
   const scopedLeagues = leagues.filter((item) =>
