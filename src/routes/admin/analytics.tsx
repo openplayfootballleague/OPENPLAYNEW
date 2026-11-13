@@ -42,6 +42,9 @@ type ProductAnalytics = {
   weeklyActivity: Array<{ week_start: string; active_users: number; value_actions: number }>;
   retention: Array<{ cohort_week: string; weeks_since_start: number; cohort_users: number; retained_users: number; retention_rate: number }>;
   features: Array<{ feature: string; unique_users: number; value_actions: number }>;
+  usageSummary: Array<{ visitor_type: string; unique_visitors: number; navigation_views: number }>;
+  usageDaily: Array<{ day: string; visitor_type: string; unique_visitors: number; navigation_views: number }>;
+  usageSections: Array<{ route_category: string; visitor_type: string; unique_visitors: number; navigation_views: number }>;
   definitions: { engagedUser: string; retention: string; featurePerformance: string };
 };
 
@@ -227,7 +230,8 @@ function AdminAnalyticsPage() {
   }, [contextReady, loadContextData]);
 
   useEffect(() => {
-    if (!contextReady || authStatus !== "authenticated" || (tab !== "engagement" && tab !== "features")) return;
+    if (!contextReady || authStatus !== "authenticated" || (tab !== "engagement" && tab !== "features" && tab !== "usage") ||
+      (tab === "usage" && !isGlobalAdmin)) return;
     let alive = true;
     setProductAnalyticsLoading(true);
     setProductAnalyticsError("");
@@ -236,9 +240,10 @@ function AdminAnalyticsPage() {
         body: {
           fromDate: fromDate || undefined,
           toDate: toDate || undefined,
-          locationId: locationId || undefined,
-          leagueId: leagueId || undefined,
-          seasonId: seasonId || undefined,
+          locationId: tab === "usage" ? undefined : locationId || undefined,
+          leagueId: tab === "usage" ? undefined : leagueId || undefined,
+          seasonId: tab === "usage" ? undefined : seasonId || undefined,
+          includePlatformUsage: tab === "usage",
         },
       });
       if (!alive) return;
@@ -276,7 +281,7 @@ function AdminAnalyticsPage() {
       if (alive) setProductAnalyticsLoading(false);
     });
     return () => { alive = false; };
-  }, [authStatus, contextReady, fromDate, leagueId, locationId, seasonId, tab, toDate]);
+  }, [authStatus, contextReady, fromDate, isGlobalAdmin, leagueId, locationId, seasonId, tab, toDate]);
 
   const dateRangeInvalid = Boolean(fromDate && toDate && fromDate > toDate);
   const filters: AnalyticsFilters = { locationId, leagueId, seasonId, fromDate, toDate };
@@ -410,6 +415,24 @@ function AdminAnalyticsPage() {
         ]);
       }
     }
+    if (productAnalytics?.usageSummary.length) {
+      rows.push([], ["App usage summary", "Visitor type", "Unique visitors", "Navigation views"]);
+      for (const row of productAnalytics.usageSummary) {
+        rows.push(["Platform-wide", row.visitor_type, row.unique_visitors, row.navigation_views]);
+      }
+    }
+    if (productAnalytics?.usageSections.length) {
+      rows.push([], ["Navigation sections", "Section", "Visitor type", "Unique visitors", "Navigation views"]);
+      for (const row of productAnalytics.usageSections) {
+        rows.push([row.route_category, row.visitor_type, row.unique_visitors, row.navigation_views]);
+      }
+    }
+    if (productAnalytics?.usageDaily.length) {
+      rows.push([], ["Daily app usage", "Date", "Visitor type", "Unique visitors", "Navigation views"]);
+      for (const row of productAnalytics.usageDaily) {
+        rows.push([row.day, row.visitor_type, row.unique_visitors, row.navigation_views]);
+      }
+    }
     if (productAnalytics?.weeklyActivity.length) {
       rows.push([], ["Weekly engagement", "Active users", "Meaningful content views"]);
       for (const row of productAnalytics.weeklyActivity) {
@@ -512,7 +535,24 @@ function AdminAnalyticsPage() {
           </div>
           <p className="form-note">Only fixtures marked completed with a published score contribute to result and goal totals.</p>
         </div>
-      </> : tab === "usage" ? <div className="analytics-state"><h2>App usage</h2><p>Page views, sessions, device/browser distribution and navigation trends will appear after consented analytics ingestion is approved and enabled.</p><p className="analytics-state-label">No user-activity figures are being fabricated or inferred from page loads.</p></div>  : tab === "growth" ? <>
+      </> : tab === "usage" ? <>
+        <h2>App usage · platform-wide</h2>
+        <p className="form-note">Consent-based navigation-section activity only. Anonymous visitors and authenticated accounts are separated using a coarse visitor type. This report is platform-wide and is available to global administrators only; location, league and season filters do not apply.</p>
+        {!isGlobalAdmin ? <div className="analytics-state"><h3>Global administrator access required</h3><p>Platform-wide usage data is not available to location administrators.</p></div> : productAnalyticsLoading ? <p className="form-note">Loading consented app usage…</p> : productAnalyticsError ? <div className="analytics-state"><h3>App usage unavailable</h3><p>{productAnalyticsError}</p></div> : !productAnalytics || productAnalytics.status === "no_data" || productAnalytics.usageSummary.length === 0 ? <div className="analytics-state"><h3>No consented navigation activity yet</h3><p>Usage figures will appear when a visitor who has opted into optional analytics navigates between application sections.</p><p className="analytics-state-label">Raw pageviews, session recordings, device fingerprints and browser details are not collected by the current privacy configuration.</p></div> : <>
+          <div className="analytics-stat-grid">
+            <article><span>Anonymous visitors</span><strong>{productAnalytics.usageSummary.find((row) => row.visitor_type === "anonymous")?.unique_visitors ?? 0}</strong></article>
+            <article><span>Authenticated visitors</span><strong>{productAnalytics.usageSummary.find((row) => row.visitor_type === "authenticated")?.unique_visitors ?? 0}</strong></article>
+            <article><span>Navigation section views</span><strong>{productAnalytics.usageSummary.reduce((sum, row) => sum + row.navigation_views, 0)}</strong></article>
+          </div>
+          <div className="analytics-section"><h3>Most viewed sections</h3>
+            <div className="analytics-table-wrap"><table><thead><tr><th>Section</th><th>Visitor type</th><th>Unique visitors</th><th>Section views</th></tr></thead><tbody>{productAnalytics.usageSections.map((row) => <tr key={row.route_category + "-" + row.visitor_type}><td>{row.route_category.replaceAll("_", " ")}</td><td>{row.visitor_type}</td><td>{row.unique_visitors}</td><td>{row.navigation_views}</td></tr>)}</tbody></table></div>
+          </div>
+          <div className="analytics-section"><h3>Daily navigation activity</h3>
+            <div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Visitor type</th><th>Unique visitors</th><th>Section views</th></tr></thead><tbody>{productAnalytics.usageDaily.map((row) => <tr key={row.day + "-" + row.visitor_type}><td>{row.day}</td><td>{row.visitor_type}</td><td>{row.unique_visitors}</td><td>{row.navigation_views}</td></tr>)}</tbody></table></div>
+          </div>
+          <p className="form-note">Reporting period: {productAnalytics.range.fromDate} to {productAnalytics.range.toDate}. Only events captured after explicit analytics consent and after visitor-type classification was deployed are represented.</p>
+        </>}
+      </> : tab === "growth" ? <>
         <h2>User growth · daily activity</h2>
         <p className="form-note">Daily totals use Supabase account profiles, player registrations and season-team application records. In scoped views, player registrations include only players associated with the selected competition through membership history. Account signups appear only in the global all-locations view.</p>
         {growthError ? <p className="form-error" role="alert">{growthError}</p> : <>
@@ -667,6 +707,18 @@ function AdminAnalyticsPage() {
       </>}
       <h3>Daily user growth</h3>
       <div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Account signups</th><th>Player registrations</th><th>Team applications</th><th>Team approvals</th></tr></thead><tbody>{growthRows.map((row) => <tr key={row.bucket_date}><td>{row.bucket_date}</td><td>{row.account_signups === null ? "—" : Number(row.account_signups)}</td><td>{Number(row.player_registrations)}</td><td>{Number(row.team_applications)}</td><td>{Number(row.team_approvals)}</td></tr>)}</tbody></table></div>
+      {productAnalytics && productAnalytics.usageSummary.length > 0 && <>
+        <h3>Platform-wide app usage</h3>
+        <div className="analytics-table-wrap"><table><thead><tr><th>Visitor type</th><th>Unique visitors</th><th>Navigation views</th></tr></thead><tbody>{productAnalytics.usageSummary.map((row) => <tr key={row.visitor_type}><td>{row.visitor_type}</td><td>{row.unique_visitors}</td><td>{row.navigation_views}</td></tr>)}</tbody></table></div>
+      </>}
+      {productAnalytics && productAnalytics.usageSections.length > 0 && <>
+        <h3>Navigation sections</h3>
+        <div className="analytics-table-wrap"><table><thead><tr><th>Section</th><th>Visitor type</th><th>Unique visitors</th><th>Section views</th></tr></thead><tbody>{productAnalytics.usageSections.map((row) => <tr key={row.route_category + "-" + row.visitor_type}><td>{row.route_category}</td><td>{row.visitor_type}</td><td>{row.unique_visitors}</td><td>{row.navigation_views}</td></tr>)}</tbody></table></div>
+      </>}
+      {productAnalytics && productAnalytics.usageDaily.length > 0 && <>
+        <h3>Daily navigation activity</h3>
+        <div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Visitor type</th><th>Unique visitors</th><th>Section views</th></tr></thead><tbody>{productAnalytics.usageDaily.map((row) => <tr key={row.day + "-" + row.visitor_type}><td>{row.day}</td><td>{row.visitor_type}</td><td>{row.unique_visitors}</td><td>{row.navigation_views}</td></tr>)}</tbody></table></div>
+      </>}
       {productAnalytics && productAnalytics.weeklyActivity.length > 0 && <>
         <h3>Weekly engagement</h3>
         <div className="analytics-table-wrap"><table><thead><tr><th>Week commencing</th><th>Active players</th><th>Meaningful views</th></tr></thead><tbody>{productAnalytics.weeklyActivity.map((row) => <tr key={row.week_start}><td>{row.week_start}</td><td>{row.active_users}</td><td>{row.value_actions}</td></tr>)}</tbody></table></div>

@@ -35,7 +35,42 @@ export function buildProductAnalyticsQueries(filters: ProductAnalyticsFilters) {
     AND timestamp < toDateTime('${until}')
     AND properties['season_id'] IN (${seasons})`;
 
+  const usageScope = `event = 'navigation_section_viewed'
+    AND timestamp >= toDateTime('${from}')
+    AND timestamp < toDateTime('${until}')
+    AND properties['visitor_type'] IN ('anonymous', 'authenticated')`;
+
   return {
+    appUsageSummary: `SELECT
+      properties['visitor_type'] AS visitor_type,
+      uniqExact(person_id) AS unique_visitors,
+      count() AS navigation_views
+    FROM events
+    WHERE ${usageScope}
+    GROUP BY visitor_type
+    ORDER BY visitor_type ASC
+    LIMIT 2`,
+    appUsageDaily: `SELECT
+      toDate(timestamp) AS day,
+      properties['visitor_type'] AS visitor_type,
+      uniqExact(person_id) AS unique_visitors,
+      count() AS navigation_views
+    FROM events
+    WHERE ${usageScope}
+    GROUP BY day, visitor_type
+    ORDER BY day ASC, visitor_type ASC
+    LIMIT 732`,
+    appUsageSections: `SELECT
+      properties['route_category'] AS route_category,
+      properties['visitor_type'] AS visitor_type,
+      uniqExact(person_id) AS unique_visitors,
+      count() AS navigation_views
+    FROM events
+    WHERE ${usageScope}
+      AND properties['route_category'] IN ('home', 'player_hub', 'match_centre', 'teams', 'registration', 'referee', 'notifications', 'gallery', 'account', 'other')
+    GROUP BY route_category, visitor_type
+    ORDER BY navigation_views DESC
+    LIMIT 50`,
     weeklyActivity: `SELECT
       toStartOfWeek(timestamp, 1) AS week_start,
       uniqExact(person_id) AS active_users,

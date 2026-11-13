@@ -18,6 +18,7 @@ describe("Open Play analytics property governance", () => {
       outcome: "success",
       error_code: "network_error",
       location_id: locationId,
+      visitor_type: "authenticated",
       email: "person@example.com",
       phone: "07123456789",
       full_name: "Example Player",
@@ -33,6 +34,7 @@ describe("Open Play analytics property governance", () => {
       outcome: "success",
       error_code: "network_error",
       location_id: locationId,
+      visitor_type: "authenticated",
     });
   });
 
@@ -46,6 +48,7 @@ describe("Open Play analytics property governance", () => {
       error_code: "Error: email person@example.com",
       app_version: "1.2",
       season_id: "not-a-uuid",
+      visitor_type: "admin",
     })).toEqual({});
   });
 
