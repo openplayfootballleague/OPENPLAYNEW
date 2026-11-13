@@ -365,6 +365,8 @@ function AdminAnalyticsPage() {
         ["Ledger charges (pence)", financeTotals.chargesPence],
         ["Ledger payments (pence)", financeTotals.paymentsPence],
         ["Ledger refunds (pence)", financeTotals.refundsPence],
+        ["Ledger credits (pence)", financeTotals.creditsPence],
+        ["Net payments after refunds (pence)", financeTotals.paymentsPence - financeTotals.refundsPence],
         ["Ledger fines (pence)", financeTotals.finesPence],
         ["Outstanding ledger balance (pence)", financeTotals.outstandingPence],
       );
@@ -630,6 +632,8 @@ function AdminAnalyticsPage() {
             <article><span>Charges</span><strong>{money(financeTotals.chargesPence)}</strong></article>
             <article><span>Payments</span><strong>{money(financeTotals.paymentsPence)}</strong></article>
             <article><span>Refunds</span><strong>{money(financeTotals.refundsPence)}</strong></article>
+            <article><span>Credits</span><strong>{money(financeTotals.creditsPence)}</strong></article>
+            <article><span>Net payments after refunds</span><strong>{money(financeTotals.paymentsPence - financeTotals.refundsPence)}</strong></article>
             <article><span>Fines</span><strong>{money(financeTotals.finesPence)}</strong></article>
             <article><span>Outstanding</span><strong>{money(financeTotals.outstandingPence)}</strong></article>
             <article><span>Finance seasons</span><strong>{new Set(financeOptions.map((option) => option.season_id)).size}</strong></article>
@@ -651,6 +655,10 @@ function AdminAnalyticsPage() {
         <p>Fixtures: {overview.fixtures} · Published results: {overview.publishedResults} · Goals: {overview.goals}</p>
         <p>Open seasons: {overview.openSeasons} · Pending player reviews: {overview.pendingPlayerReviews} · Pending team applications: {overview.pendingTeamApplications} · Pending join requests: {overview.pendingMembershipRequests}</p>
       </div>}
+      {financeAccess && !financeError && <>
+        <h3>Business performance · ledger totals</h3>
+        <p>Charges: {money(financeTotals.chargesPence)} · Payments: {money(financeTotals.paymentsPence)} · Refunds: {money(financeTotals.refundsPence)} · Credits: {money(financeTotals.creditsPence)} · Net payments after refunds: {money(financeTotals.paymentsPence - financeTotals.refundsPence)} · Fines: {money(financeTotals.finesPence)} · Outstanding: {money(financeTotals.outstandingPence)}</p>
+      </>}
       <h3>Location comparison</h3>
       <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Completed</th><th>Results</th><th>Result coverage</th><th>Goals</th><th>Goals / result</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.completedFixtures}</td><td>{row.publishedResults}</td><td>{row.resultsCoveragePercent === null ? "—" : row.resultsCoveragePercent.toFixed(1) + "%"}</td><td>{row.goals}</td><td>{row.goalsPerResult === null ? "—" : row.goalsPerResult.toFixed(2)}</td></tr>)}</tbody></table></div>
       {seasonStats && <>
