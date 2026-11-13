@@ -289,9 +289,9 @@ jobs:
             diff -u supabase/drafts/referee_connect_transfer_reconciliation_corrections.sql "$migration_file"
           fi
           test -n "$migration_file"
-          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
-          printf '%s\\n' "$migration_file"
+          printf '%s\n' "$migration_file"
       - name: Preserve CLI-generated referee Connect safety correction migration
         uses: actions/upload-artifact@v4
         with:
@@ -412,9 +412,9 @@ jobs:
             diff -u supabase/drafts/admin_analytics_registration_conversion.sql "$migration_file"
           fi
           test -n "$migration_file"
-          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
+          grep -qxF "$(basename "$migration_file")" scripts/expected-pending-migrations.txt || printf '%s\n' "$(basename "$migration_file")" >> scripts/expected-pending-migrations.txt
           sort -u -o scripts/expected-pending-migrations.txt scripts/expected-pending-migrations.txt
-          printf '%s\\n' "$migration_file"
+          printf '%s\n' "$migration_file"
       - name: Verify unique migration versions before replay
         shell: bash
         run: |
