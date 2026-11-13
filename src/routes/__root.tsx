@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { ConsentAwareAnalytics } from "../components/analytics-provider";
+import { OneSignalProvider } from "../components/onesignal-provider";
 import "../styles.css";
 import "../app-visual-system.css";
 
@@ -177,7 +178,9 @@ function RootComponent() {
   return (
     <RootDocument>
       <ConsentAwareAnalytics>
-        {accountGate === "public" || accountGate === "active" ? <Outlet /> : gateContent}
+        <OneSignalProvider>
+          {accountGate === "public" || accountGate === "active" ? <Outlet /> : gateContent}
+        </OneSignalProvider>
       </ConsentAwareAnalytics>
     </RootDocument>
   );

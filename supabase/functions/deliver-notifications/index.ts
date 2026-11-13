@@ -1,11 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { PermanentDeliveryError, providerHttpError } from "./shared/delivery-errors.ts";
+import { buildOneSignalPayload, renderPushMessage, type PushMessage } from "../_shared/onesignal-push-policy.ts";
 
 type EventRow = {
   id: string;
   user_id: string;
-  channel: "email" | "sms";
+  channel: "email" | "sms" | "push";
   event_type: string;
   payload: Record<string, unknown>;
 };
@@ -110,6 +111,27 @@ async function sendEmail(apiKey: string, from: string, to: string, message: Rend
   return String(body.id ?? "");
 }
 
+async function sendPush(
+  appId: string,
+  restApiKey: string,
+  externalId: string,
+  eventId: string,
+  message: PushMessage,
+  appOrigin: string,
+) {
+  const payload = buildOneSignalPayload(appId, externalId, eventId, message, appOrigin);
+  const response = await fetch("https://api.onesignal.com/notifications", {
+    method: "POST",
+    headers: { Authorization: `Key ${restApiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw providerHttpError("OneSignal", response.status, result);
+  const providerId = String(result.id ?? "");
+  if (!providerId || Number(result.recipients ?? 1) === 0) throw new PermanentDeliveryError("No active OneSignal subscriptions");
+  return providerId;
+}
+
 async function sendSms(accountSid: string, authToken: string, from: string, to: string, body: string) {
   const payload = new URLSearchParams({ To: to, From: from, Body: body });
   const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
@@ -167,11 +189,27 @@ Deno.serve(async (req: Request) => {
   const twilioSid = Deno.env.get("TWILIO_ACCOUNT_SID");
   const twilioToken = Deno.env.get("TWILIO_AUTH_TOKEN");
   const twilioFrom = Deno.env.get("TWILIO_FROM_NUMBER");
+  const oneSignalAppId = Deno.env.get("ONESIGNAL_APP_ID");
+  const oneSignalRestApiKey = Deno.env.get("ONESIGNAL_REST_API_KEY");
+  const appOrigin = Deno.env.get("APP_ORIGIN");
+  let validAppOrigin = "";
+  if (appOrigin) {
+    try {
+      const parsed = new URL(appOrigin);
+      if ((parsed.protocol === "https:" || parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") &&
+          parsed.pathname === "/" && !parsed.search && !parsed.hash && !parsed.username && !parsed.password) {
+        validAppOrigin = parsed.origin;
+      }
+    } catch {
+      validAppOrigin = "";
+    }
+  }
   const channels: string[] = [];
   if (resendKey && resendFrom) channels.push("email");
   if (twilioSid && twilioToken && twilioFrom) channels.push("sms");
+  if (oneSignalAppId && oneSignalRestApiKey && validAppOrigin) channels.push("push");
   if (channels.length === 0) {
-    return jsonResponse({ error: "No delivery provider is configured. Add Resend and/or Twilio secrets before processing the queue." }, 503);
+    return jsonResponse({ error: "No delivery provider is configured. Add Resend, Twilio or OneSignal secrets before processing the queue." }, 503);
   }
 
   let batchSize = 25;
@@ -199,27 +237,52 @@ Deno.serve(async (req: Request) => {
   for (const event of (claimed ?? []) as EventRow[]) {
     let providerAccepted = false;
     try {
-      const [{ data: player, error: playerError }, { data: profile, error: profileError }] = await Promise.all([
-        service.from("players").select("full_name,email,phone").eq("user_id", event.user_id).maybeSingle(),
-        service.from("profiles").select("phone").eq("id", event.user_id).maybeSingle(),
-      ]);
-      if (playerError || profileError) throw new Error("Unable to load notification recipient details");
-      const message = renderMessage(event);
       let providerReference = "";
 
-      if (event.channel === "email") {
-        const email = String(player?.email ?? "").trim();
-        if (!email) throw new PermanentDeliveryError("Recipient email is missing");
-        if (!resendKey || !resendFrom) throw new Error("Resend configuration is missing");
-        providerReference = await sendEmail(resendKey, resendFrom, email, message);
+      if (event.channel === "push") {
+        if (!oneSignalAppId || !oneSignalRestApiKey || !validAppOrigin) {
+          throw new Error("OneSignal configuration is incomplete");
+        }
+        const { data: pushPreference, error: preferenceError } = await service
+          .from("notification_preferences")
+          .select("push_enabled")
+          .eq("user_id", event.user_id)
+          .maybeSingle();
+        if (preferenceError) throw new Error("Unable to verify recipient push preference");
+        if (pushPreference?.push_enabled !== true) {
+          throw new PermanentDeliveryError("Push disabled by recipient");
+        }
+        providerReference = await sendPush(
+          oneSignalAppId,
+          oneSignalRestApiKey,
+          event.user_id,
+          event.id,
+          renderPushMessage(event.event_type),
+          validAppOrigin,
+        );
         providerAccepted = true;
       } else {
-        const rawPhone = String(player?.phone ?? profile?.phone ?? "").trim();
-        const phone = normaliseUkPhone(rawPhone);
-        if (!phone) throw new PermanentDeliveryError("Recipient phone is missing or invalid");
-        if (!twilioSid || !twilioToken || !twilioFrom) throw new Error("Twilio configuration is incomplete");
-        providerReference = await sendSms(twilioSid, twilioToken, twilioFrom, phone, message.text);
-        providerAccepted = true;
+        const [{ data: player, error: playerError }, { data: profile, error: profileError }] = await Promise.all([
+          service.from("players").select("full_name,email,phone").eq("user_id", event.user_id).maybeSingle(),
+          service.from("profiles").select("phone").eq("id", event.user_id).maybeSingle(),
+        ]);
+        if (playerError || profileError) throw new Error("Unable to load notification recipient details");
+        const message = renderMessage(event);
+
+        if (event.channel === "email") {
+          const email = String(player?.email ?? "").trim();
+          if (!email) throw new PermanentDeliveryError("Recipient email is missing");
+          if (!resendKey || !resendFrom) throw new Error("Resend configuration is missing");
+          providerReference = await sendEmail(resendKey, resendFrom, email, message);
+          providerAccepted = true;
+        } else {
+          const rawPhone = String(player?.phone ?? profile?.phone ?? "").trim();
+          const phone = normaliseUkPhone(rawPhone);
+          if (!phone) throw new PermanentDeliveryError("Recipient phone is missing or invalid");
+          if (!twilioSid || !twilioToken || !twilioFrom) throw new Error("Twilio configuration is incomplete");
+          providerReference = await sendSms(twilioSid, twilioToken, twilioFrom, phone, message.text);
+          providerAccepted = true;
+        }
       }
 
       const { error: completeError } = await service.rpc("complete_notification_event", {
@@ -234,6 +297,9 @@ Deno.serve(async (req: Request) => {
         await service.rpc("mark_notification_event_unconfirmed", { p_event_id: event.id, p_error: errorText });
         summary.unconfirmed += 1;
       } else if (cause instanceof PermanentDeliveryError) {
+        if (event.channel === "push" && errorText.includes("No active OneSignal subscriptions")) {
+          await service.from("notification_preferences").update({ push_enabled: false, updated_at: new Date().toISOString() }).eq("user_id", event.user_id);
+        }
         await service.rpc("fail_notification_event_permanent", { p_event_id: event.id, p_error: errorText });
         summary.failed += 1;
       } else {
