@@ -3280,6 +3280,8 @@ export type Database = {
           badge_path: string | null
           created_at: string
           id: string
+          instagram_handle: string | null
+          instagram_url: string | null
           name: string
           primary_colour: string | null
           registration_status: Database["public"]["Enums"]["registration_status"]
