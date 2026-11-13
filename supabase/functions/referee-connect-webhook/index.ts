@@ -65,13 +65,20 @@ Deno.serve(async(req)=>{
           });
           if(error)throw new Error(error.message);
         }else{
-          const {error}=await serviceClient.rpc("record_referee_payout_transfer_failure",{
+          const {data:reversalStatus,error}=await serviceClient.rpc("record_referee_payout_transfer_failure",{
             p_payout_type:payoutType,p_payout_id:payoutId,
             p_failure_reason:"Stripe reported that the referee transfer was reversed",
             p_transfer_reversed:true,
             p_stripe_transfer_id:object.id,
           });
           if(error)throw new Error(error.message);
+          // An unmatched reversal is not acknowledged. Stripe will retry the
+          // same event after transfer.created has linked the transfer to its payout.
+          // A stale reversal is safe to acknowledge only after SQL records it in
+          // the historical attempt, without changing a newer successful payout.
+          if(reversalStatus==="unmatched_reversal"){
+            throw new Error("Stripe reversal arrived before its transfer was linked; awaiting retry");
+          }
         }
       }
     }
