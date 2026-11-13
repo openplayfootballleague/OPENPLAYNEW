@@ -19,8 +19,8 @@ export function validateProductAnalyticsFilters(filters: ProductAnalyticsFilters
   const from = Date.parse(`${filters.fromDate}T00:00:00.000Z`);
   const to = Date.parse(`${filters.toDate}T00:00:00.000Z`);
   if ((to - from) / 86_400_000 > 365) return "The reporting period cannot exceed 366 days.";
-  if (filters.seasonIds.length === 0 || filters.seasonIds.some((id) => !UUID.test(id))) {
-    return "No authorised competition seasons are available for product analytics.";
+  if (filters.seasonIds.some((id) => !UUID.test(id))) {
+    return "The reporting context contains an invalid competition season.";
   }
   return null;
 }
