@@ -40,7 +40,7 @@ type OperatingCost = {
   league_name: string | null;
   season_name: string | null;
 };
-type OperatingCostCategory = "venue_hire" | "referee_fees" | "equipment" | "marketing" | "insurance" | "software" | "travel" | "other";
+type OperatingCostCategory = "venue_hire" | "referee_fees" | "equipment" | "marketing" | "insurance" | "software" | "travel" | "adjustment" | "other";
 type GrowthRow = {
   bucket_date: string;
   account_signups: number | string | null;
@@ -417,8 +417,12 @@ function AdminAnalyticsPage() {
 
   async function saveOperatingCost() {
     const amountPence = Math.round(Number(costAmount) * 100);
-    if (!Number.isFinite(amountPence) || amountPence < 1 || amountPence > 100000000) {
-      setCostError("Enter a valid operating cost between £0.01 and £1,000,000.");
+    if (!Number.isFinite(amountPence) || amountPence === 0 || Math.abs(amountPence) > 100000000) {
+      setCostError("Enter a non-zero amount up to £1,000,000 in either direction.");
+      return;
+    }
+    if (amountPence < 0 && costCategory !== "adjustment") {
+      setCostError("Negative amounts are only allowed for adjustment or reversal entries.");
       return;
     }
     if (costDescription.trim().length < 3 || costReason.trim().length < 5 || !costDate) {
@@ -802,12 +806,12 @@ function AdminAnalyticsPage() {
           <p className="form-note">Recorded operating surplus = team receipts less team refunds, plus player-card net proceeds after refunds and Stripe fees, less recorded operating costs. It is not statutory profit and excludes unrecorded costs, tax and sponsorship income not entered into the ledger.</p>
           <section className="analytics-cost-entry">
             <h3>Record an operating cost</h3>
-            <p className="form-note">Costs are immutable finance records. Choose the current reporting context to associate this entry with a location, league or season; corrections must be recorded as a separate audited entry.</p>
+            <p className="form-note">Costs are immutable finance records. Choose the current reporting context to associate this entry with a location, league or season. Corrections are separate audited adjustment entries; negative amounts are accepted only for adjustments or reversals.</p>
             {costError && <p className="form-error" role="alert">{costError}</p>}
             <div className="analytics-cost-form">
-              <label>Amount (£)<input type="number" min="0.01" max="1000000" step="0.01" value={costAmount} onChange={(event) => setCostAmount(event.target.value)} placeholder="0.00" disabled={costSaving}/></label>
+              <label>Amount (£)<input type="number" max="1000000" step="0.01" value={costAmount} onChange={(event) => setCostAmount(event.target.value)} placeholder="0.00 (negative for adjustment)" disabled={costSaving}/></label>
               <label>Category<select value={costCategory} onChange={(event) => setCostCategory(event.target.value as OperatingCostCategory)} disabled={costSaving}>
-                <option value="venue_hire">Venue hire</option><option value="referee_fees">Referee fees</option><option value="equipment">Equipment</option><option value="marketing">Marketing</option><option value="insurance">Insurance</option><option value="software">Software</option><option value="travel">Travel</option><option value="other">Other</option>
+                <option value="venue_hire">Venue hire</option><option value="referee_fees">Referee fees</option><option value="equipment">Equipment</option><option value="marketing">Marketing</option><option value="insurance">Insurance</option><option value="software">Software</option><option value="travel">Travel</option><option value="adjustment">Adjustment / reversal</option><option value="other">Other</option>
               </select></label>
               <label>Date incurred<input type="date" max={new Date().toISOString().slice(0,10)} value={costDate} onChange={(event) => setCostDate(event.target.value)} disabled={costSaving}/></label>
               <label>Description<input type="text" maxLength={240} value={costDescription} onChange={(event) => setCostDescription(event.target.value)} placeholder="e.g. Friday venue hire" disabled={costSaving}/></label>
