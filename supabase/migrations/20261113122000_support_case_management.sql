@@ -15,7 +15,7 @@ create table public.support_cases (
   resolved_at timestamptz,
   resolved_by uuid references auth.users(id) on delete set null,
   constraint support_case_resolution_state_check check (
-    (status in ('resolved','closed') and resolved_at is not null and resolved_by is not null
+    (status in ('resolved','closed') and resolved_at is not null
       and length(btrim(coalesce(resolution_summary,'')))>=10)
     or (status not in ('resolved','closed') and resolved_at is null and resolved_by is null)
   )
@@ -45,8 +45,13 @@ end;
 $$;
 revoke all on function public.create_support_case_for_conversation() from public,anon,authenticated;
 
-insert into public.support_cases(conversation_id,created_by,status,created_at,updated_at)
-select c.id,c.created_by,case when c.closed_at is null then 'open' else 'closed' end,c.created_at,c.updated_at
+insert into public.support_cases(
+  conversation_id,created_by,status,created_at,updated_at,resolved_at,resolution_summary
+)
+select c.id,c.created_by,
+  case when c.closed_at is null then 'open' else 'closed' end,
+  c.created_at,c.updated_at,c.closed_at,
+  case when c.closed_at is null then null else 'Closed before support case tracking was introduced.' end
 from public.message_conversations c
 where c.kind='support' and c.created_by is not null
 on conflict(conversation_id) do nothing;
@@ -64,7 +69,7 @@ security definer
 set search_path=''
 as $$
 begin
-  if auth.uid() is null or not public.has_global_admin_role()
+  if auth.uid() is null or not exists(select 1 from public.user_roles ur where ur.user_id=auth.uid() and ur.role in ('admin','super_admin'))
     or not public.message_actor_is_active(auth.uid()) then
     raise exception 'Global administrator permission required';
   end if;
@@ -110,7 +115,7 @@ security definer
 set search_path=''
 as $$
 begin
-  if auth.uid() is null or not public.has_global_admin_role()
+  if auth.uid() is null or not exists(select 1 from public.user_roles ur where ur.user_id=auth.uid() and ur.role in ('admin','super_admin'))
     or not public.message_actor_is_active(auth.uid()) then
     raise exception 'Global administrator permission required';
   end if;
@@ -171,7 +176,7 @@ declare
   v_before jsonb;
   v_after jsonb;
 begin
-  if v_actor is null or not public.has_global_admin_role()
+  if v_actor is null or not exists(select 1 from public.user_roles ur where ur.user_id=auth.uid() and ur.role in ('admin','super_admin'))
     or not public.message_actor_is_active(v_actor) then
     raise exception 'Global administrator permission required';
   end if;
