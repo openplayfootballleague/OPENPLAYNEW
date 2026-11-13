@@ -59,11 +59,17 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
       if (typeof deviceData.pushEnabled === "boolean") {
         setPreferences((current) => current ? { ...current, push_enabled: deviceData.pushEnabled } : current);
       }
-      try {
-        const sdk = await loadOneSignal();
-        setCurrentSubscriptionId(sdk.User.PushSubscription.id ?? null);
-      } catch {
-        setCurrentSubscriptionId(null);
+      if (deviceData.pushEnabled === true) {
+        try {
+          const sdk = await loadOneSignal();
+          setCurrentSubscriptionId(sdk.User.PushSubscription.id ?? null);
+        } catch {
+          setCurrentSubscriptionId(null);
+        }
+      } else {
+        // Do not initialise the optional SDK merely to display settings for an
+        // account that has not opted into push.
+        setCurrentSubscriptionId(window.OneSignal?.User.PushSubscription.id ?? null);
       }
     } else {
       setDevices([]);
