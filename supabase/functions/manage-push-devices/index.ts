@@ -18,7 +18,7 @@ function json(body: unknown, status = 200, allowedOrigin = "null") {
     headers: {
       "Access-Control-Allow-Origin": allowedOrigin,
       "Vary": "Origin",
-      "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+      "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-api-version",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Content-Type": "application/json",
     },
