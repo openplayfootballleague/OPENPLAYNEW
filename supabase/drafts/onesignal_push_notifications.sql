@@ -214,40 +214,9 @@ begin
 end;
 $$;
 
-create or replace function public.fail_notification_event(p_event_id uuid,p_error text)
-returns public.notification_events
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_event public.notification_events;
-  v_max_attempts integer;
-  v_delay integer;
-  v_permanent boolean := left(coalesce(p_error,''),10) = 'Permanent:';
-begin
-  if coalesce(auth.role(),'') <> 'service_role' then raise exception 'Service role required'; end if;
-  select * into v_event from public.notification_events where id=p_event_id for update;
-  if not found or v_event.status <> 'sending' then raise exception 'Notification event is not currently sending'; end if;
-  v_max_attempts := case when v_event.manual_retry_used then v_event.attempt_count else 5 end;
-  v_delay := least(5*power(2,greatest(v_event.attempt_count-1,0)),240)::integer;
-  update public.notification_events
-  set status = case when v_permanent or v_event.attempt_count >= v_max_attempts then 'failed' else 'queued' end,
-      next_attempt_at = case when v_permanent or v_event.attempt_count >= v_max_attempts
-        then next_attempt_at else now()+make_interval(mins=>v_delay) end,
-      last_error = left(coalesce(p_error,'Delivery failed without an error message.'),2000),
-      locked_at = null,
-      updated_at = now()
-  where id=p_event_id returning * into v_event;
-  return v_event;
-end;
-$$;
-
 revoke all on function public.notification_category_for_event(text) from public,anon,authenticated;
 revoke all on function public.update_my_notification_category_preferences(jsonb) from public,anon;
 grant execute on function public.update_my_notification_category_preferences(jsonb) to authenticated;
 revoke all on function public.enqueue_notification_event(uuid,text,jsonb) from public,anon,authenticated;
 revoke all on function public.claim_notification_events(integer,text[]) from public,anon,authenticated;
 grant execute on function public.claim_notification_events(integer,text[]) to service_role;
-revoke all on function public.fail_notification_event(uuid,text) from public,anon,authenticated;
-grant execute on function public.fail_notification_event(uuid,text) to service_role;
