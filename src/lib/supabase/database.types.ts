@@ -1339,6 +1339,12 @@ export type Database = {
       seasons: {
         Row: {
           created_at: string
+          default_venue_id: string | null
+          matchday_weekday: number | null
+          matchday_start_time: string | null
+          match_duration_minutes: number | null
+          matchday_buffer_minutes: number
+          round_robin_mode: string
           ends_on: string | null
           id: string
           is_public: boolean
@@ -1358,6 +1364,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          default_venue_id?: string | null
+          matchday_weekday?: number | null
+          matchday_start_time?: string | null
+          match_duration_minutes?: number | null
+          matchday_buffer_minutes?: number
+          round_robin_mode?: string
           ends_on?: string | null
           id?: string
           is_public?: boolean
@@ -1377,6 +1389,12 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          default_venue_id?: string | null
+          matchday_weekday?: number | null
+          matchday_start_time?: string | null
+          match_duration_minutes?: number | null
+          matchday_buffer_minutes?: number
+          round_robin_mode?: string
           ends_on?: string | null
           id?: string
           is_public?: boolean
@@ -1400,6 +1418,13 @@ export type Database = {
             columns: ["league_id"]
             isOneToOne: false
             referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seasons_default_venue_id_fkey"
+            columns: ["default_venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
             referencedColumns: ["id"]
           },
         ]
@@ -1934,6 +1959,33 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+
+      admin_update_season_matchday_settings: {
+        Args: {
+          p_season_id: string
+          p_matchday_weekday: number | null
+          p_matchday_start_time: string | null
+          p_match_duration_minutes: number | null
+          p_matchday_buffer_minutes?: number
+          p_default_venue_id?: string | null
+          p_round_robin_mode?: string
+        }
+        Returns: Database["public"]["Tables"]["seasons"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "seasons"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_preview_round_robin_fixtures: {
+        Args: { p_season_id: string; p_first_matchday_date: string }
+        Returns: Json
+      }
+      admin_generate_round_robin_fixtures: {
+        Args: { p_season_id: string; p_first_matchday_date: string }
+        Returns: Json
       }
       admin_create_fixture: {
         Args: {
