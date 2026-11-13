@@ -63,6 +63,16 @@ describe("admin analytics aggregation", () => {
     ]);
   });
 
+  it("calculates team win rate and points per game without dividing by zero", () => {
+    expect(buildCompetitionTeamPerformance([
+      { position: 1, team_id: "team-a", name: "A", played: 4, wins: 3, draws: 1, losses: 0, goals_for: 12, goals_against: 5, goal_difference: 7, points: 10, clean_sheets: 2 },
+      { position: 2, team_id: "team-b", name: "B", played: 0, wins: 0, draws: 0, losses: 0, goals_for: 0, goals_against: 0, goal_difference: 0, points: 0, clean_sheets: 0 },
+    ])).toEqual([
+      { position: 1, team_id: "team-a", name: "A", played: 4, wins: 3, draws: 1, losses: 0, goals_for: 12, goals_against: 5, goal_difference: 7, points: 10, clean_sheets: 2, winRatePercent: 75, pointsPerGame: 2.5 },
+      { position: 2, team_id: "team-b", name: "B", played: 0, wins: 0, draws: 0, losses: 0, goals_for: 0, goals_against: 0, goal_difference: 0, points: 0, clean_sheets: 0, winRatePercent: null, pointsPerGame: null },
+    ]);
+  });
+
   it("calculates result publication coverage from completed fixtures only", () => {
     const setupWithUnpublishedCompleted: AnalyticsSetup = {
       ...setup,
