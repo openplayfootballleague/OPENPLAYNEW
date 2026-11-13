@@ -20,6 +20,7 @@ const expectedMigrations = [
   "optional_goal_attribution",
   "admin_league_admin_role_management",
   "manual_season_recruitment_activation",
+  "finance_operating_costs_and_business_performance",
   "admin_analytics_user_growth",
   "admin_analytics_registration_conversion",
   "admin_product_analytics_scope",
