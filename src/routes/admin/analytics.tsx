@@ -116,6 +116,7 @@ function AdminAnalyticsPage() {
   const [costReference, setCostReference] = useState("");
   const [costNotes, setCostNotes] = useState("");
   const [costReason, setCostReason] = useState("");
+  const [costError, setCostError] = useState("");
   const [costSaving, setCostSaving] = useState(false);
   const [growthRows, setGrowthRows] = useState<GrowthRow[]>([]);
   const [growthError, setGrowthError] = useState("");
@@ -417,15 +418,15 @@ function AdminAnalyticsPage() {
   async function saveOperatingCost() {
     const amountPence = Math.round(Number(costAmount) * 100);
     if (!Number.isFinite(amountPence) || amountPence < 1 || amountPence > 100000000) {
-      setBusinessError("Enter a valid operating cost between £0.01 and £1,000,000.");
+      setCostError("Enter a valid operating cost between £0.01 and £1,000,000.");
       return;
     }
     if (costDescription.trim().length < 3 || costReason.trim().length < 5 || !costDate) {
-      setBusinessError("Enter a description, date and reason for recording this cost.");
+      setCostError("Enter a description, date and reason for recording this cost.");
       return;
     }
     setCostSaving(true);
-    setBusinessError("");
+    setCostError("");
     setNotice("");
     try {
       const { error: rpcError } = await analyticsRpc().rpc("admin_create_operating_cost", {
@@ -441,6 +442,7 @@ function AdminAnalyticsPage() {
         p_reason: costReason.trim(),
       });
       if (rpcError) throw new Error(rpcError.message);
+      setCostError("");
       setNotice("Operating cost recorded and added to the finance audit history.");
       setCostAmount("");
       setCostDescription("");
@@ -449,7 +451,7 @@ function AdminAnalyticsPage() {
       setCostReason("");
       await loadContextData();
     } catch (cause) {
-      setBusinessError(cause instanceof Error ? cause.message : "Unable to record the operating cost.");
+      setCostError(cause instanceof Error ? cause.message : "Unable to record the operating cost.");
     } finally {
       setCostSaving(false);
     }
@@ -472,7 +474,7 @@ function AdminAnalyticsPage() {
       ["Pending team applications", overview.pendingTeamApplications],
       ["Pending join requests", overview.pendingMembershipRequests],
     ];
-    if (financeAccess && !financeError) {
+    if (financeAccess && !financeError && financeRows.length > 0) {
       rows.push(
         ["Ledger charges (pence)", financeTotals.chargesPence],
         ["Ledger payments (pence)", financeTotals.paymentsPence],
@@ -502,7 +504,7 @@ function AdminAnalyticsPage() {
       );
     }
     if (financeAccess && operatingCosts.length > 0) {
-      rows.push([], ["Recorded operating costs", "Category", "Description", "Amount (pence)", "Date", "Location", "League", "Season"]);
+      rows.push([], ["Cost ID", "Category", "Description", "Amount (pence)", "Date", "Location", "League", "Season"]);
       for (const cost of operatingCosts) {
         rows.push([
           cost.id,
@@ -802,6 +804,7 @@ function AdminAnalyticsPage() {
           <section className="analytics-cost-entry">
             <h3>Record an operating cost</h3>
             <p className="form-note">Costs are immutable finance records. Choose the current reporting context to associate this entry with a location, league or season; corrections must be recorded as a separate audited entry.</p>
+            {costError && <p className="form-error" role="alert">{costError}</p>}
             <div className="analytics-cost-form">
               <label>Amount (£)<input type="number" min="0.01" max="1000000" step="0.01" value={costAmount} onChange={(event) => setCostAmount(event.target.value)} placeholder="0.00" disabled={costSaving}/></label>
               <label>Category<select value={costCategory} onChange={(event) => setCostCategory(event.target.value as OperatingCostCategory)} disabled={costSaving}>
@@ -878,7 +881,7 @@ function AdminAnalyticsPage() {
       {financeAccess && !financeError && <p>Ledger charges: {money(financeTotals.chargesPence)} · Payments: {money(financeTotals.paymentsPence)} · Refunds: {money(financeTotals.refundsPence)} · Fines: {money(financeTotals.finesPence)} · Outstanding: {money(financeTotals.outstandingPence)}</p>}
       <p>Generated {new Date().toLocaleString("en-GB")}. Aggregate operational data only; no player personal details included.</p>
     </section>
-    <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs for operational and financial truth; consented PostHog aggregates for product engagement and feature performance. Fixture reporting window: {fromDate || toDate ? `${fromDate || "Any date"} to ${toDate || "Any date"}` : "all dates"} within the selected season or accessible context. Team and queue figures are current snapshots; finance figures are ledger totals for the selected season. PostHog reporting requires the server-side project query credential and sufficient consented activity.</p>
+    <p className="analytics-footnote">Reporting source: permission-checked Supabase RPCs for operational and financial truth; consented PostHog aggregates for product engagement and feature performance. Reporting window: {fromDate || toDate ? `${fromDate || "Any date"} to ${toDate || "Any date"}` : "all dates"} within the selected context. Team and queue figures are current snapshots; business performance combines team ledger entries, player-card proceeds, future team obligations and recorded operating costs. PostHog reporting requires the server-side project query credential and sufficient consented activity.</p>
     <Link className="auth-switch" to="/admin">← BACK TO ADMIN DASHBOARD</Link>
   </section></main>;
 }
