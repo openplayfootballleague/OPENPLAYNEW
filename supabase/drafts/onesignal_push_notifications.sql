@@ -110,7 +110,7 @@ begin
 
   v_dedupe := p_event_type || ':' ||
     coalesce(p_payload->>'fixture_id',p_payload->>'membership_id',p_payload->>'season_team_id','event') ||
-    ':' || p_user_id::text;
+    ':' || coalesce(p_payload->>'scheduled_at','') || ':' || p_user_id::text;
 
   if v_preferences.email_enabled then
     insert into public.notification_events(user_id,channel,event_type,status,payload,dedupe_key)
@@ -134,6 +134,53 @@ begin
   end if;
 end;
 $$;
+
+-- Keep fixture changes cancelling queued push reminders as well as email/SMS.
+create or replace function public.notify_fixture_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare v_event text; v_payload jsonb; v_user uuid;
+begin
+  if tg_op='INSERT' then
+    v_event:='fixture.scheduled';
+  elsif old.status is distinct from new.status then
+    update public.notification_events
+    set status='cancelled',last_error='Fixture changed; reminder is no longer valid.',updated_at=now()
+    where payload->>'fixture_id'=new.id::text
+      and event_type in ('fixture.reminder_24h','fixture.reminder_3h')
+      and ((channel in ('email','sms','push') and status in ('queued','held'))
+        or (channel='in_app' and status='sent' and read_at is null));
+    if new.status='completed' then return new; end if;
+    v_event:='fixture.status_changed';
+  elsif old.scheduled_at is distinct from new.scheduled_at then
+    update public.notification_events
+    set status='cancelled',last_error='Fixture time changed; reminder is no longer valid.',updated_at=now()
+    where payload->>'fixture_id'=new.id::text
+      and event_type in ('fixture.reminder_24h','fixture.reminder_3h')
+      and ((channel in ('email','sms','push') and status in ('queued','held'))
+        or (channel='in_app' and status='sent' and read_at is null));
+    v_event:='fixture.rescheduled';
+  else
+    return new;
+  end if;
+  v_payload:=jsonb_build_object(
+    'fixture_id',new.id,'gameweek',new.gameweek,'scheduled_at',new.scheduled_at,
+    'status',new.status,
+    'home_team_name',(select name from public.season_teams where id=new.home_team_id),
+    'away_team_name',(select name from public.season_teams where id=new.away_team_id)
+  );
+  for v_user in
+    select distinct tm.user_id from public.team_memberships tm
+    where tm.season_team_id in (new.home_team_id,new.away_team_id) and tm.status='active'
+  loop
+    perform public.enqueue_notification_event(v_user,v_event,v_payload);
+  end loop;
+  return new;
+end;
+$;
 
 drop function if exists public.claim_notification_events(integer);
 create or replace function public.claim_notification_events(
