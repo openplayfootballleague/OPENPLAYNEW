@@ -46,7 +46,7 @@ export function buildOneSignalPayload(
   if (origin.protocol !== "https:" && origin.hostname !== "localhost" && origin.hostname !== "127.0.0.1") {
     throw new Error("Push notification app origin must use HTTPS");
   }
-  if (!origin.hostname || origin.username || origin.password || origin.search || origin.hash) {
+  if (!origin.hostname || origin.pathname !== "/" || origin.username || origin.password || origin.search || origin.hash) {
     throw new Error("Push notification app origin is invalid");
   }
   const targetUrl = new URL(message.path, origin.origin).toString();
