@@ -210,30 +210,30 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
   }
 
   return (
-    <section className="account-settings-section" aria-labelledby="notification-settings-heading">
-      <div className="account-settings-section-heading">
+    <section className="account-security-section push-notification-settings" aria-labelledby="notification-settings-heading">
+      <div className="push-notification-settings-heading">
         <p className="eyebrow">NOTIFICATIONS</p>
         <h2 id="notification-settings-heading">Notification preferences</h2>
         <p>Choose how Open Play contacts you. Critical account-security alerts remain enabled.</p>
       </div>
       {loading ? <p role="status">Loading notification preferences…</p> : error && !preferences ? <p className="form-error" role="alert">{error}</p> : preferences ? <>
-        <div className="settings-toggle-list">
-          <label className="settings-toggle"><span><strong>In-app notifications</strong><small>Updates in your Open Play notification centre.</small></span><input type="checkbox" checked={preferences.in_app_enabled} disabled={busy} onChange={(event) => void updateChannel("in_app_enabled", event.target.checked)} /></label>
-          <label className="settings-toggle"><span><strong>Email notifications</strong><small>Updates sent to your registered email address.</small></span><input type="checkbox" checked={preferences.email_enabled} disabled={busy} onChange={(event) => void updateChannel("email_enabled", event.target.checked)} /></label>
-          <label className="settings-toggle"><span><strong>SMS notifications</strong><small>Text messages to your verified mobile number, where available.</small></span><input type="checkbox" checked={preferences.sms_enabled} disabled={busy} onChange={(event) => void updateChannel("sms_enabled", event.target.checked)} /></label>
+        <div className="push-push-settings-toggle-list">
+          <label className="push-settings-toggle"><span><strong>In-app notifications</strong><small>Updates in your Open Play notification centre.</small></span><input type="checkbox" checked={preferences.in_app_enabled} disabled={busy} onChange={(event) => void updateChannel("in_app_enabled", event.target.checked)} /></label>
+          <label className="push-settings-toggle"><span><strong>Email notifications</strong><small>Updates sent to your registered email address.</small></span><input type="checkbox" checked={preferences.email_enabled} disabled={busy} onChange={(event) => void updateChannel("email_enabled", event.target.checked)} /></label>
+          <label className="push-settings-toggle"><span><strong>SMS notifications</strong><small>Text messages to your verified mobile number, where available.</small></span><input type="checkbox" checked={preferences.sms_enabled} disabled={busy} onChange={(event) => void updateChannel("sms_enabled", event.target.checked)} /></label>
         </div>
-        <div className="settings-subsection">
+        <div className="push-settings-subsection">
           <h3>Notification categories</h3>
           <p>These choices apply to match, team, club, competition and support updates. Critical account-security messages cannot be switched off.</p>
-          <div className="settings-toggle-list">
-            {CATEGORY_LABELS.map((category) => <label className="settings-toggle" key={category.key}><span><strong>{category.label}</strong><small>{category.description}</small></span><input type="checkbox" checked={preferences.category_preferences?.[category.key] !== false} disabled={busy} onChange={(event) => void updateCategory(category.key, event.target.checked)} /></label>)}
+          <div className="push-push-settings-toggle-list">
+            {CATEGORY_LABELS.map((category) => <label className="push-settings-toggle" key={category.key}><span><strong>{category.label}</strong><small>{category.description}</small></span><input type="checkbox" checked={preferences.category_preferences?.[category.key] !== false} disabled={busy} onChange={(event) => void updateCategory(category.key, event.target.checked)} /></label>)}
           </div>
         </div>
-        <div className="settings-subsection">
+        <div className="push-settings-subsection">
           <h3>Push notifications &amp; devices</h3>
           {!isOneSignalConfigured() ? <p className="form-note">Push notifications are not yet configured for this Open Play environment. Email, SMS and in-app preferences remain available.</p> : <>
             <p>Push is optional. Enable it on each browser you use. Open Play can send to multiple registered devices linked to this account.</p>
-            <div className="settings-action-row">
+            <div className="push-settings-action-row">
               {preferences.push_enabled
                 ? <button type="button" className="button button-secondary" disabled={busy} onClick={() => void disablePush()}>DISABLE PUSH ON ALL DEVICES</button>
                 : <button type="button" className="button" disabled={busy} onClick={() => void enablePush()}>ENABLE PUSH ON THIS DEVICE</button>}
