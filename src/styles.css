@@ -1486,3 +1486,21 @@ a { color: inherit; text-decoration: none; }
 
 .match-meta span:last-child{flex:1;min-width:0;text-align:right;overflow-wrap:anywhere}
 @media(max-width:520px){.match-meta{flex-wrap:wrap}.match-meta span:last-child{flex-basis:100%;text-align:left}}
+
+.admin-fixture-generator{grid-column:1/-1;margin-top:18px;padding:18px;border:1px solid #d8d3c8;border-radius:14px;background:#f7f5ef;min-width:0}
+.admin-fixture-generator>.admin-section-heading{margin-bottom:14px}
+.admin-fixture-generator>.admin-section-heading p{margin:5px 0 0;color:#6f6b63;font-size:13px}
+.admin-fixture-generator-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;max-width:none}
+.admin-fixture-generator-form label{min-width:0}
+.admin-fixture-generator-actions{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
+.admin-fixture-preview{margin-top:18px;min-width:0}
+.admin-fixture-preview-summary{display:flex;align-items:center;gap:10px 18px;flex-wrap:wrap;margin-bottom:12px;font-size:13px}
+.admin-fixture-preview-summary strong{font-size:15px}
+.admin-fixture-preview-table-wrap{max-height:420px;overflow:auto;border:1px solid #dedbd3;border-radius:10px;background:#fff}
+.admin-fixture-preview-table{width:100%;border-collapse:collapse;min-width:620px}
+.admin-fixture-preview-table th,.admin-fixture-preview-table td{padding:9px 11px;border-bottom:1px solid #eeece6;text-align:left;font-size:12px;white-space:nowrap}
+.admin-fixture-preview-table th{position:sticky;top:0;background:#f3f1eb;z-index:1}
+.admin-fixture-generator-confirm{display:flex!important;grid-template-columns:none!important;align-items:flex-start;gap:9px;margin:14px 0;font-size:13px}
+.admin-fixture-generator-confirm input{width:auto;margin-top:2px}
+@media(max-width:760px){.admin-fixture-generator-form{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.admin-fixture-generator{padding:13px}.admin-fixture-generator-form{grid-template-columns:1fr}.admin-fixture-generator-actions{flex-direction:column}.admin-fixture-generator-actions button{width:100%}.admin-fixture-preview-table{min-width:560px}}
