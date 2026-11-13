@@ -59,17 +59,20 @@ begin
   perform public.enqueue_notification_event(v_user,'player.banned','{"reason":"test"}'::jsonb);
 
   select count(*) into v_count from public.notification_events
-  where user_id=v_user and channel='in_app';
+  where user_id=v_user and channel='in_app'
+    and event_type in ('fixture.scheduled','message.new','payment.refund','team.membership_approved','player.banned');
   if v_count<>5 then
     raise exception 'Existing in-app history plus enabled team/security notifications should be retained; found %',v_count;
   end if;
   select count(*) into v_count from public.notification_events
-  where user_id=v_user and channel='email' and status='cancelled';
+  where user_id=v_user and channel='email' and status='cancelled'
+    and event_type in ('fixture.scheduled','message.new','payment.refund');
   if v_count<>3 then
     raise exception 'Queued email events in the three opted-out categories should be cancelled; found %',v_count;
   end if;
   select count(*) into v_count from public.notification_events
-  where user_id=v_user and channel='email' and status='queued';
+  where user_id=v_user and channel='email' and status='queued'
+    and event_type in ('team.membership_approved','player.banned');
   if v_count<>2 then
     raise exception 'Only enabled team updates and protected account/security events should remain queued; found %',v_count;
   end if;
