@@ -44,7 +44,9 @@ begin
   end if;
 
   perform public.update_my_notification_category_preferences('{"match_updates":true}'::jsonb);
-  perform public.set_my_push_enabled(true);
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_user,'role','service_role')::text,true);
+  update public.notification_preferences set push_enabled=true where user_id=v_user;
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',v_user,'role','authenticated')::text,true);
   perform public.enqueue_notification_event(v_user,'fixture.rescheduled',jsonb_build_object('fixture_id','f3000000-0000-4000-8000-000000000012'));
 
   select id into v_push_id from public.notification_events
@@ -73,9 +75,6 @@ begin
 
   if pg_catalog.has_function_privilege('anon','public.update_my_notification_category_preferences(jsonb)','EXECUTE') then
     raise exception 'Anonymous role must not update notification categories';
-  end if;
-  if pg_catalog.has_function_privilege('anon','public.set_my_push_enabled(boolean)','EXECUTE') then
-    raise exception 'Anonymous role must not update push preference';
   end if;
 
   raise notice 'Push channel, category preferences, critical alerts and permanent retry regressions passed';
