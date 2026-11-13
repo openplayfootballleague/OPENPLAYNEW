@@ -109,7 +109,7 @@ function AdminAnalyticsPage() {
   const [costAmount, setCostAmount] = useState("");
   const [costCategory, setCostCategory] = useState<OperatingCostCategory>("venue_hire");
   const [costDescription, setCostDescription] = useState("");
-  const [costDate, setCostDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [costDate, setCostDate] = useState(() => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10));
   const [costReference, setCostReference] = useState("");
   const [costNotes, setCostNotes] = useState("");
   const [costReason, setCostReason] = useState("");
@@ -418,7 +418,7 @@ function AdminAnalyticsPage() {
         p_amount_pence: amountPence,
         p_category: costCategory,
         p_description: costDescription.trim(),
-        p_occurred_at: new Date(costDate + "T00:00:00.000Z").toISOString(),
+        p_occurred_at: new Date(costDate + "T12:00:00.000Z").toISOString(),
         p_location_id: locationId || null,
         p_league_id: leagueId || null,
         p_season_id: seasonId || null,
@@ -786,7 +786,7 @@ function AdminAnalyticsPage() {
               <label>Category<select value={costCategory} onChange={(event) => setCostCategory(event.target.value as OperatingCostCategory)} disabled={costSaving}>
                 <option value="venue_hire">Venue hire</option><option value="referee_fees">Referee fees</option><option value="equipment">Equipment</option><option value="marketing">Marketing</option><option value="insurance">Insurance</option><option value="software">Software</option><option value="travel">Travel</option><option value="adjustment">Adjustment / reversal</option><option value="other">Other</option>
               </select></label>
-              <label>Date incurred<input type="date" max={new Date().toISOString().slice(0,10)} value={costDate} onChange={(event) => setCostDate(event.target.value)} disabled={costSaving}/></label>
+              <label>Date incurred<input type="date" max={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0,10)} value={costDate} onChange={(event) => setCostDate(event.target.value)} disabled={costSaving}/></label>
               <label>Description<input type="text" maxLength={240} value={costDescription} onChange={(event) => setCostDescription(event.target.value)} placeholder="e.g. Friday venue hire" disabled={costSaving}/></label>
               <label>Reference · optional<input type="text" maxLength={120} value={costReference} onChange={(event) => setCostReference(event.target.value)} placeholder="Invoice or receipt reference" disabled={costSaving}/></label>
               <label>Notes · optional<textarea rows={2} maxLength={1000} value={costNotes} onChange={(event) => setCostNotes(event.target.value)} disabled={costSaving}/></label>
