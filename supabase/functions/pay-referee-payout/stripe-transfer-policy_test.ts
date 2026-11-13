@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { canMarkStripeTransferFailed } from "./stripe-transfer-policy.ts";
+import { canMarkStripeTransferFailed, stripeTransferIdempotencyKey } from "./stripe-transfer-policy.ts";
 
 Deno.test("ambiguous Stripe transfer responses remain processing", () => {
   for (const status of [408, 409, 429, 500, 502, 503, 504]) {
