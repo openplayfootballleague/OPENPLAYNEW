@@ -154,7 +154,7 @@ export function AdminVenueManager({ locations, venues, defaultLocationId, onSave
           <label>Closes at<input type="time" value={closesAt} onChange={(event) => setClosesAt(event.target.value)}/></label>
           <label className="admin-venue-active"><input type="checkbox" checked={isActive} onChange={(event) => setIsActive(event.target.checked)}/><span>Active for fixture scheduling</span></label>
         </div>
-        <p className="form-note">Times are interpreted in UK local time (Europe/London). A scheduled fixture must fall within the selected venue's configured operating days and hours.</p>
+        <p className="form-note">Times are interpreted in UK local time (Europe/London). Fixture start times must fall within the selected venue's configured operating days and hours.</p>
         {error && <p className="form-error" role="alert">{error}</p>}
         {notice && <p className="form-success" role="status">{notice}</p>}
         <div className="admin-venue-actions"><button type="submit" disabled={saving}>{saving ? "Saving…" : editingId ? "Save venue changes" : "Add venue"}</button>{editingId && <button type="button" className="button-secondary" onClick={resetForm} disabled={saving}>Cancel edit</button>}</div>
