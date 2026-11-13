@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRequiredSession } from "../../lib/auth/use-required-session";
-import { aggregateFinanceTotals, buildAnalyticsOverview, buildLocationComparisons, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup, type FinanceSummaryRow } from "../../lib/analytics/overview";
+import { aggregateFinanceTotals, buildAnalyticsOverview, buildLocationComparisons, safeCsvCell, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup, type FinanceSummaryRow } from "../../lib/analytics/overview";
 import { getSupabaseClient } from "../../lib/supabase/client";
 
 type ContextPreference = { location_id: string | null; league_id: string | null; season_id: string | null; is_global_admin: boolean };
@@ -49,7 +49,6 @@ type ProductAnalytics = {
 };
 
 const money = (pence: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
-const csvCell = (value: string | number) => '"' + String(value).replaceAll('"', '""') + '"';
 
 export const Route = createFileRoute("/admin/analytics")({ component: AdminAnalyticsPage });
 
@@ -429,7 +428,7 @@ function AdminAnalyticsPage() {
         rows.push([row.cohort_week, row.weeks_since_start, row.cohort_users, row.retained_users, row.retention_rate]);
       }
     }
-    const csv = rows.map((row) => row.map((cell) => csvCell(cell)).join(",")).join("\r\n");
+    const csv = rows.map((row) => row.map((cell) => safeCsvCell(cell)).join(",")).join("\r\n");
     const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
