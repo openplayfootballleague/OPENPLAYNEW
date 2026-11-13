@@ -34,7 +34,7 @@ alter table public.message_conversations
       and (
         (support_status in ('open','in_progress') and resolved_by is null and resolved_at is null and resolution_note is null)
         or
-        (support_status in ('resolved','closed') and resolved_by is not null and resolved_at is not null
+        (support_status in ('resolved','closed') and resolved_at is not null
           and length(btrim(coalesce(resolution_note,'')))>=5)
       )
     )
@@ -148,8 +148,11 @@ as $$
 declare
   v_user uuid:=auth.uid();
 begin
-  if v_user is null or not public.has_platform_role() or not public.message_actor_is_active(v_user) then
-    raise exception 'Administrator permission required';
+  if v_user is null or not public.message_actor_is_active(v_user) then
+    raise exception 'Active Open Play account required';
+  end if;
+  if not exists(select 1 from public.user_roles ur where ur.user_id=v_user and ur.role in ('admin','super_admin')) then
+    return;
   end if;
   if p_status is null or p_status not in ('all','open','in_progress','resolved','closed') then
     raise exception 'Unsupported support-case status filter';
@@ -191,14 +194,17 @@ set search_path=''
 as $$
 declare v_user uuid:=auth.uid();
 begin
-  if v_user is null or not public.has_platform_role() or not public.message_actor_is_active(v_user) then
-    raise exception 'Administrator permission required';
+  if v_user is null or not public.message_actor_is_active(v_user) then
+    raise exception 'Active Open Play account required';
+  end if;
+  if not exists(select 1 from public.user_roles ur where ur.user_id=v_user and ur.role in ('admin','super_admin')) then
+    return;
   end if;
   return query
   select distinct ur.user_id,coalesce(p.display_name,'Open Play administrator')
   from public.user_roles ur
   join public.profiles p on p.id=ur.user_id
-  where ur.role in ('admin','super_admin','league_admin','finance_admin')
+  where ur.role in ('admin','super_admin')
     and public.message_actor_is_active(ur.user_id)
   order by 2;
 end;
@@ -226,8 +232,9 @@ declare
   v_resolved_by uuid;
   v_resolved_at timestamptz;
 begin
-  if v_user is null or not public.has_platform_role() or not public.message_actor_is_active(v_user) then
-    raise exception 'Administrator permission required';
+  if v_user is null or not public.message_actor_is_active(v_user)
+     or not exists(select 1 from public.user_roles ur where ur.user_id=v_user and ur.role in ('admin','super_admin')) then
+    raise exception 'Global administrator permission required';
   end if;
   if p_status is null or p_status not in ('open','in_progress','resolved','closed') then
     raise exception 'Unsupported support-case status';
@@ -238,7 +245,7 @@ begin
   if p_assigned_to is not null and not exists (
     select 1 from public.user_roles ur
     where ur.user_id=p_assigned_to
-      and ur.role in ('admin','super_admin','league_admin','finance_admin')
+      and ur.role in ('admin','super_admin')
       and public.message_actor_is_active(ur.user_id)
   ) then
     raise exception 'Support cases can only be assigned to an active administrator';
