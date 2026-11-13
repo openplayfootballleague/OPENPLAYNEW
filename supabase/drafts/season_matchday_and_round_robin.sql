@@ -420,9 +420,6 @@ begin
         raise exception 'The fixture is after the season end date';
       end if;
       v_day:=extract(dow from v_local_scheduled)::smallint;
-      if v_season.matchday_weekday is not null and v_day<>v_season.matchday_weekday then
-        raise exception 'The fixture does not fall on the season matchday';
-      end if;
       if cardinality(v_venue.operating_days)>0 and not (v_day=any(v_venue.operating_days)) then
         raise exception 'The selected venue is not operating on the scheduled day';
       end if;
