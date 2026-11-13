@@ -2813,17 +2813,17 @@ export type Database = {
           p_season_id?: string
         }
         Returns: {
-          away_score: number
+          away_score: number | null
           away_team_id: string
           away_team_name: string
           fixture_number: number
           gameweek: number
-          home_score: number
+          home_score: number | null
           home_team_id: string
           home_team_name: string
           id: string
-          notes: string
-          scheduled_at: string
+          notes: string | null
+          scheduled_at: string | null
           season_id: string
           season_name: string
           status: string
