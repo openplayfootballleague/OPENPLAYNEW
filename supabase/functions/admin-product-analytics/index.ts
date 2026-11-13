@@ -112,7 +112,11 @@ Deno.serve(async (request: Request) => {
 
   let input: RequestFilters;
   try {
-    input = await request.json() as RequestFilters;
+    const body = await request.json();
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return json({ error: "Invalid request body" }, 400, allowedOrigin);
+    }
+    input = body as RequestFilters;
   } catch {
     return json({ error: "Invalid request body" }, 400, allowedOrigin);
   }
@@ -127,7 +131,7 @@ Deno.serve(async (request: Request) => {
   // This RPC is the authority for the caller's administrator role and accessible
   // competition scope. Never trust location, league or season IDs supplied by UI.
   const { data: setupData, error: setupError } = await userClient.rpc("get_admin_competition_setup");
-  if (setupError || !setupData || typeof setupData !== "object") {
+  if (setupError || !setupData || typeof setupData !== "object" || Array.isArray(setupData)) {
     return json({ error: "Administrator reporting access is required" }, 403, allowedOrigin);
   }
   const setup = setupData as Setup;
