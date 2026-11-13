@@ -115,6 +115,13 @@ Deno.serve(async (request: Request) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
+  const { data: profile, error: profileError } = await service.from("profiles")
+    .select("account_retention_status").eq("id", user.id).maybeSingle();
+  if (profileError || !profile) return respond({ error: "Unable to verify account status" }, 403);
+  if (action === "enable" && profile.account_retention_status !== "active") {
+    return respond({ error: "Push notifications are unavailable for this account status" }, 403);
+  }
+
   try {
     const subscriptions = await getOneSignalUser(appId, apiKey, user.id) ?? [];
     const pushSubscriptions = subscriptions.filter(isPushSubscription);
