@@ -40,10 +40,10 @@ begin
     ('f1000000-0000-4000-8000-000000000020','f1000000-0000-4000-8000-000000000010','Conversion League A','ci-conv-league-a',false),
     ('f1000000-0000-4000-8000-000000000021','f1000000-0000-4000-8000-000000000011','Conversion League B','ci-conv-league-b',false);
 
-  insert into public.seasons(id,league_id,name,season_number,is_public,status)
+  insert into public.seasons(id,league_id,name,season_number,is_public,status,recruitment_status)
   values
-    ('f1000000-0000-4000-8000-000000000030','f1000000-0000-4000-8000-000000000020','Conversion Season A',1,false,'registration_open'),
-    ('f1000000-0000-4000-8000-000000000031','f1000000-0000-4000-8000-000000000021','Conversion Season B',1,false,'registration_open');
+    ('f1000000-0000-4000-8000-000000000030','f1000000-0000-4000-8000-000000000020','Conversion Season A',1,false,'registration_open','open'),
+    ('f1000000-0000-4000-8000-000000000031','f1000000-0000-4000-8000-000000000021','Conversion Season B',1,false,'registration_open','open');
 
   insert into public.teams(id,created_by)
   values
