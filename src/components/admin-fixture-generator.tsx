@@ -52,6 +52,7 @@ type Props = {
   seasons: SeasonOption[];
   venues: VenueOption[];
   locations: LocationOption[];
+  fixtures: Array<{ season_id: string }>;
   defaultSeasonId?: string | null;
   onGenerated: () => void | Promise<void>;
 };
@@ -77,7 +78,7 @@ function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
-export function AdminFixtureGenerator({ seasons, venues, locations, defaultSeasonId, onGenerated }: Props) {
+export function AdminFixtureGenerator({ seasons, venues, locations, fixtures, defaultSeasonId, onGenerated }: Props) {
   const eligibleSeasons = useMemo(() => seasons.filter((season) => ["draft", "registration_open", "active"].includes(season.status)), [seasons]);
   const [seasonId, setSeasonId] = useState(defaultSeasonId && seasons.some((season) => season.id === defaultSeasonId && ["draft", "registration_open", "active"].includes(season.status)) ? defaultSeasonId : eligibleSeasons[0]?.id || "");
   const selectedSeason = useMemo(() => eligibleSeasons.find((season) => season.id === seasonId) || null, [eligibleSeasons, seasonId]);
@@ -97,7 +98,7 @@ export function AdminFixtureGenerator({ seasons, venues, locations, defaultSeaso
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  const availableVenues = useMemo(() => {
+  const seasonHasFixtures = fixtures.some((fixture) => fixture.season_id === seasonId);\n\n  const availableVenues = useMemo(() => {
     if (!selectedSeason) return [];
     return venues.filter((venue) =>
       venue.location_id === selectedSeason.location_id &&
@@ -210,7 +211,7 @@ export function AdminFixtureGenerator({ seasons, venues, locations, defaultSeaso
       <div className="admin-section-heading">
         <div><h3>Round-robin fixture generator</h3><p>Configure the season matchday, preview the complete schedule, then generate fixtures once approved.</p></div>
       </div>
-      <form className="admin-setup-form admin-fixture-generator-form" onSubmit={saveSettings}>
+      {seasonHasFixtures && <p className="form-note">Fixtures already exist for this season. Existing fixtures are never overwritten, and matchday settings are locked.</p>}\n      <form className="admin-setup-form admin-fixture-generator-form" onSubmit={saveSettings}>
         <label>Season
           <select value={seasonId} onChange={(event) => { setSeasonId(event.target.value); setPreview(null); setConfirmGenerate(false); setSettingsSaved(false); setNotice(""); setError(""); }} required>
             {eligibleSeasons.map((season) => <option key={season.id} value={season.id}>{season.name}</option>)}
@@ -247,8 +248,8 @@ export function AdminFixtureGenerator({ seasons, venues, locations, defaultSeaso
           </select>
         </label>
         <div className="admin-fixture-generator-actions">
-          <button type="submit" disabled={saving}>{saving ? "Saving…" : "Save matchday settings"}</button>
-          <button type="button" className="button-secondary" onClick={previewSchedule} disabled={previewing || saving || !settingsSaved || !weekday || !startTime || !duration || !venueId || !firstMatchdayDate}>{previewing ? "Building preview…" : "Preview schedule"}</button>
+          <button type="submit" disabled={saving || seasonHasFixtures}>{saving ? "Saving…" : "Save matchday settings"}</button>
+          <button type="button" className="button-secondary" onClick={previewSchedule} disabled={previewing || saving || seasonHasFixtures || !settingsSaved || !weekday || !startTime || !duration || !venueId || !firstMatchdayDate}>{previewing ? "Building preview…" : "Preview schedule"}</button>
         </div>
       </form>
       {error && <p className="form-error" role="alert">{error}</p>}
