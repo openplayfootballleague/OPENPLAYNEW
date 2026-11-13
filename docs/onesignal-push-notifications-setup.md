@@ -43,7 +43,7 @@ The public app ID is not a secret. The REST API key must never be exposed to the
 - Competition announcements
 - Support updates
 
-Critical account-security notifications are always enabled. Category controls apply to new notifications; changing a preference does not erase existing in-app history.
+Critical account-security notifications are always retained in the in-app notification centre and cannot be disabled by category controls. Optional email, SMS and push channels still follow the account's channel preferences. Category controls apply to new notifications; changing a preference does not erase existing in-app history.
 
 ## Release gates
 
