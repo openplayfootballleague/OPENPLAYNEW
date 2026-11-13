@@ -14,17 +14,17 @@ declare
 begin
   insert into auth.users(id,aud,role,email,encrypted_password,raw_user_meta_data,created_at,updated_at)
   values
-    (v_user_one,'authenticated','authenticated','ci-instagram-one@openplay.invalid','','{}'::jsonb,now(),now()),
-    (v_user_two,'authenticated','authenticated','ci-instagram-two@openplay.invalid','','{}'::jsonb,now(),now()),
-    (v_user_three,'authenticated','authenticated','ci-instagram-three@openplay.invalid','','{}'::jsonb,now(),now()),
-    (v_user_four,'authenticated','authenticated','ci-instagram-four@openplay.invalid','','{}'::jsonb,now(),now());
+    (v_user_one,'authenticated','authenticated','ci-team-instagram-one@openplay.invalid','','{}'::jsonb,now(),now()),
+    (v_user_two,'authenticated','authenticated','ci-team-instagram-two@openplay.invalid','','{}'::jsonb,now(),now()),
+    (v_user_three,'authenticated','authenticated','ci-team-instagram-three@openplay.invalid','','{}'::jsonb,now(),now()),
+    (v_user_four,'authenticated','authenticated','ci-team-instagram-four@openplay.invalid','','{}'::jsonb,now(),now());
 
   insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status)
   values
-    (v_user_one,'Instagram Player One','+447700901101','ci-instagram-one@openplay.invalid',date '1990-01-01','registered'),
-    (v_user_two,'Instagram Player Two','+447700901102','ci-instagram-two@openplay.invalid',date '1990-01-02','registered'),
-    (v_user_three,'Instagram Player Three','+447700901103','ci-instagram-three@openplay.invalid',date '1990-01-03','registered'),
-    (v_user_four,'Instagram Player Four','+447700901104','ci-instagram-four@openplay.invalid',date '1990-01-04','registered');
+    (v_user_one,'Instagram Player One','+447700901101','ci-team-instagram-one@openplay.invalid',date '1990-01-01','registered'),
+    (v_user_two,'Instagram Player Two','+447700901102','ci-team-instagram-two@openplay.invalid',date '1990-01-02','registered'),
+    (v_user_three,'Instagram Player Three','+447700901103','ci-team-instagram-three@openplay.invalid',date '1990-01-03','registered'),
+    (v_user_four,'Instagram Player Four','+447700901104','ci-team-instagram-four@openplay.invalid',date '1990-01-04','registered');
 
   insert into public.locations(name,slug,town,region,is_active)
   values('CI Instagram Profiles','ci-instagram-profiles','Bideford','North Devon',false)
