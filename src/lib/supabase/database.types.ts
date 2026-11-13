@@ -3537,6 +3537,22 @@ export type Database = {
           updated_by: string | null
         }[]
       }
+      get_admin_user_growth: {
+        Args: {
+          p_from_date?: string | null
+          p_to_date?: string | null
+          p_location_id?: string | null
+          p_league_id?: string | null
+          p_season_id?: string | null
+        }
+        Returns: {
+          bucket_date: string
+          account_signups: number | null
+          player_registrations: number
+          team_applications: number
+          team_approvals: number
+        }[]
+      }
     }
     Enums: {
       competition_format: "six_a_side" | "seven_a_side"
