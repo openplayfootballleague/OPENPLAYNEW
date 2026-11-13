@@ -239,7 +239,7 @@ function AdminMessagesPage() {
         </div>
         <p className="eyebrow eyebrow-dark">ADMIN WORKSPACE</p>
         <h1>Messaging<br/><em>control.</em></h1>
-        <p className="form-note">Send targeted announcements and review member reports. Broadcasts are read-only for recipients; private support replies stay in the inbox.</p>
+        <p className="form-note">Manage member support cases, send targeted announcements and review message reports. Case changes are audited; private support replies stay in the inbox.</p>
         {error && <p className="form-error" role="alert">{error}</p>}
         {notice && <p className="form-success" role="status">{notice}</p>}
 
