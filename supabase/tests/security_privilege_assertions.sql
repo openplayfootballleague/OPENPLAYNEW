@@ -81,7 +81,7 @@ select
     'public.admin_transition_season(uuid,season_status)'::regprocedure,
     'public.resolve_team_membership_request(uuid,text)'::regprocedure,
     'public.resolve_team_registration(uuid,text,text)'::regprocedure
-  ) and (not (pg_get_functiondef(p.oid) ilike '%can_administer_location%' or pg_get_functiondef(p.oid) ilike '%assert_admin_location_context%' or (p.proname='resolve_team_membership_request' and pg_get_functiondef(p.oid) ilike '%location_admin_assignments%' and pg_get_functiondef(p.oid) ilike '%for share%' and pg_get_functiondef(p.oid) ilike '%is_active_team_captain%')) or has_function_privilege('anon',p.oid,'EXECUTE'))) as location_admin_mutations_check_assigned_location,
+  ) and (not (pg_get_functiondef(p.oid) ilike '%can_administer_location%' or pg_get_functiondef(p.oid) ilike '%assert_admin_location_context%' or (p.proname='resolve_team_membership_request' and pg_get_functiondef(p.oid) ilike '%location_admin_assignments%' and pg_get_functiondef(p.oid) ilike '%for share%' and pg_get_functiondef(p.oid) ilike '%and tm.is_captain = true%')) or has_function_privilege('anon',p.oid,'EXECUTE'))) as location_admin_mutations_check_assigned_location,
   not exists(select 1 from pg_proc p where p.oid in (
     'public.get_admin_season_statistics(uuid)'::regprocedure,
     'public.get_admin_fixture_scorer_options(uuid)'::regprocedure,
