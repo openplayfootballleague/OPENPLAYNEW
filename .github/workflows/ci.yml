@@ -34,3 +34,9 @@ jobs:
         run: npm run build
       - name: Validate Cloudflare Worker bundle (dry run only)
         run: npx wrangler deploy --dry-run
+      - name: Install Playwright test runner
+        run: npm install --no-save --package-lock=false @playwright/test
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Run browser smoke tests
+        run: npx playwright test
