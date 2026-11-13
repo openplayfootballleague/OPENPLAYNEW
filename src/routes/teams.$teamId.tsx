@@ -52,7 +52,7 @@ function PublicTeamProfilePage(){
    if(resultsError){setError("The team is available, but match results couldn't be loaded.");setTeam(currentTeam);setTeams((teamRows??[]) as Team[]);setFixtures(fixtureList);setLoading(false);return;}
    setTeam(currentTeam);setTeams((teamRows??[]) as Team[]);setFixtures(fixtureList);setResults((resultRows??[]) as Result[]);setLoading(false);
   }
-  void load();
+  void load().catch(()=>{if(!alive)return;setError("We couldn't load this team profile. Please try again.");setLoading(false);});
   return()=>{alive=false;};
  },[teamId]);
 
