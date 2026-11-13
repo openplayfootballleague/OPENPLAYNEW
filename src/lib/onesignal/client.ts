@@ -35,8 +35,8 @@ export function loadOneSignal(): Promise<OneSignalSdk> {
       try {
         await sdk.init({
           appId,
-          serviceWorkerPath: "/sw.js",
-          serviceWorkerParam: { scope: "/" },
+          serviceWorkerPath: "/onesignal/OneSignalSDKWorker.js",
+          serviceWorkerParam: { scope: "/onesignal/" },
           notifyButton: { enable: false },
           allowLocalhostAsSecureOrigin: import.meta.env.DEV,
         });
