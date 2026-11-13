@@ -64,11 +64,14 @@ alter table public.fixtures
 
 alter table public.venues enable row level security;
 drop policy if exists venues_select_active_or_admin on public.venues;
-create policy venues_select_active_or_admin on public.venues
+drop policy if exists venues_public_read on public.venues;
+drop policy if exists venues_admin_read on public.venues;
+create policy venues_public_read on public.venues
 for select to anon,authenticated using (
-  (is_active=true and exists(select 1 from public.locations l where l.id=location_id and l.is_active=true))
-  or public.can_administer_location(location_id)
+  is_active=true and exists(select 1 from public.locations l where l.id=location_id and l.is_active=true)
 );
+create policy venues_admin_read on public.venues
+for select to authenticated using (public.can_administer_location(location_id));
 revoke all on public.venues from public,anon,authenticated;
 grant select on public.venues to anon,authenticated;
 
