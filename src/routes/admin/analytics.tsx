@@ -504,12 +504,11 @@ function AdminAnalyticsPage() {
       );
     }
     if (financeAccess && operatingCosts.length > 0) {
-      rows.push([], ["Cost ID", "Category", "Description", "Amount (pence)", "Date", "Location", "League", "Season"]);
+      rows.push([], ["Cost ID", "Category", "Amount (pence)", "Date", "Location", "League", "Season"]);
       for (const cost of operatingCosts) {
         rows.push([
           cost.id,
           cost.category,
-          cost.description,
           cost.amount_pence,
           cost.occurred_at,
           cost.location_name ?? "",
@@ -827,7 +826,7 @@ function AdminAnalyticsPage() {
         <h2>Reports &amp; exports</h2>
         <p>Export the current permission-scoped aggregate snapshot, including verified business metrics and recorded operating costs where finance access is available. Player names, contact details, dates of birth, message content, private notes and payment references are excluded.</p>
         <div className="analytics-report-actions"><button type="button" className="button" onClick={exportCsv} disabled={!overview || dateRangeInvalid}>EXPORT CSV</button><button type="button" className="admin-inline-action" onClick={() => window.print()} disabled={!overview || dateRangeInvalid}>PRINT / SAVE PDF</button></div>
-        <p className="form-note">CSV financial totals are in integer pence. Cost exports include only date, category, description and amount; private notes and payment references are excluded.</p>
+        <p className="form-note">CSV financial totals are in integer pence. Cost exports include only date, category, amount and context; free-text descriptions, private notes and payment references are excluded.</p>
       </>}
     </section>
     <section className="analytics-print-report" data-print-report aria-label="Printable analytics summary">
@@ -848,7 +847,7 @@ function AdminAnalyticsPage() {
        </>}
        {financeAccess && operatingCosts.length > 0 && <>
          <h3>Recorded operating costs</h3>
-         <div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th></tr></thead><tbody>{operatingCosts.map((cost) => <tr key={cost.id}><td>{new Date(cost.occurred_at).toLocaleDateString("en-GB")}</td><td>{cost.category.replaceAll("_"," ")}</td><td>{cost.description}</td><td>{money(cost.amount_pence)}</td></tr>)}</tbody></table></div>
+         <div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Amount</th></tr></thead><tbody>{operatingCosts.map((cost) => <tr key={cost.id}><td>{new Date(cost.occurred_at).toLocaleDateString("en-GB")}</td><td>{cost.category.replaceAll("_"," ")}</td><td>{money(cost.amount_pence)}</td></tr>)}</tbody></table></div>
        </>}
        <h3>Location comparison</h3>
       <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.publishedResults}</td><td>{row.goals}</td></tr>)}</tbody></table></div>
