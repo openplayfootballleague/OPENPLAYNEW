@@ -1179,4 +1179,4 @@ begin
     end if;
   end if;
 end;
-$$;
+$publication$;
