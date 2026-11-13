@@ -1483,3 +1483,6 @@ a { color: inherit; text-decoration: none; }
 .admin-venue-list .admin-status-active{padding:4px 7px;background:#e7f1e7;color:#24512d;font-weight:800}
 .admin-venue-list .admin-status-inactive{padding:4px 7px;background:#e7e5dc;color:#66675f;font-weight:800}
 @media(max-width:760px){.admin-form-grid{grid-template-columns:1fr}.admin-venue-address{grid-column:auto}.admin-venue-days>div{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-venue-list article{grid-template-columns:minmax(0,1fr) auto}.admin-venue-list article button{grid-column:1/-1}}
+
+.match-meta span:last-child{flex:1;min-width:0;text-align:right;overflow-wrap:anywhere}
+@media(max-width:520px){.match-meta{flex-wrap:wrap}.match-meta span:last-child{flex-basis:100%;text-align:left}}
