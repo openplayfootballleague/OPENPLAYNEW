@@ -141,6 +141,7 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
     setError("");
     setNotice("");
     let sdk: Awaited<ReturnType<typeof loadOneSignal>> | null = null;
+    let serverEnabled = false;
     try {
       sdk = await loadOneSignal();
       await sdk.login(userId);
@@ -163,10 +164,11 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
         body: { action: "enable" },
       });
       if (enableError || !data || data.error) throw new Error(data?.error ?? "Unable to enable push notifications.");
+      serverEnabled = true;
       setNotice("Push notifications are enabled for this account.");
-      await refresh();
+      await refresh().catch(() => setError("Push is enabled, but the device list could not be refreshed."));
     } catch (cause) {
-      if (sdk) {
+      if (sdk && !serverEnabled) {
         await sdk.User.PushSubscription.optOut().catch(() => undefined);
         await sdk.logout().catch(() => undefined);
       }
