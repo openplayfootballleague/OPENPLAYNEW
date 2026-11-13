@@ -120,6 +120,22 @@ describe("consent and role-gated analytics capture", () => {
       "core_value_action",
       { feature: "fixtures", season_id: locationId },
     )).toBe(false);
+    expect(captureOpenPlayEvent(
+      { capture },
+      "granted",
+      false,
+      "anonymous",
+      "core_value_action",
+      { feature: "fixtures", season_id: locationId },
+    )).toBe(false);
+    expect(captureOpenPlayEvent(
+      { capture },
+      "granted",
+      false,
+      "account_user",
+      "core_value_action",
+      { feature: "fixtures", season_id: locationId },
+    )).toBe(false);
   });
 
   it("captures a consented player event with sanitised properties only", () => {
