@@ -377,6 +377,22 @@ function AdminAnalyticsPage() {
         location.resultsCoveragePercent ?? "", location.goals, location.goalsPerResult ?? "",
       ]);
     }
+    if (seasonStats) {
+      rows.push(
+        [],
+        [`Competition performance · ${seasonStats.season.name}`],
+        ["Position", "Team", "Played", "Won", "Drawn", "Lost", "Goals for", "Goals against", "Goal difference", "Win rate (%)", "Clean sheets", "Points", "Points per game"],
+      );
+      for (const team of seasonStats.teams) {
+        rows.push([
+          team.position, team.name, team.played, team.wins, team.draws, team.losses,
+          team.goals_for, team.goals_against, team.goal_difference,
+          team.played > 0 ? Math.round(team.wins / team.played * 1000) / 10 : "",
+          team.clean_sheets, team.points,
+          team.played > 0 ? Math.round(team.points / team.played * 100) / 100 : "",
+        ]);
+      }
+    }
     if (growthRows.length > 0) {
       rows.push(
         [],
@@ -592,9 +608,15 @@ function AdminAnalyticsPage() {
             <article><span>Goals</span><strong>{seasonStats.summary.goals}</strong></article>
             <article><span>Goals / match</span><strong>{seasonStats.summary.goals_per_match}</strong></article>
             <article><span>Players with appearances</span><strong>{seasonStats.players.length}</strong></article>
+            <article><span>Teams</span><strong>{seasonStats.teams.length}</strong></article>
+            <article><span>Home wins</span><strong>{seasonStats.summary.home_wins}</strong></article>
+            <article><span>Away wins</span><strong>{seasonStats.summary.away_wins}</strong></article>
+            <article><span>Draws</span><strong>{seasonStats.summary.draws}</strong></article>
             <article><span>Team clean sheets</span><strong>{seasonStats.summary.team_clean_sheets}</strong></article>
           </div>
-          <div className="analytics-table-wrap"><table><thead><tr><th>Position</th><th>Team</th><th>Played</th><th>Won</th><th>Drawn</th><th>Lost</th><th>Goals</th><th>Points</th></tr></thead><tbody>{seasonStats.teams.map((team) => <tr key={team.team_id}><td>{team.position}</td><td>{team.name}</td><td>{team.played}</td><td>{team.wins}</td><td>{team.draws}</td><td>{team.losses}</td><td>{team.goals_for}–{team.goals_against}</td><td>{team.points}</td></tr>)}</tbody></table></div>
+          <div className="analytics-section"><h3>Team performance</h3>
+            <div className="analytics-table-wrap"><table><thead><tr><th>Position</th><th>Team</th><th>Played</th><th>Won</th><th>Drawn</th><th>Lost</th><th>Goals</th><th>GD</th><th>Win rate</th><th>Clean sheets</th><th>Points</th><th>Points / game</th></tr></thead><tbody>{seasonStats.teams.map((team) => <tr key={team.team_id}><td>{team.position}</td><td>{team.name}</td><td>{team.played}</td><td>{team.wins}</td><td>{team.draws}</td><td>{team.losses}</td><td>{team.goals_for}–{team.goals_against}</td><td>{team.goal_difference}</td><td>{team.played > 0 ? (team.wins / team.played * 100).toFixed(1) + "%" : "—"}</td><td>{team.clean_sheets}</td><td>{team.points}</td><td>{team.played > 0 ? (team.points / team.played).toFixed(2) : "—"}</td></tr>)}</tbody></table></div>
+          </div>
           <p className="form-note">Player identities are counted for this summary but not listed here. The player leaderboard remains available in the season statistics section of the main Admin Dashboard.</p>
         </>}
       </> : tab === "locations" ? <>
@@ -631,6 +653,10 @@ function AdminAnalyticsPage() {
       </div>}
       <h3>Location comparison</h3>
       <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Completed</th><th>Results</th><th>Result coverage</th><th>Goals</th><th>Goals / result</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.completedFixtures}</td><td>{row.publishedResults}</td><td>{row.resultsCoveragePercent === null ? "—" : row.resultsCoveragePercent.toFixed(1) + "%"}</td><td>{row.goals}</td><td>{row.goalsPerResult === null ? "—" : row.goalsPerResult.toFixed(2)}</td></tr>)}</tbody></table></div>
+      {seasonStats && <>
+        <h3>Competition performance · {seasonStats.season.name}</h3>
+        <div className="analytics-table-wrap"><table><thead><tr><th>Position</th><th>Team</th><th>Played</th><th>Won</th><th>Drawn</th><th>Lost</th><th>Goals</th><th>GD</th><th>Win rate</th><th>Clean sheets</th><th>Points</th><th>Points / game</th></tr></thead><tbody>{seasonStats.teams.map((team) => <tr key={team.team_id}><td>{team.position}</td><td>{team.name}</td><td>{team.played}</td><td>{team.wins}</td><td>{team.draws}</td><td>{team.losses}</td><td>{team.goals_for}–{team.goals_against}</td><td>{team.goal_difference}</td><td>{team.played > 0 ? (team.wins / team.played * 100).toFixed(1) + "%" : "—"}</td><td>{team.clean_sheets}</td><td>{team.points}</td><td>{team.played > 0 ? (team.points / team.played).toFixed(2) : "—"}</td></tr>)}</tbody></table></div>
+      </>}
       <h3>Daily user growth</h3>
       <div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Account signups</th><th>Player registrations</th><th>Team applications</th><th>Team approvals</th></tr></thead><tbody>{growthRows.map((row) => <tr key={row.bucket_date}><td>{row.bucket_date}</td><td>{row.account_signups === null ? "—" : Number(row.account_signups)}</td><td>{Number(row.player_registrations)}</td><td>{Number(row.team_applications)}</td><td>{Number(row.team_approvals)}</td></tr>)}</tbody></table></div>
       {productAnalytics && productAnalytics.weeklyActivity.length > 0 && <>
