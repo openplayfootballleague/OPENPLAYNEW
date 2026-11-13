@@ -227,7 +227,7 @@ function AdminAnalyticsPage() {
   }, [contextReady, loadContextData]);
 
   useEffect(() => {
-    if (!contextReady || authStatus !== "authenticated" || (tab !== "engagement" && tab !== "features")) return;
+    if (!contextReady || authStatus !== "authenticated" || (tab !== "usage" && tab !== "engagement" && tab !== "features")) return;
     let alive = true;
     setProductAnalyticsLoading(true);
     setProductAnalyticsError("");
@@ -512,7 +512,22 @@ function AdminAnalyticsPage() {
           </div>
           <p className="form-note">Only fixtures marked completed with a published score contribute to result and goal totals.</p>
         </div>
-      </> : tab === "usage" ? <div className="analytics-state"><h2>App usage</h2><p>Raw page-view, session and device/browser reports are not currently part of the Open Play analytics release. Use Engagement &amp; Retention for consented meaningful competition-content activity and Feature Performance for feature adoption.</p><p className="analytics-state-label">PostHog autocapture, heatmaps and session recording remain disabled. Only allowlisted events after explicit consent are used.</p></div>  : tab === "growth" ? <>
+      </> : tab === "usage" ? <>
+        <h2>App usage · meaningful activity</h2>
+        <p className="form-note">A concise view of consented, registered-player use of real competition content. Raw page views, device fingerprinting, autocapture, heatmaps and session recordings are not included.</p>
+        {productAnalyticsLoading ? <p className="form-note">Loading product usage…</p> : productAnalyticsError ? <p className="form-error" role="alert">{productAnalyticsError}</p> : !productAnalytics || productAnalytics.status === "no_data" ? <div className="analytics-state"><h3>No consented usage data yet</h3><p>Usage figures will appear when registered players who have opted into optional analytics view fixtures, results, standings, player statistics or the approved team directory.</p></div> : <>
+          <div className="analytics-stat-grid">
+            <article><span>Latest completed week · active players</span><strong>{productAnalytics.weeklyActivity.length ? productAnalytics.weeklyActivity.at(-1)!.active_users : "—"}</strong></article>
+            <article><span>Meaningful content views</span><strong>{productAnalytics.weeklyActivity.reduce((sum, row) => sum + row.value_actions, 0)}</strong></article>
+            <article><span>Features used</span><strong>{productAnalytics.features.length}</strong></article>
+            <article><span>Top feature</span><strong>{productAnalytics.features[0]?.feature.replaceAll("_", " ") ?? "—"}</strong></article>
+          </div>
+          <div className="analytics-section"><h3>Weekly usage</h3>
+            {productAnalytics.weeklyActivity.length === 0 ? <p className="form-note">No complete week has recorded meaningful activity in the selected window.</p> : <div className="analytics-table-wrap"><table><thead><tr><th>Week commencing</th><th>Active players</th><th>Content views</th></tr></thead><tbody>{productAnalytics.weeklyActivity.map((row) => <tr key={row.week_start}><td>{row.week_start}</td><td>{row.active_users}</td><td>{row.value_actions}</td></tr>)}</tbody></table></div>}
+          </div>
+          <p className="form-note">Use Engagement &amp; Retention for cohort return rates and Feature Performance for detailed feature comparisons. Reporting period: {productAnalytics.range.fromDate} to {productAnalytics.range.toDate}.</p>
+        </>}
+      </>  : tab === "growth" ? <>
         <h2>User growth · daily activity</h2>
         <p className="form-note">Daily totals use Supabase account profiles, player registrations and season-team application records. In scoped views, player registrations include only players associated with the selected competition through membership history. Account signups appear only in the global all-locations view.</p>
         {growthError ? <p className="form-error" role="alert">{growthError}</p> : <>
