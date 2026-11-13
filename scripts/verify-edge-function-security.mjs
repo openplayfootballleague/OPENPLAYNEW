@@ -106,7 +106,8 @@ assert.ok(connectOnboarding.includes("metadata[openplay_referee_user_id]"), "Con
 const refereePayout = readFileSync("supabase/functions/pay-referee-payout/index.ts", "utf8");
 assert.ok(refereePayout.includes("userClient!.auth.getUser()") && refereePayout.includes('req.headers.get("x-referee-payout-cron-secret")'), "Referee payout transfers must validate the signed-in administrator or protected cron worker");
 assert.ok(refereePayout.includes('rpc("claim_referee_payout_transfer",'), "Referee payout transfers must be claimed through the location-scoped approval RPC");
-assert.ok(refereePayout.includes("Idempotency-Key") && refereePayout.includes("openplay-referee-"), "Referee payout transfers must use attempt-scoped Stripe idempotency keys");
+assert.ok(refereePayout.includes("Idempotency-Key") && refereePayout.includes("stripeTransferIdempotencyKey(payoutType,payoutId,payout.attempt)"), "Referee payout transfers must use a validated, attempt-scoped Stripe idempotency key");
+assert.ok(refereePayout.includes("canMarkStripeTransferFailed(response.status)"), "Ambiguous Stripe HTTP responses must use the tested conservative failure classifier");
 assert.ok(refereePayout.includes('stripeKey?.startsWith("sk_test_")'), "Referee payout transfers must remain test-mode only");
 assert.ok(refereePayout.includes("if(!transferCreated&&canMarkFailed)"), "Ambiguous or already-created transfers must remain in reconciliation instead of becoming retryable");
 
@@ -139,7 +140,11 @@ assert.ok(reportClaim.includes("not v_account.transfers_enabled then") && !repor
 
 const adminReferees = readFileSync("src/routes/admin/referees.tsx", "utf8");
 const reportReview = adminReferees.slice(adminReferees.indexOf("async function reviewReport"), adminReferees.indexOf("async function decide("));
-assert.ok(reportReview.includes('functions.invoke("pay-referee-payout"'), "Approving a referee match report must invoke the referee transfer workflow");
+const approvalRpcPosition=reportReview.indexOf('rpc("admin_review_referee_match_report"');
+const immediateTransferPosition=reportReview.indexOf('functions.invoke("pay-referee-payout"');
+const payoutInvocations=reportReview.match(/functions\\.invoke\\("pay-referee-payout"/g) ?? [];
+assert.ok(approvalRpcPosition>=0 && immediateTransferPosition>approvalRpcPosition, "The immediate referee transfer must be invoked only after the approval RPC succeeds");
+assert.equal(payoutInvocations.length,1, "One administrator approval handler must make exactly one immediate transfer invocation");
 assert.ok(reportReview.includes("report_id:report.report_id"), "The approval trigger must identify the report, not trust a browser-supplied payout amount or destination");
 assert.ok(adminReferees.includes("payout.transfers_enabled") && !adminReferees.includes("payout.transfers_enabled&&payout.payouts_enabled"), "Match-report transfer controls must not require bank-payout enablement");
 assert.ok(adminReferees.includes("reward.transfers_enabled") && !adminReferees.includes("reward.transfers_enabled&&reward.payouts_enabled"), "Milestone transfer controls must not require bank-payout enablement");
