@@ -71,6 +71,9 @@ assert.ok(!pushManager.includes("serviceKey") || pushManager.includes("service.f
 const pushPolicy = readFileSync("supabase/functions/_shared/onesignal-push-policy.ts", "utf8");
 assert.ok(pushPolicy.includes("idempotency_key") && pushPolicy.includes("include_aliases"), "OneSignal sends must target the authenticated external ID and use an idempotency key");
 assert.ok(pushPolicy.includes("Sign in to view details"), "Push content must remain privacy-minimised for lock-screen display");
+const deliveryWorker = readFileSync("supabase/functions/deliver-notifications/index.ts", "utf8");
+assert.ok(deliveryWorker.includes('.select("push_enabled")') && deliveryWorker.includes("Push disabled by recipient"), "Push delivery must re-check the recipient opt-in immediately before sending");
+
 const checkout = readFileSync("supabase/functions/create-player-checkout/index.ts", "utf8");
 assert.ok(checkout.includes("userClient.auth.getUser(token)"), "Checkout must validate the signed-in user");
 assert.ok(!checkout.includes("lovable.app"), "Open Play New must not fall back to the retired Lovable origin");
