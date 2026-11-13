@@ -21,9 +21,9 @@ begin
     raise exception 'New accounts must default all optional notification categories to enabled';
   end if;
 
-  v_preferences:=public.update_my_notification_preferences(false,false,true);
+  v_preferences:=public.update_my_notification_preferences(true,false,true);
   v_preferences:=public.update_my_notification_category_preferences(false,true,false,true);
-  if v_preferences.email_enabled or v_preferences.sms_enabled or not v_preferences.in_app_enabled then
+  if not v_preferences.email_enabled or v_preferences.sms_enabled or not v_preferences.in_app_enabled then
     raise exception 'Category updates must not change channel-level notification preferences';
   end if;
   if v_preferences.category_preferences<>'{"matchday":false,"team_updates":true,"messages":false,"payments":true}'::jsonb then
@@ -49,15 +49,22 @@ begin
 
   select count(*) into v_count from public.notification_events
   where user_id=v_user and channel='in_app';
-  if v_count<>2 then
-    raise exception 'Only enabled team updates and mandatory account/security notices should be enqueued; found %',v_count;
+  if v_count<>4 then
+    raise exception 'Only enabled team updates and protected account/security events should be enqueued on email and in-app channels; found %',v_count;
   end if;
   if exists(select 1 from public.notification_events where user_id=v_user and event_type in ('fixture.scheduled','message.new','payment.refund')) then
     raise exception 'Disabled notification categories must not enqueue events on any channel';
   end if;
-  if not exists(select 1 from public.notification_events where user_id=v_user and event_type='team.membership_approved' and channel='in_app')
-     or not exists(select 1 from public.notification_events where user_id=v_user and event_type='player.banned' and channel='in_app') then
-    raise exception 'Enabled team updates and mandatory security notifications must still be delivered in-app';
+  if (select count(*) from public.notification_events where user_id=v_user and event_type='team.membership_approved')<>2
+     or (select count(*) from public.notification_events where user_id=v_user and event_type='player.banned')<>2 then
+    raise exception 'Enabled team updates and protected account/security events must use both enabled channels';
+  end if;
+  if not exists(
+    select 1 from public.audit_log
+    where actor_user_id=v_user and action='notification.categories_updated'
+      and after_data->'category_preferences'='{"matchday":false,"team_updates":true,"messages":false,"payments":true}'::jsonb
+  ) then
+    raise exception 'Category preference changes must be recorded in the audit log';
   end if;
   raise notice 'Notification category preference and mandatory security-notice regressions passed';
 end;
