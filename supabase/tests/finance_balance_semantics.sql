@@ -8,6 +8,7 @@ declare
   v_location_id uuid;
   v_league_id uuid;
   v_cost_id uuid;
+  v_adjustment_id uuid;
   v_cost_count bigint;
   v_failed boolean;
 begin
@@ -73,6 +74,14 @@ begin
     )).id
   );
 
+  v_adjustment_id:=(
+    select (public.admin_create_operating_cost(
+      -500,'adjustment','CI venue hire reversal',now()-interval '1 day',
+      v_location_id,v_league_id,'00000000-0000-4000-8000-000000000030',
+      'CI-COST-REV-001','Synthetic reversal','Reverse a duplicated venue cost for finance acceptance'
+    )).id
+  );
+
   select * into v_business
   from public.get_admin_business_performance(
     v_location_id,v_league_id,'00000000-0000-4000-8000-000000000030'
@@ -83,8 +92,8 @@ begin
      or v_business.team_credits_pence<>500
      or v_business.team_fines_pence<>1000
      or v_business.outstanding_pence<>9500
-     or v_business.recorded_costs_pence<>2000
-     or v_business.net_operating_surplus_pence<>4000 then
+     or v_business.recorded_costs_pence<>1500
+     or v_business.net_operating_surplus_pence<>4500 then
     raise exception 'Business performance must distinguish charges, receipts, refunds, credits, fines, outstanding, costs and surplus: %',row_to_json(v_business);
   end if;
 
@@ -111,6 +120,18 @@ begin
     v_failed:=true;
   end;
   if not v_failed then raise exception 'Operating cost accepted a mismatched location/season context'; end if;
+
+  v_failed:=false;
+  begin
+    perform public.admin_create_operating_cost(
+      -100,'venue_hire','Invalid negative cost',now(),
+      v_location_id,v_league_id,'00000000-0000-4000-8000-000000000030',
+      null,null,'Negative amount must be an adjustment'
+    );
+  exception when others then
+    v_failed:=true;
+  end;
+  if not v_failed then raise exception 'Operating cost accepted a negative amount outside the adjustment category'; end if;
 
   -- The overpaid second team must not offset another team's positive debt.
 
@@ -162,7 +183,14 @@ begin
   if not exists(
     select 1 from public.audit_log
     where action='finance.operating_cost.created' and entity_type='finance_operating_cost'
-      and entity_id=v_cost_id::text
+      and entity_id in (v_cost_id::text,v_adjustment_id::text)
+    group by entity_id
+    having count(*)=1
   ) then raise exception 'Operating cost creation was not written to the audit log'; end if;
+  if (select count(*) from public.audit_log
+      where action='finance.operating_cost.created' and entity_type='finance_operating_cost'
+        and entity_id in (v_cost_id::text,v_adjustment_id::text))<>2 then
+    raise exception 'Both cost and adjustment entries must be audited';
+  end if;
 end;
 $finance_balance_semantics$;
