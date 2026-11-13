@@ -481,6 +481,41 @@ function AdminAnalyticsPage() {
         ["Outstanding ledger balance (pence)", financeTotals.outstandingPence],
       );
     }
+    if (financeAccess && businessPerformance) {
+      rows.push(
+        [],
+        ["Business performance (pence)", "Value"],
+        ["Upcoming team payment forecast", Number(businessPerformance.upcoming_team_forecast_pence)],
+        ["Upcoming team obligations", Number(businessPerformance.upcoming_team_obligations)],
+        ["Team charges", Number(businessPerformance.team_charges_pence)],
+        ["Team receipts", Number(businessPerformance.team_receipts_pence)],
+        ["Team refunds", Number(businessPerformance.team_refunds_pence)],
+        ["Team credits (non-cash)", Number(businessPerformance.team_credits_pence)],
+        ["Team fines", Number(businessPerformance.team_fines_pence)],
+        ["Outstanding team balance", Number(businessPerformance.outstanding_pence)],
+        ["Player card gross", Number(businessPerformance.player_card_gross_pence)],
+        ["Player card refunds", Number(businessPerformance.player_card_refunds_pence)],
+        ["Player card Stripe fees", Number(businessPerformance.player_card_fees_pence)],
+        ["Player card net proceeds", Number(businessPerformance.player_card_net_pence)],
+        ["Recorded operating costs", Number(businessPerformance.recorded_costs_pence)],
+        ["Recorded operating surplus", Number(businessPerformance.net_operating_surplus_pence)],
+      );
+    }
+    if (financeAccess && operatingCosts.length > 0) {
+      rows.push([], ["Recorded operating costs", "Category", "Description", "Amount (pence)", "Date", "Location", "League", "Season"]);
+      for (const cost of operatingCosts) {
+        rows.push([
+          cost.id,
+          cost.category,
+          cost.description,
+          cost.amount_pence,
+          cost.occurred_at,
+          cost.location_name ?? "",
+          cost.league_name ?? "",
+          cost.season_name ?? "",
+        ]);
+      }
+    }
     rows.push([], ["Location", "Seasons", "Approved teams", "Squad memberships", "Fixtures", "Published results", "Goals"]);
     for (const location of locationComparisons) {
       rows.push([location.locationName, location.seasons, location.approvedTeams, location.squadMemberships, location.fixtures, location.publishedResults, location.goals]);
