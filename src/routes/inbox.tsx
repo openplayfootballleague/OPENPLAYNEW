@@ -1,29 +1,38 @@
-import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { MessagesPanel } from "../components/messages-panel";
 import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
-import { useRequiredSession } from "../lib/auth/use-required-session";
-import { describeNotification } from "../lib/notifications/describe";
+import {
+  buildInboxActivity,
+  unreadCount,
+  type InboxActivityItem,
+  type InboxConversationInput,
+  type InboxFilter,
+  type InboxNotificationInput,
+} from "../lib/notifications/inbox-activity";
 import { getSupabaseClient } from "../lib/supabase/client";
 
-type InboxTab = "notifications" | "messages";
-
 /**
- * Owner decision D4: one Inbox with two sections.
+ * Owner decision D4 and visual reference IMG_0576: "Your Inbox." with three filters.
+ * - All: one chronological activity feed.
+ * - Messages: person-to-person / captain messaging (secure messaging rules apply server-side).
  * - Notifications: automated league alerts and official announcements.
- * - Messages: player-to-player messaging (secure messaging rules apply server-side).
  */
 export const Route = createFileRoute("/inbox")({
-  validateSearch: (search: Record<string, unknown>): { tab: InboxTab } => ({
-    tab: search.tab === "messages" ? "messages" : "notifications",
+  validateSearch: (search: Record<string, unknown>): { tab: InboxFilter } => ({
+    tab: search.tab === "messages" || search.tab === "notifications" ? search.tab : "all",
   }),
   component: InboxPage,
 });
 
-type NotificationRow = { id: string; event_type: string; payload: unknown; created_at: string; read_at: string | null };
-type Announcement = { conversation_id: string; title: string; last_message_body: string | null; last_message_at: string | null; unread_count: number };
 type RpcClient = { rpc: (name: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> };
+
+const FILTERS: Array<{ id: InboxFilter; label: string }> = [
+  { id: "all", label: "ALL" },
+  { id: "messages", label: "MESSAGES" },
+  { id: "notifications", label: "NOTIFICATIONS" },
+];
 
 function InboxPage() {
   // PR #117: remount the Inbox when the signed-in account changes so no previous
@@ -38,9 +47,8 @@ function InboxPage() {
 function InboxWorkspace() {
   const { tab } = Route.useSearch();
   const navigate = useNavigate();
-  const authStatus = useRequiredSession();
-  const [notifications, setNotifications] = useState<NotificationRow[]>([]);
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [notifications, setNotifications] = useState<InboxNotificationInput[]>([]);
+  const [conversations, setConversations] = useState<InboxConversationInput[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -53,6 +61,8 @@ function InboxWorkspace() {
       setLoading(false);
       return;
     }
+    // Both reads are recipient-scoped server-side (RLS on notification_events; the
+    // messaging RPC returns only conversations the caller participates in).
     const [notificationResult, conversationResult] = await Promise.all([
       supabase.from("notification_events").select("id,event_type,payload,created_at,read_at")
         .eq("user_id", userId).eq("channel", "in_app").eq("status", "sent")
@@ -60,16 +70,18 @@ function InboxWorkspace() {
       (supabase as unknown as RpcClient).rpc("get_my_message_conversations", { p_limit: 100 }),
     ]);
     if (notificationResult.error) setError(notificationResult.error.message);
-    else setNotifications(notificationResult.data as NotificationRow[]);
+    else setNotifications(notificationResult.data as InboxNotificationInput[]);
     if (conversationResult.error) setError((current) => current || conversationResult.error!.message);
-    else setAnnouncements(((conversationResult.data ?? []) as Array<Announcement & { kind: string }>).filter((row) => row.kind === "announcement"));
+    else setConversations((conversationResult.data ?? []) as InboxConversationInput[]);
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    if (authStatus === "authenticated") void load();
-    if (authStatus === "unauthenticated") setLoading(false);
-  }, [authStatus, load]);
+    void load();
+  }, [load]);
+
+  const activity = useMemo(() => buildInboxActivity(notifications, conversations), [notifications, conversations]);
+  const visible = tab === "notifications" ? activity.filter((item) => item.section === "notifications") : activity;
 
   async function markRead(id: string) {
     const { error: rpcError } = await getSupabaseClient().rpc("mark_notification_read", { p_event_id: id });
@@ -80,84 +92,73 @@ function InboxWorkspace() {
     setNotifications((rows) => rows.map((row) => (row.id === id ? { ...row, read_at: new Date().toISOString() } : row)));
   }
 
-  const leagueAlerts = notifications.filter((row) => describeNotification(row.event_type, null).category === "league");
-  const messageAlerts = notifications.filter((row) => describeNotification(row.event_type, null).category === "message");
-  const unreadLeague = leagueAlerts.filter((row) => !row.read_at).length + announcements.reduce((sum, a) => sum + (a.unread_count > 0 ? 1 : 0), 0);
-  const unreadMessages = messageAlerts.filter((row) => !row.read_at).length;
-
-  const selectTab = (next: InboxTab) => void navigate({ to: "/inbox", search: { tab: next }, replace: true });
+  const selectTab = (next: InboxFilter) => void navigate({ to: "/inbox", search: { tab: next }, replace: true });
   const onTabKey = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
-      event.preventDefault();
-      selectTab(tab === "notifications" ? "messages" : "notifications");
-    }
+    const index = FILTERS.findIndex((f) => f.id === tab);
+    if (event.key === "ArrowRight") { event.preventDefault(); selectTab(FILTERS[(index + 1) % FILTERS.length].id); }
+    if (event.key === "ArrowLeft") { event.preventDefault(); selectTab(FILTERS[(index + FILTERS.length - 1) % FILTERS.length].id); }
   };
+  const badge = (id: InboxFilter) => unreadCount(activity, id === "all" ? undefined : id);
 
   return (
     <main className="notice-page player-facing">
       <section className="notice-panel inbox-panel">
         <p className="eyebrow eyebrow-dark">YOUR OPEN PLAY</p>
-        <h1>Inbox.</h1>
-        <div className="inbox-tabs" role="tablist" aria-label="Inbox sections" onKeyDown={onTabKey}>
-          <button type="button" role="tab" id="inbox-tab-notifications" aria-controls="inbox-panel-notifications"
-            aria-selected={tab === "notifications"} tabIndex={tab === "notifications" ? 0 : -1} onClick={() => selectTab("notifications")}>
-            NOTIFICATIONS{unreadLeague > 0 && <span className="inbox-badge" aria-label={`${unreadLeague} unread`}>{unreadLeague}</span>}
-          </button>
-          <button type="button" role="tab" id="inbox-tab-messages" aria-controls="inbox-panel-messages"
-            aria-selected={tab === "messages"} tabIndex={tab === "messages" ? 0 : -1} onClick={() => selectTab("messages")}>
-            MESSAGES{unreadMessages > 0 && <span className="inbox-badge" aria-label={`${unreadMessages} unread`}>{unreadMessages}</span>}
-          </button>
+        <h1>Your Inbox.</h1>
+        <p className="form-note">League alerts, official announcements and messages from your teammates, all in one place.</p>
+        <div className="inbox-tabs" role="tablist" aria-label="Inbox filters" onKeyDown={onTabKey}>
+          {FILTERS.map((filter) => {
+            const unread = badge(filter.id);
+            return (
+              <button key={filter.id} type="button" role="tab" id={`inbox-tab-${filter.id}`} aria-controls={`inbox-panel-${filter.id}`}
+                aria-selected={tab === filter.id} tabIndex={tab === filter.id ? 0 : -1} onClick={() => selectTab(filter.id)}>
+                {filter.label}{unread > 0 && <span className="inbox-badge" aria-label={`${unread} unread`}>{unread}</span>}
+              </button>
+            );
+          })}
         </div>
         {error && <p className="form-error" role="alert">{error}</p>}
 
-        {tab === "notifications" ? (
-          <section role="tabpanel" id="inbox-panel-notifications" aria-labelledby="inbox-tab-notifications" className="hub-notification-feed">
-            {loading || authStatus === "loading" ? (
-              <p className="form-note" role="status">Loading notifications…</p>
-            ) : (
-              <>
-                {announcements.length > 0 && (
-                  <div className="inbox-announcements">
-                    <div className="hub-section-heading"><span className="hub-kicker">OFFICIAL ANNOUNCEMENTS</span><span>{announcements.length}</span></div>
-                    {announcements.map((a) => (
-                      <article className={a.unread_count > 0 ? "player-notification unread" : "player-notification"} key={a.conversation_id}>
-                        <div>
-                          <strong>{a.title}</strong>
-                          {a.last_message_body && <p>{a.last_message_body}</p>}
-                          {a.last_message_at && <small>{new Date(a.last_message_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</small>}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                )}
-                <div className="hub-section-heading"><span className="hub-kicker">LEAGUE ALERTS</span><span>{leagueAlerts.filter((n) => !n.read_at).length} unread</span></div>
-                {leagueAlerts.length === 0 ? (
-                  <p className="form-note">No notifications yet. Team approvals, fixtures and results will appear here.</p>
-                ) : (
-                  leagueAlerts.map((n) => {
-                    const described = describeNotification(n.event_type, n.payload as Record<string, unknown> | null);
-                    return (
-                      <article className={n.read_at ? "player-notification" : "player-notification unread"} key={n.id}>
-                        <div>
-                          <strong>{described.title}</strong>
-                          <p>{described.body}</p>
-                          <small>{new Date(n.created_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</small>
-                        </div>
-                        {!n.read_at && <button type="button" onClick={() => void markRead(n.id)}>MARK READ</button>}
-                      </article>
-                    );
-                  })
-                )}
-              </>
-            )}
-          </section>
-        ) : (
+        {tab === "messages" ? (
           <section role="tabpanel" id="inbox-panel-messages" aria-labelledby="inbox-tab-messages">
             <MessagesPanel embedded />
+          </section>
+        ) : (
+          <section role="tabpanel" id={`inbox-panel-${tab}`} aria-labelledby={`inbox-tab-${tab}`} className="hub-notification-feed">
+            <div className="hub-section-heading">
+              <span className="hub-kicker">RECENT ACTIVITY</span>
+              <span>{unreadCount(visible)} unread</span>
+            </div>
+            {loading ? (
+              <p className="form-note" role="status">Loading your inbox…</p>
+            ) : visible.length === 0 ? (
+              <p className="form-note">
+                {tab === "notifications"
+                  ? "No notifications yet. Team approvals, fixtures, results and official announcements will appear here."
+                  : "Nothing here yet. Notifications and messages will appear here as they arrive."}
+              </p>
+            ) : (
+              visible.map((item) => <ActivityCard key={item.id} item={item} onMarkRead={markRead} onOpenMessages={() => selectTab("messages")} />)
+            )}
           </section>
         )}
       </section>
       <PlayerBottomNavigation />
     </main>
+  );
+}
+
+function ActivityCard({ item, onMarkRead, onOpenMessages }: { item: InboxActivityItem; onMarkRead: (id: string) => void; onOpenMessages: () => void }) {
+  return (
+    <article className={item.unread ? "player-notification unread" : "player-notification"}>
+      <div>
+        <span className={`inbox-type inbox-type-${item.section}`}>{item.typeLabel}</span>
+        <strong>{item.title}</strong>
+        {item.preview && <p>{item.preview}</p>}
+        <small>{new Date(item.at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</small>
+      </div>
+      {item.source === "notification" && item.unread && <button type="button" onClick={() => onMarkRead(item.refId)}>MARK READ</button>}
+      {item.source === "conversation" && <button type="button" onClick={onOpenMessages}>OPEN</button>}
+    </article>
   );
 }
