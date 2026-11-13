@@ -99,6 +99,14 @@ export function AdminFixtureGenerator({ seasons, venues, locations, fixtures, de
   const [notice, setNotice] = useState("");
   const previousSeasonId = useRef<string | null>(null);
 
+  useEffect(() => {
+    if (seasonId && eligibleSeasons.some((season) => season.id === seasonId)) return;
+    const nextSeasonId = defaultSeasonId && eligibleSeasons.some((season) => season.id === defaultSeasonId)
+      ? defaultSeasonId
+      : eligibleSeasons[0]?.id;
+    if (nextSeasonId) setSeasonId(nextSeasonId);
+  }, [defaultSeasonId, eligibleSeasons, seasonId]);
+
   const seasonHasFixtures = fixtures.some((fixture) => fixture.season_id === seasonId);\n\n  const availableVenues = useMemo(() => {
     if (!selectedSeason) return [];
     return venues.filter((venue) =>
