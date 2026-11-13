@@ -51,6 +51,39 @@ export type AnalyticsLocationComparison = {
   goals: number;
   goalsPerResult: number | null;
 };
+export type CompetitionTeamRow = {
+  position: number;
+  team_id: string;
+  name: string;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  goals_for: number;
+  goals_against: number;
+  goal_difference: number;
+  points: number;
+  clean_sheets: number;
+};
+export type CompetitionTeamPerformance = CompetitionTeamRow & {
+  winRatePercent: number | null;
+  pointsPerGame: number | null;
+};
+
+export function buildCompetitionTeamPerformance(
+  teams: CompetitionTeamRow[],
+): CompetitionTeamPerformance[] {
+  return teams.map((team) => ({
+    ...team,
+    winRatePercent: team.played > 0
+      ? Math.round(team.wins / team.played * 1000) / 10
+      : null,
+    pointsPerGame: team.played > 0
+      ? Math.round(team.points / team.played * 100) / 100
+      : null,
+  }));
+}
+
 export type FinanceSummaryRow = {
   charges_pence: number | string;
   payments_pence: number | string;
