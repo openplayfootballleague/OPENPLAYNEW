@@ -14,6 +14,7 @@ declare
   v_venue_name text;
   v_denied boolean;
 begin
+  execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_admin,'role','authenticated')::text,true);
 
