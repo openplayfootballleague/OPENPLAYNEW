@@ -191,6 +191,14 @@ assert.ok(teamDeadlineWorker.includes('result.status==="failed"||result.status==
 assert.ok(teamDeadlineWorker.includes("result.payment_intent===refund.stripe_payment_intent_id") && teamDeadlineWorker.includes("Number(result.amount)===Number(refund.amount_pence)"), "Successful Stripe refunds must match the intended PaymentIntent and exact amount");
 assert.ok(teamDeadlineWorker.includes('.in("status",["due","grace_period","admin_review","weather_cancelled"])'), "Weather-cancelled payment obligations must remain eligible for provider reconciliation");
 
+const productAnalytics = readFileSync("supabase/functions/admin-product-analytics/index.ts", "utf8");
+assert.ok(productAnalytics.includes('userClient.auth.getUser(token)'), "Product analytics must validate the signed-in administrator");
+assert.ok(productAnalytics.includes('rpc("get_admin_competition_setup")'), "Product analytics must derive allowed scopes from the administrator-scoped setup RPC");
+assert.ok(productAnalytics.includes("POSTHOG_PERSONAL_API_KEY") && !productAnalytics.includes("POSTHOG_PROJECT_TOKEN"), "Product analytics must use a server-side query credential, never the browser ingestion token");
+assert.ok(productAnalytics.includes("Cache-Control") && productAnalytics.includes("no-store"), "Product analytics responses must not be cached");
+assert.ok(productAnalytics.includes("weeklyActivity") && productAnalytics.includes("retention") && productAnalytics.includes("features"), "Product analytics must return aggregate engagement, retention and feature summaries");
+assert.ok(!productAnalytics.includes("SUPABASE_SERVICE_ROLE_KEY"), "Product analytics must not require service-role database access");
+
 const adminPostpone = readFileSync("supabase/functions/admin-postpone-gameweek/index.ts", "utf8");
 assert.ok(adminPostpone.includes("userClient.auth.getUser(token)"), "Gameweek postponement must validate the signed-in administrator");
 assert.ok(adminPostpone.includes('rpc("admin_postpone_gameweek"'), "Gameweek postponement must use the location-scoped database workflow");
