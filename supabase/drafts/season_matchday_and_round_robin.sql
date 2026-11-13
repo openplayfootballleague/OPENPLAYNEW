@@ -163,7 +163,7 @@ begin
   if p_first_matchday_date is null then raise exception 'Choose the first matchday date'; end if;
   select * into v_season from public.seasons where id=p_season_id;
   if not found then raise exception 'Choose an existing season'; end if;
-  if v_season.status not in ('registration_open','active') then
+  if v_season.status not in ('draft','registration_open','active') then
     raise exception 'Fixtures can only be generated for a season that is open for registration or active';
   end if;
   if v_season.matchday_weekday is null or v_season.matchday_start_time is null or v_season.match_duration_minutes is null then
