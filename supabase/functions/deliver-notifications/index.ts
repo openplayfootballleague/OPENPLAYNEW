@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { PermanentDeliveryError, providerHttpError } from "./shared/delivery-errors.ts";
+import { buildOneSignalPayload, renderPushMessage, type PushMessage } from "./push-policy.ts";
 
 type EventRow = {
   id: string;
@@ -110,40 +111,6 @@ async function sendEmail(apiKey: string, from: string, to: string, message: Rend
   return String(body.id ?? "");
 }
 
-type PushMessage = { heading: string; body: string; path: string };
-
-function renderPushMessage(event: EventRow): PushMessage {
-  switch (event.event_type) {
-    case "message.new":
-      return { heading: "New Open Play message", body: "You have a new message. Sign in to view it.", path: "/messages" };
-    case "fixture.scheduled":
-    case "fixture.reminder_24h":
-    case "fixture.reminder_3h":
-    case "fixture.rescheduled":
-    case "fixture.status_changed":
-    case "fixture.result_published":
-    case "fixture.result_corrected":
-      return { heading: "Open Play match update", body: "There is an update to one of your fixtures. Open Match Centre for details.", path: "/match-centre" };
-    case "team.membership_approved":
-    case "team.membership_rejected":
-    case "team.membership_removed":
-    case "team.registration_approved":
-    case "team.registration_rejected":
-    case "player.transfer_approved":
-    case "player.transfer_rejected":
-      return { heading: "Open Play team update", body: "There is an update to your team or membership. Sign in to view details.", path: "/player" };
-    case "player.banned":
-    case "player.unbanned":
-    case "player.guardian_consent.captain_review_required":
-      return { heading: "Open Play account update", body: "There is an update to your account that needs your attention. Sign in to view details.", path: "/player" };
-    default:
-      if (event.event_type.startsWith("referee.")) {
-        return { heading: "Open Play referee update", body: "There is an update to a match report. Sign in to view details.", path: "/referee" };
-      }
-      return { heading: "Open Play notification", body: "You have a new update. Sign in to view details.", path: "/notifications" };
-  }
-}
-
 async function sendPush(
   appId: string,
   restApiKey: string,
@@ -152,25 +119,16 @@ async function sendPush(
   message: PushMessage,
   appOrigin: string,
 ) {
-  const targetUrl = new URL(message.path, appOrigin).toString();
+  const payload = buildOneSignalPayload(appId, externalId, eventId, message, appOrigin);
   const response = await fetch("https://api.onesignal.com/notifications", {
     method: "POST",
     headers: { Authorization: `Key ${restApiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      app_id: appId,
-      target_channel: "push",
-      include_aliases: { external_id: [externalId] },
-      headings: { en: message.heading },
-      contents: { en: message.body },
-      url: targetUrl,
-      data: { deep_link: message.path },
-      idempotency_key: eventId,
-    }),
+    body: JSON.stringify(payload),
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw providerHttpError("OneSignal", response.status, result);
   const providerId = String(result.id ?? "");
-  if (!providerId) throw new PermanentDeliveryError("No active OneSignal subscriptions");
+  if (!providerId || Number(result.recipients ?? 1) === 0) throw new PermanentDeliveryError("No active OneSignal subscriptions");
   return providerId;
 }
 
@@ -289,7 +247,7 @@ Deno.serve(async (req: Request) => {
           oneSignalRestApiKey,
           event.user_id,
           event.id,
-          renderPushMessage(event),
+          renderPushMessage(event.event_type),
           validAppOrigin,
         );
         providerAccepted = true;
