@@ -70,6 +70,24 @@ Deno.test("OneSignal app origin must use HTTPS outside local development", () =>
   if (!denied) throw new Error("Insecure push deep-link origin was accepted");
 });
 
+Deno.test("push origin rejects paths and query strings", () => {
+  for (const origin of ["https://openplay.example/app", "https://openplay.example/?redirect=other"]) {
+    let denied = false;
+    try {
+      buildOneSignalPayload(
+        "11111111-1111-4111-8111-111111111111",
+        "22222222-2222-4222-8222-222222222222",
+        "33333333-3333-4333-8333-333333333333",
+        renderPushMessage("message.new"),
+        origin,
+      );
+    } catch {
+      denied = true;
+    }
+    if (!denied) throw new Error("Non-origin APP_ORIGIN was accepted");
+  }
+});
+
 Deno.test("device responses are reduced to safe display fields", () => {
   const device = sanitisePushDevice({
     id: "44444444-4444-4444-8444-444444444444",
