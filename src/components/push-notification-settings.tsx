@@ -202,6 +202,7 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
 
       if (!isOneSignalConfigured()) {
         if (sdk) await sdk.logout().catch(() => undefined);
+        clearOneSignalIdentityLink();
         setNotice("Push delivery is disabled for this account. Remote device cleanup cannot be confirmed until OneSignal is configured again.");
         return;
       }
