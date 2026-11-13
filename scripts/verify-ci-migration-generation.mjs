@@ -20,7 +20,7 @@ const expectedMigrations = [
   "optional_goal_attribution",
   "admin_league_admin_role_management",
   "manual_season_recruitment_activation",
-  "location_venues_and_operating_hours",
+  "location_venues_and_operating_hours",\n  "season_matchday_and_round_robin",
 ];
 let checked = 0;
 const foundMigrations = [];
