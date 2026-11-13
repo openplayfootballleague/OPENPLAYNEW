@@ -76,6 +76,10 @@ type ProductAnalytics = {
 };
 
 const money = (pence: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
+type AnalyticsRpcClient = {
+  rpc: (name: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
+};
+const analyticsRpc = () => getSupabaseClient() as unknown as AnalyticsRpcClient;
 
 export const Route = createFileRoute("/admin/analytics")({ component: AdminAnalyticsPage });
 
@@ -242,12 +246,12 @@ function AdminAnalyticsPage() {
         setFinanceAccess(true);
         setFinanceOptions((financeOptionRows ?? []) as FinanceOption[]);
         const [businessResult, costResult] = await Promise.all([
-          getSupabaseClient().rpc("get_admin_business_performance", {
+          analyticsRpc().rpc("get_admin_business_performance", {
             ...args,
             p_from_date: fromDate || undefined,
             p_to_date: toDate || undefined,
           }),
-          getSupabaseClient().rpc("get_admin_operating_costs", {
+          analyticsRpc().rpc("get_admin_operating_costs", {
             ...args,
             p_from_date: fromDate || undefined,
             p_to_date: toDate || undefined,
