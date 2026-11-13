@@ -142,7 +142,7 @@ const adminReferees = readFileSync("src/routes/admin/referees.tsx", "utf8");
 const reportReview = adminReferees.slice(adminReferees.indexOf("async function reviewReport"), adminReferees.indexOf("async function decide("));
 const approvalRpcPosition=reportReview.indexOf('rpc("admin_review_referee_match_report"');
 const immediateTransferPosition=reportReview.indexOf('functions.invoke("pay-referee-payout"');
-const payoutInvocations=reportReview.match(/functions\\.invoke\\("pay-referee-payout"/g) ?? [];
+const payoutInvocations=reportReview.split('functions.invoke("pay-referee-payout"').length-1;
 assert.ok(approvalRpcPosition>=0 && immediateTransferPosition>approvalRpcPosition, "The immediate referee transfer must be invoked only after the approval RPC succeeds");
 assert.equal(payoutInvocations.length,1, "One administrator approval handler must make exactly one immediate transfer invocation");
 assert.ok(reportReview.includes("report_id:report.report_id"), "The approval trigger must identify the report, not trust a browser-supplied payout amount or destination");
