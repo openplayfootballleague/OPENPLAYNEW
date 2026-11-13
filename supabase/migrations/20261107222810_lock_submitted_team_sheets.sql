@@ -1,24 +1,10 @@
--- Record the goalkeeper explicitly and require one of the selected starters.
-alter table public.fixture_team_sheet_players
-  add column is_goalkeeper boolean not null default false;
-
-alter table public.fixture_team_sheet_players
-  add constraint fixture_team_sheet_goalkeeper_must_start
-  check (not is_goalkeeper or role = 'starter');
-
-create unique index fixture_team_sheet_one_goalkeeper_idx
-  on public.fixture_team_sheet_players(team_sheet_id)
-  where is_goalkeeper;
-
--- Replace the four-argument RPC so callers cannot bypass goalkeeper selection.
-drop function if exists public.submit_team_sheet(uuid, uuid, uuid[], uuid[]);
-
-create function public.submit_team_sheet(
+-- A captain submission is the final team sheet for that fixture/team.
+-- Once submitted, the RPC must lock it; only an audited admin workflow may amend it.
+create or replace function public.submit_team_sheet(
   p_fixture_id uuid,
   p_season_team_id uuid,
   p_starters uuid[],
-  p_substitutes uuid[] default '{}'::uuid[],
-  p_goalkeeper_membership_id uuid default null
+  p_substitutes uuid[] default '{}'::uuid[]
 )
 returns public.fixture_team_sheets
 language plpgsql
@@ -44,28 +30,20 @@ begin
   if v_fixture.status <> 'scheduled' then raise exception 'Team sheets can only be submitted for scheduled fixtures'; end if;
   if p_season_team_id not in (v_fixture.home_team_id, v_fixture.away_team_id) then raise exception 'This team is not playing in the selected fixture'; end if;
 
-  select l.format into v_format
-  from public.seasons s join public.leagues l on l.id = s.league_id
-  where s.id = v_fixture.season_id;
+  select l.format into v_format from public.seasons s join public.leagues l on l.id = s.league_id where s.id = v_fixture.season_id;
   v_expected_starters := case when v_format = 'six_a_side' then 6 else 7 end;
   v_max_substitutes := case when v_format = 'six_a_side' then 3 else 4 end;
 
   if coalesce(cardinality(p_starters), 0) <> v_expected_starters then raise exception 'Select exactly % starting players', v_expected_starters; end if;
   if coalesce(cardinality(p_substitutes), 0) > v_max_substitutes then raise exception 'Select no more than % substitutes', v_max_substitutes; end if;
-  if p_goalkeeper_membership_id is null or not (p_goalkeeper_membership_id = any(coalesce(p_starters, '{}'::uuid[]))) then
-    raise exception 'Select one goalkeeper from your starting players';
-  end if;
 
   v_all_memberships := coalesce(p_starters, '{}'::uuid[]) || coalesce(p_substitutes, '{}'::uuid[]);
-  if (select count(distinct x) from unnest(v_all_memberships) x) <> cardinality(v_all_memberships) then
-    raise exception 'A player can only appear once on a team sheet';
-  end if;
+  if (select count(distinct x) from unnest(v_all_memberships) x) <> cardinality(v_all_memberships) then raise exception 'A player can only appear once on a team sheet'; end if;
 
   if exists (
     select 1 from unnest(v_all_memberships) x
     where not exists (
-      select 1 from public.team_memberships tm
-      join public.players p on p.user_id = tm.user_id
+      select 1 from public.team_memberships tm join public.players p on p.user_id = tm.user_id
       where tm.id = x and tm.season_team_id = p_season_team_id and tm.status = 'active'
         and p.registration_status = 'registered' and p.is_banned = false
     )
@@ -86,27 +64,22 @@ begin
     delete from public.fixture_team_sheet_players where team_sheet_id = v_sheet.id;
   end if;
 
-  insert into public.fixture_team_sheet_players(team_sheet_id, user_id, role, squad_number_snapshot, is_goalkeeper)
-  select v_sheet.id, tm.user_id, 'starter', tm.squad_number, tm.id = p_goalkeeper_membership_id
-  from public.team_memberships tm
-  where tm.id = any(coalesce(p_starters, '{}'::uuid[]))
-    and tm.season_team_id = p_season_team_id and tm.status = 'active';
+  insert into public.fixture_team_sheet_players(team_sheet_id, user_id, role, squad_number_snapshot)
+  select v_sheet.id, tm.user_id, 'starter', tm.squad_number from public.team_memberships tm
+  where tm.id = any(coalesce(p_starters, '{}'::uuid[])) and tm.season_team_id = p_season_team_id and tm.status = 'active';
 
-  insert into public.fixture_team_sheet_players(team_sheet_id, user_id, role, squad_number_snapshot, is_goalkeeper)
-  select v_sheet.id, tm.user_id, 'substitute', tm.squad_number, false
-  from public.team_memberships tm
-  where tm.id = any(coalesce(p_substitutes, '{}'::uuid[]))
-    and tm.season_team_id = p_season_team_id and tm.status = 'active';
+  insert into public.fixture_team_sheet_players(team_sheet_id, user_id, role, squad_number_snapshot)
+  select v_sheet.id, tm.user_id, 'substitute', tm.squad_number from public.team_memberships tm
+  where tm.id = any(coalesce(p_substitutes, '{}'::uuid[])) and tm.season_team_id = p_season_team_id and tm.status = 'active';
 
   insert into public.audit_log(actor_user_id, action, entity_type, entity_id, after_data)
   values (v_actor, 'fixture.team_sheet.submitted', 'fixture_team_sheet', v_sheet.id::text,
     jsonb_build_object('fixture_id', p_fixture_id, 'season_team_id', p_season_team_id,
-      'starters', cardinality(p_starters), 'substitutes', cardinality(p_substitutes),
-      'goalkeeper_membership_id', p_goalkeeper_membership_id, 'is_locked', true));
+      'starters', cardinality(p_starters), 'substitutes', cardinality(p_substitutes), 'is_locked', true));
 
   return v_sheet;
 end;
 $$;
 
-revoke all on function public.submit_team_sheet(uuid, uuid, uuid[], uuid[], uuid) from public, anon;
-grant execute on function public.submit_team_sheet(uuid, uuid, uuid[], uuid[], uuid) to authenticated;
+revoke all on function public.submit_team_sheet(uuid, uuid, uuid[], uuid[]) from public, anon;
+grant execute on function public.submit_team_sheet(uuid, uuid, uuid[], uuid[]) to authenticated;
