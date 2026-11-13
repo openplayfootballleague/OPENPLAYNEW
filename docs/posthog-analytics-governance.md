@@ -22,6 +22,12 @@ The committed `.env.example` intentionally leaves the project token blank and th
 - Analytics events use a fixed event-name set and an allow-list of validated low-risk properties.
 - Admin, super-admin, finance-admin, league-admin, banned, disciplined-inactive, closed and unverified accounts are excluded from product analytics.
 
+## App Usage classification
+
+Navigation-section events include one additional coarse, allowlisted `visitor_type` value after actor resolution: `anonymous` or `authenticated`. It is not an account identifier or a role label. The classification is applied only after explicit consent and is removed when the actor cannot be verified. When a visitor opts in while already on a page, the current navigation section is captured after the consent state changes.
+
+The App Usage dashboard aggregates only `navigation_section_viewed` events. It is global-platform data, restricted server-side to global administrators; location administrators cannot query it. The current privacy configuration deliberately does not collect raw pageviews, session recordings, device/browser fingerprints or session duration, so the dashboard does not imply those metrics exist.
+
 ## Current event coverage
 
 - Account signup started/completed.
