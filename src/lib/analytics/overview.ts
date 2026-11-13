@@ -32,11 +32,8 @@ export type AnalyticsOverview = {
   approvedTeams: number;
   squadMemberships: number;
   fixtures: number;
-  completedFixtures: number;
   publishedResults: number;
-  resultsCoveragePercent: number | null;
   goals: number;
-  goalsPerResult: number | null;
   pendingPlayerReviews: number;
   pendingTeamApplications: number;
   pendingMembershipRequests: number;
@@ -48,8 +45,11 @@ export type AnalyticsLocationComparison = {
   approvedTeams: number;
   squadMemberships: number;
   fixtures: number;
+  completedFixtures: number;
   publishedResults: number;
+  resultsCoveragePercent: number | null;
   goals: number;
+  goalsPerResult: number | null;
 };
 export type FinanceSummaryRow = {
   charges_pence: number | string;
