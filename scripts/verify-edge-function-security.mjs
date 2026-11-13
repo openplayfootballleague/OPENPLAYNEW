@@ -193,7 +193,8 @@ assert.ok(teamDeadlineWorker.includes('.in("status",["due","grace_period","admin
 
 const productAnalytics = readFileSync("supabase/functions/admin-product-analytics/index.ts", "utf8");
 assert.ok(productAnalytics.includes('userClient.auth.getUser(token)'), "Product analytics must validate the signed-in administrator");
-assert.ok(productAnalytics.includes('rpc("get_admin_competition_setup")'), "Product analytics must derive allowed scopes from the administrator-scoped setup RPC");
+assert.ok(productAnalytics.includes('rpc("get_admin_product_analytics_scope")'), "Product analytics must derive allowed scopes from the minimal identifier-only RPC");
+assert.ok(!productAnalytics.includes('rpc("get_admin_competition_setup")'), "Product analytics must not fetch the full admin setup or unnecessary player identity data");
 assert.ok(productAnalytics.includes("POSTHOG_PERSONAL_API_KEY") && !productAnalytics.includes("POSTHOG_PROJECT_TOKEN"), "Product analytics must use a server-side query credential, never the browser ingestion token");
 assert.ok(productAnalytics.includes("Cache-Control") && productAnalytics.includes("no-store"), "Product analytics responses must not be cached");
 assert.ok(productAnalytics.includes("weeklyActivity") && productAnalytics.includes("retention") && productAnalytics.includes("features"), "Product analytics must return aggregate engagement, retention and feature summaries");
