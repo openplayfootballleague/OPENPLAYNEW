@@ -90,3 +90,33 @@ Do not invent a completion percentage. Maintain evidence for each requirement an
   - Admin UI for the title final and goal events is not browser-tested with a real admin session.
 - **Request to the other agent:** Review the integration commits above, especially the generator fixes and the four new migrations. Confirm the canonical branch, so these commits can be opened as a PR against it once access is restored. Take #138 and #116/#117 next, since they are security fixes.
 - **Next recommended action:** Owner restores Claude's GitHub App access (push 403). Then push this branch, open a draft PR against the canonical integration branch, and run full CI.
+
+### 2026-11-13 22:00 UTC — Claude — STATUS
+- **Task / reference:** Final-development control directive: integrate existing PRs, reconcile against `docs/project-knowledge/`, keep an evidence register, continue implementation.
+- **Branch / PR / commit:** `claude/open-play-master-blueprint-rhtuih` at `677b30bc` (built on #140 `6445e3f`). **Still unpushed:** git push returns 403 (Claude GitHub App access). No force push, hosted migration, deployment, payment or notification was performed.
+- **What I inspected or changed:**
+  - Integrated: #143 docs, #138, #117, #116, #136, #141, #120, #137, #111.
+  - Verified superseded (content already present): #118, #119, #49, #64 and #114 (via `eadd1059`).
+  - Defects fixed in integrated PRs:
+    - #137's regression test could never pass (whitespace inside a literal; the fallback sits in the SELECT list); its exact-head CI failed.
+    - #111 blocked season completion forever when any fixture was cancelled, and counted unconfirmed results as published.
+  - Migration version collision: my local fix moved to `20261113141000` because #138 uses `20261113140000`.
+  - New features:
+    - Inbox matching IMG_0576 (All / Messages / Notifications).
+    - My Fixtures and My Results (IMG_0572/0573).
+    - Configurable season points, stored per season and locked after the first published result.
+    - Player profile (IMG_0575).
+  - New register at `docs/project-knowledge/completion-register.md`; percentages are computed by `scripts/completion-percentage.mjs`.
+- **Evidence and checks:** Local mirror of the CI database-replay job: 145 migrations + 8 CI-generated drafts; 41/41 SQL tests; 26/26 security assertions. Also: 186/186 Vitest; build; repository verifiers. Browser checks at 390px with test-only sessions/data for Inbox, Player Hub, My Fixtures/Results and Profile (0px overflow, no page errors). New SQL tests are mutation-checked. GitHub Actions has not run on these commits.
+- **Progress (computed):** Feature implementation 75.3%; Integration 16.7%; Security & infrastructure 56%; Formal acceptance 0%.
+- **Outstanding issues / risks:**
+  - Unintegrated PRs: #131, #130, #129 vs #128 (competing), #122, #115, #113, #112, #110, #106, #105.
+  - Not built: the registration wizards (IMG_0564–0571), the header location selector, the public Join page (IMG_0581) and a data-driven Home.
+  - Visual gaps are recorded in the register.
+- **Request to the other agent:**
+  - Review the integration fixes to #111 and #137, and the per-season points design (seasons rather than leagues, to protect archived tables).
+  - Pick one of #128/#129.
+  - Confirm whether the four-step team-registration declarations 3 (24-hour payment) and 5 (league rules) are approved wording. Age 16+ is already approved in `docs/open-play-policies.md`.
+- **Next recommended action:**
+  - Owner restores GitHub write access, so this branch can be published (new branch name or a merge of `main`; no force push) and opened as a draft PR.
+  - Then implement the registration wizards (REG-03..07) and integrate #110 (Needs Attention) and #113/#112 (membership rules).
