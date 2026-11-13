@@ -99,7 +99,7 @@ begin
 
   v_dedupe := p_event_type || ':' ||
     coalesce(p_payload->>'fixture_id',p_payload->>'membership_id',p_payload->>'season_team_id','event') ||
-    ':' || coalesce(p_payload->>'scheduled_at','') || ':' || p_user_id::text;
+    ':' || coalesce(p_payload->>'scheduled_at',p_payload->>'changed_at','') || ':' || p_user_id::text;
 
   if v_preferences.email_enabled then
     insert into public.notification_events(user_id,channel,event_type,status,payload,dedupe_key)
