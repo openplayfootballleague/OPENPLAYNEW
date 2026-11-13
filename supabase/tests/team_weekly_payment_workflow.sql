@@ -214,10 +214,10 @@ begin
   select * into v_business
   from public.get_admin_business_performance(v_location,v_league,v_season);
   if v_business.team_receipts_pence<>3500
-     or v_business.upcoming_team_forecast_pence<>3500
-     or v_business.upcoming_team_obligations<>1
+     or v_business.upcoming_team_forecast_pence<>0
+     or v_business.upcoming_team_obligations<>0
      or v_business.outstanding_pence<>3500 then
-    raise exception 'Business performance did not distinguish the paid receipt from the remaining forecast: %',row_to_json(v_business);
+    raise exception 'Business performance must keep the paid receipt and outstanding balance while excluding a defaulted, cancelled fixture from future forecast: %',row_to_json(v_business);
   end if;
   execute 'reset role';
   execute 'set local role service_role';
