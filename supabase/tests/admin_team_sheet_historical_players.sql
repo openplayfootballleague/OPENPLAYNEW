@@ -10,6 +10,7 @@ declare
   v_roster_query text;
   v_compact_players text;
   v_players_start integer;
+  v_players_where_start integer;
   v_roster_start integer;
 begin
   v_players_start := pg_catalog.strpos(v_definition, 'fixture_team_sheet_players tsp');
@@ -20,7 +21,11 @@ begin
   v_players_query := pg_catalog.substr(v_definition, v_players_start, v_roster_start - v_players_start);
   v_roster_query := pg_catalog.substr(v_definition, v_roster_start);
   v_compact_players := pg_catalog.regexp_replace(v_players_query, '[[:space:]]+', '', 'g');
-  v_players_where := pg_catalog.substr(v_players_query, pg_catalog.strpos(v_players_query, 'where tsp.team_sheet_id=sh.id'));
+  v_players_where_start := pg_catalog.strpos(v_players_query, 'where tsp.team_sheet_id=sh.id');
+  if v_players_where_start = 0 then
+    raise exception 'Could not locate the submitted-player row filter';
+  end if;
+  v_players_where := pg_catalog.substr(v_players_query, v_players_where_start);
 
   if pg_catalog.strpos(v_compact_players, 'tm.user_id=tsp.user_id') = 0
      or pg_catalog.strpos(v_compact_players, 'tm.season_team_id=sh.season_team_id') = 0
