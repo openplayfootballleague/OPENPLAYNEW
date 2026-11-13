@@ -58,7 +58,7 @@ begin
   select count(*) into v_claimed from public.claim_notification_events(10,array['push']) where id=v_push_id;
   if v_claimed<>1 then raise exception 'Push outbox event was not claimed by the push worker'; end if;
 
-  perform public.fail_notification_event(v_push_id,'Permanent: no active OneSignal subscriptions');
+  perform public.fail_notification_event_permanent(v_push_id,'No active OneSignal subscriptions');
   if not exists(select 1 from public.notification_events where id=v_push_id and status='failed') then
     raise exception 'Permanent push failure was incorrectly scheduled for another retry';
   end if;
