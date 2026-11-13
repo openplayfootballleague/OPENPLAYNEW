@@ -1280,6 +1280,8 @@ export type Database = {
           badge_path: string | null
           created_at: string
           id: string
+          instagram_handle: string | null
+          instagram_url: string | null
           name: string
           primary_colour: string | null
           registration_status: Database["public"]["Enums"]["registration_status"]
@@ -1295,6 +1297,8 @@ export type Database = {
           badge_path?: string | null
           created_at?: string
           id?: string
+          instagram_handle?: string | null
+          instagram_url?: string | null
           name: string
           primary_colour?: string | null
           registration_status?: Database["public"]["Enums"]["registration_status"]
@@ -1310,6 +1314,8 @@ export type Database = {
           badge_path?: string | null
           created_at?: string
           id?: string
+          instagram_handle?: string | null
+          instagram_url?: string | null
           name?: string
           primary_colour?: string | null
           registration_status?: Database["public"]["Enums"]["registration_status"]
@@ -1990,6 +1996,8 @@ export type Database = {
           badge_path: string | null
           created_at: string
           id: string
+          instagram_handle: string | null
+          instagram_url: string | null
           name: string
           primary_colour: string | null
           registration_status: Database["public"]["Enums"]["registration_status"]
@@ -3259,6 +3267,8 @@ export type Database = {
       }
       register_team: {
         Args: {
+          p_instagram_handle?: string | null
+          p_instagram_url?: string | null
           p_primary_colour?: string
           p_season_id: string
           p_secondary_colour?: string
