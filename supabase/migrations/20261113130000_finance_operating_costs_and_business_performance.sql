@@ -234,14 +234,23 @@ begin
       coalesce(sum(e.amount_pence) filter(where e.entry_type='payment'),0)::bigint receipts,
       coalesce(sum(e.amount_pence) filter(where e.entry_type='refund'),0)::bigint refunds,
       coalesce(sum(e.amount_pence) filter(where e.entry_type='credit'),0)::bigint credits,
-      coalesce(sum(e.amount_pence) filter(where e.entry_type='fine'),0)::bigint fines,
-      coalesce(sum(case when e.entry_type in ('charge','fine','refund') then e.amount_pence::bigint
-        when e.entry_type in ('payment','credit') then -e.amount_pence::bigint else 0 end),0)::bigint balance
+      coalesce(sum(e.amount_pence) filter(where e.entry_type='fine'),0)::bigint fines
     from public.finance_entries e
     join public.season_teams st on st.id=e.season_team_id
     join scoped_seasons ss on ss.id=st.season_id
     where (p_from_date is null or e.occurred_at>=p_from_date::timestamptz)
       and (p_to_date is null or e.occurred_at<(p_to_date+1)::timestamptz)
+    group by e.season_team_id
+  ),
+  team_balances as (
+    -- Outstanding is the current positive balance per team, not the net
+    -- movement inside the selected reporting period.
+    select e.season_team_id,
+      coalesce(sum(case when e.entry_type in ('charge','fine','refund') then e.amount_pence::bigint
+        when e.entry_type in ('payment','credit') then -e.amount_pence::bigint else 0 end),0)::bigint balance
+    from public.finance_entries e
+    join public.season_teams st on st.id=e.season_team_id
+    join scoped_seasons ss on ss.id=st.season_id
     group by e.season_team_id
   ),
   ledger_totals as (
@@ -250,7 +259,7 @@ begin
       coalesce(sum(refunds),0)::bigint refunds,
       coalesce(sum(credits),0)::bigint credits,
       coalesce(sum(fines),0)::bigint fines,
-      coalesce(sum(greatest(balance,0)),0)::bigint outstanding
+      (select coalesce(sum(greatest(balance,0)),0)::bigint from team_balances) outstanding
     from team_ledger
   ),
   forecast as (
