@@ -81,6 +81,9 @@ select
     'public.admin_transition_season(uuid,season_status)'::regprocedure,
     'public.admin_create_venue(uuid,text,text,smallint[],time without time zone,time without time zone,boolean)'::regprocedure,
     'public.admin_update_venue(uuid,text,text,smallint[],time without time zone,time without time zone,boolean)'::regprocedure,
+    'public.admin_update_season_matchday_settings(uuid,smallint,time without time zone,smallint,smallint,uuid,text)'::regprocedure,
+    'public.admin_preview_round_robin_fixtures(uuid,date)'::regprocedure,
+    'public.admin_generate_round_robin_fixtures(uuid,date)'::regprocedure,
     'public.resolve_team_membership_request(uuid,text)'::regprocedure,
     'public.resolve_team_registration(uuid,text,text)'::regprocedure
   ) and (
