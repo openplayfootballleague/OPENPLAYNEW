@@ -39,7 +39,7 @@ describe("admin analytics aggregation", () => {
     expect(safeCsvCell("\uFEFF=1+1")).toBe('"\'=1+1"');
     expect(safeCsvCell('=HYPERLINK("https://example.invalid","open")')).toBe(`"\'=HYPERLINK(""https://example.invalid"",""open"")"`);
     expect(safeCsvCell("  @SUM(1,2)")).toBe('"\'  @SUM(1,2)"');
-    expect(safeCsvCell('Captain "Ace"')).toBe('"Captain ""Ace""" '.trimEnd());
+    expect(safeCsvCell('Captain "Ace"')).toBe('"Captain ""Ace"""');
   });
   it("counts only approved teams and verified completed results in the selected context", () => {
     const result = buildAnalyticsOverview(setup, {
