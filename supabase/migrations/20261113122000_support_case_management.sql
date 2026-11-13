@@ -61,6 +61,25 @@ create trigger create_support_case_for_conversation_trigger
 after insert on public.message_conversations
 for each row execute function public.create_support_case_for_conversation();
 
+create or replace function public.touch_support_case_on_message()
+returns trigger
+language plpgsql
+security definer
+set search_path=''
+as $
+begin
+  update public.support_cases
+  set updated_at=now()
+  where conversation_id=new.conversation_id;
+  return new;
+end;
+$;
+revoke all on function public.touch_support_case_on_message() from public,anon,authenticated;
+drop trigger if exists touch_support_case_on_message_trigger on public.messages;
+create trigger touch_support_case_on_message_trigger
+after insert on public.messages
+for each row execute function public.touch_support_case_on_message();
+
 create or replace function public.admin_get_support_case_options()
 returns table(user_id uuid,display_name text)
 language plpgsql
@@ -132,7 +151,7 @@ begin
       when coalesce(ap.account_retention_status,'closed')<>'active' then 'Former administrator'
       else coalesce(nullif(ap.display_name,''),apl.full_name,'Open Play administrator') end,
     sc.status,sc.priority,sc.resolution_summary,sc.created_at,sc.updated_at,
-    lm.created_at,left(lm.body,300)
+    lm.created_at,left(lm.safe_body,300)
   from public.support_cases sc
   join public.message_conversations c on c.id=sc.conversation_id
   left join public.profiles rp on rp.id=sc.created_by
@@ -140,7 +159,9 @@ begin
   left join public.profiles ap on ap.id=sc.assigned_to
   left join public.players apl on apl.user_id=sc.assigned_to
   left join lateral (
-    select m.created_at,m.body
+    select m.created_at,
+      case when m.hidden_reason='Account erasure' then '[Message removed after account erasure]'
+        when m.is_hidden then '[Message hidden by moderation]' else m.body end as safe_body
     from public.messages m
     where m.conversation_id=sc.conversation_id
     order by m.created_at desc,m.id desc
