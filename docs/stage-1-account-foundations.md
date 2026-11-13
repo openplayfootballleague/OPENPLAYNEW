@@ -226,3 +226,37 @@ PR #117 (`fix/captain-hub-session-isolation-2026-11-12`) adds an initial-session
 The Captain Hub follow-up was broadened after the same mounted-account-switch pattern was found in other protected routes. PR #117 now introduces a reusable Supabase session identity boundary and applies it to Captain Hub, Admin Dashboard, Finance, Admin Referee Management, Admin Analytics, Admin Help, Admin Messages, Guardian Consent Admin, Player Retention Admin, Referee Portal, Referee Matchday, Referee Match Report, private Messages, Player Registration, Join Open Play and Password Reset. The boundary resolves the initial session, listens for auth changes, and keys the entire protected subtree by user ID. Sign-out unmounts it; switching accounts remounts a clean subtree; same-user token refresh keeps the key stable. Existing server-side RPC/RLS permission checks remain authoritative. This protects client state such as financial records, referee applications, Stripe Connect onboarding secrets and match reports from lingering across accounts. Exact-head build, database replay and browser acceptance are pending after the broader route change. No hosted or Stripe operations were performed.
 
 The public **More** page is deliberately not wrapped by the sign-in boundary because viewer navigation must remain available. Its own account-access loader now clears access flags on every auth change and uses a request-generation guard so stale account-role results cannot overwrite the current user's access state.
+
+## Player Hub account-switch isolation correction — 12 November 2026
+
+A follow-up source review found that the Player Hub auth listener updated the session but only cleared a small subset of cached state on sign-out. It did not reload the full Player Hub dataset when a different account signed in within the same mounted page. That contradicted the earlier session-cleanup acceptance note and could leave stale profile, notification, transfer, payment, avatar or statistics data visible after an account switch.
+
+PR #116 (fix/player-hub-session-isolation-2026-11-12) corrects the route to:
+- classify same-user token refresh, account switch and sign-out transitions;
+- clear all account-specific Player Hub state before switching identities or signing out;
+- reload the full dataset for a newly authenticated user;
+- invalidate stale in-flight reads and stale failures using a request-generation guard;
+- preserve the current state on same-user token refresh; and
+- keep a visible load error rather than redirecting away when protected data could not be loaded.
+
+Unit tests cover the transition classifier. Exact-head build, domain tests, clean local Supabase replay and Chromium/PWA acceptance are pending on the latest PR head. This is a client-side isolation fix; database RPC/RLS remains authoritative. No hosted migration, production identity, merge or deployment was performed.
+
+## Live migration and RLS reconciliation verification — 12 November 2026
+
+A fresh read-only inspection of the connected hosted Open Play New project supersedes earlier historical notes in this document that described the Phase 1 RLS corrections as pending application:
+
+- The hosted migration ledger contains 99 applied migrations; latest applied version is `20261108194831` (`phase1_completion_bundle`). The canonical source manifest records 99/99 applied source files and states that the Phase 1 completion bundle includes the seven outstanding security/authorization corrections plus the picture-only profile permission correction.
+- The live `has_global_admin_role()` definition checks only `admin` and `super_admin`; `has_platform_role()` still includes `league_admin`, as intended for broader platform-role checks. Live `*_admin_manage` policies inspected on competition/workflow tables use `has_global_admin_role()`, while location-scoped read policies use `can_administer_location(...)`.
+- The three advisor-reported RLS-enabled tables with no policies (`admin_context_preferences`, `gallery_items`, `location_admin_assignments`) have no anon or authenticated SELECT/INSERT/UPDATE/DELETE table grants in the live catalogue query. They are not directly accessible to those client roles.
+- The live security advisor reports 77 authenticated-executable SECURITY DEFINER functions and zero anon-executable functions. A coarse read-only source-marker check found at least one recognised auth/role guard marker in each of the 77 definitions; this is a screening heuristic, not proof of correct per-function authorization.
+- The performance advisor reports 15 multiple-permissive-policy warnings. These need review for query cost and policy composition, but the current `*_admin_manage` policies inspected are global-admin-only; do not treat the warning count alone as evidence of a location-admin bypass. Seven unindexed foreign-key and 52 unused-index notices also remain; do not add/drop indexes without workload evidence. Health advisor returned no findings.
+
+This was a read-only catalog/advisor review. No SQL writes, hosted migrations, policy changes, role changes, or production data/configuration changes were made. The 38 newer migrations exercised by the current clean CI replay remain pending for hosted application and must stay behind the release approval gate.
+
+## PostHog project privacy configuration check — 12 November 2026
+
+Read-only inspection confirmed the connected PostHog project is `OPENPLAYNEW` (project ID 340435). The project currently has IP anonymisation enabled, session recording disabled at project level, and no ingested event recorded yet. The project-level `autocapture_opt_out` setting is false, so the application must not rely on that project toggle to suppress autocapture.
+
+The consent-first SDK implementation on the integration branch explicitly sets `autocapture: false`, disables automatic pageview/pageleave, exception, heatmap and performance capture, disables session recording, sets `opt_out_capturing_by_default: true`, and does not initialise PostHog until the user has granted consent, Global Privacy Control is not active, and `VITE_POSTHOG_PRIVACY_SETTINGS_VERIFIED=true`. Revocation opts out and resets the SDK. The browser project token and host are read from environment variables, not hard-coded.
+
+This is configuration/source inspection, not proof of production event delivery or a completed legal/privacy review. No events have yet been observed in the project. Keep the verified-settings environment flag unset until the approved production configuration and consent/network acceptance evidence are complete. No PostHog settings, events, users or project configuration were changed during this check.
