@@ -78,8 +78,9 @@ function formatDateTime(value: string) {
 }
 
 export function AdminFixtureGenerator({ seasons, venues, locations, defaultSeasonId, onGenerated }: Props) {
-  const [seasonId, setSeasonId] = useState(defaultSeasonId || seasons[0]?.id || "");
-  const selectedSeason = useMemo(() => seasons.find((season) => season.id === seasonId) || null, [seasons, seasonId]);
+  const eligibleSeasons = useMemo(() => seasons.filter((season) => ["draft", "registration_open", "active"].includes(season.status)), [seasons]);
+  const [seasonId, setSeasonId] = useState(defaultSeasonId && seasons.some((season) => season.id === defaultSeasonId && ["draft", "registration_open", "active"].includes(season.status)) ? defaultSeasonId : eligibleSeasons[0]?.id || "");
+  const selectedSeason = useMemo(() => eligibleSeasons.find((season) => season.id === seasonId) || null, [eligibleSeasons, seasonId]);
   const [firstMatchdayDate, setFirstMatchdayDate] = useState("");
   const [weekday, setWeekday] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -200,7 +201,7 @@ export function AdminFixtureGenerator({ seasons, venues, locations, defaultSeaso
     }
   }
 
-  if (!seasons.length) {
+  if (!eligibleSeasons.length) {
     return <section className="admin-fixture-generator"><h3>Round-robin fixture generator</h3><p className="form-note">Create a season before generating fixtures.</p></section>;
   }
 
@@ -212,7 +213,7 @@ export function AdminFixtureGenerator({ seasons, venues, locations, defaultSeaso
       <form className="admin-setup-form admin-fixture-generator-form" onSubmit={saveSettings}>
         <label>Season
           <select value={seasonId} onChange={(event) => { setSeasonId(event.target.value); setPreview(null); setConfirmGenerate(false); setSettingsSaved(false); setNotice(""); setError(""); }} required>
-            {seasons.map((season) => <option key={season.id} value={season.id}>{season.name}</option>)}
+            {eligibleSeasons.map((season) => <option key={season.id} value={season.id}>{season.name}</option>)}
           </select>
         </label>
         <label>Matchday
