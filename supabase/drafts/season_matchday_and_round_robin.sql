@@ -93,6 +93,10 @@ begin
        and p_matchday_start_time<v_venue.opens_at then
       raise exception 'The configured matchday starts before the venue opens';
     end if;
+    if p_matchday_start_time is not null and v_venue.closes_at is not null
+       and p_matchday_start_time>=v_venue.closes_at then
+      raise exception 'The configured matchday starts after the venue closes';
+    end if;
     if p_matchday_start_time is not null and p_match_duration_minutes is not null
        and v_venue.closes_at is not null
        and p_matchday_start_time+make_interval(mins=>p_match_duration_minutes)>v_venue.closes_at then
@@ -189,6 +193,9 @@ begin
   end if;
   if v_venue.opens_at is not null and v_season.matchday_start_time<v_venue.opens_at then
     raise exception 'The configured matchday starts before the venue opens';
+  end if;
+  if v_venue.closes_at is not null and v_season.matchday_start_time>=v_venue.closes_at then
+    raise exception 'The configured matchday starts after the venue closes';
   end if;
 
   select array_agg(st.id order by st.name,st.id) into v_team_ids
@@ -425,6 +432,9 @@ begin
       end if;
       if v_venue.opens_at is not null and v_local_scheduled::time<v_venue.opens_at then
         raise exception 'The scheduled time is before the selected venue opens';
+      end if;
+      if v_venue.closes_at is not null and v_local_scheduled::time>=v_venue.closes_at then
+        raise exception 'The scheduled time is after the selected venue closes';
       end if;
       v_match_end_time:=v_local_scheduled::time+make_interval(mins=>coalesce(v_season.match_duration_minutes,0));
       if v_venue.closes_at is not null and v_match_end_time>v_venue.closes_at then
