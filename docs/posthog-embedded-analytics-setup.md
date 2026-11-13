@@ -38,7 +38,7 @@ Each event contains only an allowlisted feature key and the selected `season_id`
 
 - Weekly active players: unique PostHog persons with at least one `core_value_action` in a completed Monday–Sunday week.
 - Weekly meaningful views: count of the same consented content-view events.
-- Retention: recurring weekly activity in the selected date window. Cohort entry is first observed meaningful activity within that selected window; it is not account creation or player registration. The current incomplete week is excluded.
+- Retention: recurring weekly activity in the selected date window. Cohort entry is first observed meaningful activity within that selected window; it is not account creation or player registration. Only complete Monday–Sunday weeks wholly contained in the selected window are included; partial first/last weeks and the current incomplete week are excluded.
 - Feature performance: unique players and meaningful content views by the allowlisted feature. A player may appear in multiple feature rows.
 - No events in a period is shown as no data, not as evidence of zero product engagement.
 
