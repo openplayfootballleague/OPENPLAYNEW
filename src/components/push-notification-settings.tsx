@@ -140,8 +140,9 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
     setBusy(true);
     setError("");
     setNotice("");
+    let sdk: Awaited<ReturnType<typeof loadOneSignal>> | null = null;
     try {
-      const sdk = await loadOneSignal();
+      sdk = await loadOneSignal();
       await sdk.login(userId);
       const permission = await sdk.Notifications.requestPermission();
       if (permission === false || permission === "denied") {
@@ -165,6 +166,10 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
       setNotice("Push notifications are enabled for this account.");
       await refresh();
     } catch (cause) {
+      if (sdk) {
+        await sdk.User.PushSubscription.optOut().catch(() => undefined);
+        await sdk.logout().catch(() => undefined);
+      }
       setError(cause instanceof Error ? cause.message : "Unable to enable push notifications.");
     } finally {
       setBusy(false);
