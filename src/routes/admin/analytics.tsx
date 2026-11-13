@@ -257,10 +257,12 @@ function AdminAnalyticsPage() {
         setProductAnalyticsError(message);
         return;
       }
-      const payload = data as ProductAnalytics | { error?: string };
-      if (!payload || "error" in payload) {
+      const payload = data as ProductAnalytics | { error?: string } | null;
+      if (!payload || !("status" in payload)) {
         setProductAnalytics(null);
-        setProductAnalyticsError(payload && "error" in payload && payload.error ? payload.error : "Product analytics returned an invalid response.");
+        setProductAnalyticsError(payload && "error" in payload && typeof payload.error === "string" && payload.error
+          ? payload.error
+          : "Product analytics returned an invalid response.");
         return;
       }
       setProductAnalytics(payload);
