@@ -25,6 +25,7 @@ begin
     v_location:=v_league_location;
   end if;
   if v_location is not null and not exists(select 1 from public.locations where id=v_location) then raise exception 'Selected location was not found'; end if;
+  perform public.assert_admin_location_context(v_location);
   return query
   select sh.id,sh.fixture_id,sh.season_team_id,st.name,opponent.name,f.gameweek,f.scheduled_at,l.format,sh.is_locked,sh.submitted_at,
     coalesce((select jsonb_agg(jsonb_build_object('membership_id',tm.id,'player_name',p.full_name,'role',tsp.role,'is_goalkeeper',tsp.is_goalkeeper,'squad_number_snapshot',tsp.squad_number_snapshot) order by case when tsp.role='starter' then 0 else 1 end,p.full_name)
