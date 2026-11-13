@@ -170,9 +170,9 @@ export function safeCsvCell(value: string | number): string {
   // Numeric values are trusted data, not formulas. Preserve negative numbers
   // as numbers in spreadsheet imports; neutralise formula-like text only.
   const formulaLikeText = typeof value === "string"
-    && /^[\\s\\uFEFF]*[=+\\-@]/u.test(text);
+    && /^[\s\uFEFF]*[=+\-@]/u.test(text);
   // Strip a leading BOM before adding the spreadsheet text marker.
-  const normalised = text.replace(/^\\uFEFF+/u, "");
+  const normalised = text.replace(/^\uFEFF+/u, "");
   const safe = formulaLikeText ? "'" + normalised : text;
   return '"' + safe.replaceAll('"', '""') + '"';
 }
