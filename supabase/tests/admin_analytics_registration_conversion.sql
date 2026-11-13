@@ -20,7 +20,8 @@ begin
     ('f1000000-0000-4000-8000-000000000002','authenticated','authenticated','ci-conv-location@openplay.invalid','','{}'::jsonb,now(),now()),
     ('f1000000-0000-4000-8000-000000000003','authenticated','authenticated','ci-conv-player-a@openplay.invalid','','{}'::jsonb,now(),now()),
     ('f1000000-0000-4000-8000-000000000004','authenticated','authenticated','ci-conv-player-b@openplay.invalid','','{}'::jsonb,now(),now()),
-    ('f1000000-0000-4000-8000-000000000005','authenticated','authenticated','ci-conv-player-c@openplay.invalid','','{}'::jsonb,now(),now());
+    ('f1000000-0000-4000-8000-000000000005','authenticated','authenticated','ci-conv-player-c@openplay.invalid','','{}'::jsonb,now(),now()),
+    ('f1000000-0000-4000-8000-000000000006','authenticated','authenticated','ci-conv-player-d@openplay.invalid','','{}'::jsonb,now(),now());
 
   insert into public.user_roles(user_id,role,granted_by)
   values
@@ -63,20 +64,22 @@ begin
     ('f1000000-0000-4000-8000-000000000002','active'),
     ('f1000000-0000-4000-8000-000000000003','active'),
     ('f1000000-0000-4000-8000-000000000004','active'),
-    ('f1000000-0000-4000-8000-000000000005','active')
+    ('f1000000-0000-4000-8000-000000000005','active'),
+    ('f1000000-0000-4000-8000-000000000006','active')
   on conflict (id) do update set account_retention_status='active';
 
   insert into public.players(user_id,full_name,phone,email,date_of_birth,registration_status,created_at)
   values
     ('f1000000-0000-4000-8000-000000000003','Conversion Player A','+447700901103','ci-conv-player-a@openplay.invalid',date '1990-02-01','registered',timestamptz '2001-02-01 10:00:00+00'),
     ('f1000000-0000-4000-8000-000000000004','Conversion Player B','+447700901104','ci-conv-player-b@openplay.invalid',date '1990-02-02','pending_review',timestamptz '2001-02-01 10:00:00+00'),
-    ('f1000000-0000-4000-8000-000000000005','Conversion Player C','+447700901105','ci-conv-player-c@openplay.invalid',date '1990-02-03','rejected',timestamptz '2001-02-01 10:00:00+00');
+    ('f1000000-0000-4000-8000-000000000005','Conversion Player C','+447700901105','ci-conv-player-c@openplay.invalid',date '1990-02-03','rejected',timestamptz '2001-02-01 10:00:00+00'),
+    ('f1000000-0000-4000-8000-000000000006','Conversion Player D','+447700901106','ci-conv-player-d@openplay.invalid',date '1990-02-04','registered',timestamptz '2001-02-01 10:00:00+00');
 
   insert into public.team_memberships(id,season_team_id,user_id,status,is_captain,created_at,joined_at)
   values
     ('f1000000-0000-4000-8000-000000000060','f1000000-0000-4000-8000-000000000050','f1000000-0000-4000-8000-000000000003','active',true,timestamptz '2001-02-01 15:00:00+00',timestamptz '2001-02-02 15:00:00+00'),
     ('f1000000-0000-4000-8000-000000000061','f1000000-0000-4000-8000-000000000051','f1000000-0000-4000-8000-000000000004','rejected',false,timestamptz '2001-02-01 16:00:00+00',null),
-    ('f1000000-0000-4000-8000-000000000062','f1000000-0000-4000-8000-000000000052','f1000000-0000-4000-8000-000000000005','pending',false,timestamptz '2001-02-01 17:00:00+00',null);
+    ('f1000000-0000-4000-8000-000000000062','f1000000-0000-4000-8000-000000000052','f1000000-0000-4000-8000-000000000006','pending',false,timestamptz '2001-02-01 17:00:00+00',null);
 
   perform set_config('request.jwt.claim.sub','f1000000-0000-4000-8000-000000000001',true);
   perform set_config('request.jwt.claims','{"sub":"f1000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
@@ -88,7 +91,7 @@ begin
     v_requests,v_accepted,v_membership_rejected,v_membership_pending
   from public.get_admin_registration_conversion(date '2001-02-01',date '2001-02-01');
 
-  if v_players<>1 or v_pending_players<>1 or v_rejected_players<>1
+  if v_players<>2 or v_pending_players<>1 or v_rejected_players<>1
      or v_applications<>3 or v_approved<>1 or v_rejected<>1 or v_pending<>1
      or v_requests<>3 or v_accepted<>1 or v_membership_rejected<>1 or v_membership_pending<>1 then
     raise exception 'Global registration conversion cohort totals are incorrect';
