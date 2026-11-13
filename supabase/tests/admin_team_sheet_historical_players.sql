@@ -39,7 +39,7 @@ begin
   if pg_catalog.strpos(v_compact_players, 'leftjoinpublic.competition_player_identitiescpi') = 0
      or pg_catalog.strpos(v_compact_players, 'cpi.id=tsp.competition_player_id') = 0
      or pg_catalog.strpos(v_compact_players, 'coalesce(cpi.display_name,p.full_name,''former player'')') = 0 then
-    raise exception 'Historical display names must come from the permanent competition identity after erasure';
+    raise exception 'Historical identity assertion failed; compact submitted-player query: %', v_compact_players;
   end if;
   if pg_catalog.strpos(v_roster_query, 'tm.status=''active''') = 0
      or pg_catalog.strpos(v_roster_query, 'p.registration_status=''registered''') = 0
