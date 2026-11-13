@@ -175,7 +175,7 @@ Deno.serve(async (request: Request) => {
     seasonIds: scopedSeasons.map((item) => item.id),
   };
   const validationError = validateProductAnalyticsFilters(filters);
-  if (validationError && filters.seasonIds.length > 0) {
+  if (validationError) {
     return json({ error: validationError }, 400, allowedOrigin);
   }
   if (filters.seasonIds.length === 0) {
