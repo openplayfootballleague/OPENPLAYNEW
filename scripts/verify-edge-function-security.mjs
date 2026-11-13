@@ -27,6 +27,7 @@ for (const [name, expected] of [
   ["referee-connect-webhook", false],
   ["process-referee-payout-queue", false],
   ["admin-postpone-gameweek", true],
+  ["manage-push-devices", true],
 ]) {
   verifyJwtSetting(name, expected);
 }
@@ -63,6 +64,13 @@ assert.ok(!notifications.includes('rpc("get_admin_dashboard")'), "Do not rely on
 const deliveryErrors = readFileSync("supabase/functions/deliver-notifications/shared/delivery-errors.ts", "utf8");
 assert.ok(!deliveryErrors.includes("JSON.stringify(body)"), "Notification provider errors must not persist raw recipient details");
 
+const pushManager = readFileSync("supabase/functions/manage-push-devices/index.ts", "utf8");
+assert.ok(pushManager.includes("userClient.auth.getUser(token)"), "Push device management must validate the signed-in user");
+assert.ok(pushManager.includes("getOneSignalUser") && pushManager.includes("ownedSubscription"), "Push device revocation must verify subscription ownership before deletion");
+assert.ok(!pushManager.includes("serviceKey") || pushManager.includes("service.from(\"notification_preferences\")"), "Service-role access must be limited to the signed-in user's push preference row");
+const pushPolicy = readFileSync("supabase/functions/deliver-notifications/push-policy.ts", "utf8");
+assert.ok(pushPolicy.includes("idempotency_key") && pushPolicy.includes("include_aliases"), "OneSignal sends must target the authenticated external ID and use an idempotency key");
+assert.ok(pushPolicy.includes("Sign in to view details"), "Push content must remain privacy-minimised for lock-screen display");
 const checkout = readFileSync("supabase/functions/create-player-checkout/index.ts", "utf8");
 assert.ok(checkout.includes("userClient.auth.getUser(token)"), "Checkout must validate the signed-in user");
 assert.ok(!checkout.includes("lovable.app"), "Open Play New must not fall back to the retired Lovable origin");
