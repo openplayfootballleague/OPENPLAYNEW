@@ -1985,7 +1985,7 @@ export type Database = {
       admin_generate_round_robin_fixtures: {
         Args: { p_season_id: string; p_first_matchday_date: string }
         Returns: Json
-      }
+      },
       admin_create_fixture: {
         Args: {
           p_away_team_id: string
