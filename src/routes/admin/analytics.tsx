@@ -234,13 +234,38 @@ function AdminAnalyticsPage() {
         setFinanceAccess(false);
         setFinanceOptions([]);
         setFinanceRows([]);
+        setBusinessPerformance(null);
+        setOperatingCosts([]);
         setFinanceError("Finance reporting is restricted to authorised finance administrators.");
+        setBusinessError("Business performance is available to authorised finance administrators only.");
       } else {
         setFinanceAccess(true);
         setFinanceOptions((financeOptionRows ?? []) as FinanceOption[]);
+        const [businessResult, costResult] = await Promise.all([
+          getSupabaseClient().rpc("get_admin_business_performance", {
+            ...args,
+            p_from_date: fromDate || undefined,
+            p_to_date: toDate || undefined,
+          }),
+          getSupabaseClient().rpc("get_admin_operating_costs", {
+            ...args,
+            p_from_date: fromDate || undefined,
+            p_to_date: toDate || undefined,
+            p_limit: 100,
+          }),
+        ]);
+        if (businessResult.error || costResult.error) {
+          setBusinessPerformance(null);
+          setOperatingCosts([]);
+          setBusinessError(businessResult.error?.message ?? costResult.error?.message ?? "Business performance could not be loaded for this context.");
+        } else {
+          setBusinessPerformance(((businessResult.data ?? []) as BusinessPerformance[])[0] ?? null);
+          setOperatingCosts((costResult.data ?? []) as OperatingCost[]);
+          setBusinessError("");
+        }
         if (!seasonId && (locationId || leagueId)) {
           setFinanceRows([]);
-          setFinanceError("Choose a season to view finance totals scoped to this location or league.");
+          setFinanceError("");
         } else {
           const { data: summaryRows, error: financeSummaryError } = await getSupabaseClient().rpc("get_finance_summary", { p_season_id: seasonId || undefined });
           if (financeSummaryError) {
