@@ -9,6 +9,7 @@ declare
   v_location uuid;
   v_league uuid;
   v_season uuid;
+  v_slug text := 'ci-instagram-profiles-' || substr(gen_random_uuid()::text,1,8);
   v_team public.season_teams;
   v_rejected boolean;
 begin
@@ -27,11 +28,11 @@ begin
     (v_user_four,'Instagram Player Four','+447700901104','ci-team-instagram-four@openplay.invalid',date '1990-01-04','registered');
 
   insert into public.locations(name,slug,town,region,is_active)
-  values('CI Instagram Profiles','ci-instagram-profiles','Bideford','North Devon',false)
+  values('CI Instagram Profiles',v_slug,'Bideford','North Devon',false)
   returning id into v_location;
 
   insert into public.leagues(location_id,name,slug,is_published)
-  values(v_location,'CI Instagram Profiles','ci-instagram-profiles',false)
+  values(v_location,'CI Instagram Profiles',v_slug,false)
   returning id into v_league;
 
   insert into public.seasons(league_id,name,season_number,status,is_public)
