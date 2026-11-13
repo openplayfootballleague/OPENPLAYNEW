@@ -26,9 +26,12 @@ export function OneSignalProvider({ children }: { children: ReactNode }) {
       const previousUserId = linkedUserId;
       linkedUserId = userId;
       try {
-        const { data: preferences, error } = await supabase.rpc("get_my_notification_preferences");
+        const [{ data: preferences, error }, { data: profile, error: profileError }] = await Promise.all([
+          supabase.rpc("get_my_notification_preferences"),
+          supabase.from("profiles").select("account_retention_status").eq("id", userId).maybeSingle(),
+        ]);
         if (!active) return;
-        if (error || preferences?.push_enabled !== true) {
+        if (error || profileError || profile?.account_retention_status !== "active" || preferences?.push_enabled !== true) {
           const existingSdk = sdk ?? window.OneSignal ?? null;
           if (existingSdk) {
             try { await existingSdk.logout(); } catch { /* optional push cleanup */ }
