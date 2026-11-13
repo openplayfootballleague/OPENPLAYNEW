@@ -43,6 +43,7 @@ export function loadOneSignal(): Promise<OneSignalSdk> {
         window.OneSignal = sdk;
         resolve(sdk);
       } catch (error) {
+        document.querySelector('script[data-openplay-onesignal="true"]')?.remove();
         oneSignalPromise = null;
         reject(error instanceof Error ? error : new Error("Unable to initialise OneSignal"));
       }
@@ -54,6 +55,7 @@ export function loadOneSignal(): Promise<OneSignalSdk> {
       script.defer = true;
       script.dataset.openplayOnesignal = "true";
       script.onerror = () => {
+        script.remove();
         oneSignalPromise = null;
         reject(new Error("Unable to load the OneSignal browser SDK"));
       };
