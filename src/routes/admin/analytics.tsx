@@ -807,7 +807,7 @@ function AdminAnalyticsPage() {
       </> : <>
         <h2>Reports &amp; exports</h2>
         <p>Export the current permission-scoped aggregate snapshot, including verified business metrics and recorded operating costs where finance access is available. Player names, contact details, dates of birth, message content, private notes and payment references are excluded.</p>
-        <div className="analytics-report-actions"><button type="button" className="button" onClick={exportCsv} disabled={!overview || dateRangeInvalid}>EXPORT CSV</button><button type="button" className="admin-inline-action" onClick={() => window.print()} disabled={!overview || dateRangeInvalid}>PRINT / SAVE PDF</button></div>
+        <div className="analytics-report-actions"><button type="button" className="button" onClick={exportCsv} disabled={!overview || dateRangeInvalid || productAnalyticsLoading}>EXPORT CSV</button><button type="button" className="admin-inline-action" onClick={() => window.print()} disabled={!overview || dateRangeInvalid || productAnalyticsLoading}>PRINT / SAVE PDF</button></div>
         <p className="form-note">CSV financial totals are in integer pence. Cost exports include only date, category, amount and context; free-text descriptions, private notes and payment references are excluded.</p>
       </>}
     </section>
