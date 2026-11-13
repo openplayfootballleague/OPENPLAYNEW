@@ -1,7 +1,14 @@
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { getSupabaseClient, isSupabaseConfigured } from "../lib/supabase/client";
-import { isOneSignalConfigured, loadOneSignal, type OneSignalSdk } from "../lib/onesignal/client";
+import {
+  clearOneSignalIdentityLink,
+  hasOneSignalIdentityLink,
+  isOneSignalConfigured,
+  loadOneSignal,
+  markOneSignalIdentityLinked,
+  type OneSignalSdk,
+} from "../lib/onesignal/client";
 
 export function OneSignalProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -12,14 +19,26 @@ export function OneSignalProvider({ children }: { children: ReactNode }) {
     let linkedUserId: string | null = null;
     const supabase = getSupabaseClient();
 
+    const unlinkIdentity = async () => {
+      const hadLink = Boolean(sdk || window.OneSignal || hasOneSignalIdentityLink());
+      if (!hadLink) {
+        linkedUserId = null;
+        return;
+      }
+      try {
+        const existingSdk = sdk ?? window.OneSignal ?? await loadOneSignal();
+        await existingSdk.logout();
+        clearOneSignalIdentityLink();
+      } catch {
+        // Keep the local marker so a later page load can retry identity cleanup.
+      }
+      linkedUserId = null;
+    };
+
     const syncIdentity = async (userId: string | null) => {
       if (!active) return;
       if (!userId) {
-        const existingSdk = sdk ?? window.OneSignal ?? null;
-        if (existingSdk && linkedUserId) {
-          try { await existingSdk.logout(); } catch { /* optional push cleanup */ }
-        }
-        linkedUserId = null;
+        await unlinkIdentity();
         return;
       }
 
@@ -32,17 +51,18 @@ export function OneSignalProvider({ children }: { children: ReactNode }) {
         ]);
         if (!active) return;
         if (error || profileError || profile?.account_retention_status !== "active" || preferences?.push_enabled !== true) {
-          const existingSdk = sdk ?? window.OneSignal ?? null;
-          if (existingSdk) {
-            try { await existingSdk.logout(); } catch { /* optional push cleanup */ }
-          }
+          await unlinkIdentity();
           return;
         }
 
         sdk ??= await loadOneSignal();
         if (!active) return;
-        if (previousUserId && previousUserId !== userId) await sdk.logout();
+        if (previousUserId && previousUserId !== userId) {
+          await sdk.logout();
+          clearOneSignalIdentityLink();
+        }
         await sdk.login(userId);
+        markOneSignalIdentityLinked();
       } catch {
         // Push is optional and must never block account access or app rendering.
       }
