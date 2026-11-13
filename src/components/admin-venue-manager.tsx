@@ -160,11 +160,15 @@ export function AdminVenueManager({ locations, venues, defaultLocationId, onSave
         <div className="admin-venue-actions"><button type="submit" disabled={saving}>{saving ? "Saving…" : editingId ? "Save venue changes" : "Add venue"}</button>{editingId && <button type="button" className="button-secondary" onClick={resetForm} disabled={saving}>Cancel edit</button>}</div>
       </form>
       <div className="admin-venue-list">
-        {venues.length ? venues.map((venue) => <article key={venue.id}>
-          <div><strong>{venue.name}</strong><span>{venue.location_name}{venue.address ? ` · ${venue.address}` : ""}</span><span>{formatOperatingDays(venue.operating_days)} · {formatOperatingHours(venue.opens_at, venue.closes_at)}</span></div>
-          <span className={venue.is_active ? "admin-status-active" : "admin-status-inactive"}>{venue.is_active ? "Active" : "Inactive"}</span>
-          <button type="button" className="button-secondary" onClick={() => editVenue(venue)}>Edit</button>
-        </article>) : <p className="form-note">No venues are configured for these locations.</p>}
+        {venues.length ? venues.map((venue) => {
+          const location = locations.find((item) => item.id === venue.location_id);
+          const available = venue.is_active && Boolean(location?.is_active);
+          return <article key={venue.id}>
+            <div><strong>{venue.name}</strong><span>{venue.location_name}{venue.address ? ` · ${venue.address}` : ""}</span><span>{formatOperatingDays(venue.operating_days)} · {formatOperatingHours(venue.opens_at, venue.closes_at)}</span></div>
+            <span className={available ? "admin-status-active" : "admin-status-inactive"}>{!location?.is_active ? "Location inactive" : venue.is_active ? "Active" : "Inactive"}</span>
+            <button type="button" className="button-secondary" onClick={() => editVenue(venue)}>Edit</button>
+          </article>;
+        }) : <p className="form-note">No venues are configured for these locations.</p>}
       </div>
     </section>
   );
