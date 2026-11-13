@@ -369,9 +369,13 @@ function AdminAnalyticsPage() {
         ["Outstanding ledger balance (pence)", financeTotals.outstandingPence],
       );
     }
-    rows.push([], ["Location", "Seasons", "Approved teams", "Squad memberships", "Fixtures", "Published results", "Goals"]);
+    rows.push([], ["Location", "Seasons", "Approved teams", "Squad memberships", "Fixtures", "Completed fixtures", "Published results", "Result coverage (%)", "Goals", "Goals per result"]);
     for (const location of locationComparisons) {
-      rows.push([location.locationName, location.seasons, location.approvedTeams, location.squadMemberships, location.fixtures, location.publishedResults, location.goals]);
+      rows.push([
+        location.locationName, location.seasons, location.approvedTeams, location.squadMemberships,
+        location.fixtures, location.completedFixtures, location.publishedResults,
+        location.resultsCoveragePercent ?? "", location.goals, location.goalsPerResult ?? "",
+      ]);
     }
     if (growthRows.length > 0) {
       rows.push(
