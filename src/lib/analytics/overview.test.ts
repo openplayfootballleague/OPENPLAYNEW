@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  safeCsvCell,
   aggregateFinanceTotals,
   buildAnalyticsOverview,
   buildCompetitionTeamPerformance,
@@ -166,6 +167,15 @@ describe("admin analytics aggregation", () => {
     expect(buildLocationComparisons(withUndatedFixture, {
       locationId: "loc-a", leagueId: "league-a", seasonId: "season-a", fromDate: "2026-10-02", toDate: "2026-10-09",
     })).toMatchObject([{ locationName: "Bideford", fixtures: 0, publishedResults: 0, goals: 0 }]);
+  });
+
+  it("neutralises spreadsheet formula prefixes in text while preserving numeric values", () => {
+    expect(safeCsvCell("=1+1")).toBe("\"'=1+1\"");
+    expect(safeCsvCell("  @SUM(A1:A2)")).toBe("\"'  @SUM(A1:A2)\"");
+    expect(safeCsvCell("\\uFEFF=1+1")).toBe("\"'=1+1\"");
+    expect(safeCsvCell("-125")).toBe("\"'-125\"");
+    expect(safeCsvCell(-125)).toBe("\"-125\"");
+    expect(safeCsvCell('Open "Play"')).toBe("\"Open \"\"Play\"\"\"");
   });
 
   it("aggregates integer-pence finance totals without converting to floating point", () => {
