@@ -60,27 +60,6 @@ begin
 end;
 $$;
 
-create or replace function public.set_my_push_enabled(p_enabled boolean)
-returns public.notification_preferences
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_user uuid := auth.uid();
-  v_preferences public.notification_preferences;
-begin
-  if v_user is null then raise exception 'Authentication required'; end if;
-  insert into public.notification_preferences(user_id,push_enabled)
-  values(v_user,p_enabled)
-  on conflict(user_id) do update
-    set push_enabled = excluded.push_enabled,
-        updated_at = now()
-  returning * into v_preferences;
-  return v_preferences;
-end;
-$$;
-
 create or replace function public.enqueue_notification_event(
   p_user_id uuid,
   p_event_type text,
@@ -267,8 +246,6 @@ $$;
 revoke all on function public.notification_category_for_event(text) from public,anon,authenticated;
 revoke all on function public.update_my_notification_category_preferences(jsonb) from public,anon;
 grant execute on function public.update_my_notification_category_preferences(jsonb) to authenticated;
-revoke all on function public.set_my_push_enabled(boolean) from public,anon;
-grant execute on function public.set_my_push_enabled(boolean) to authenticated;
 revoke all on function public.enqueue_notification_event(uuid,text,jsonb) from public,anon,authenticated;
 revoke all on function public.claim_notification_events(integer,text[]) from public,anon,authenticated;
 grant execute on function public.claim_notification_events(integer,text[]) to service_role;
