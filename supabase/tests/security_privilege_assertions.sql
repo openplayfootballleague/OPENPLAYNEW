@@ -79,9 +79,18 @@ select
     'public.admin_record_fixture_result_with_appearances(uuid,integer,integer,uuid[],uuid[],uuid[],uuid[],text)'::regprocedure,
     'public.admin_set_fixture_status(uuid,fixture_status,text)'::regprocedure,
     'public.admin_transition_season(uuid,season_status)'::regprocedure,
+    'public.admin_create_venue(uuid,text,text,smallint[],time without time zone,time without time zone,boolean)'::regprocedure,
+    'public.admin_update_venue(uuid,text,text,smallint[],time without time zone,time without time zone,boolean)'::regprocedure,
+    'public.admin_update_season_matchday_settings(uuid,smallint,time without time zone,smallint,smallint,uuid,text)'::regprocedure,
+    'public.admin_preview_round_robin_fixtures(uuid,date)'::regprocedure,
+    'public.admin_generate_round_robin_fixtures(uuid,date,text)'::regprocedure,
     'public.resolve_team_membership_request(uuid,text)'::regprocedure,
     'public.resolve_team_registration(uuid,text,text)'::regprocedure
-  ) and (not (pg_get_functiondef(p.oid) ilike '%can_administer_location%' or pg_get_functiondef(p.oid) ilike '%assert_admin_location_context%') or has_function_privilege('anon',p.oid,'EXECUTE'))) as location_admin_mutations_check_assigned_location,
+  ) and (
+    not (pg_get_functiondef(p.oid) ilike '%can_administer_location%' or pg_get_functiondef(p.oid) ilike '%assert_admin_location_context%')
+    or has_function_privilege('anon',p.oid,'EXECUTE')
+    or not has_function_privilege('authenticated',p.oid,'EXECUTE')
+  )) as location_admin_mutations_check_assigned_location,
   not exists(select 1 from pg_proc p where p.oid in (
     'public.get_admin_season_statistics(uuid)'::regprocedure,
     'public.get_admin_fixture_scorer_options(uuid)'::regprocedure,

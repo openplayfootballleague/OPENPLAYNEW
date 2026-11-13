@@ -500,7 +500,7 @@ export type Database = {
             foreignKeyName: "fixtures_venue_id_fkey"
             columns: ["venue_id"]
             isOneToOne: false
-            referencedRelation: "locations"
+            referencedRelation: "venues"
             referencedColumns: ["id"]
           },
         ]
@@ -1339,6 +1339,12 @@ export type Database = {
       seasons: {
         Row: {
           created_at: string
+          default_venue_id: string | null
+          matchday_weekday: number | null
+          matchday_start_time: string | null
+          match_duration_minutes: number | null
+          matchday_buffer_minutes: number
+          round_robin_mode: string
           ends_on: string | null
           id: string
           is_public: boolean
@@ -1358,6 +1364,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          default_venue_id?: string | null
+          matchday_weekday?: number | null
+          matchday_start_time?: string | null
+          match_duration_minutes?: number | null
+          matchday_buffer_minutes?: number
+          round_robin_mode?: string
           ends_on?: string | null
           id?: string
           is_public?: boolean
@@ -1377,6 +1389,12 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          default_venue_id?: string | null
+          matchday_weekday?: number | null
+          matchday_start_time?: string | null
+          match_duration_minutes?: number | null
+          matchday_buffer_minutes?: number
+          round_robin_mode?: string
           ends_on?: string | null
           id?: string
           is_public?: boolean
@@ -1400,6 +1418,13 @@ export type Database = {
             columns: ["league_id"]
             isOneToOne: false
             referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seasons_default_venue_id_fkey"
+            columns: ["default_venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
             referencedColumns: ["id"]
           },
         ]
@@ -1610,6 +1635,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      venues: {
+        Row: {
+          address: string | null
+          closes_at: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          location_id: string
+          name: string
+          operating_days: number[]
+          opens_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          closes_at?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_id: string
+          name: string
+          operating_days?: number[]
+          opens_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          closes_at?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string
+          name?: string
+          operating_days?: number[]
+          opens_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venues_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -1852,6 +1924,68 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_create_venue: {
+        Args: {
+          p_location_id: string
+          p_name: string
+          p_address?: string | null
+          p_operating_days?: number[]
+          p_opens_at?: string | null
+          p_closes_at?: string | null
+          p_is_active?: boolean
+        }
+        Returns: Database["public"]["Tables"]["venues"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "venues"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_update_venue: {
+        Args: {
+          p_venue_id: string
+          p_name: string
+          p_address?: string | null
+          p_operating_days?: number[]
+          p_opens_at?: string | null
+          p_closes_at?: string | null
+          p_is_active?: boolean
+        }
+        Returns: Database["public"]["Tables"]["venues"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "venues"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      },
+      admin_update_season_matchday_settings: {
+        Args: {
+          p_season_id: string
+          p_matchday_weekday: number | null
+          p_matchday_start_time: string | null
+          p_match_duration_minutes: number | null
+          p_matchday_buffer_minutes?: number
+          p_default_venue_id?: string | null
+          p_round_robin_mode?: string
+        }
+        Returns: Database["public"]["Tables"]["seasons"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "seasons"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      },
+      admin_preview_round_robin_fixtures: {
+        Args: { p_season_id: string; p_first_matchday_date: string }
+        Returns: Json
+      },
+      admin_generate_round_robin_fixtures: {
+        Args: { p_season_id: string; p_first_matchday_date: string; p_expected_settings_hash: string }
+        Returns: Json
+      },
       admin_create_fixture: {
         Args: {
           p_away_team_id: string
@@ -2730,22 +2864,22 @@ export type Database = {
           p_season_id?: string
         }
         Returns: {
-          away_score: number
+          away_score: number | null
           away_team_id: string
           away_team_name: string
           fixture_number: number
           gameweek: number
-          home_score: number
+          home_score: number | null
           home_team_id: string
           home_team_name: string
           id: string
-          notes: string
-          scheduled_at: string
+          notes: string | null
+          scheduled_at: string | null
           season_id: string
           season_name: string
           status: string
-          venue_id: string
-          venue_name: string
+          venue_id: string | null
+          venue_name: string | null
         }[]
       }
       get_admin_dashboard: { Args: never; Returns: Json }
