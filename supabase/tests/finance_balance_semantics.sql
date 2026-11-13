@@ -97,6 +97,17 @@ begin
     raise exception 'Business performance must distinguish charges, receipts, refunds, credits, fines, outstanding, costs and surplus: %',row_to_json(v_business);
   end if;
 
+  -- Date filters scope period movements, but outstanding is the current balance.
+  select * into v_business
+  from public.get_admin_business_performance(
+    v_location_id,v_league_id,'00000000-0000-4000-8000-000000000030',
+    date '2099-01-01',date '2099-12-31'
+  );
+  if v_business.team_charges_pence<>0 or v_business.team_receipts_pence<>0
+     or v_business.outstanding_pence<>9500 then
+    raise exception 'Date filters must not turn the current outstanding balance into period-only net movement: %',row_to_json(v_business);
+  end if;
+
   select count(*) into v_cost_count
   from public.get_admin_operating_costs(
     v_location_id,v_league_id,'00000000-0000-4000-8000-000000000030',null,null,100
