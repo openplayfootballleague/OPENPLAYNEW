@@ -10,7 +10,8 @@
 - Push content is generic on lock screens. Detailed reasons, names, phone numbers, email addresses, dates of birth and raw event payloads are not included.
 - Deep links are restricted to known in-app destinations (Messages, Match Centre, Player Hub, Referee Workspace or Notifications).
 - Outbox retry/backoff is retained. OneSignal receives the notification event UUID as its idempotency key, preventing duplicate sends when a provider response is uncertain.
-- The existing PWA service worker is reused. OneSignal's worker import is optional so a CDN outage cannot prevent the offline app shell from installing.
+- OneSignal uses a separate `/onesignal/` service-worker scope, leaving the root Open Play PWA worker untouched. The browser SDK and worker are loaded only after explicit push opt-in or for an account that has already enabled push.
+- Signing out or switching to an account without push enabled unlinks the browser's OneSignal external identity. A small local marker allows that cleanup to be retried after a reload if the provider was temporarily unavailable.
 
 ## Required configuration (not set by this change)
 
