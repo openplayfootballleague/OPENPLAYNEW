@@ -61,6 +61,13 @@ Deno.test("builds fixed, scoped aggregate queries with inclusive date boundaries
     matches(query, /timestamp < toDateTime\('2026-11-14 00:00:00'\)/, "Must include the full end date");
     excludes(query, /SELECT \*|distinct_id|email|full_name|phone/, "Must not return direct identifiers or raw rows");
   }
+  matches(queries.appUsageSummary, /navigation_section_viewed/, "App usage summary must use explicit navigation events");
+  matches(queries.appUsageSummary, /uniqExact/, "App usage summary must count unique visitors");
+  matches(queries.appUsageDaily, /navigation_section_viewed/, "App usage must use explicit navigation events");
+  matches(queries.appUsageDaily, /visitor_type/, "App usage must separate anonymous and authenticated visitors");
+  matches(queries.appUsageSections, /route_category/, "App usage must allowlist navigation sections");
+  matches(queries.appUsageDaily, /2026-11-01 00:00:00/, "App usage must use the selected start date");
+  matches(queries.appUsageSections, /2026-11-14 00:00:00/, "App usage must include the full selected end date");
   matches(queries.featurePerformance, /properties\['feature'\] IN \('fixtures', 'results', 'league_table', 'player_statistics', 'team_directory'\)/, "Feature list must be allowlisted");
   matches(queries.weeklyActivity, /timestamp < toStartOfWeek\(now\(\), 1\)/, "Weekly activity must exclude the incomplete current week");
   matches(queries.weeklyActivity, /toStartOfWeek\(timestamp, 1\) >= toDateTime\('2026-11-01 00:00:00'\)/, "Weekly activity must exclude a partial first week");
