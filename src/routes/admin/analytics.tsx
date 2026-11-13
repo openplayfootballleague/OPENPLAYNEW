@@ -230,7 +230,8 @@ function AdminAnalyticsPage() {
   }, [contextReady, loadContextData]);
 
   useEffect(() => {
-    if (!contextReady || authStatus !== "authenticated" || (tab !== "engagement" && tab !== "features" && tab !== "usage")) return;
+    if (!contextReady || authStatus !== "authenticated" || (tab !== "engagement" && tab !== "features" && tab !== "usage") ||
+      (tab === "usage" && !isGlobalAdmin)) return;
     let alive = true;
     setProductAnalyticsLoading(true);
     setProductAnalyticsError("");
@@ -280,7 +281,7 @@ function AdminAnalyticsPage() {
       if (alive) setProductAnalyticsLoading(false);
     });
     return () => { alive = false; };
-  }, [authStatus, contextReady, fromDate, leagueId, locationId, seasonId, tab, toDate]);
+  }, [authStatus, contextReady, fromDate, isGlobalAdmin, leagueId, locationId, seasonId, tab, toDate]);
 
   const dateRangeInvalid = Boolean(fromDate && toDate && fromDate > toDate);
   const filters: AnalyticsFilters = { locationId, leagueId, seasonId, fromDate, toDate };
