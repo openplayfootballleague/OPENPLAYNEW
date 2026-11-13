@@ -162,3 +162,10 @@ export function aggregateFinanceTotals(rows: FinanceSummaryRow[]): FinanceTotals
     outstandingPence: sum("outstanding_pence"),
   };
 }
+
+/** Quote CSV values and neutralise spreadsheet formula prefixes in user-controlled text. */
+export function safeCsvCell(value: string | number): string {
+  const text = String(value);
+  const safe = /^[\u0000-\u0020]*[=+\-@]/.test(text) ? "'" + text : text;
+  return '"' + safe.replaceAll('"', '""') + '"';
+}
