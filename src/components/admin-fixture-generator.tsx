@@ -128,10 +128,11 @@ export function AdminFixtureGenerator({ seasons, venues, locations, fixtures, de
     setVenueId(selectedSeason.default_venue_id || "");
     setRoundRobinMode(selectedSeason.round_robin_mode || "double");
     if (selectedSeason.starts_on && selectedSeason.matchday_weekday !== null) {
-      const firstDate = new Date(`${selectedSeason.starts_on}T12:00:00`);
-      const offset = (selectedSeason.matchday_weekday - firstDate.getDay() + 7) % 7;
-      firstDate.setDate(firstDate.getDate() + offset);
-      setFirstMatchdayDate(`${firstDate.getFullYear()}-${String(firstDate.getMonth() + 1).padStart(2, "0")}-${String(firstDate.getDate()).padStart(2, "0")}`);
+      const [year, month, day] = selectedSeason.starts_on.split("-").map(Number);
+      const firstDate = new Date(Date.UTC(year, month - 1, day));
+      const offset = (selectedSeason.matchday_weekday - firstDate.getUTCDay() + 7) % 7;
+      firstDate.setUTCDate(firstDate.getUTCDate() + offset);
+      setFirstMatchdayDate(`${firstDate.getUTCFullYear()}-${String(firstDate.getUTCMonth() + 1).padStart(2, "0")}-${String(firstDate.getUTCDate()).padStart(2, "0")}`);
     } else {
       setFirstMatchdayDate(selectedSeason.starts_on || "");
     }
@@ -177,6 +178,10 @@ export function AdminFixtureGenerator({ seasons, venues, locations, fixtures, de
     }
     if (!seasonId || !firstMatchdayDate) {
       setError("Choose a season and the first matchday date.");
+      return;
+    }
+    if (new Date(`${firstMatchdayDate}T00:00:00Z`).getUTCDay() !== Number(weekday)) {
+      setError("The first matchday date must fall on the configured weekday.");
       return;
     }
     setPreviewing(true);
