@@ -206,6 +206,7 @@ begin
   v_total_rounds:=v_rounds_per_leg*v_legs;
   v_total_slot_minutes:=v_matches_per_round*v_season.match_duration_minutes
     +(v_matches_per_round-1)*v_season.matchday_buffer_minutes;
+  if v_total_slot_minutes>=1440 then raise exception 'The full gameweek schedule cannot exceed one day'; end if;
   v_last_end_time:=v_season.matchday_start_time+make_interval(mins=>v_total_slot_minutes);
   if v_venue.closes_at is not null and v_last_end_time>v_venue.closes_at then
     raise exception 'The full gameweek schedule does not fit within the venue operating hours';
