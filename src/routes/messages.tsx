@@ -172,7 +172,13 @@ function MessagesPage() {
   }, [authStatus, loadConversations, loadBlockedUsers]);
 
   useEffect(() => {
-    if (!selectedId) { setMessages([]); return; }
+    setOlderLoading(false);
+    setHasMoreMessages(false);
+    if (!selectedId) {
+      setMessages([]);
+      setThreadLoading(false);
+      return;
+    }
     let active = true;
     const supabase = getSupabaseClient() as unknown as SupabaseClient<any>;
     void (async () => {
