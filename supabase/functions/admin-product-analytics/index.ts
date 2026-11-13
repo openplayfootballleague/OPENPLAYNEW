@@ -18,6 +18,7 @@ type RequestFilters = {
   locationId?: unknown;
   leagueId?: unknown;
   seasonId?: unknown;
+  includePlatformUsage?: unknown;
 };
 
 const json = (body: unknown, status = 200, origin = "*") =>
@@ -120,8 +121,13 @@ Deno.serve(async (request: Request) => {
   } catch {
     return json({ error: "Invalid request body" }, 400, allowedOrigin);
   }
-  if (!isOptionalId(input.locationId) || !isOptionalId(input.leagueId) || !isOptionalId(input.seasonId)) {
+  if (!isOptionalId(input.locationId) || !isOptionalId(input.leagueId) || !isOptionalId(input.seasonId) ||
+    (input.includePlatformUsage !== undefined && typeof input.includePlatformUsage !== "boolean")) {
     return json({ error: "Invalid reporting context" }, 400, allowedOrigin);
+  }
+  const includePlatformUsage = input.includePlatformUsage === true;
+  if (includePlatformUsage && (input.locationId || input.leagueId || input.seasonId)) {
+    return json({ error: "App Usage is a platform-wide report. Clear location, league and season filters first." }, 400, allowedOrigin);
   }
 
   const defaults = defaultRange();
@@ -135,6 +141,13 @@ Deno.serve(async (request: Request) => {
     return json({ error: "Administrator reporting access is required" }, 403, allowedOrigin);
   }
   const setup = setupData as Setup;
+  if (includePlatformUsage) {
+    const { data: adminContext, error: adminContextError } = await userClient.rpc("get_admin_context_preference");
+    if (adminContextError || !adminContext || typeof adminContext !== "object" ||
+      Array.isArray(adminContext) || (adminContext as { is_global_admin?: unknown }).is_global_admin !== true) {
+      return json({ error: "Platform-wide App Usage is available to global administrators only." }, 403, allowedOrigin);
+    }
+  }
   const locations = Array.isArray(setup.locations) ? setup.locations : [];
   const leagues = Array.isArray(setup.leagues) ? setup.leagues : [];
   const seasons = Array.isArray(setup.seasons) ? setup.seasons : [];
@@ -167,13 +180,16 @@ Deno.serve(async (request: Request) => {
   if (validationError) {
     return json({ error: validationError }, 400, allowedOrigin);
   }
-  if (filters.seasonIds.length === 0) {
+  if (filters.seasonIds.length === 0 && !includePlatformUsage) {
     return json({
       status: "no_data",
       range: { fromDate, toDate },
       weeklyActivity: [],
       retention: [],
       features: [],
+      usageSummary: [],
+      usageDaily: [],
+      usageSections: [],
       definitions: {
         engagedUser: "A consented, authenticated player who viewed available fixtures, results, league standings, player statistics or the approved team directory.",
         retention: "Weekly recurring return to one of those meaningful competition-content actions. Cohort entry is first observed activity within the selected reporting window.",
@@ -181,7 +197,7 @@ Deno.serve(async (request: Request) => {
     }, 200, allowedOrigin);
   }
 
-  if (!posthogKey || !projectId || !/^\\d+$/.test(projectId)) {
+  if (!posthogKey || !projectId || !/^[0-9]+$/.test(projectId)) {
     return json({
       error: "PostHog reporting is not configured. Add a project-scoped personal API key with query read access and the PostHog project ID to Supabase function secrets.",
       code: "posthog_not_configured",
@@ -203,12 +219,51 @@ Deno.serve(async (request: Request) => {
 
   const posthogQueries = buildProductAnalyticsQueries(filters);
   try {
-    const [weeklyResult, retentionResult, featureResult] = await Promise.all([
-      runHogQL(host, projectId, posthogKey, posthogQueries.weeklyActivity, "Open Play weekly engaged users"),
-      runHogQL(host, projectId, posthogKey, posthogQueries.retention, "Open Play weekly engagement retention"),
-      runHogQL(host, projectId, posthogKey, posthogQueries.featurePerformance, "Open Play feature performance"),
+    const [usageSummaryResult, usageDailyResult, usageSectionsResult, weeklyResult, retentionResult, featureResult] = await Promise.all([
+      includePlatformUsage
+        ? runHogQL(host, projectId, posthogKey, posthogQueries.appUsageSummary, "Open Play app usage summary")
+        : Promise.resolve([]),
+      includePlatformUsage
+        ? runHogQL(host, projectId, posthogKey, posthogQueries.appUsageDaily, "Open Play daily app usage")
+        : Promise.resolve([]),
+      includePlatformUsage
+        ? runHogQL(host, projectId, posthogKey, posthogQueries.appUsageSections, "Open Play navigation section usage")
+        : Promise.resolve([]),
+      filters.seasonIds.length > 0
+        ? runHogQL(host, projectId, posthogKey, posthogQueries.weeklyActivity, "Open Play weekly engaged users")
+        : Promise.resolve([]),
+      filters.seasonIds.length > 0
+        ? runHogQL(host, projectId, posthogKey, posthogQueries.retention, "Open Play weekly engagement retention")
+        : Promise.resolve([]),
+      filters.seasonIds.length > 0
+        ? runHogQL(host, projectId, posthogKey, posthogQueries.featurePerformance, "Open Play feature performance")
+        : Promise.resolve([]),
     ]);
 
+    const usageSummary = rowsAsObjects(usageSummaryResult, ["visitor_type", "unique_visitors", "navigation_views"])
+      .filter((row) => ["anonymous", "authenticated"].includes(String(row.visitor_type)))
+      .map((row) => ({
+        visitor_type: String(row.visitor_type),
+        unique_visitors: safeNumber(row.unique_visitors),
+        navigation_views: safeNumber(row.navigation_views),
+      }));
+    const usageDaily = rowsAsObjects(usageDailyResult, ["day", "visitor_type", "unique_visitors", "navigation_views"])
+      .filter((row) => ["anonymous", "authenticated"].includes(String(row.visitor_type)))
+      .map((row) => ({
+        day: String(row.day ?? ""),
+        visitor_type: String(row.visitor_type),
+        unique_visitors: safeNumber(row.unique_visitors),
+        navigation_views: safeNumber(row.navigation_views),
+      }));
+    const usageSections = rowsAsObjects(usageSectionsResult, ["route_category", "visitor_type", "unique_visitors", "navigation_views"])
+      .filter((row) => ["anonymous", "authenticated"].includes(String(row.visitor_type)))
+      .filter((row) => ["home", "player_hub", "match_centre", "teams", "registration", "referee", "notifications", "gallery", "account", "other"].includes(String(row.route_category)))
+      .map((row) => ({
+        route_category: String(row.route_category),
+        visitor_type: String(row.visitor_type),
+        unique_visitors: safeNumber(row.unique_visitors),
+        navigation_views: safeNumber(row.navigation_views),
+      }));
     const weeklyActivity = rowsAsObjects(weeklyResult, ["week_start", "active_users", "value_actions"]).map((row) => ({
       week_start: String(row.week_start ?? ""),
       active_users: safeNumber(row.active_users),
@@ -232,11 +287,14 @@ Deno.serve(async (request: Request) => {
       }));
 
     return json({
-      status: weeklyActivity.length || retention.length || features.length ? "ready" : "no_data",
+      status: weeklyActivity.length || retention.length || features.length || usageDaily.length || usageSections.length ? "ready" : "no_data",
       range: { fromDate, toDate },
       weeklyActivity,
       retention,
       features,
+      usageSummary,
+      usageDaily,
+      usageSections,
       definitions: {
         engagedUser: "A consented, authenticated player who viewed available fixtures, results, league standings, player statistics or the approved team directory.",
         retention: "Weekly recurring return to one of those meaningful competition-content actions. Cohort entry is first observed activity within the selected reporting window; the current incomplete week is excluded.",
