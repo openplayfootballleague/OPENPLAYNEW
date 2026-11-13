@@ -3553,6 +3553,29 @@ export type Database = {
           team_approvals: number
         }[]
       }
+      get_admin_registration_conversion: {
+        Args: {
+          p_from_date?: string | null
+          p_to_date?: string | null
+          p_location_id?: string | null
+          p_league_id?: string | null
+          p_season_id?: string | null
+        }
+        Returns: {
+          bucket_date: string
+          player_registered: number | null
+          player_pending_review: number | null
+          player_rejected: number | null
+          team_applications: number
+          team_approved: number
+          team_rejected: number
+          team_pending: number
+          membership_requests: number
+          membership_accepted: number
+          membership_rejected: number
+          membership_pending: number
+        }[]
+      }
     }
     Enums: {
       competition_format: "six_a_side" | "seven_a_side"
