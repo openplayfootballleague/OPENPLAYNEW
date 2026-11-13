@@ -68,7 +68,7 @@ const pushManager = readFileSync("supabase/functions/manage-push-devices/index.t
 assert.ok(pushManager.includes("userClient.auth.getUser(token)"), "Push device management must validate the signed-in user");
 assert.ok(pushManager.includes("getOneSignalUser") && pushManager.includes("ownedSubscription"), "Push device revocation must verify subscription ownership before deletion");
 assert.ok(!pushManager.includes("serviceKey") || pushManager.includes("service.from(\"notification_preferences\")"), "Service-role access must be limited to the signed-in user's push preference row");
-const pushPolicy = readFileSync("supabase/functions/deliver-notifications/push-policy.ts", "utf8");
+const pushPolicy = readFileSync("supabase/functions/_shared/onesignal-push-policy.ts", "utf8");
 assert.ok(pushPolicy.includes("idempotency_key") && pushPolicy.includes("include_aliases"), "OneSignal sends must target the authenticated external ID and use an idempotency key");
 assert.ok(pushPolicy.includes("Sign in to view details"), "Push content must remain privacy-minimised for lock-screen display");
 const checkout = readFileSync("supabase/functions/create-player-checkout/index.ts", "utf8");
