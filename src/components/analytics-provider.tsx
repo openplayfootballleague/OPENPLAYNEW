@@ -223,15 +223,21 @@ function PostHogCaptureProvider({ children }: { children: ReactNode }) {
     const client: AnalyticsCaptureClient = {
       capture: (capturedEvent, safeProperties) => posthog.capture(capturedEvent, safeProperties),
     };
+    const captureActor = actor === "unknown" && location.pathname === "/sign-up" && event.startsWith("account_signup_")
+      ? "anonymous"
+      : actor;
+    const visitorType = captureActor === "anonymous"
+      ? "anonymous"
+      : captureActor === "account_user" || captureActor === "player" || captureActor === "captain"
+        ? "authenticated"
+        : undefined;
     return captureOpenPlayEvent(
       client,
       readBrowserAnalyticsConsent(),
       isGlobalPrivacyControlEnabled(),
-      actor === "unknown" && location.pathname === "/sign-up" && event.startsWith("account_signup_")
-        ? "anonymous"
-        : actor,
+      captureActor,
       event,
-      properties,
+      { ...properties, ...(visitorType ? { visitor_type: visitorType } : {}) },
     );
   }, [actor, location.pathname, posthog]);
 
