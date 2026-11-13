@@ -13,6 +13,7 @@ begin
   insert into public.user_roles(user_id,role,granted_by)
   values
     ('f2000000-0000-4000-8000-000000000001','admin','f2000000-0000-4000-8000-000000000001'),
+    ('f2000000-0000-4000-8000-000000000001','super_admin','f2000000-0000-4000-8000-000000000001'),
     ('f2000000-0000-4000-8000-000000000002','league_admin','f2000000-0000-4000-8000-000000000001');
 
   insert into public.locations(id,name,slug,town,region,is_active)
