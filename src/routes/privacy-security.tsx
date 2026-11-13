@@ -21,6 +21,10 @@ type NotificationCategoryPreferences = {
   referee_updates_enabled: boolean;
 };
 type NotificationCategoryKey = keyof NotificationCategoryPreferences;
+type NotificationPreferencesRpcClient = {
+  rpc: (name: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
+};
+const notificationPreferencesRpc = () => getSupabaseClient() as unknown as NotificationPreferencesRpcClient;
 
 const notificationCategoryLabels: Array<{ key: NotificationCategoryKey; label: string; description: string }> = [
   { key: "team_updates_enabled", label: "Team and membership updates", description: "Team approvals, membership changes and transfer decisions." },
@@ -69,19 +73,18 @@ function PrivacySecurityPage() {
       return () => { alive = false; };
     }
     setNotificationCategoriesLoading(true);
-    void getSupabaseClient().rpc("get_my_notification_preferences").then(({ data, error }) => {
-      if (!alive) return;
-      if (error) {
-        setNotificationCategoriesError("Notification preferences are temporarily unavailable. Please try again.");
-      } else if (data) {
-        setNotificationCategories(data as NotificationCategoryPreferences);
+    void (async () => {
+      try {
+        const { data, error } = await notificationPreferencesRpc().rpc("get_my_notification_preferences");
+        if (!alive) return;
+        if (error) throw new Error(error.message);
+        if (data) setNotificationCategories(data as unknown as NotificationCategoryPreferences);
+      } catch {
+        if (alive) setNotificationCategoriesError("Notification preferences are temporarily unavailable. Please try again.");
+      } finally {
+        if (alive) setNotificationCategoriesLoading(false);
       }
-      setNotificationCategoriesLoading(false);
-    }).catch(() => {
-      if (!alive) return;
-      setNotificationCategoriesError("Notification preferences are temporarily unavailable. Please try again.");
-      setNotificationCategoriesLoading(false);
-    });
+    })();
     return () => { alive = false; };
   }, [signedIn]);
 
@@ -137,7 +140,7 @@ function PrivacySecurityPage() {
     setNotificationCategoriesMessage("");
     setNotificationCategoriesError("");
     try {
-      const { data, error } = await getSupabaseClient().rpc("update_my_notification_category_preferences", {
+      const { data, error } = await notificationPreferencesRpc().rpc("update_my_notification_category_preferences", {
         p_team_updates_enabled: notificationCategories.team_updates_enabled,
         p_fixture_updates_enabled: notificationCategories.fixture_updates_enabled,
         p_result_updates_enabled: notificationCategories.result_updates_enabled,
@@ -145,7 +148,7 @@ function PrivacySecurityPage() {
         p_referee_updates_enabled: notificationCategories.referee_updates_enabled,
       });
       if (error) throw error;
-      if (data) setNotificationCategories(data as NotificationCategoryPreferences);
+      if (data) setNotificationCategories(data as unknown as NotificationCategoryPreferences);
       setNotificationCategoriesMessage("Your notification category preferences have been saved.");
     } catch {
       setNotificationCategoriesError("We couldn't save your notification preferences. Please try again.");
