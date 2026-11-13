@@ -1,0 +1,25 @@
+# Open Play — Shared Project Knowledge Base
+
+This directory is the shared, durable project context for every human and AI contributor. It is designed to be readable by both ChatGPT and Claude Code through GitHub.
+
+## Read order
+1. agent-protocol.md
+2. product-master-specification.md
+3. design-system.md
+4. accounts-roles-and-workflows.md
+5. competition-and-match-operations.md
+6. admin-finance-and-analytics.md
+7. engineering-security-and-release.md
+8. current-project-status.md
+
+## Authority
+- The latest explicit owner-approved decision is authoritative.
+- These documents define intended product behaviour; code, migrations, tests and provider state provide implementation evidence.
+- Existing code is not automatically correct because it exists. Compare it with the specification.
+- Resolve conflicts using the latest explicit owner decision. Do not silently choose; record material ambiguity.
+- Do not erase historical decisions. Update the relevant specification and its change history.
+- A specification is not proof that a feature is implemented, tested, accepted or deployed.
+
+Build the complete agreed product before the formal end-to-end acceptance campaign. Run targeted tests during development, but do not mistake passing CI for full feature completion.
+
+Created 2026-11-13 as the first shared specification set. Reconcile it with the owner-approved Master Prompt v3.0 and current repository implementation as work proceeds.
