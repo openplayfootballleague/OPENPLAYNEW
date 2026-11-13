@@ -135,8 +135,10 @@ begin
     raise exception 'Venue writes must be performed only through permission-checked RPCs';
   end if;
   if pg_catalog.has_function_privilege('anon','public.admin_create_venue(uuid,text,text,smallint[],time without time zone,time without time zone,boolean)','EXECUTE')
-     or not pg_catalog.has_function_privilege('authenticated','public.admin_create_venue(uuid,text,text,smallint[],time without time zone,time without time zone,boolean)','EXECUTE') then
-    raise exception 'Venue creation RPC grants are incorrect';
+     or not pg_catalog.has_function_privilege('authenticated','public.admin_create_venue(uuid,text,text,smallint[],time without time zone,time without time zone,boolean)','EXECUTE')
+     or pg_catalog.has_function_privilege('anon','public.admin_update_venue(uuid,text,text,smallint[],time without time zone,time without time zone,boolean)','EXECUTE')
+     or not pg_catalog.has_function_privilege('authenticated','public.admin_update_venue(uuid,text,text,smallint[],time without time zone,time without time zone,boolean)','EXECUTE') then
+    raise exception 'Venue management RPC grants are incorrect';
   end if;
 
   raise notice 'Multi-venue management, location isolation, operating-day/time validation and fixture venue selection passed';
