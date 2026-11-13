@@ -111,7 +111,10 @@ assert.ok(matchCentreSource.includes("Final required between") && matchCentreSou
 
 const playerStatsSource = readFileSync("src/routes/player.tsx", "utf8");
 assert.ok(playerStatsSource.includes('rpc("get_my_player_statistics"') && playerStatsSource.includes("playerStats.season.stats") && playerStatsSource.includes("playerStats.career"), "Player Hub must load and display the authenticated player's verified season and career statistics");
-assert.ok(playerStatsSource.includes("Assists and Man of the Match awards are not yet included"), "Player Hub must disclose statistics that are not yet supported by audited matchday capture");
+// Assists and own goals are captured through the audited admin_record_fixture_goal_events workflow
+// (migration 20261113170000); the Player Hub must state how they are counted.
+assert.ok(playerStatsSource.includes("own goals never count towards a player's goals") && playerStatsSource.includes("Goal contributions are goals plus assists"), "Player Hub must disclose how assists, own goals and goal contributions are counted");
+assert.ok(playerStatsSource.includes("playerStats.season.stats.assists") && playerStatsSource.includes("playerStats.career.goal_contributions"), "Player Hub must display audited assists and goal contributions");
 
 const analyticsEventsSource = readFileSync("src/lib/analytics/events.ts", "utf8");
 assert.ok(analyticsEventsSource.includes('"player_statistics_viewed"') && analyticsEventsSource.includes('"player_statistics"'), "Player statistics usage must use the consent-gated, allow-listed analytics taxonomy");

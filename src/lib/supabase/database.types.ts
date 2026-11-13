@@ -237,6 +237,8 @@ export type Database = {
           void_reason: string | null
           voided_at: string | null
           voided_by: string | null
+          assist_competition_player_id: string | null
+          is_own_goal: boolean
         }
         Insert: {
           competition_player_id?: string
@@ -249,6 +251,8 @@ export type Database = {
           void_reason?: string | null
           voided_at?: string | null
           voided_by?: string | null
+          assist_competition_player_id?: string | null
+          is_own_goal?: boolean
         }
         Update: {
           competition_player_id?: string
@@ -261,6 +265,8 @@ export type Database = {
           void_reason?: string | null
           voided_at?: string | null
           voided_by?: string | null
+          assist_competition_player_id?: string | null
+          is_own_goal?: boolean
         }
         Relationships: [
           {
@@ -2323,6 +2329,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      admin_record_fixture_goal_events: {
+        Args: { p_events: Json; p_fixture_id: string; p_reason: string }
+        Returns: Json
       }
       admin_record_fixture_result_with_appearances: {
         Args: {

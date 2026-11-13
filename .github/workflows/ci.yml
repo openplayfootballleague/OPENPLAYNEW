@@ -659,6 +659,10 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/fixture_motm_nominations.sql
+      - name: Goal assists, own goals and contributions
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/goal_assists_and_own_goals.sql
       - name: Stop local Supabase database
         if: always()
         run: supabase stop --no-backup
