@@ -179,7 +179,7 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
   }
 
   async function disablePush() {
-    if (!userId || !isOneSignalConfigured()) return;
+    if (!userId) return;
     setBusy(true);
     setError("");
     setNotice("");
@@ -188,8 +188,17 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
       if (preferenceError) throw new Error("Unable to switch off push delivery for this account.");
       setPreferences((current) => current ? { ...current, push_enabled: false } : current);
 
-      const sdk = await loadOneSignal().catch(() => null);
+      const sdk = isOneSignalConfigured()
+        ? await loadOneSignal().catch(() => null)
+        : window.OneSignal ?? null;
       if (sdk) await sdk.User.PushSubscription.optOut().catch(() => undefined);
+
+      if (!isOneSignalConfigured()) {
+        if (sdk) await sdk.logout().catch(() => undefined);
+        setNotice("Push delivery is disabled for this account. Remote device cleanup cannot be confirmed until OneSignal is configured again.");
+        return;
+      }
+
       const { data, error: disableError } = await getSupabaseClient().functions.invoke("manage-push-devices", {
         body: { action: "disable" },
       });
@@ -256,7 +265,10 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
         </div>
         <div className="push-settings-subsection">
           <h3>Push notifications &amp; devices</h3>
-          {!isOneSignalConfigured() ? <p className="form-note">Push notifications are not yet configured for this Open Play environment. Email, SMS and in-app preferences remain available.</p> : <>
+          {!isOneSignalConfigured() ? <>
+            <p className="form-note">Push notifications are not configured for this Open Play environment. Email, SMS and in-app preferences remain available.</p>
+            {preferences.push_enabled && <button type="button" className="button button-secondary" disabled={busy} onClick={() => void disablePush()}>TURN OFF PUSH DELIVERY</button>}
+          </> : <>
             <p>Push is optional. Enable it on each browser you use. Open Play can send to multiple registered devices linked to this account.</p>
             <p>When enabled, OneSignal receives your Open Play account UUID and device subscription metadata. Lock-screen messages are generic and do not include private message content, contact details or dates of birth.</p>
             <div className="push-settings-action-row">
