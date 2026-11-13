@@ -140,6 +140,7 @@ begin
   if v_location is null and not v_global_admin then
     raise exception 'Location administrators must select an assigned location';
   end if;
+  perform public.assert_admin_location_context(v_location);
   if v_location is not null and not public.can_administer_location(v_location) then
     raise exception 'You are not assigned to this location';
   end if;
