@@ -2,7 +2,7 @@
 -- Requires the location_admin_role_scope.sql fixtures to have run first.
 do $location_venues$
 declare
-  v_admin constant uuid := '00000000-0000-4000-8000-000000000004';
+  v_admin constant uuid := '94000000-0000-4000-8000-000000000001';
   v_location_a constant uuid := '00000000-0000-4000-8000-000000000010';
   v_location_b constant uuid := '00000000-0000-4000-8000-000000000011';
   v_season_a constant uuid := '00000000-0000-4000-8000-000000000030';
@@ -14,6 +14,13 @@ declare
   v_venue_name text;
   v_denied boolean;
 begin
+  insert into auth.users (id,aud,role,email,encrypted_password,raw_user_meta_data,created_at,updated_at)
+  values(v_admin,'authenticated','authenticated','ci-venue-admin@openplay.invalid','','{}'::jsonb,now(),now());
+  insert into public.user_roles(user_id,role,granted_by)
+  values(v_admin,'league_admin','00000000-0000-4000-8000-000000000005');
+  insert into public.location_admin_assignments(user_id,location_id,assigned_by)
+  values(v_admin,v_location_a,'00000000-0000-4000-8000-000000000005');
+
   execute 'set local role authenticated';
   perform set_config('request.jwt.claim.sub',v_admin::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_admin,'role','authenticated')::text,true);
