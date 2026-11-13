@@ -58,6 +58,7 @@ begin
   update public.notification_events
   set status='cancelled',
       last_error='Cancelled after recipient disabled this notification category',
+      locked_at=null,held_at=null,held_by=null,hold_reason=null,
       updated_at=now()
   where user_id=v_user
     and channel in ('email','sms')
