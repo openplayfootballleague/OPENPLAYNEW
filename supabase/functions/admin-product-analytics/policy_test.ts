@@ -61,6 +61,8 @@ Deno.test("builds fixed, scoped aggregate queries with inclusive date boundaries
     matches(query, /timestamp < toDateTime\('2026-11-14 00:00:00'\)/, "Must include the full end date");
     excludes(query, /SELECT \*|distinct_id|email|full_name|phone/, "Must not return direct identifiers or raw rows");
   }
+  matches(queries.appUsageSummary, /event = 'navigation_section_viewed'/, "App usage summary must use explicit navigation events");
+  matches(queries.appUsageSummary, /uniqExact\\(person_id\\)/, "App usage summary must count unique visitors");
   matches(queries.appUsageDaily, /event = 'navigation_section_viewed'/, "App usage must use explicit navigation events");
   matches(queries.appUsageDaily, /properties\\['visitor_type'\\] IN \\('anonymous', 'authenticated'\\)/, "App usage must separate anonymous and authenticated visitors");
   matches(queries.appUsageSections, /properties\\['route_category'\\] IN/, "App usage must allowlist navigation sections");
