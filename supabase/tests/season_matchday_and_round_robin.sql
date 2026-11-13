@@ -108,7 +108,7 @@ begin
 
   v_denied:=false;
   begin
-    perform public.admin_generate_round_robin_fixtures(v_season,date '2026-11-20');
+    perform public.admin_generate_round_robin_fixtures(v_season,date '2026-11-20',v_preview->>'settings_hash');
   exception when others then v_denied:=true;
   end;
   if not v_denied then raise exception 'Fixture generation must not overwrite an existing schedule'; end if;
