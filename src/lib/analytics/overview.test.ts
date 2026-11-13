@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   aggregateFinanceTotals,
+  safeCsvCell,
   buildAnalyticsOverview,
   buildLocationComparisons,
   type AnalyticsSetup,
@@ -31,6 +32,15 @@ const setup: AnalyticsSetup = {
 };
 
 describe("admin analytics aggregation", () => {
+  it("quotes CSV values and neutralises spreadsheet formula injection", () => {
+    expect(safeCsvCell("Bideford")).toBe('"Bideford"');
+    expect(safeCsvCell(42)).toBe('"42"');
+    expect(safeCsvCell(-42)).toBe('"-42"');
+    expect(safeCsvCell("\uFEFF=1+1")).toBe('"\'=1+1"');
+    expect(safeCsvCell('=HYPERLINK("https://example.invalid","open")')).toBe(`"\'=HYPERLINK(""https://example.invalid"",""open"")"`);
+    expect(safeCsvCell("  @SUM(1,2)")).toBe('"\'  @SUM(1,2)"');
+    expect(safeCsvCell('Captain "Ace"')).toBe('"Captain ""Ace"""');
+  });
   it("counts only approved teams and verified completed results in the selected context", () => {
     const result = buildAnalyticsOverview(setup, {
       pending_player_reviews: 2,

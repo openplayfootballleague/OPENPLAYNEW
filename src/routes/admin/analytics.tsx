@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useRequiredSession } from "../../lib/auth/use-required-session";
-import { aggregateFinanceTotals, buildAnalyticsOverview, buildLocationComparisons, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup, type FinanceSummaryRow } from "../../lib/analytics/overview";
+import { aggregateFinanceTotals, buildAnalyticsOverview, buildLocationComparisons, safeCsvCell, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup, type FinanceSummaryRow } from "../../lib/analytics/overview";
 import { getSupabaseClient } from "../../lib/supabase/client";
 
 type ContextPreference = { location_id: string | null; league_id: string | null; season_id: string | null; is_global_admin: boolean };
@@ -17,7 +17,7 @@ type FinanceOption = { season_id: string; season_name: string; team_id: string; 
 type Tab = "overview" | "usage" | "growth" | "registrations" | "engagement" | "features" | "locations" | "competition" | "business" | "reports";
 
 const money = (pence: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(pence / 100);
-const csvCell = (value: string | number) => '"' + String(value).replaceAll('"', '""') + '"';
+
 
 export const Route = createFileRoute("/admin/analytics")({ component: AdminAnalyticsPage });
 
@@ -230,7 +230,7 @@ function AdminAnalyticsPage() {
     for (const location of locationComparisons) {
       rows.push([location.locationName, location.seasons, location.approvedTeams, location.squadMemberships, location.fixtures, location.publishedResults, location.goals]);
     }
-    const csv = rows.map((row) => row.map((cell) => csvCell(cell)).join(",")).join("\r\n");
+    const csv = rows.map((row) => row.map((cell) => safeCsvCell(cell)).join(",")).join("\r\n");
     const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
