@@ -96,7 +96,7 @@ function HomePage() {
         </a>
         <nav className="header-nav" aria-label="Main navigation">
           <a href="/match-centre">Match centre</a>
-          <a href="/teams">Leagues</a>
+          <a href="/leagues">Leagues</a>
           <a href="/gallery">Gallery</a>
           <a href="#about">About</a>
         </nav>
@@ -150,7 +150,7 @@ function HomePage() {
             <p>Fixtures, live updates, results and league tables.</p>
           </div>
         </a>
-        <a className="feature-card feature-orange" href="/teams">
+        <a className="feature-card feature-orange" href="/leagues">
           <span className="feature-index">02 / DISCOVER</span>
           <span className="feature-icon" aria-hidden="true">＋</span>
           <div>
