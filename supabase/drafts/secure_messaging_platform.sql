@@ -1140,7 +1140,7 @@ returns void
 language plpgsql
 security definer
 set search_path=''
-as $
+as $backfill$
 begin
   insert into public.message_conversations(kind,title,season_team_id,season_id,location_id)
   select 'team',st.name,st.id,st.season_id,l.location_id
@@ -1164,11 +1164,11 @@ begin
     and public.message_actor_is_active(tm.user_id)
   on conflict(conversation_id,user_id) do nothing;
 end;
-$;
+$backfill$;
 revoke all on function public.backfill_team_message_conversations() from public,anon,authenticated;
 select public.backfill_team_message_conversations();
 
-do $
+do $publication$
 begin
   if exists(select 1 from pg_publication where pubname='supabase_realtime') then
     if not exists(select 1 from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='messages') then
