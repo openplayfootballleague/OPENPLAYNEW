@@ -206,7 +206,7 @@ begin
   if not found then raise exception 'Choose an approved away team from this season'; end if;
 
   if p_venue_id is not null then
-    select * into v_venue from public.venues v
+    select v.* into v_venue from public.venues v
     join public.locations loc on loc.id=v.location_id
     where v.id=p_venue_id and v.is_active=true and loc.is_active=true;
     if not found then raise exception 'Choose an active venue at an active location'; end if;
