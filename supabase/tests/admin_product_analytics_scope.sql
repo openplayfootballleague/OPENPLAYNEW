@@ -42,7 +42,7 @@ begin
      or jsonb_array_length(v_scope->'seasons')<>2
      or not (v_scope->'locations' @> jsonb_build_array('f2000000-0000-4000-8000-000000000010'))
      or not (v_scope->'locations' @> jsonb_build_array('f2000000-0000-4000-8000-000000000011')) then
-    raise exception 'Global administrator did not receive both authorised competition scopes';
+    raise exception 'Global administrator did not receive both authorised competition scopes: %', v_scope;
   end if;
   if v_scope::text ~* 'email|full_name|phone|date_of_birth|user_id|profile' then
     raise exception 'Product analytics scope RPC returned unnecessary identity/profile data';
