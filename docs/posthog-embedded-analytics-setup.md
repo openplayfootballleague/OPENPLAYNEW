@@ -45,7 +45,7 @@ Each event contains only an allowlisted feature key and the selected `season_id`
 ## Scope and security
 
 - Every request must carry a valid Supabase user JWT.
-- The Edge Function calls `get_admin_competition_setup` with that user's session. This is the authoritative list of locations, leagues and seasons they may administer.
+- The Edge Function calls `get_admin_product_analytics_scope` with that user's session. This purpose-built RPC returns only location, league and season IDs; it does not fetch player identities, profiles, fixtures or other admin dashboard data.
 - Supplied location/league/season filters are checked against that list. PostHog queries are restricted to the resulting season IDs.
 - The UI receives aggregate data only. The function does not use the Supabase service-role key.
 - Date filters are validated and capped at 366 inclusive days.
