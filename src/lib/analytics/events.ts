@@ -63,6 +63,7 @@ const ALLOWED_PROPERTIES = new Set([
   "location_id",
   "league_id",
   "season_id",
+  "visitor_type",
 ]);
 
 const ROUTE_CATEGORIES = new Set([
@@ -76,6 +77,7 @@ const FEATURES = new Set([
   "season_selector", "notifications", "profile",
 ]);
 const DEVICE_TYPES = new Set(["mobile", "tablet", "desktop", "unknown"]);
+const VISITOR_TYPES = new Set(["anonymous", "authenticated"]);
 const COMPETITION_FORMATS = new Set(["six_a_side", "seven_a_side"]);
 const OUTCOMES = new Set(["success", "failure", "cancelled"]);
 const ERROR_CODES = new Set([
@@ -90,6 +92,7 @@ function safeProperty(key: string, value: AnalyticsProperties[string]): string |
   if (key === "route_category") return typeof value === "string" && ROUTE_CATEGORIES.has(value) ? value : undefined;
   if (key === "feature") return typeof value === "string" && FEATURES.has(value) ? value : undefined;
   if (key === "device_type") return typeof value === "string" && DEVICE_TYPES.has(value) ? value : undefined;
+  if (key === "visitor_type") return typeof value === "string" && VISITOR_TYPES.has(value) ? value : undefined;
   if (key === "competition_format") return typeof value === "string" && COMPETITION_FORMATS.has(value) ? value : undefined;
   if (key === "outcome") return typeof value === "string" && OUTCOMES.has(value) ? value : undefined;
   if (key === "error_code") return typeof value === "string" && ERROR_CODES.has(value) ? value : undefined;
