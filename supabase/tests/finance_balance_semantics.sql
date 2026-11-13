@@ -83,7 +83,7 @@ begin
 
   select count(*) into v_cost_count
   from public.get_admin_operating_costs(
-    v_location_id,v_league_id,'00000000-0000-4000-8000-000000000030',100
+    v_location_id,v_league_id,'00000000-0000-4000-8000-000000000030',null,null,100
   ) c where c.id=v_cost_id and c.category='venue_hire' and c.amount_pence=2000;
   if v_cost_count<>1 then raise exception 'Recorded operating cost was not returned in the scoped cost register'; end if;
 
