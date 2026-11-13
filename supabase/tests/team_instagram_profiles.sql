@@ -2,10 +2,10 @@
 -- Runs only against the disposable local Supabase database in CI.
 do $team_instagram_profiles$
 declare
-  v_user_one constant uuid := '91000000-0000-4000-8000-000000000001';
-  v_user_two constant uuid := '91000000-0000-4000-8000-000000000002';
-  v_user_three constant uuid := '91000000-0000-4000-8000-000000000003';
-  v_user_four constant uuid := '91000000-0000-4000-8000-000000000004';
+  v_user_one constant uuid := '93000000-0000-4000-8000-000000000001';
+  v_user_two constant uuid := '93000000-0000-4000-8000-000000000002';
+  v_user_three constant uuid := '93000000-0000-4000-8000-000000000003';
+  v_user_four constant uuid := '93000000-0000-4000-8000-000000000004';
   v_location uuid;
   v_league uuid;
   v_season uuid;
