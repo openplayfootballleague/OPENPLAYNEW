@@ -243,6 +243,15 @@ Deno.serve(async (req: Request) => {
         if (!oneSignalAppId || !oneSignalRestApiKey || !validAppOrigin) {
           throw new Error("OneSignal configuration is incomplete");
         }
+        const { data: pushPreference, error: preferenceError } = await service
+          .from("notification_preferences")
+          .select("push_enabled")
+          .eq("user_id", event.user_id)
+          .maybeSingle();
+        if (preferenceError) throw new Error("Unable to verify recipient push preference");
+        if (pushPreference?.push_enabled !== true) {
+          throw new PermanentDeliveryError("Push disabled by recipient");
+        }
         providerReference = await sendPush(
           oneSignalAppId,
           oneSignalRestApiKey,
