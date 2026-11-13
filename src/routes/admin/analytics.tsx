@@ -552,7 +552,7 @@ function AdminAnalyticsPage() {
         <p className="form-note">Meaningful activity is a consented player viewing published fixtures, results, league standings, player statistics or the approved team directory. Admin and finance activity is excluded. Retention cohorts use first observed meaningful activity in this reporting window; the incomplete current week is excluded.</p>
         {productAnalyticsLoading ? <p className="form-note">Loading consented engagement data…</p> : productAnalyticsError ? <div className="analytics-state"><h3>Product analytics unavailable</h3><p>{productAnalyticsError}</p><p className="analytics-state-label">The PostHog query credential is held server-side. No user-level event records are returned to this page.</p></div> : !productAnalytics || productAnalytics.status === "no_data" ? <div className="analytics-state"><h3>No consented engagement data yet</h3><p>There are no meaningful content-view events for the selected competition and reporting period. Figures will appear as players who have opted into optional analytics view available competition content.</p><p className="analytics-state-label">An app open or a generic page render is not counted as engagement.</p></div> : <>
           <div className="analytics-stat-grid">
-            <article><span>Latest completed week · active players</span><strong>{productAnalytics.weeklyActivity.at(-1)?.active_users ?? 0}</strong></article>
+            <article><span>Latest completed week · active players</span><strong>{productAnalytics.weeklyActivity.length ? productAnalytics.weeklyActivity.at(-1)!.active_users : "—"}</strong></article>
             <article><span>Meaningful content views</span><strong>{productAnalytics.weeklyActivity.reduce((sum, row) => sum + row.value_actions, 0)}</strong></article>
             <article><span>Retention cohorts</span><strong>{new Set(productAnalytics.retention.map((row) => row.cohort_week)).size}</strong></article>
           </div>
@@ -627,6 +627,18 @@ function AdminAnalyticsPage() {
       <div className="analytics-table-wrap"><table><thead><tr><th>Location</th><th>Seasons</th><th>Teams</th><th>Squad memberships</th><th>Fixtures</th><th>Results</th><th>Goals</th></tr></thead><tbody>{locationComparisons.map((row) => <tr key={row.locationId}><td>{row.locationName}</td><td>{row.seasons}</td><td>{row.approvedTeams}</td><td>{row.squadMemberships}</td><td>{row.fixtures}</td><td>{row.publishedResults}</td><td>{row.goals}</td></tr>)}</tbody></table></div>
       <h3>Daily user growth</h3>
       <div className="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Account signups</th><th>Player registrations</th><th>Team applications</th><th>Team approvals</th></tr></thead><tbody>{growthRows.map((row) => <tr key={row.bucket_date}><td>{row.bucket_date}</td><td>{row.account_signups === null ? "—" : Number(row.account_signups)}</td><td>{Number(row.player_registrations)}</td><td>{Number(row.team_applications)}</td><td>{Number(row.team_approvals)}</td></tr>)}</tbody></table></div>
+      {productAnalytics && productAnalytics.weeklyActivity.length > 0 && <>
+        <h3>Weekly engagement</h3>
+        <div className="analytics-table-wrap"><table><thead><tr><th>Week commencing</th><th>Active players</th><th>Meaningful views</th></tr></thead><tbody>{productAnalytics.weeklyActivity.map((row) => <tr key={row.week_start}><td>{row.week_start}</td><td>{row.active_users}</td><td>{row.value_actions}</td></tr>)}</tbody></table></div>
+      </>}
+      {productAnalytics && productAnalytics.features.length > 0 && <>
+        <h3>Feature performance</h3>
+        <div className="analytics-table-wrap"><table><thead><tr><th>Feature</th><th>Unique players</th><th>Meaningful views</th></tr></thead><tbody>{productAnalytics.features.map((row) => <tr key={row.feature}><td>{row.feature}</td><td>{row.unique_users}</td><td>{row.value_actions}</td></tr>)}</tbody></table></div>
+      </>}
+      {productAnalytics && productAnalytics.retention.length > 0 && <>
+        <h3>Weekly retention</h3>
+        <div className="analytics-table-wrap"><table><thead><tr><th>Cohort week</th><th>Weeks later</th><th>Cohort size</th><th>Returned</th><th>Retention</th></tr></thead><tbody>{productAnalytics.retention.map((row) => <tr key={row.cohort_week + "-" + row.weeks_since_start}><td>{row.cohort_week}</td><td>{row.weeks_since_start}</td><td>{row.cohort_users}</td><td>{row.retained_users}</td><td>{row.retention_rate.toFixed(1)}%</td></tr>)}</tbody></table></div>
+      </>}
       {financeAccess && !financeError && <p>Ledger charges: {money(financeTotals.chargesPence)} · Payments: {money(financeTotals.paymentsPence)} · Refunds: {money(financeTotals.refundsPence)} · Fines: {money(financeTotals.finesPence)} · Outstanding: {money(financeTotals.outstandingPence)}</p>}
       <p>Generated {new Date().toLocaleString("en-GB")}. Aggregate operational data only; no player personal details included.</p>
     </section>
