@@ -1,5 +1,6 @@
-import { safeCsvCell, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
+  safeCsvCell,
   aggregateFinanceTotals,
   buildAnalyticsOverview,
   buildLocationComparisons,
@@ -100,7 +101,7 @@ describe("admin analytics aggregation", () => {
   it("neutralises spreadsheet formula prefixes in text while preserving numeric values", () => {
     expect(safeCsvCell("=1+1")).toBe("\"'=1+1\"");
     expect(safeCsvCell("  @SUM(A1:A2)")).toBe("\"'  @SUM(A1:A2)\"");
-    expect(safeCsvCell("\\uFEFF=1+1")).toBe("\"'=1+1\"");
+    expect(safeCsvCell("\uFEFF=1+1")).toBe("\"'=1+1\"");
     expect(safeCsvCell("-125")).toBe("\"'-125\"");
     expect(safeCsvCell(-125)).toBe("\"-125\"");
     expect(safeCsvCell('Open "Play"')).toBe("\"Open \"\"Play\"\"\"");
