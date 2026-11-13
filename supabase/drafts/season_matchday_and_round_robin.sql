@@ -233,7 +233,7 @@ begin
             v_last_team:=v_home; v_home:=v_away; v_away:=v_last_team;
           end if;
           v_matchday_date:=p_first_matchday_date+((v_gameweek-1)*7);
-          v_local_start:=v_matchday_date::timestamp+v_season.matchday_start_time
+          v_local_start:=v_matchday_date+v_season.matchday_start_time
             +make_interval(mins=>(v_fixture_number-1)*(v_season.match_duration_minutes+v_season.matchday_buffer_minutes));
           gameweek:=v_gameweek;
           fixture_number:=v_fixture_number;
