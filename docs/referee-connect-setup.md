@@ -77,3 +77,15 @@ A referee is eligible for an Open Play transfer when the connected account is co
 - Keep the integration test-mode-only until all acceptance requirements pass.
 - Do not add a live Stripe key, create live connected accounts, initiate live transfers, deploy migrations or enable unattended transfer processing without explicit release approval.
 - Never claim that a transfer to a connected Stripe balance means the money has already reached the referee's bank.
+
+## Ambiguous transfer and webhook-ordering safeguards
+
+- HTTP 408 is an ambiguous outcome: Stripe may have created the transfer even though the caller timed out. Keep the payout in `processing`, preserve the original attempt number and idempotency key, and reconcile before any new attempt.
+- HTTP 409, 429, all 5xx responses, network failures, malformed responses and uncertain database confirmations are also non-definitive. Do not mark these payouts failed or issue a new idempotency key.
+- Only definitive 4xx client rejections other than 408, 409 and 429 may be marked failed. A failed attempt is retryable only after its outcome is reconciled and the underlying cause is resolved.
+- A `transfer.reversed` event that arrives before its matching `transfer.created` event is left unprocessed and returns a retryable webhook error. Stripe's retry can then reconcile it after the transfer is linked.
+- A reversal for an older transfer attempt is retained in attempt history without changing a newer successful payout.
+- The original `20261111192000_referee_connect_payouts.sql` migration remains immutable. These changes are delivered by the separate forward-only `20261113100800_referee_connect_transfer_reconciliation_corrections.sql` migration and matching canonical draft.
+- CI tests the HTTP status classifier, approval-to-outbox transaction, unmatched reversal, stale reversal and clean migration replay. These are automated contract tests, not a Stripe API round trip.
+
+The current approval RPC writes a £22 gross entitlement with zero deductions and £22 net, so its standard immediate transfer request is 2,200 pence. The wider documented payout policy permits deductions and a £20 minimum net amount; any future deduction feature must not silently change the agreed match-fee transfer amount without an explicit policy decision.
