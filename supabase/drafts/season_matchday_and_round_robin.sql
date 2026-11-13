@@ -98,6 +98,10 @@ begin
       raise exception 'The configured matchday starts after the venue closes';
     end if;
     if p_matchday_start_time is not null and p_match_duration_minutes is not null
+       and p_matchday_start_time+make_interval(mins=>p_match_duration_minutes)<p_matchday_start_time then
+      raise exception 'A match cannot extend past midnight';
+    end if;
+    if p_matchday_start_time is not null and p_match_duration_minutes is not null
        and v_venue.closes_at is not null
        and p_matchday_start_time+make_interval(mins=>p_match_duration_minutes)>v_venue.closes_at then
       raise exception 'The match duration extends beyond the venue closing time';
@@ -215,6 +219,7 @@ begin
     +(v_matches_per_round-1)*v_season.matchday_buffer_minutes;
   if v_total_slot_minutes>=1440 then raise exception 'The full gameweek schedule cannot exceed one day'; end if;
   v_last_end_time:=v_season.matchday_start_time+make_interval(mins=>v_total_slot_minutes);
+  if v_last_end_time<v_season.matchday_start_time then raise exception 'The full gameweek schedule cannot extend past midnight'; end if;
   if v_venue.closes_at is not null and v_last_end_time>v_venue.closes_at then
     raise exception 'The full gameweek schedule does not fit within the venue operating hours';
   end if;
@@ -437,6 +442,7 @@ begin
         raise exception 'The scheduled time is after the selected venue closes';
       end if;
       v_match_end_time:=v_local_scheduled::time+make_interval(mins=>coalesce(v_season.match_duration_minutes,0));
+      if v_match_end_time<v_local_scheduled::time then raise exception 'A fixture cannot extend past midnight'; end if;
       if v_venue.closes_at is not null and v_match_end_time>v_venue.closes_at then
         raise exception 'The full match duration extends beyond the selected venue closing time';
       end if;
