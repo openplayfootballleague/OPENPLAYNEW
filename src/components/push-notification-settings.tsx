@@ -177,13 +177,20 @@ export function PushNotificationSettings({ userId }: { userId: string | null }) 
     setError("");
     setNotice("");
     try {
+      const { error: preferenceError } = await getSupabaseClient().rpc("disable_my_push");
+      if (preferenceError) throw new Error("Unable to switch off push delivery for this account.");
+      setPreferences((current) => current ? { ...current, push_enabled: false } : current);
+
       const sdk = await loadOneSignal().catch(() => null);
       if (sdk) await sdk.User.PushSubscription.optOut().catch(() => undefined);
       const { data, error: disableError } = await getSupabaseClient().functions.invoke("manage-push-devices", {
         body: { action: "disable" },
       });
-      if (disableError || !data || data.error) throw new Error(data?.error ?? "Unable to disable push notifications.");
       if (sdk) await sdk.logout().catch(() => undefined);
+      if (disableError || !data || data.error) {
+        setNotice("Push delivery is disabled for this account. OneSignal could not remove every device subscription, so device cleanup may need to be retried.");
+        return;
+      }
       setNotice("Push notifications have been disabled on all registered devices.");
       await refresh();
     } catch (cause) {
