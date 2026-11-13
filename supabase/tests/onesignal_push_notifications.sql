@@ -79,6 +79,11 @@ begin
 
   perform set_config('request.jwt.claim.sub',v_user::text,true);
   perform set_config('request.jwt.claims',jsonb_build_object('sub',v_user,'role','authenticated')::text,true);
+  perform public.disable_my_push();
+  if not exists(select 1 from public.notification_preferences where user_id=v_user and push_enabled=false) then
+    raise exception 'User could not disable push preference without provider access';
+  end if;
+
   begin
     perform public.update_my_notification_category_preferences('{"unknown_category":false}'::jsonb);
     v_denied := false;
@@ -89,6 +94,9 @@ begin
 
   if pg_catalog.has_function_privilege('anon','public.update_my_notification_category_preferences(jsonb)','EXECUTE') then
     raise exception 'Anonymous role must not update notification categories';
+  end if;
+  if pg_catalog.has_function_privilege('anon','public.disable_my_push()','EXECUTE') then
+    raise exception 'Anonymous role must not disable push preferences';
   end if;
 
   raise notice 'Push channel, category preferences, critical alerts and permanent retry regressions passed';
