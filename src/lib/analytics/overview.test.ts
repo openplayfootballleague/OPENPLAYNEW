@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   aggregateFinanceTotals,
   buildAnalyticsOverview,
+  buildCompetitionTeamPerformance,
   buildLocationComparisons,
   type AnalyticsSetup,
 } from "./overview";
