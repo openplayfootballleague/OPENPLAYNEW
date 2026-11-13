@@ -45,6 +45,7 @@ type FixturePreview = {
   last_matchday_date: string;
   round_count: number;
   fixture_count: number;
+  settings_hash: string;
   fixtures: PreviewFixture[];
 };
 
@@ -212,6 +213,7 @@ export function AdminFixtureGenerator({ seasons, venues, locations, fixtures, de
       const result = await getSupabaseClient().rpc("admin_generate_round_robin_fixtures", {
         p_season_id: seasonId,
         p_first_matchday_date: firstMatchdayDate,
+        p_expected_settings_hash: preview.settings_hash,
       });
       if (result.error) throw result.error;
       const summary = result.data as { fixture_count?: number; round_count?: number; last_matchday_date?: string } | null;
