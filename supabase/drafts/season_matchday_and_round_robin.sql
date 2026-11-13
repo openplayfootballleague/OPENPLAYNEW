@@ -85,6 +85,19 @@ begin
       where v.id=p_default_venue_id and v.is_active=true and loc.is_active=true;
     if not found then raise exception 'Choose an active venue at an active location'; end if;
     if v_venue.location_id<>v_location_id then raise exception 'The default venue must belong to the season location'; end if;
+    if p_matchday_weekday is not null and cardinality(v_venue.operating_days)>0
+       and not (p_matchday_weekday=any(v_venue.operating_days)) then
+      raise exception 'The selected venue is not operating on the configured matchday';
+    end if;
+    if p_matchday_start_time is not null and v_venue.opens_at is not null
+       and p_matchday_start_time<v_venue.opens_at then
+      raise exception 'The configured matchday starts before the venue opens';
+    end if;
+    if p_matchday_start_time is not null and p_match_duration_minutes is not null
+       and v_venue.closes_at is not null
+       and p_matchday_start_time+make_interval(mins=>p_match_duration_minutes)>v_venue.closes_at then
+      raise exception 'The match duration extends beyond the venue closing time';
+    end if;
   end if;
 
   update public.seasons set
@@ -118,8 +131,8 @@ create or replace function public.build_round_robin_fixture_schedule(
   away_team_id uuid,
   scheduled_at timestamptz
 )
-language plpgsql security definer set search_path=''
-as $$
+language plpgsql stable security definer set search_path=''
+as $
 declare
   v_season public.seasons;
   v_location_id uuid;
