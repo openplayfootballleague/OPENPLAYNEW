@@ -25,6 +25,7 @@ export const OPEN_PLAY_ANALYTICS_EVENTS = [
   "gallery_viewed",
   "announcement_viewed",
   "feature_opened",
+  "core_value_action",
   "feature_action_completed",
   "feature_action_failed",
   "application_error",
