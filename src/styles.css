@@ -1675,3 +1675,102 @@ body:has(.global-header) .player-facing .notice-brand { display: none; }
 @media (max-width: 400px) {
   .global-header-brand span { display: none; }
 }
+
+/* Public home visual alignment.
+   Keep the marketing home inside the same charcoal / orange design system as
+   the signed-in product. Scope these rules to the public home so legacy
+   account and admin screens are not changed by this focused visual pass. */
+.site-home-page {
+  min-height: 100svh;
+  background: var(--color-bg);
+  color: var(--color-text-1);
+}
+.site-home-page .site-shell {
+  background: var(--color-bg);
+  color: var(--color-text-1);
+}
+.site-home-page .intro-grid {
+  background: var(--color-bg);
+  color: var(--color-text-1);
+  padding: clamp(64px, 8vw, 104px) clamp(22px, 9vw, 140px) 64px;
+}
+.site-home-page .eyebrow-dark {
+  color: var(--color-accent);
+}
+.site-home-page .intro-grid h2 {
+  color: var(--color-text-1);
+}
+.site-home-page .intro-grid h2 em {
+  color: var(--color-accent);
+}
+.site-home-page .intro-copy {
+  color: var(--color-text-2);
+}
+.site-home-page .feature-grid {
+  gap: var(--space-3);
+  padding: 0 clamp(22px, 9vw, 140px) 72px;
+  background: var(--color-bg);
+}
+.site-home-page .feature-card,
+.site-home-page .feature-dark,
+.site-home-page .feature-orange,
+.site-home-page .feature-light {
+  min-width: 0;
+  min-height: 224px;
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-l);
+  background: var(--color-surface-2);
+  color: var(--color-text-1);
+  transition: background var(--duration) var(--ease), border-color var(--duration) var(--ease), transform var(--duration) var(--ease);
+}
+.site-home-page .feature-card:hover {
+  background: var(--color-surface-3);
+  border-color: var(--color-border-strong);
+  transform: translateY(-2px);
+}
+.site-home-page .feature-card:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+.site-home-page .feature-index {
+  color: var(--color-text-3);
+  opacity: 1;
+}
+.site-home-page .feature-icon {
+  color: var(--color-accent);
+}
+.site-home-page .feature-card h3 {
+  color: var(--color-text-1);
+  font: 600 clamp(24px, 2.5vw, 32px)/1.08 var(--font-display);
+}
+.site-home-page .feature-card p {
+  color: var(--color-text-2);
+  font: 400 14px/21px var(--font-text);
+  opacity: 1;
+}
+.site-home-page .site-footer {
+  border-top: 1px solid var(--color-separator);
+  background: var(--color-surface-1);
+  color: var(--color-text-2);
+}
+.site-home-page .site-footer > span {
+  font: 600 11px/16px var(--font-text);
+  letter-spacing: .08em;
+}
+@media (max-width: 760px) {
+  .site-home-page .intro-grid {
+    padding: 64px 22px 40px;
+  }
+  .site-home-page .feature-grid {
+    gap: var(--space-3);
+    padding: 0 22px 56px;
+  }
+  .site-home-page .feature-card,
+  .site-home-page .feature-dark,
+  .site-home-page .feature-orange,
+  .site-home-page .feature-light {
+    min-height: 160px;
+    padding: var(--space-5);
+  }
+}
