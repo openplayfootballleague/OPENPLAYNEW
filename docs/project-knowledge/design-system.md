@@ -23,3 +23,15 @@ Accessibility is part of implementation: semantic structure, labels, keyboard na
 
 ## Reuse
 Reuse shared components and tokens across public, player, captain, referee and admin surfaces. Cover mobile, tablet and desktop in visual tests.
+
+## Shared component library (implemented 2026-11-14)
+- **Code:** `src/components/ui/op-ui.tsx`, styled by `src/components/ui/op-ui.css` (loaded last in `__root.tsx`) and tested in `op-ui.test.ts`.
+- **Components:**
+  - layout and headings: `PageHeader`, `SectionHeading`, `Card`, `TileLink`;
+  - controls: `Button`, `ButtonLink`, `SearchField`, `ConfirmDialog` (native `<dialog>`), `Pagination`;
+  - status and data: `StatusBadge` (active/upcoming/warning/danger/neutral/accent), `StatTile`, `StatGrid`, `TeamInitials`;
+  - states: `LoadingState`, `EmptyState`, `ErrorState`.
+- **Icons:** Lucide (`lucide-react` pinned at 1.64.0) for navigation, header and cards. No new inline SVG icons.
+- **Page titles:** white, uppercase, Oswald. A second title line is never orange. The only orange display lines are hero lines shown as orange in a reference image (IMG_0581, IMG_0562).
+- **Status colours:** green = active/success, blue = upcoming/planned, orange = Open Play emphasis or warning, red = errors.
+- **Surfaces:** player-facing screens use dark surfaces only. The remaining light rules in `styles.css` are overridden for player-facing screens. Admin surfaces are restyled in the admin workstream.

@@ -1,0 +1,126 @@
+/* Open Play shared UI. Tokens mirror the player-facing system so components render the same
+   inside and outside .player-facing. */
+:root {
+  --op-ui-bg: #000000;
+  --op-ui-surface: #111111;
+  --op-ui-card: #1b1b1b;
+  --op-ui-raised: #242424;
+  --op-ui-border: #2e2e2e;
+  --op-ui-orange: #ff6500;
+  --op-ui-orange-soft: rgba(255, 101, 0, .16);
+  --op-ui-text: #ffffff;
+  --op-ui-secondary: #c2c2c2;
+  --op-ui-muted: #8a8a8a;
+  --op-ui-green: #4ade80;
+  --op-ui-green-soft: rgba(34, 197, 94, .16);
+  --op-ui-blue: #7fb2ff;
+  --op-ui-blue-soft: rgba(59, 130, 246, .18);
+  --op-ui-red: #f87171;
+  --op-ui-red-soft: rgba(239, 68, 68, .16);
+  --op-ui-radius: 16px;
+  --op-ui-space: clamp(14px, 3.5vw, 22px);
+}
+
+.op-eyebrow { margin: 0; color: var(--op-ui-orange); font-family: "Oswald", sans-serif; font-size: 14px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
+.op-page-header { display: grid; gap: 8px; margin: 0 0 var(--op-ui-space); }
+.op-page-header-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.op-page-title { margin: 0; color: var(--op-ui-text); font-family: "Oswald", sans-serif; font-size: clamp(32px, 8vw, 46px); font-weight: 600; line-height: 1.05; letter-spacing: .005em; text-transform: uppercase; overflow-wrap: anywhere; }
+.op-page-subtitle { margin: 0; color: var(--op-ui-secondary); font-size: 16px; line-height: 1.5; }
+.op-page-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+
+.op-section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: var(--op-ui-space) 0 12px; }
+.op-section-title { margin: 0; color: var(--op-ui-text); font-family: "Oswald", sans-serif; font-size: clamp(20px, 5vw, 24px); font-weight: 600; letter-spacing: .01em; text-transform: uppercase; }
+.op-section-description { margin: 4px 0 0; color: var(--op-ui-muted); font-size: 14px; }
+.op-section-meta { flex: none; }
+
+.op-card { min-width: 0; padding: var(--op-ui-space); border: 1px solid var(--op-ui-border); border-radius: var(--op-ui-radius); background: var(--op-ui-card); color: var(--op-ui-text); }
+
+.op-tile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 359px) { .op-tile-grid { grid-template-columns: minmax(0, 1fr); } }
+.op-tile { display: grid; align-content: start; gap: 8px; min-width: 0; padding: 18px; border: 1px solid var(--op-ui-border); border-radius: var(--op-ui-radius); background: var(--op-ui-card); color: var(--op-ui-text); text-decoration: none; transition: border-color .15s ease, background .15s ease; }
+.op-tile:hover, .op-tile:focus-visible { border-color: var(--op-ui-orange); background: var(--op-ui-raised); }
+.op-tile-top { display: flex; justify-content: space-between; }
+.op-tile-title { font-family: "Oswald", sans-serif; font-size: 18px; font-weight: 500; letter-spacing: .01em; text-transform: uppercase; overflow-wrap: anywhere; }
+.op-tile-description { color: var(--op-ui-muted); font-size: 14px; line-height: 1.4; }
+.op-icon-accent { width: 22px; height: 22px; color: var(--op-ui-orange); flex: none; }
+.op-icon-muted { width: 28px; height: 28px; color: var(--op-ui-muted); flex: none; }
+
+.op-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 20px; border: 1px solid transparent; border-radius: 12px; font-family: "Oswald", sans-serif; font-size: 16px; font-weight: 500; letter-spacing: .03em; line-height: 1; text-decoration: none; text-transform: uppercase; cursor: pointer; transition: background .15s ease, border-color .15s ease, opacity .15s ease; }
+.op-button svg { width: 18px; height: 18px; }
+.op-button-primary { background: var(--op-ui-orange); color: #fff; }
+.op-button-primary:hover:not(:disabled) { background: #ff7a24; }
+.op-button-outline { border-color: var(--op-ui-orange); background: transparent; color: var(--op-ui-orange); }
+.op-button-outline:hover:not(:disabled) { background: var(--op-ui-orange-soft); }
+.op-button-ghost { background: transparent; color: var(--op-ui-text); }
+.op-button-light { background: #f2f2f2; color: #111; }
+.op-button-block { width: 100%; }
+.op-button:disabled { cursor: not-allowed; opacity: .45; }
+.op-button:focus-visible, .op-tile:focus-visible, .op-search input:focus-visible { outline: 2px solid var(--op-ui-orange); outline-offset: 2px; }
+
+.op-badge { display: inline-flex; align-items: center; min-height: 26px; padding: 3px 12px; border-radius: 999px; font-family: "Oswald", sans-serif; font-size: 13px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.op-badge-active { background: var(--op-ui-green-soft); color: var(--op-ui-green); }
+.op-badge-upcoming { background: var(--op-ui-blue-soft); color: var(--op-ui-blue); }
+.op-badge-warning, .op-badge-accent { background: var(--op-ui-orange-soft); color: #ff8a3d; }
+.op-badge-danger { background: var(--op-ui-red-soft); color: var(--op-ui-red); }
+.op-badge-neutral { background: var(--op-ui-raised); color: var(--op-ui-secondary); }
+
+.op-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.op-stat { display: grid; justify-items: center; gap: 4px; min-width: 0; padding: 16px 8px; border: 1px solid var(--op-ui-border); border-radius: 12px; background: var(--op-ui-card); text-align: center; }
+.op-stat-value { color: var(--op-ui-text); font-family: "Inter", sans-serif; font-size: clamp(22px, 6vw, 30px); font-weight: 700; line-height: 1.1; }
+.op-stat-accent .op-stat-value { color: var(--op-ui-orange); }
+.op-stat-label { color: var(--op-ui-muted); font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; overflow-wrap: anywhere; }
+
+.op-state { display: flex; align-items: flex-start; gap: 12px; margin: 0; padding: 16px; border: 1px solid var(--op-ui-border); border-radius: 12px; background: var(--op-ui-card); color: var(--op-ui-secondary); font-size: 15px; }
+.op-state strong { display: block; color: var(--op-ui-text); font-weight: 600; }
+.op-state p { margin: 4px 0 10px; }
+.op-state-loading { align-items: center; }
+.op-state-error { border-color: rgba(239, 68, 68, .45); }
+.op-state-error > svg { width: 24px; height: 24px; color: var(--op-ui-red); flex: none; }
+.op-spin { width: 18px; height: 18px; animation: op-spin 1s linear infinite; }
+@keyframes op-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .op-spin { animation: none; } }
+
+.op-search { display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 0 16px; border: 1px solid var(--op-ui-border); border-radius: 14px; background: var(--op-ui-card); }
+.op-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--op-ui-text); font: inherit; font-size: 16px; }
+.op-search input::placeholder { color: var(--op-ui-muted); }
+
+.op-pagination { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; color: var(--op-ui-secondary); }
+.op-pagination .op-button { min-height: 42px; border-color: var(--op-ui-border); border-radius: 999px; color: var(--op-ui-text); font-family: "Inter", sans-serif; text-transform: none; }
+
+.op-initials { display: inline-grid; place-items: center; flex: none; border: 1px solid rgba(255, 101, 0, .35); border-radius: 12px; background: rgba(255, 101, 0, .1); color: var(--op-ui-orange); font-family: "Inter", sans-serif; font-weight: 700; }
+.op-initials-sm { width: 44px; height: 44px; font-size: 15px; }
+.op-initials-md { width: 56px; height: 56px; font-size: 18px; }
+.op-initials-lg { width: 84px; height: 84px; font-size: 28px; }
+
+.op-dialog { width: min(92vw, 460px); padding: 22px; border: 1px solid var(--op-ui-border); border-radius: var(--op-ui-radius); background: var(--op-ui-surface); color: var(--op-ui-text); }
+.op-dialog::backdrop { background: rgba(0, 0, 0, .7); }
+.op-dialog-body { margin: 10px 0 18px; color: var(--op-ui-secondary); line-height: 1.5; }
+.op-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+
+/* Shared page container for redesigned player-facing screens. */
+.op-page { width: min(100%, 1100px); margin: 0 auto; padding: 20px 16px calc(110px + env(safe-area-inset-bottom, 0px)); color: var(--op-ui-text); }
+.op-stack { display: grid; gap: 12px; }
+
+/* Design-system rules applied to existing player-facing screens (owner instruction 2026-11-14:
+   white uppercase headings; no cream/light sections). */
+.player-facing h1 { text-transform: uppercase; }
+/* Page titles are white in every reference image; several legacy :has() rules colour the second
+   line orange, so this one scoped override uses !important. */
+.player-facing h1 em { color: inherit !important; font-style: normal; }
+.player-facing .player-competition-empty {
+  border: 1px solid var(--op-ui-border); border-left: 3px solid var(--op-ui-orange); border-radius: 10px;
+  background: var(--op-ui-card); color: var(--op-ui-secondary); font-size: 14px;
+}
+.player-facing .player-competition-context-fields label { color: var(--op-ui-muted); }
+.player-facing .player-competition-context-fields select {
+  border: 1px solid var(--op-ui-border); border-radius: 10px; background: var(--op-ui-card); color: var(--op-ui-text); font-size: 15px;
+}
+.player-facing .player-competition-context-fields select:disabled { background: var(--op-ui-raised); color: var(--op-ui-muted); }
+.player-facing .player-competition-context-fields select:focus-visible { outline: 2px solid var(--op-ui-orange); }
+.player-facing .form-note { color: var(--op-ui-secondary); font-size: 14px; }
+.player-facing .captain-team-payment .form-note { color: var(--op-ui-secondary); }
+.player-facing .player-competition-context {
+  border: 1px solid var(--op-ui-border); border-radius: var(--op-ui-radius); background: var(--op-ui-card); color: var(--op-ui-text);
+}
+.player-facing .player-competition-context strong { color: var(--op-ui-text); }
+.player-facing .player-competition-context-heading strong { color: var(--op-ui-text); }

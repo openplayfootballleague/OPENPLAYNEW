@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { Bell, MapPin, User } from "lucide-react";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { isApprovedPlayer } from "../lib/navigation/account-navigation";
 import { formatUnreadCount, LOCATION_CHANGE_EVENT, COMPETITION_STORAGE_KEY, readStoredLocationId } from "../lib/navigation/global-header";
 
 type Location = { id: string; name: string };
-const icon = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
 
 /**
  * Global player-facing header (references IMG_0577 signed in, IMG_0578 signed out): Open Play brand,
@@ -63,18 +63,18 @@ export function GlobalHeader() {
       </Link>
       <div className="global-header-actions">
         <Link to={signedIn ? "/inbox" : "/sign-in"} className="global-header-bell" aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}>
-          <svg {...icon}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+          <Bell aria-hidden="true" />
           {unread > 0 && <span className="global-header-badge" aria-hidden="true">{formatUnreadCount(unread)}</span>}
         </Link>
         {signedIn === false && <Link to="/sign-in" className="global-header-signin">SIGN IN</Link>}
         {signedIn && (
           <Link to="/player/profile" className="global-header-avatar" aria-label="Your profile">
-            <svg {...icon}><circle cx="12" cy="8" r="4" /><path d="M4 21v-1a8 8 0 0 1 16 0v1" /></svg>
+            <User aria-hidden="true" />
           </Link>
         )}
         {locations.length > 0 && (
           <label className="global-header-location">
-            <svg {...icon}><path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12Z" /><circle cx="12" cy="9" r="2.5" /></svg>
+            <MapPin aria-hidden="true" />
             <span className="visually-hidden">Location</span>
             <select value={locationId} onChange={(event) => changeLocation(event.target.value)}>
               {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}

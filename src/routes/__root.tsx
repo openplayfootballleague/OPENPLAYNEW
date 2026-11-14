@@ -13,6 +13,7 @@ import { GlobalHeader } from "../components/global-header";
 import { showsGlobalHeader } from "../lib/navigation/global-header";
 import "../styles.css";
 import "../app-visual-system.css";
+import "../components/ui/op-ui.css";
 
 type AccountGateStatus = "checking" | "public" | "active" | "unavailable" | "blocked";
 

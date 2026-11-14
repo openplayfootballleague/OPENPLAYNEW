@@ -1,18 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
+import { House, Menu, Shield, Trophy, UserPlus, type LucideIcon } from "lucide-react";
 import { getSupabaseClient } from "../lib/supabase/client";
 import {
   isNavigationItemActive, navigationItems, resolveNavigationMode,
   type NavigationItem, type NavigationMode,
 } from "../lib/navigation/account-navigation";
 
+const NAV_ICONS: Record<NavigationItem["icon"], LucideIcon> = { home: House, match: Trophy, teams: Shield, join: UserPlus, more: Menu };
+
 function NavIcon({ name }: { name: NavigationItem["icon"] }) {
-  const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  if (name === "home") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><path d="m3 10 9-7 9 7" /><path d="M5 9v12h14V9M9 21v-7h6v7" /></svg>;
-  if (name === "match") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="12" cy="12" r="9" /><path d="m12 7 3 2v4l-3 2-3-2V9l3-2ZM9 9l-4-2m10 2 4-2M9 13l-2 5m8-5 2 5" /></svg>;
-  if (name === "join") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="9" cy="8" r="4" /><path d="M3 21v-2a6 6 0 0 1 12 0v2M19 8v6m-3-3h6" /></svg>;
-  if (name === "teams") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 15a5 5 0 0 1 5 5" /></svg>;
-  return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg>;
+  const Icon = NAV_ICONS[name];
+  return <Icon aria-hidden="true" strokeWidth={1.8} />;
 }
 
 /** Account-state bottom navigation; rules and evidence live in lib/navigation/account-navigation. */
