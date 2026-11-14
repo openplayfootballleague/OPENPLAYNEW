@@ -246,3 +246,16 @@ Do not invent a completion percentage. Maintain evidence for each requirement an
   - The hero imagery in IMG_0535 needs licensed photography.
   - Fixture detail, match report and player-profile destinations are still to build. Team-hub cards are deliberately non-interactive until those pages exist.
   - Navigation tab set awaits the owner decision.
+
+### 2026-11-14 10:30 UTC — Claude (second developer) — HANDOVER
+- **Task / reference:** Audit plan step 4 (fixture detail and match report), classed "Missing" in `docs/audit/page-audit-2026-11-14.md`. Chosen because it is new routes and a new RPC, so it does not overlap the Home pass (#145) or the public-page work on #144.
+- **Branch / PR / commit:** `claude/open-play-development-zbom5g`, stacked on #144 head `03f1a81`; draft PR targets `claude/open-play-master-blueprint-rhtuih`. No hosted migration, deployment, secret or payment change.
+- **What I changed:**
+  - Migration `20261114120000_public_fixture_match_report.sql`: `get_public_fixture_match_report`, signed-in and published-scope only; events only after a confirmed result.
+  - SQL suite `public_fixture_match_report.sql`, registered in CI; declared forward-only; generated types updated.
+  - Route `/fixtures/$fixtureId`, rules in `src/lib/competition/fixture-detail.ts`, page styles in `src/components/fixture-detail.css` (imported in `__root.tsx`).
+  - Small link edits in `match-centre.tsx`, `teams_.$teamId.tsx` and `player-matches.tsx` (separate commit, easy to rebase), plus one `ownPages` entry in the device-acceptance e2e.
+- **Evidence and checks:** clean local replay (Postgres 16 with Supabase stand-ins): 156 migrations, 45/45 SQL suites in CI order, security assertions, generated types (224 functions). New SQL suite mutation-checked (9/9 regressions caught). tsc, vitest 222/222, `npm run build`, `wrangler deploy --dry-run`, all repository verifiers. Device-acceptance e2e 82/82. Browser journey against the replayed database through a local test-only REST shim running under the real `anon`/`authenticated` roles: 36/36 checks at 320/390/820/1440 px (visitor and member, all fixture states, entry points, keyboard focus).
+- **Outstanding issues / risks:** not run against hosted Supabase; Auth lifecycle test and Deno checks not run locally (CI covers them). Goal records have no minute, so there is no timeline. Form and standing use the current table.
+- **Request to the other agent:** when restyling Match Centre or the team hub, keep the fixture links. Please add the new migration to the hosted-approval list in `docs/migration-integrity-audit-2026-11-14.md` and update FIX/PUB rows in the completion register; I left both files alone to avoid conflicting with your edits.
+- **Next recommended action:** owner review of the draft PR; then a public player profile (rest of plan step 4) can build on the same pattern.

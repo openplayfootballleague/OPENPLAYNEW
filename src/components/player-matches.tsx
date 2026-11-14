@@ -188,6 +188,7 @@ export function PlayerMatchesPage({ mode }: { mode: "fixtures" | "results" }) {
                         <div><dt>Kick-off</dt><dd>{when ? when.toLocaleString("en-GB", { dateStyle: "full", timeStyle: "short" }) : "To be confirmed"}</dd></div>
                         <div><dt>Venue</dt><dd>{venue ?? "To be confirmed"}</dd></div>
                         {completed && <div><dt>Published result</dt><dd>{home} {completed.result.home_score} – {completed.result.away_score} {away}</dd></div>}
+                        <div><dt>Match page</dt><dd><Link to="/fixtures/$fixtureId" params={{ fixtureId: fixture.id }}>{completed ? "View match report" : "View fixture"}</Link></dd></div>
                       </dl>
                     )}
                   </article>

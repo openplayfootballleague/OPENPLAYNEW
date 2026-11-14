@@ -126,6 +126,7 @@ const ownPages: [string, RegExp][] = [
   ["/admin/guardian-consents", /GUARDIAN CONSENT ADMIN/i],
   ["/referee/matchday", /REFEREE MATCHDAY/i],
   ["/referee/report/00000000-0000-4000-8000-000000000001", /REFEREE MATCH REPORT/i],
+  ["/fixtures/00000000-0000-4000-8000-000000000001", /fixture is unavailable/i],
 ];
 for (const [routePath, label] of ownPages) {
   test(`${routePath} renders its own page, not its parent's`, async ({ page }) => {

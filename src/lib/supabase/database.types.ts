@@ -5031,6 +5031,10 @@ export type Database = {
         Args: never
         Returns: boolean
       }
+      get_public_fixture_match_report: {
+        Args: { p_fixture_id: string }
+        Returns: Json
+      }
       get_public_season_club_leaders: {
         Args: { p_season_id: string }
         Returns: {

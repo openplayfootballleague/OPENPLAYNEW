@@ -15,6 +15,7 @@ import "../styles.css";
 import "../app-visual-system.css";
 import "../components/ui/tokens.css";
 import "../components/ui/op-ui.css";
+import "../components/fixture-detail.css";
 
 type AccountGateStatus = "checking" | "public" | "active" | "unavailable" | "blocked";
 

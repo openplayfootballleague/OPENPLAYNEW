@@ -54,3 +54,4 @@
 20261113190007_season_completion_recruitment_guards.sql
 20261114090000_online_card_payments_feature_flag.sql
 20261114100000_public_team_squad_and_counts.sql
+20261114120000_public_fixture_match_report.sql

@@ -636,6 +636,10 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/public_team_squad.sql
+      - name: Verify fixture match reports are signed-in, published-scope and exclude voided or unpublished events
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/public_fixture_match_report.sql
 
       - name: Verify team weekly payment deadlines, strikes, cancellation and refund ledger
         env:
