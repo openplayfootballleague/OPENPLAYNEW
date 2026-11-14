@@ -25,7 +25,7 @@ Percentages: computed by `node scripts/completion-percentage.mjs`, never typed b
 | PUB-03 | League table: points only, shared positions, final when level first | Match Centre, Admin stats | Yes | `get_admin_season_statistics`, `season_joint_leaders` | Admin RPC scoped | Pre-season tie suppressed | unit + SQL (mutation-checked) | `9172928` | Complete | 3 |
 | PUB-04 | Team directory and public team profiles | `/teams`, `/teams/$teamId` | Yes | Published data | Public-only | Error state | CI green at `f89c1f1` | #139 | Complete | 2 |
 | PUB-05 | League discovery, Active/Upcoming (IMG_0583/0579) | `/leagues` | Yes | Published seasons | Public-only | Empty states | CI green at `6445e3f` | #140 | Complete | 2 |
-| PUB-06 | Public Join Open Play page (IMG_0581): three pathways, player-first | `/join` | Existing join form; no IMG_0581 layout | — | — | — | — | — | Partially Complete | 2 |
+| PUB-06 | Public Join Open Play page (IMG_0581): three pathways, player-first | `/join` (signed out) | `src/components/public-join-landing.tsx` | — | All pathways start with an account and player registration | — | Playwright 390px: IMG_0581 layout, 4-tab visitor bar, no overflow | local, 2026-11-14 | Complete | 2 |
 | PUB-07 | Public gallery (published only) | `/gallery` | Yes | `public-gallery` function | Published only | — | SQL (gallery) | tip | Complete | 2 |
 | PUB-08 | Shared header: signed-in/out variants, notifications, location selector (IMG_0577/0578) | All | Header without location selector or notification control | — | — | — | — | — | Partially Complete | 2 |
 | PUB-09 | Privacy, policies and terms pages | `/privacy-security`, More | Yes | — | — | — | build | tip | Complete | 1 |

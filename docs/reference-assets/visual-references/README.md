@@ -62,7 +62,7 @@ states. Status uses the audit scale: Missing / Partial / Implemented.
 
 | Image | Current implementation | Status | Differences |
 | --- | --- | --- | --- |
-| IMG_0581 Join (public) | `src/routes/join.tsx` | **Missing** | Signed-out visitors are redirected to "Sign in to continue". The hero, the Register Now button and the three pathways are absent. |
+| IMG_0581 Join (public) | `src/components/public-join-landing.tsx` via `src/routes/join.tsx` | Implemented (2026-11-14) | Hero, Register Now, the three pathways and the sign-in prompt match the reference. Remaining difference: the global header (bell, Sign In, location) is still to come (PUB-08). |
 | IMG_0582 Your next move | `src/routes/join.tsx` (signed-in branch) | Partial | Shows "Find your place to play" with a recruitment notice. Missing: the registration-complete badge, the Find a Team / Create a Team / Upcoming Leagues / My Applications cards, and a light callout that breaks the dark theme. |
 | IMG_0583 / IMG_0579 Find your league | `src/routes/leagues.tsx` | Partial | The data model has locations, leagues and seasons. Missing: the Active and Upcoming sections with green and blue status pills, and the per-card View Teams / View League Details actions. The heading is "Find your competition." in mixed case. |
 | IMG_0580 League teams | `src/routes/teams.tsx` | Partial | The team directory exists. Missing: initials tiles, registered-player counts and per-location scoping ("Find a team / Bideford"). |
