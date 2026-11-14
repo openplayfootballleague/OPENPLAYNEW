@@ -75,8 +75,10 @@ states. Status uses the audit scale: Missing / Partial / Implemented.
 | IMG_0568–IMG_0571 Team registration | `src/routes/join.tsx` (single form) | Partial | A team application exists as a single form. Missing: the four-step wizard, drafts, kit colour, Instagram and crest (REG-08; PR #122 not integrated), WhatsApp, "anything else", and the five versioned declarations. |
 
 **Cross-cutting differences:**
-- **Visitor navigation:** the visitor sees 5 tabs, which wrap onto a second row at 390 px. IMG_0581 shows 4.
-- **Signed-in, no team:** the navigation shows 4 tabs, while IMG_0582 and IMG_0583 show 5.
+- **Navigation:** fixed after this comparison (commit "feat(nav): account-state bottom navigation").
+  - Visitors now see 4 tabs.
+  - Signed-in users without a team see 5 tabs on one row.
+  - Players in a team see 4 tabs.
 - **Headings:** they use mixed case with an orange second line. The references use white uppercase headings ending with a full stop.
 - **Surfaces:** some public surfaces (the Home sections and the join callout) use cream or light backgrounds. The references are charcoal throughout.
 

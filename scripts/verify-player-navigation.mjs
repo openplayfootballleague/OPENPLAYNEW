@@ -2,20 +2,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const navigation = readFileSync("src/components/player-bottom-navigation.tsx", "utf8");
-assert.ok(navigation.includes('id: "home", to: "/", label: "Home"') && navigation.includes('id: "home", to: "/player", label: "Player Hub"'), "Viewer Home and registered Player Hub must have distinct destinations");
-assert.ok(navigation.includes('id: "match-centre", to: "/match-centre"') && navigation.includes('id: "teams", to: "/teams"') && navigation.includes('id: "join", to: "/join", label: "Join Open Play"'), "Viewer navigation must include Match Centre, Teams and Join Open Play");
-assert.ok(navigation.includes('id: "club", to: "/captain", hash: "#captain-club"') && navigation.includes('id: "matchday", to: "/captain", hash: "#captain-matchday"'), "Captain navigation must expose Club and Matchday as distinct destinations");
-assert.ok(navigation.includes('id: "home", to: "/player"') && navigation.includes('id: "more", to: "/more"'), "Captain navigation must retain Player Hub Home and More");
-assert.ok(navigation.includes('registration_status !== "registered"') && navigation.includes('.eq("is_captain", true)') && navigation.includes('setMode((captainRows ?? []).length > 0 ? "captain" : "player")'), "Navigation must derive viewer, registered-player and captain states from authorised account data");
-const navBlock = navigation.slice(navigation.indexOf("const items: NavigationItem[] ="), navigation.indexOf("\n\n  function isActive"));
-const captainNav = navBlock.match(/mode === "captain"\s*\?\s*\[([\s\S]*?)\]\s*:/)?.[1];
-const playerNav = navBlock.match(/mode === "player"\s*\?\s*\[([\s\S]*?)\]\s*:/)?.[1];
-const viewerNav = navBlock.match(/:\s*\[([\s\S]*?)\];/)?.[1];
-assert.ok(captainNav && playerNav && viewerNav, "Captain, registered-player and viewer navigation arrays must be present");
-assert.equal((captainNav.match(/\{ id:/g) ?? []).length, 4, "Captain navigation must contain exactly four tabs");
-assert.equal((playerNav.match(/\{ id:/g) ?? []).length, 4, "Registered-player navigation must contain exactly four tabs");
-assert.equal((viewerNav.match(/\{ id:/g) ?? []).length, 5, "Viewer navigation must contain Home, Match Centre, Teams, Join Open Play and More");
-assert.ok(navigation.includes('pathname === "/" || pathname === "/player"'), "Home must be active on public Home and Player Hub only");
+const navigationRules = readFileSync("src/lib/navigation/account-navigation.ts", "utf8");
+// Behaviour (tab order per account state) is unit-tested in src/lib/navigation/account-navigation.test.ts.
+assert.ok(navigationRules.includes('id: "home", to: "/", label: "Home"') && navigationRules.includes('id: "home", to: "/player", label: "Player Hub"'), "Visitor Home and registered Player Hub must have distinct destinations");
+assert.ok(navigationRules.includes('id: "join", to: "/join", label: "Join Open Play"') && navigationRules.includes('id: "teams", to: "/teams"') && navigationRules.includes('id: "match-centre", to: "/match-centre"'), "Navigation must define Match Centre, Teams and Join Open Play destinations");
+assert.ok(navigationRules.includes('id: "club", to: "/captain", hash: "#captain-club"') && navigationRules.includes('id: "matchday", to: "/captain", hash: "#captain-matchday"'), "Captain navigation must expose Club and Matchday as distinct destinations");
+assert.ok(navigationRules.includes('player.registration_status === "registered" && !player.is_banned') && navigationRules.includes("facts.activeMemberships.length === 0"), "Navigation must derive player and captain states only from an approved, unbanned player with an active membership");
+assert.ok(navigation.includes('.from("team_memberships").select("is_captain")') && navigation.includes('.eq("status", "active")') && navigation.includes("resolveNavigationMode("), "Navigation must load active memberships from authorised account data");
+assert.ok(navigationRules.includes('pathname === "/" || pathname === "/player"'), "Home must be active on public Home and Player Hub only");
 
 const more = readFileSync("src/routes/more.tsx", "utf8");
 for (const destination of ['to="/teams"', 'to="/join"', 'to="/gallery"', 'to="/match-centre"']) {

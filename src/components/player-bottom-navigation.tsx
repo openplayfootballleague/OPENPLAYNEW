@@ -1,16 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
-
-type NavigationMode = "loading" | "viewer" | "player" | "captain";
-
-type NavigationItem = {
-  id: "home" | "match-centre" | "teams" | "join" | "club" | "matchday" | "more";
-  to: "/" | "/player" | "/match-centre" | "/teams" | "/join" | "/captain" | "/more";
-  hash?: "#captain-club" | "#captain-matchday";
-  label: string;
-  icon: "home" | "match" | "teams" | "join" | "whistle" | "more";
-};
+import {
+  isApprovedPlayer, isNavigationItemActive, navigationItems, resolveNavigationMode,
+  type NavigationItem, type NavigationMode,
+} from "../lib/navigation/account-navigation";
 
 function NavIcon({ name }: { name: NavigationItem["icon"] }) {
   const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
@@ -22,11 +16,11 @@ function NavIcon({ name }: { name: NavigationItem["icon"] }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg>;
 }
 
-/** Account-aware four-tab navigation. Only active captains receive Club and Matchday tabs. */
+/** Account-state bottom navigation; rules and evidence live in lib/navigation/account-navigation. */
 export function PlayerBottomNavigation() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const hash = useRouterState({ select: (state) => state.location.hash });
-  const [mode, setMode] = useState<NavigationMode>("loading");
+  const [state, setState] = useState<{ mode: NavigationMode | "loading"; approvedPlayer: boolean }>({ mode: "loading", approvedPlayer: false });
 
   useEffect(() => {
     let alive = true;
@@ -38,23 +32,26 @@ export function PlayerBottomNavigation() {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (!alive || sequence !== requestSequence) return;
-      if (sessionError || !session) {
-        setMode("viewer");
-        return;
-      }
-
-      const [{ data: player, error: playerError }, { data: captainRows, error: captainError }] = await Promise.all([
-        supabase.from("players").select("registration_status,is_banned").eq("user_id", session.user.id).maybeSingle(),
-        supabase.from("team_memberships").select("season_team_id").eq("user_id", session.user.id).eq("status", "active").eq("is_captain", true).limit(1),
-      ]);
-      if (!alive || sequence !== requestSequence) return;
-      if (playerError || captainError || !player || player.registration_status !== "registered" || player.is_banned) {
-        setMode("viewer");
-        return;
-      }
-        setMode((captainRows ?? []).length > 0 ? "captain" : "player");
+        if (sessionError || !session) {
+          setState({ mode: "visitor", approvedPlayer: false });
+          return;
+        }
+        const [{ data: player, error: playerError }, { data: memberships, error: membershipError }] = await Promise.all([
+          supabase.from("players").select("registration_status,is_banned").eq("user_id", session.user.id).maybeSingle(),
+          supabase.from("team_memberships").select("is_captain").eq("user_id", session.user.id).eq("status", "active"),
+        ]);
+        if (!alive || sequence !== requestSequence) return;
+        if (playerError || membershipError) {
+          // Fail closed to the signed-in onboarding bar; destinations still enforce access server-side.
+          setState({ mode: "onboarding", approvedPlayer: false });
+          return;
+        }
+        setState({
+          mode: resolveNavigationMode({ signedIn: true, player: player ?? null, activeMemberships: memberships ?? [] }),
+          approvedPlayer: isApprovedPlayer(player ?? null),
+        });
       } catch {
-        if (alive && sequence === requestSequence) setMode("viewer");
+        if (alive && sequence === requestSequence) setState({ mode: "visitor", approvedPlayer: false });
       }
     }
 
@@ -69,41 +66,15 @@ export function PlayerBottomNavigation() {
     };
   }, []);
 
-  if (mode === "loading") return null;
-
-  const items: NavigationItem[] = mode === "captain"
-    ? [
-        { id: "home", to: "/player", label: "Player Hub", icon: "home" },
-        { id: "club", to: "/captain", hash: "#captain-club", label: "Club", icon: "teams" },
-        { id: "matchday", to: "/captain", hash: "#captain-matchday", label: "Matchday", icon: "whistle" },
-        { id: "more", to: "/more", label: "More", icon: "more" },
-      ]
-    : mode === "player"
-      ? [
-          { id: "home", to: "/player", label: "Player Hub", icon: "home" },
-          { id: "match-centre", to: "/match-centre", label: "Match Centre", icon: "match" },
-          { id: "teams", to: "/teams", label: "Teams", icon: "teams" },
-          { id: "more", to: "/more", label: "More", icon: "more" },
-        ]
-      : [
-          { id: "home", to: "/", label: "Home", icon: "home" },
-          { id: "match-centre", to: "/match-centre", label: "Match Centre", icon: "match" },
-          { id: "teams", to: "/teams", label: "Teams", icon: "teams" },
-          { id: "join", to: "/join", label: "Join Open Play", icon: "join" },
-          { id: "more", to: "/more", label: "More", icon: "more" },
-        ];
-
-  function isActive(item: NavigationItem) {
-    if (item.id === "home") return pathname === "/" || pathname === "/player";
-    if (item.id === "club") return pathname === "/captain" && hash !== "#captain-matchday";
-    if (item.id === "matchday") return pathname === "/captain" && hash === "#captain-matchday";
-    return pathname === item.to;
-  }
+  if (state.mode === "loading") return null;
+  const mode = state.mode;
+  const items: NavigationItem[] = navigationItems(mode, state.approvedPlayer);
 
   return (
-    <nav className="player-bottom-nav" aria-label={mode === "captain" ? "Captain navigation" : "Main navigation"}>
+    <nav className="player-bottom-nav" data-tabs={items.length} aria-label={mode === "captain" ? "Captain navigation" : "Main navigation"}>
       {items.map((item) => (
-        <Link key={item.id} to={item.to} hash={item.hash} className={"player-bottom-nav-link" + (isActive(item) ? " active" : "")}>
+        <Link key={item.id} to={item.to} hash={item.hash} className={"player-bottom-nav-link" + (isNavigationItemActive(item, pathname, hash) ? " active" : "")}
+          aria-current={isNavigationItemActive(item, pathname, hash) ? "page" : undefined}>
           <NavIcon name={item.icon} />
           <span>{item.label}</span>
         </Link>
