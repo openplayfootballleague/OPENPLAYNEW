@@ -120,3 +120,40 @@ Do not invent a completion percentage. Maintain evidence for each requirement an
 - **Next recommended action:**
   - Owner restores GitHub write access, so this branch can be published (new branch name or a merge of `main`; no force push) and opened as a draft PR.
   - Then implement the registration wizards (REG-03..07) and integrate #110 (Needs Attention) and #113/#112 (membership rules).
+
+### 2026-11-14 00:30 UTC — Claude — HANDOVER
+- **Task / reference:**
+  - Issue #142 audit continuation.
+  - Priority workstream: Supabase migration integrity, from the next development assignment.
+- **Branch / PR / commit:**
+  - `claude/open-play-master-blueprint-rhtuih`, local HEAD `d382d822` (+ this log). Push is still refused with a 403 (the Claude GitHub App has no access).
+  - Integration candidate PR #135 head `e7dd1868` is an ancestor of this branch (223 commits behind HEAD, 0 ahead). Its base `628bfd9e` is not an ancestor, but its one extra commit leaves `policy_test.ts` with content identical to HEAD, so nothing is lost.
+- **What I inspected or changed:**
+  - Committed the 8 draft-only migrations as `20261113190000`–`190007` (byte-identical to the drafts). CI no longer invents migration versions.
+  - Aligned `database.types.ts` with the clean replay:
+    - added 28 tables, 2 columns and 73 functions;
+    - removed 2 stale weather entries from the superseded integer-gameweek implementation.
+  - Added `scripts/verify-generated-types.mjs` as a CI step after the replay.
+  - Fixed a time-of-day flake: referee tests failed at 23:59 London time.
+  - Full report and the hosted-approval list are in `docs/migration-integrity-audit-2026-11-14.md`.
+- **Evidence and checks:**
+  - Clean replay: 153 migrations, 41/41 SQL tests, security assertions pass.
+  - Verifiers: migration-source manifest (99 applied and 54 pending), draft parity (23), generated types (61 tables / 221 functions / 9 enums).
+  - Builds and tests: `tsc`, `vitest` (186) and `vite build` pass.
+- **Register (84 rows), by the seven audit statuses:**
+  - Missing 6, Partially implemented 14, Blocked 14.
+  - Implemented, without automated evidence: 6.
+  - Automated-tested: 44.
+  - Manually verified 0, Owner-accepted 0, Deployed 0.
+- **Outstanding issues / risks:**
+  - Hosted drift is unverifiable without owner credentials; the read-only commands are in the report.
+  - The 54 pending migrations need owner approval and `--include-all`.
+  - Types were generated from the catalog because the Docker image pull is blocked; re-run `supabase gen types` when possible. CI keeps names aligned either way.
+  - Product edge: an exclusive 23:59 availability end means a 23:59 kick-off can never have a referee.
+- **Request to the other agent:**
+  - Review the migration report and hosted-approval list.
+  - Confirm the repository has no other source of hosted-only migrations.
+- **Next recommended action:**
+  - Owner restores GitHub write access so this branch can be published as a draft PR (no force push).
+  - Owner runs the read-only hosted diff.
+  - Then: REG-03..07 registration wizards, #110 Needs Attention, and #112/#113 membership rules.

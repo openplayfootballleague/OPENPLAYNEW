@@ -92,7 +92,7 @@ Percentages: computed by `node scripts/completion-percentage.mjs`, never typed b
 | NOT-03 | Push notifications and devices | — | — | — | — | — | — | #130 (unintegrated) | Not Started | 1 |
 | MSG-01 | Secure messaging: same-team direct, team groups, blocks, reports, admin moderation | Inbox Messages | Yes | Messaging RPCs | Same-active-team rule | Yes | SQL (messaging) | tip | Complete | 3 |
 | SEC-01 | RLS, SECURITY DEFINER guards, no anon definer functions | DB | — | Yes | Yes | — | 26 security assertions + SQL | `6e41bb6` | Complete | 5 |
-| SEC-02 | Database recreatable from repository migrations (D3) | DB | — | 99 sources match hosted ledger | — | — | migration-source verifier + replay | tip, `def2a4f` | Complete | 5 |
+| SEC-02 | Database recreatable from repository migrations (D3) | DB | — | 99 sources match hosted ledger; all 153 versions fixed (no CI-generated versions) | — | Generated types verified against replay | migration-source verifier + replay (153 migrations, 41/41 SQL) + `verify-generated-types.mjs` | `d382d822`, `def2a4f` | Complete | 5 |
 | SEC-03 | Accessibility: global focus states, reduced motion | All | Yes | — | — | — | build | `2548a95` (#141) | Complete | 2 |
 | SEC-04 | Official logo asset (D5) | All | 192×115 placeholder | — | — | — | — | issue #18 | Blocked | 1 |
 | SEC-05 | Local development and Worker build tooling | Tooling | — | — | — | — | dev server + dry-run | `1798158` | Complete | 1 |
@@ -100,7 +100,7 @@ Percentages: computed by `node scripts/completion-percentage.mjs`, never typed b
 | INT-01 | Working branch published to GitHub with green exact-head CI | GitHub | — | — | — | — | Local equivalents only | push returns 403 | Blocked | 3 |
 | INT-02 | Open PRs on the current lineage consolidated into one integration branch | GitHub | — | — | — | — | Per-PR verification recorded | 11 integrated or superseded this session; 10 remain (#131, #130, #129/#128, #122, #115, #113, #112, #110, #106, #105) | Partially Complete | 3 |
 | INT-03 | Consolidated line promoted to `main` (owner-approved merge) | GitHub | — | — | — | — | — | — | Not Started | 3 |
-| INF-01 | Pending migrations applied to the hosted Supabase project | Supabase | — | 46 pending forward migrations | — | — | Clean replay only | owner approval required | Blocked | 3 |
+| INF-01 | Pending migrations applied to the hosted Supabase project | Supabase | — | 54 pending forward migrations (listed in `docs/migration-integrity-audit-2026-11-14.md`) | — | — | Clean replay only | owner approval required | Blocked | 3 |
 | INF-02 | Staging environment (Supabase + Cloudflare preview) | Infra | — | — | — | — | — | staging budget approval | Blocked | 2 |
 | INF-03 | Provider configuration: Stripe test webhooks/Connect, PostHog ingestion, email/SMS | Providers | — | — | — | — | — | owner approval; no connectors attached | Blocked | 3 |
 | INF-04 | Production deployment on Cloudflare Workers | Infra | — | — | — | — | Worker dry-run passes | owner approval | Blocked | 2 |
