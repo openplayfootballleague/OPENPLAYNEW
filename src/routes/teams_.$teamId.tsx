@@ -133,16 +133,16 @@ function TeamOverview({ teamId, names, summary, schedule, fixtures, results }: {
       <StatTile accent value={summary.played} label="Played" />
     </StatGrid>
     <SectionHeading title="Upcoming fixture" />
-    {next ? <article className="op-card op-fixture-card">
+    {next ? <Link to="/fixtures/$fixtureId" params={{ fixtureId: next.fixture.id }} className="op-card op-fixture-card op-match">
       <p className="op-fixture-meta">{longDay(next.fixture.scheduled_at).toUpperCase()} · {time(next.fixture.scheduled_at)}</p>
       <div className="op-fixture-teams"><strong>{names.get(next.fixture.home_team_id) ?? "Home"}</strong><span className="op-vs">VS</span><strong>{names.get(next.fixture.away_team_id) ?? "Away"}</strong></div>
       {next.fixture.status === "postponed" && <StatusBadge tone="warning">Postponed</StatusBadge>}
-    </article> : <EmptyState title="No upcoming fixture" description="The next fixture appears here once it is scheduled." icon={CalendarDays} />}
+    </Link> : <EmptyState title="No upcoming fixture" description="The next fixture appears here once it is scheduled." icon={CalendarDays} />}
     <SectionHeading title="Latest result" />
-    {latest ? <article className="op-card op-fixture-card">
+    {latest ? <Link to="/fixtures/$fixtureId" params={{ fixtureId: latest.fixture.id }} className="op-card op-fixture-card op-match">
       <div className="op-fixture-meta-row"><span className="op-fixture-meta">GAMEWEEK {latest.fixture.gameweek}</span><OutcomeBadge outcome={latest.outcome} /></div>
       <div className="op-fixture-teams"><strong>{names.get(latest.fixture.home_team_id)}</strong><span className="op-score">{latest.result.home_score} – {latest.result.away_score}</span><strong>{names.get(latest.fixture.away_team_id)}</strong></div>
-    </article> : <EmptyState title="No results yet" description="Published results appear here after each match." icon={Trophy} />}
+    </Link> : <EmptyState title="No results yet" description="Published results appear here after each match." icon={Trophy} />}
   </>;
 }
 
@@ -214,7 +214,7 @@ function TeamFixtures({ team, context, names, schedule }: { team: Team; context:
     {schedule.length === 0 ? <EmptyState title="No fixtures published yet" icon={CalendarDays} /> : <>
       <div className="op-stack">{current.items.map(({ fixture, result }) => {
         const home = fixture.home_team_id === team.id;
-        return <article key={fixture.id} className="op-card op-fixture-card">
+        return <Link key={fixture.id} to="/fixtures/$fixtureId" params={{ fixtureId: fixture.id }} className="op-card op-fixture-card op-match">
           <div className="op-fixture-meta-row"><span className="op-fixture-meta op-accent">GAMEWEEK {fixture.gameweek}</span><span className="op-fixture-meta">{day(fixture.scheduled_at)}</span></div>
           <div className="op-fixture-teams">
             <span><strong>{names.get(fixture.home_team_id)}</strong><small>{home ? "HOME" : "OPPONENT"}</small></span>
@@ -222,7 +222,7 @@ function TeamFixtures({ team, context, names, schedule }: { team: Team; context:
             <span className="op-align-end"><strong>{names.get(fixture.away_team_id)}</strong><small>{home ? "OPPONENT" : "AWAY"}</small></span>
           </div>
           <p className="op-fixture-foot"><Clock aria-hidden="true" />{time(fixture.scheduled_at)}{fixture.status !== "scheduled" && <StatusBadge tone={fixture.status === "completed" ? "active" : "warning"}>{fixture.status.replace("_", " ")}</StatusBadge>}</p>
-        </article>;
+        </Link>;
       })}</div>
       <Pagination from={current.from} to={current.to} total={current.total} hasPrevious={current.hasPrevious} hasNext={current.hasNext} onPrevious={() => setPage(current.page - 1)} onNext={() => setPage(current.page + 1)} />
       <Button variant="light" block icon={CalendarDays} onClick={() => setPage(currentGameweekPage(schedule, FIXTURES_PER_PAGE))}>Current gameweek</Button>
@@ -247,14 +247,14 @@ function TeamResults({ team, context, names, summary, fixtures, results }: {
     {matches.length === 0 ? <EmptyState title="No published results yet" icon={Trophy} /> : <>
       <div className="op-stack">{current.items.map(({ fixture, result, outcome }) => {
         const home = fixture.home_team_id === team.id;
-        return <article key={fixture.id} className="op-card op-fixture-card">
+        return <Link key={fixture.id} to="/fixtures/$fixtureId" params={{ fixtureId: fixture.id }} className="op-card op-fixture-card op-match">
           <div className="op-fixture-meta-row"><span className="op-fixture-meta">GAMEWEEK {fixture.gameweek} · {fixture.scheduled_at ? new Date(fixture.scheduled_at).toLocaleDateString("en-GB", { day: "numeric", month: "long" }).toUpperCase() : "DATE TBC"}</span><OutcomeBadge outcome={outcome} /></div>
           <div className="op-fixture-teams">
             <span><strong>{team.name}</strong><small>{home ? "Home" : "Away"}</small></span>
             <span className="op-score">{home ? `${result.home_score} – ${result.away_score}` : `${result.away_score} – ${result.home_score}`}</span>
             <span className="op-align-end"><strong>{names.get(home ? fixture.away_team_id : fixture.home_team_id) ?? "Opponent"}</strong><small>Opponent</small></span>
           </div>
-        </article>;
+        </Link>;
       })}</div>
       <Pagination from={current.from} to={current.to} total={current.total} hasPrevious={current.hasPrevious} hasNext={current.hasNext} onPrevious={() => setPage(current.page - 1)} onNext={() => setPage(current.page + 1)} />
     </>}
