@@ -152,7 +152,7 @@ const formatPence = (value: number) => new Intl.NumberFormat("en-GB", {
   currency: "GBP",
 }).format(value / 100);
 
-export const Route = createFileRoute("/admin/referees")({ component: AdminRefereesPage });
+export const Route = createFileRoute("/admin_/referees")({ component: AdminRefereesPage });
 
 function AdminRefereesPage(){
  return <AuthenticatedSessionBoundary label="REFEREE ADMIN"><AdminRefereesWorkspace/></AuthenticatedSessionBoundary>;

@@ -116,3 +116,28 @@ test("service worker installs and the public home shell remains available offlin
   await expect(page.locator("body")).toBeVisible();
   await expect(page.getByRole("heading").first()).toBeVisible();
 });
+
+// Regression (2026-11-14): these routes were nested under parents without an <Outlet/> and rendered
+// the parent page instead of their own. Each must show its own workspace label when signed out.
+const ownPages: [string, RegExp][] = [
+  ["/admin/analytics", /ADMIN ANALYTICS/i],
+  ["/admin/referees", /REFEREE ADMIN/i],
+  ["/admin/retention", /PLAYER RETENTION ADMIN/i],
+  ["/admin/guardian-consents", /GUARDIAN CONSENT ADMIN/i],
+  ["/referee/matchday", /REFEREE MATCHDAY/i],
+  ["/referee/report/00000000-0000-4000-8000-000000000001", /REFEREE MATCH REPORT/i],
+];
+for (const [routePath, label] of ownPages) {
+  test(`${routePath} renders its own page, not its parent's`, async ({ page }) => {
+    await mockSupabase(page);
+    await page.goto(routePath);
+    await expect(page.getByText(label).first()).toBeVisible({ timeout: 15_000 });
+  });
+}
+
+test("a team link opens the team hub, not the directory", async ({ page }) => {
+  await mockSupabase(page);
+  await page.goto("/teams/00000000-0000-4000-8000-000000000001");
+  await expect(page.getByRole("heading", { name: /all teams in your league/i })).toHaveCount(0);
+  await expect(page.getByText(/team is unavailable|couldn't load this team/i)).toBeVisible({ timeout: 15_000 });
+});

@@ -632,6 +632,10 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/team_sheet_validation.sql
+      - name: Verify team hub squad and directory counts are published-scope, signed-in and stats-accurate
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/public_team_squad.sql
 
       - name: Verify team weekly payment deadlines, strikes, cancellation and refund ledger
         env:

@@ -25,6 +25,20 @@ register also carries separate **Functional** and **Visual** columns.
 | MOTM | Class 1 → 2 | The Captain Hub card does not yet match IMG_0543 |
 | Team fixture payments | Class 5 → fixed (class 3) | The Pay buttons are now hidden behind the owner flag |
 
+**New class-5 defect found and fixed during implementation.** Seven routes were nested under parent
+routes that render no `<Outlet/>`, so each URL showed its parent page instead of its own:
+- `/teams/$teamId` showed the Teams directory.
+- `/admin/analytics`, `/admin/referees`, `/admin/retention` and `/admin/guardian-consents` showed the
+  Admin Dashboard.
+- `/referee/matchday` and `/referee/report/$fixtureId` showed the Referee Workspace.
+
+The Analytics & Reports, Referee admin, retention, guardian-consent, referee matchday and match-report
+pages were therefore unreachable, despite earlier PRs and audits describing them as present.
+- **Fix:** the routes are un-nested (`parent_.child`).
+- **Prevention:** a static guard and an e2e test now stop this recurring.
+- **Consequence:** the class 2 ratings for those admin and referee pages covered their code only. Their
+  in-browser behaviour still needs signed-in verification.
+
 Section 6 totals below are the pre-reconciliation snapshot. Current figures come from
 `node scripts/completion-percentage.mjs`.
 

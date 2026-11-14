@@ -15,7 +15,7 @@ type ConsentRow = {
   created_at: string;
 };
 
-export const Route = createFileRoute("/admin/guardian-consents")({ component: GuardianConsentAdminPage });
+export const Route = createFileRoute("/admin_/guardian-consents")({ component: GuardianConsentAdminPage });
 
 function GuardianConsentAdminPage(){
  return <AuthenticatedSessionBoundary label="GUARDIAN CONSENT ADMIN"><GuardianConsentAdminWorkspace/></AuthenticatedSessionBoundary>;

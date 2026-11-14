@@ -138,7 +138,7 @@ assert.ok(reportClaim.includes("not public.has_platform_role() or not public.has
 assert.ok(refereeConnectSql.includes("onboarding_status<>'enabled' or (details_submitted and transfers_enabled)"), "Transfer readiness must not depend on bank-payout enablement");
 assert.ok(reportClaim.includes("not v_account.transfers_enabled then") && !reportClaim.includes("not v_account.payouts_enabled"), "Match transfers must require the transfers capability, not bank-payout enablement");
 
-const adminReferees = readFileSync("src/routes/admin/referees.tsx", "utf8");
+const adminReferees = readFileSync("src/routes/admin_.referees.tsx", "utf8");
 const reportReview = adminReferees.slice(adminReferees.indexOf("async function reviewReport"), adminReferees.indexOf("async function decide("));
 const approvalRpcPosition=reportReview.indexOf('rpc("admin_review_referee_match_report"');
 const immediateTransferPosition=reportReview.indexOf('functions.invoke("pay-referee-payout"');

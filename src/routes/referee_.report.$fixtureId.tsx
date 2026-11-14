@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { AuthenticatedSessionBoundary } from "../../components/authenticated-session-boundary";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { RefereeBottomNavigation } from "../../components/referee-bottom-navigation";
-import { getSupabaseClient } from "../../lib/supabase/client";
-import { useOpenPlayAnalytics } from "../../components/analytics-provider";
+import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
+import { getSupabaseClient } from "../lib/supabase/client";
+import { useOpenPlayAnalytics } from "../components/analytics-provider";
 
 type RpcClient = {
   rpc(name: string, args?: Record<string, unknown>): Promise<{ data: unknown; error: { message: string } | null }>;
@@ -63,7 +63,7 @@ type ReportOptions = {
   away_players: ReportPlayer[];
 };
 
-export const Route = createFileRoute("/referee/report/$fixtureId")({ component: RefereeMatchReportPage });
+export const Route = createFileRoute("/referee_/report/$fixtureId")({ component: RefereeMatchReportPage });
 
 function RefereeMatchReportPage(){
  return <AuthenticatedSessionBoundary label="REFEREE MATCH REPORT"><RefereeMatchReportWorkspace/></AuthenticatedSessionBoundary>;

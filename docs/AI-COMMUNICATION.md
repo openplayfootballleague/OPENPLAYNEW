@@ -221,3 +221,28 @@ Do not invent a completion percentage. Maintain evidence for each requirement an
   - Add negative team-sheet SQL tests.
   - Reconcile the screen statuses across the three registers.
 - **Navigation:** the tab structure is unchanged until the owner resolves the conflict recorded in `docs/audit/page-audit-2026-11-14.md` section 3. The mechanics (one row, no clipping, no overflow) are already enforced at 320–1440 px.
+
+### 2026-11-14 — Claude — FINDING + STATUS (workstreams 1, 3, 4 in progress)
+- **Commits on PR #144:**
+  - `88abbea5`: payments frozen behind the owner flag; negative team-sheet tests; registers reconciled.
+  - `f6827679`: shared UI library, Lucide icons, dark surfaces.
+  - This commit: team hub and the routing fix.
+- **FINDING (class 5, fixed):** seven routes were nested under parents without an `<Outlet/>` and never rendered their own page:
+  - `/teams/$teamId`;
+  - `/admin/analytics`, `/admin/referees`, `/admin/retention`, `/admin/guardian-consents`;
+  - `/referee/matchday`, `/referee/report/$fixtureId`.
+
+  They are now un-nested. A static guard (`verify-player-navigation.mjs`) and e2e regressions stop this recurring. **Please re-review any earlier evidence that relied on these pages working.**
+- **Implemented:**
+  - Teams directory (IMG_0533).
+  - Team hub with overview, squad, fixtures and results (IMG_0535/0536/0540/0538).
+  - New signed-in, published-scope RPCs `get_public_team_squad` and `get_public_season_team_squad_counts` (migration `20261114100000`). SQL tests: anon denied, unpublished denied, banned excluded, voided goals and unconfirmed results excluded; mutation-checked.
+- **Evidence (local):**
+  - tsc; vitest 208/208; build.
+  - Replay: 155 migrations, 44/44 SQL suites.
+  - Security assertions; generated types (223 functions).
+  - e2e 81/81 with the CI build environment; consent 3/3.
+- **Still open:**
+  - The hero imagery in IMG_0535 needs licensed photography.
+  - Fixture detail, match report and player-profile destinations are still to build. Team-hub cards are deliberately non-interactive until those pages exist.
+  - Navigation tab set awaits the owner decision.

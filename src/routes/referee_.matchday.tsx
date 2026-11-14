@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { AuthenticatedSessionBoundary } from "../../components/authenticated-session-boundary";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { RefereeBottomNavigation } from "../../components/referee-bottom-navigation";
-import { getSupabaseClient } from "../../lib/supabase/client";
-import { useOpenPlayAnalytics } from "../../components/analytics-provider";
+import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
+import { getSupabaseClient } from "../lib/supabase/client";
+import { useOpenPlayAnalytics } from "../components/analytics-provider";
 
 type RpcClient = {
   rpc(name: string): Promise<{ data: unknown; error: { message: string } | null }>;
@@ -11,7 +11,7 @@ type RpcClient = {
 type PortalState = { membership?: { status?: "active" | "suspended" } | null };
 type RefereeAppointment = { assignment_id: string; fixture_id: string; assignment_role: "lead" | "assistant"; assigned_at: string; scheduled_at: string; gameweek: number; fixture_number: number; home_team_name: string; away_team_name: string; venue_name: string | null; fixture_status: string };
 
-export const Route = createFileRoute("/referee/matchday")({ component: RefereeMatchdayPage });
+export const Route = createFileRoute("/referee_/matchday")({ component: RefereeMatchdayPage });
 
 function RefereeMatchdayPage(){
  return <AuthenticatedSessionBoundary label="REFEREE MATCHDAY"><RefereeMatchdayWorkspace/></AuthenticatedSessionBoundary>;

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AuthenticatedSessionBoundary } from "../../components/authenticated-session-boundary";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useRequiredSession } from "../../lib/auth/use-required-session";
-import { buildAnalyticsOverview, buildCompetitionTeamPerformance, buildLocationComparisons, buildRegistrationConversionExportRows, safeCsvCell, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup } from "../../lib/analytics/overview";
-import { getSupabaseClient } from "../../lib/supabase/client";
+import { useRequiredSession } from "../lib/auth/use-required-session";
+import { buildAnalyticsOverview, buildCompetitionTeamPerformance, buildLocationComparisons, buildRegistrationConversionExportRows, safeCsvCell, type AnalyticsDashboardCounts, type AnalyticsFilters, type AnalyticsSetup } from "../lib/analytics/overview";
+import { getSupabaseClient } from "../lib/supabase/client";
 
 type ContextPreference = { location_id: string | null; league_id: string | null; season_id: string | null; is_global_admin: boolean };
 type Dashboard = { counts: AnalyticsDashboardCounts };
@@ -81,7 +81,7 @@ type AnalyticsRpcClient = {
 };
 const analyticsRpc = () => getSupabaseClient() as unknown as AnalyticsRpcClient;
 
-export const Route = createFileRoute("/admin/analytics")({ component: AdminAnalyticsPage });
+export const Route = createFileRoute("/admin_/analytics")({ component: AdminAnalyticsPage });
 
 function AdminAnalyticsPage(){
  return <AuthenticatedSessionBoundary label="ADMIN ANALYTICS"><AdminAnalyticsWorkspace/></AuthenticatedSessionBoundary>;

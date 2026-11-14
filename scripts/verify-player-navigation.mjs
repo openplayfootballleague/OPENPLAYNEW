@@ -31,7 +31,7 @@ const refereeTabs = [
 for (const tab of refereeTabs) assert.ok(refereeNavigation.includes(tab), "Approved referee navigation is missing " + tab);
 assert.equal((refereeNavigation.match(/to: "[^"]*" as const, label:/g) ?? []).length, 4, "Referee navigation must contain exactly four tabs");
 assert.ok(refereeNavigation.includes('portal.membership?.status === "active"') && refereeNavigation.includes('!pathname.startsWith("/referee")') && refereeNavigation.includes("<PlayerBottomNavigation />"), "Only active referees inside the referee portal may switch from account-aware player navigation");
-for (const route of ["index.tsx","player.tsx","captain.tsx","join.tsx","match-centre.tsx","teams.tsx","more.tsx","referee.tsx","referee/matchday.tsx"]) {
+for (const route of ["index.tsx","player.tsx","captain.tsx","join.tsx","match-centre.tsx","teams.tsx","more.tsx","referee.tsx","referee_.matchday.tsx"]) {
   const source = readFileSync("src/routes/" + route, "utf8");
   assert.ok(source.includes("<RefereeBottomNavigation"), route + " must use role-aware navigation");
 }
@@ -115,7 +115,7 @@ assert.ok(analyticsEventsSource.includes('"player_statistics_viewed"') && analyt
 assert.ok(playerStatsSource.includes('capture("player_statistics_viewed"'), "Player Hub statistics views must be captured only through the consent-aware analytics provider");
 
 const adminResultSource = readFileSync("src/routes/admin.tsx", "utf8");
-const refereeReportSource = readFileSync("src/routes/referee/report.$fixtureId.tsx", "utf8");
+const refereeReportSource = readFileSync("src/routes/referee_.report.$fixtureId.tsx", "utf8");
 const optionalGoalMigration = readFileSync("supabase/migrations/20261111203000_optional_goal_attribution.sql", "utf8");
 assert.ok(!adminResultSource.includes("hasOneScorerPerGoal") && adminResultSource.includes("Goalscorer attribution is optional"), "Admin result entry must allow a valid score without named scorers");
 assert.ok(!refereeReportSource.includes("Select one goalscorer for every goal") && refereeReportSource.includes("GOALSCORERS · OPTIONAL"), "Referee reports must allow unattributed goals without inventing player records");
@@ -124,3 +124,20 @@ assert.ok(optionalGoalMigration.includes("cardinality(coalesce(p_home_scorers,'{
 const playerStatsMigration = readFileSync("supabase/migrations/20261111201000_player_self_service_statistics.sql", "utf8");
 assert.ok(playerStatsMigration.includes("auth.uid()") && playerStatsMigration.includes("r.confirmed_at is not null") && playerStatsMigration.includes("ts.is_locked is true") && playerStatsMigration.includes("g.voided_at is null"), "Player statistics must be limited to the signed-in player, locked appearances, confirmed results and non-voided goals");
 assert.ok(playerStatsMigration.includes("revoke all on function public.get_my_player_statistics(uuid) from public, anon;") && playerStatsMigration.includes("grant execute on function public.get_my_player_statistics(uuid) to authenticated;"), "Player statistics RPC must be unavailable to anonymous users");
+
+// Regression (2026-11-14): /teams/$teamId was nested under /teams, which renders no <Outlet/>,
+// so team profiles never displayed. A child route file must either be un-nested (`parent_.`)
+// or its parent must render an Outlet.
+import { readdirSync } from "node:fs";
+const routeFiles = readdirSync("src/routes", { recursive: true }).map(String).filter((f) => f.endsWith(".tsx"));
+for (const file of routeFiles) {
+  const base = file.replace(/\\/g, "/").split("/").pop();
+  const match = base.match(/^([a-z0-9-]+)\.(.+)\.tsx$/i);
+  if (!match || match[1].endsWith("_")) continue;
+  const dir = file.replace(/\\/g, "/").split("/").slice(0, -1).join("/");
+  const parent = `src/routes/${dir ? dir + "/" : ""}${match[1]}.tsx`;
+  let source;
+  try { source = readFileSync(parent, "utf8"); } catch { continue; }
+  assert.ok(source.includes("<Outlet"), `${file} is nested under ${parent}, which renders no <Outlet/>; un-nest it with "${match[1]}_."`);
+}
+console.log("Nested route parents render an Outlet.");

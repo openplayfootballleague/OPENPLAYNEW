@@ -5042,9 +5042,17 @@ export type Database = {
           appearances: number
         }[]
       }
+      get_public_season_team_squad_counts: {
+        Args: { p_season_id: string }
+        Returns: { registered_players: number; season_team_id: string }[]
+      }
       get_public_team_recruitment_status: {
         Args: never
         Returns: boolean
+      }
+      get_public_team_squad: {
+        Args: { p_season_team_id: string }
+        Returns: { appearances: number; assists: number; clean_sheets: number; competition_player_id: string; goals: number; is_captain: boolean; motm_awards: number; player_name: string; squad_number: number }[]
       }
       handover_team_captain: {
         Args: { p_new_captain_membership_id: string; p_season_team_id: string }

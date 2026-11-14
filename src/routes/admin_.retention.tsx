@@ -15,7 +15,7 @@ type RetentionAccount = {
   retention_hold_reason: string | null;
 };
 
-export const Route = createFileRoute("/admin/retention")({ component: PlayerRetentionAdminPage });
+export const Route = createFileRoute("/admin_/retention")({ component: PlayerRetentionAdminPage });
 
 function PlayerRetentionAdminPage(){
  return <AuthenticatedSessionBoundary label="PLAYER RETENTION ADMIN"><PlayerRetentionAdminWorkspace/></AuthenticatedSessionBoundary>;
