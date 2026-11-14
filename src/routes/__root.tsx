@@ -3,11 +3,14 @@ import {
   Outlet,
   Scripts,
   createRootRoute,
+  useRouterState,
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { ConsentAwareAnalytics } from "../components/analytics-provider";
+import { GlobalHeader } from "../components/global-header";
+import { showsGlobalHeader } from "../lib/navigation/global-header";
 import "../styles.css";
 import "../app-visual-system.css";
 
@@ -56,6 +59,7 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [accountGate, setAccountGate] = useState<AccountGateStatus>("checking");
   const [retryCount, setRetryCount] = useState(0);
 
@@ -177,6 +181,7 @@ function RootComponent() {
   return (
     <RootDocument>
       <ConsentAwareAnalytics>
+        {showsGlobalHeader(pathname) && <GlobalHeader />}
         {accountGate === "public" || accountGate === "active" ? <Outlet /> : gateContent}
       </ConsentAwareAnalytics>
     </RootDocument>
