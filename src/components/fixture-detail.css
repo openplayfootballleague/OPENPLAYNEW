@@ -1,0 +1,119 @@
+/* Fixture detail and match report (/fixtures/$fixtureId).
+   Design tokens only (components/ui/tokens.css); every rule is scoped to the page so the shared
+   op-ui kit is unaffected. */
+
+.op-fixture-page .op-back-link {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  min-height: var(--control-height); margin: 0 0 var(--space-2) calc(var(--space-2) * -1); padding: 0 var(--space-2);
+  border: 0; border-radius: var(--radius-s); background: transparent;
+  color: var(--color-text-2); font: 600 15px/20px var(--font-text); cursor: pointer;
+  transition: color var(--duration-fast) var(--ease), background var(--duration-fast) var(--ease);
+}
+.op-fixture-page .op-back-link:hover { color: var(--color-text-1); background: var(--color-surface-2); }
+.op-fixture-page .op-back-link:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.op-fixture-page .op-back-link svg { width: var(--icon-m); height: var(--icon-m); }
+
+/* Hero: the scoreline is the page's single focal point. */
+.op-fixture-page .op-fixture-hero { display: grid; gap: var(--space-5); padding: var(--space-5) var(--card-padding) var(--space-6); margin-bottom: var(--space-4); }
+.op-fixture-page .op-fixture-hero-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.op-fixture-page .op-fixture-hero-teams { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; gap: var(--space-3); }
+.op-fixture-page .op-fixture-hero-team {
+  display: grid; justify-items: center; gap: var(--space-2); min-width: 0; padding: var(--space-2);
+  border-radius: var(--radius-m); color: var(--color-text-1); text-align: center; text-decoration: none;
+  transition: background var(--duration-fast) var(--ease);
+}
+.op-fixture-page .op-fixture-hero-team:hover { background: var(--color-surface-3); }
+.op-fixture-page .op-fixture-hero-team:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.op-fixture-page .op-fixture-hero-team strong { font: 600 18px/22px var(--font-display); letter-spacing: .01em; text-transform: uppercase; overflow-wrap: break-word; hyphens: auto; }
+.op-fixture-page .op-fixture-hero-team small { font: 600 12px/16px var(--font-text); letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-3); }
+.op-fixture-page .op-fixture-hero-centre { display: grid; justify-items: center; gap: var(--space-1); padding-top: var(--space-5); }
+.op-fixture-page .op-fixture-hero-score { display: inline-flex; gap: var(--space-2); font: 700 40px/44px var(--font-text); letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.op-fixture-page .op-fixture-hero-score span { color: var(--color-text-3); }
+.op-fixture-page .op-fixture-hero-time { font: 700 24px/28px var(--font-text); letter-spacing: -.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.op-fixture-page .op-fixture-hero-caption { font: 600 12px/16px var(--font-text); letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-3); white-space: nowrap; }
+@media (min-width: 768px) {
+  .op-fixture-page .op-fixture-hero { padding: var(--space-8) var(--space-8) var(--space-10); }
+  .op-fixture-page .op-fixture-hero-team strong { font-size: 24px; line-height: 28px; }
+  .op-fixture-page .op-fixture-hero-score { font-size: 56px; line-height: 60px; }
+  .op-fixture-page .op-fixture-hero-time { font-size: 32px; line-height: 36px; }
+}
+@media (max-width: 429px) {
+  .op-fixture-page .op-fixture-hero-team { padding: var(--space-2) 0; }
+  .op-fixture-page .op-fixture-hero-team strong { font-size: 16px; line-height: 20px; }
+  .op-fixture-page .op-fixture-hero-time { font-size: 20px; line-height: 24px; }
+}
+@media (max-width: 359px) {
+  .op-fixture-page .op-fixture-hero-teams { gap: var(--space-1); }
+  .op-fixture-page .op-fixture-hero-score { font-size: 32px; line-height: 36px; }
+  .op-fixture-page .op-fixture-hero-team strong { font-size: 15px; line-height: 20px; }
+}
+
+.op-fixture-page > .op-state { margin-bottom: var(--space-3); }
+
+/* Details list. */
+.op-fixture-page .op-detail-list { display: grid; margin: 0; padding: 0 var(--card-padding); }
+.op-fixture-page .op-detail-row { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: var(--space-3); padding: var(--space-4) 0; }
+.op-fixture-page .op-detail-row + .op-detail-row { border-top: 1px solid var(--color-separator); }
+.op-fixture-page .op-detail-row dt { display: inline-flex; align-items: center; gap: var(--space-2); align-self: start; font: 500 14px/20px var(--font-text); color: var(--color-text-2); }
+.op-fixture-page .op-detail-row dt svg { width: var(--icon-s); height: var(--icon-s); color: var(--color-text-3); }
+.op-fixture-page .op-detail-row dd { margin: 0; font: 400 15px/20px var(--font-text); color: var(--color-text-1); min-width: 0; }
+.op-fixture-page .op-detail-venue { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.op-fixture-page .op-detail-venue > span { display: grid; gap: 2px; min-width: 0; }
+.op-fixture-page .op-detail-venue small { font: 400 14px/20px var(--font-text); color: var(--color-text-2); overflow-wrap: anywhere; }
+
+/* Form and standing. */
+.op-fixture-page .op-form-table { display: grid; padding: 0 var(--card-padding); }
+.op-fixture-page .op-form-row { display: grid; grid-template-columns: minmax(0, 1fr) 48px 40px; align-items: center; gap: var(--space-3); min-height: 64px; padding: var(--space-3) 0; }
+.op-fixture-page .op-form-row + .op-form-row { border-top: 1px solid var(--color-separator); }
+.op-fixture-page .op-form-head { min-height: 40px; padding: 0; font: 600 12px/16px var(--font-text); letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-3); }
+.op-fixture-page .op-form-team { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.op-fixture-page .op-form-team-body { display: grid; gap: var(--space-2); min-width: 0; justify-items: start; }
+.op-fixture-page .op-form-team a { color: var(--color-text-1); font: 600 15px/20px var(--font-text); text-decoration: none; overflow-wrap: anywhere; }
+.op-fixture-page .op-form-team a:hover { color: var(--color-accent); }
+.op-fixture-page .op-form-team a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 4px; }
+.op-fixture-page .op-form-num { text-align: right; font: 400 15px/20px var(--font-text); font-variant-numeric: tabular-nums; color: var(--color-text-2); }
+.op-fixture-page .op-form-num strong { color: var(--color-text-1); font-weight: 700; }
+.op-fixture-page .op-form-pills { display: inline-flex; gap: var(--space-1); }
+.op-fixture-page .op-form-pill { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; font: 700 11px/1 var(--font-text); }
+.op-fixture-page .op-form-win { background: var(--color-success-soft); color: var(--color-success); }
+.op-fixture-page .op-form-draw { background: var(--color-surface-3); color: var(--color-text-2); }
+.op-fixture-page .op-form-loss { background: var(--color-danger-soft); color: var(--color-danger); }
+.op-fixture-page .op-form-none { font: 400 13px/18px var(--font-text); color: var(--color-text-3); white-space: nowrap; }
+@media (max-width: 359px) {
+  .op-fixture-page .op-form-row { grid-template-columns: minmax(0, 1fr) 40px 32px; gap: var(--space-2); }
+  .op-fixture-page .op-form-team .op-initials { display: none; }
+}
+
+.op-fixture-page .op-footnote { margin: var(--space-3) 0 0; font: 400 13px/18px var(--font-text); color: var(--color-text-3); }
+.op-fixture-page .op-muted { margin: 0; font: 400 14px/20px var(--font-text); color: var(--color-text-3); }
+
+/* Match report. */
+.op-fixture-page .op-card-title { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-4); font: 500 18px/24px var(--font-display); letter-spacing: .01em; text-transform: uppercase; color: var(--color-text-1); }
+.op-fixture-page .op-card-title svg { width: var(--icon-m); height: var(--icon-m); }
+.op-fixture-page .op-report-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.op-fixture-page .op-report-column { display: grid; align-content: start; gap: var(--space-2); min-width: 0; }
+.op-fixture-page .op-report-column + .op-report-column { padding-left: var(--space-4); border-left: 1px solid var(--color-separator); }
+.op-fixture-page .op-report-team { margin: 0; font: 600 12px/16px var(--font-text); letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-3); overflow-wrap: anywhere; }
+.op-fixture-page .op-scorer-list, .op-fixture-page .op-lineup-list { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.op-fixture-page .op-scorer-list li { display: grid; gap: 2px; }
+.op-fixture-page .op-scorer-name { font: 600 15px/20px var(--font-text); color: var(--color-text-1); overflow-wrap: anywhere; }
+.op-fixture-page .op-scorer-count { font-weight: 500; color: var(--color-text-2); font-variant-numeric: tabular-nums; }
+.op-fixture-page .op-scorer-tag { display: inline-block; margin-left: var(--space-2); padding: 1px 6px; border-radius: var(--radius-pill); background: var(--color-surface-3); color: var(--color-text-2); font: 700 10px/16px var(--font-text); letter-spacing: .06em; vertical-align: 1px; }
+.op-fixture-page .op-scorer-assist { font: 400 13px/18px var(--font-text); color: var(--color-text-2); overflow-wrap: anywhere; }
+.op-fixture-page .op-motm-name { margin: 0; font: 600 15px/20px var(--font-text); color: var(--color-accent); overflow-wrap: anywhere; }
+.op-fixture-page .op-lineup-heading { margin: var(--space-2) 0 0; font: 500 13px/18px var(--font-text); color: var(--color-text-2); }
+.op-fixture-page .op-lineup-list li { display: flex; align-items: flex-start; gap: var(--space-2); min-width: 0; }
+.op-fixture-page .op-lineup-number { flex: 0 0 24px; font: 600 13px/18px var(--font-text); color: var(--color-text-3); font-variant-numeric: tabular-nums; text-align: right; }
+.op-fixture-page .op-lineup-name { min-width: 0; font: 400 15px/20px var(--font-text); color: var(--color-text-1); overflow-wrap: anywhere; }
+.op-fixture-page .op-lineup-name .op-scorer-tag { white-space: nowrap; }
+@media (max-width: 389px) {
+  .op-fixture-page .op-report-columns { grid-template-columns: minmax(0, 1fr); }
+  .op-fixture-page .op-report-column + .op-report-column { padding: var(--space-4) 0 0; border-left: 0; border-top: 1px solid var(--color-separator); }
+}
+
+/* Entry points elsewhere that now open the fixture page (Match Centre rows). */
+a.match-row { display: block; color: inherit; text-decoration: none; transition: background var(--duration-fast) var(--ease); }
+a.match-row:hover { background: var(--color-surface-3); }
+a.match-row:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.op-fixture-page .op-scorer-tag abbr { text-decoration: none; }
+@media (max-width: 359px) { .op-fixture-page .op-detail-row { grid-template-columns: 88px minmax(0, 1fr); } }
