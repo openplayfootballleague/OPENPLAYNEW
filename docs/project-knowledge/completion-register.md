@@ -30,7 +30,7 @@ Percentages: computed by `node scripts/completion-percentage.mjs`, never typed b
 | PUB-08 | Shared header: signed-in/out variants, notifications, location selector (IMG_0577/0578) | All | Header without location selector or notification control | — | — | — | — | — | Partially Complete | 2 |
 | PUB-09 | Privacy, policies and terms pages | `/privacy-security`, More | Yes | — | — | — | build | tip | Complete | 1 |
 | PUB-10 | Legally reviewed Terms and Conditions and privacy notice published | Profile, More | Profile shows "awaiting publication" | — | — | — | — | owner/legal content | Blocked | 1 |
-| NAV-01 | Viewer bottom navigation (4 vs 5 tabs) | All public | 5 tabs; wraps at 390px | — | — | — | — | — | Blocked | 2 |
+| NAV-01 | Account-state bottom navigation: visitor 4 tabs (IMG_0581), signed-in no-team 5 transitional (IMG_0582/0583), player in team 4 | All | Visitor shows 5 and wraps at 390px; no-team shows 4 | — | Presentation only; server enforces access | — | Playwright 2026-11-14 (`docs/reference-assets/visual-references/README.md`) | — | Partially Complete | 2 |
 | NAV-02 | Registered player navigation: exactly 4 tabs | Player | Yes | — | Session-derived | — | verify-player-navigation | tip | Complete | 2 |
 | NAV-03 | Captain navigation: Club and Matchday | Captain | Yes | — | Captain RPCs | — | verify-player-navigation | tip | Complete | 1 |
 | REG-01 | Sign-up, sign-in, sign-out, password reset, verification | auth routes | Yes | Supabase Auth | Session boundary (#117) | Error states | unit + auth lifecycle test | tip, `d415b81` | Complete | 3 |

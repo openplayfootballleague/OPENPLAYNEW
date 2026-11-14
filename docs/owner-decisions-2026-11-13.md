@@ -77,9 +77,12 @@ re-approval. Changes require a new dated owner decision recorded here.
 3. **Support conversations (D4).** Players can open a private support conversation that administrators answer
    in-thread. This predates D4 and is kept; confirm whether it is acceptable or should become a ticket workflow
    without admin replies.
-4. **Visitor bottom navigation.** The integration line shows visitors five tabs (Home, Match Centre, Teams, Join Open
-   Play, More), contradicting the Blueprint's four (Home, Match Centre, Join Open Play, More); at 390px the fifth tab
-   wraps. Confirm the four-tab baseline so it can be implemented.
+4. **Visitor bottom navigation — resolved by the owner's reference images (2026-11-14).**
+   - IMG_0581 shows signed-out visitors four tabs (Home, Match Centre, Join Open Play, More), which matches the
+     Blueprint.
+   - IMG_0582/IMG_0583 show a transitional five-tab bar for signed-in users without a team.
+   - Still open: **captain navigation**, which no image shows. The rule is in
+     `docs/project-knowledge/product-master-specification.md`.
 
 ## Development safety (unchanged)
 

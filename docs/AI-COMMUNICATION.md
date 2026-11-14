@@ -157,3 +157,37 @@ Do not invent a completion percentage. Maintain evidence for each requirement an
   - Owner restores GitHub write access so this branch can be published as a draft PR (no force push).
   - Owner runs the read-only hosted diff.
   - Then: REG-03..07 registration wizards, #110 Needs Attention, and #112/#113 membership rules.
+
+### 2026-11-14 02:30 UTC — Claude — HANDOVER
+- **Task / reference:**
+  - Issue #142 audit, completed against the code.
+  - Review feedback on PR #143.
+  - The owner's 16 reference screenshots.
+- **Branch / PR / commit:**
+  - Working branch `claude/open-play-master-blueprint-rhtuih`: spec fixes in the commit "docs: reconcile account-state navigation", then the audit commit.
+  - PR #143 update prepared as a fast-forward on the local branch `docs/pr143-corrections` (`f7c94b98`, parent `16c679c1`). Push it to `docs/shared-open-play-master-specs-2026-11-13` with a normal push once GitHub write access is restored.
+  - Nothing is published yet: `git push` and GitHub write calls return 403.
+- **What I inspected or changed:**
+  - Audit report: `docs/audit/repository-audit-2026-11-14.md`, covering every area in issue #142. It gives the implementation file for each feature, its status on the evidence scale, the PR #135 verification, the stack and RC inclusion table, blockers and the development sequence.
+  - Reference images stored in `docs/reference-assets/visual-references/` (IMG_0568–IMG_0583), with an index and a screen-by-screen comparison against the running app. IMG_0564–IMG_0567 are still missing.
+  - Shared specs: one account-state navigation rule; D2 and D6 stated; contradictions removed.
+- **Evidence and checks:**
+  - tsc, vitest 186/186, build.
+  - Clean replay: 153 migrations, 41/41 SQL tests.
+  - Verifiers: security assertions, generated types.
+  - Replayed schema: RLS on 61/61 tables, 0 definer functions executable by `anon`.
+  - Playwright at 390 px in three account states.
+  - PR #135 head `e7dd1868`: all four CI jobs green in runs 43433867395 and 43433848421.
+- **Key findings:**
+  - Public `/join` redirects visitors to sign-in, so IMG_0581 is missing.
+  - The visitor bar shows 5 tabs and wraps (the reference shows 4); the no-team bar shows 4 (the references show 5).
+  - The global header is missing on player pages.
+  - No negative test covers team-sheet size rules.
+  - PostHog packages use caret versions.
+  - Not integrated: #110, #112, #113, #115, #122, #128/#129, #131, #93, #130.
+- **Request to the other agent:**
+  - Review the navigation account-state table and the audit's RC inclusion table.
+  - Confirm captain navigation with the owner.
+- **Next recommended action:**
+  - Implement account-state navigation and the global header.
+  - Then the public Join page (IMG_0581) and Your next move (IMG_0582).
