@@ -3,14 +3,13 @@
  * "Navigation and account states"; evidence: docs/reference-assets/visual-references).
  * Presentation only: every destination enforces its own permissions on the server.
  */
-export type NavigationMode = "visitor" | "onboarding" | "player" | "captain";
+export type NavigationMode = "visitor" | "account" | "onboarding" | "player" | "captain";
 
 export type NavigationItem = {
-  id: "home" | "match-centre" | "teams" | "join" | "club" | "matchday" | "more";
+  id: "home" | "match-centre" | "teams" | "join" | "captain" | "more";
   to: "/" | "/player" | "/match-centre" | "/teams" | "/join" | "/captain" | "/more";
-  hash?: "#captain-club" | "#captain-matchday";
   label: string;
-  icon: "home" | "match" | "teams" | "join" | "whistle" | "more";
+  icon: "home" | "match" | "teams" | "join" | "captain" | "more";
 };
 
 export type AccountFacts = {
@@ -23,10 +22,14 @@ export function isApprovedPlayer(player: AccountFacts["player"]): boolean {
   return Boolean(player && player.registration_status === "registered" && !player.is_banned);
 }
 
-/** Visitor (signed out), onboarding (signed in, no active team), player or captain (in a team). */
+/**
+ * visitor: signed out. account: signed in but not an approved player (registering, pending, banned).
+ * onboarding: approved player without an active team. player / captain: in an active team.
+ */
 export function resolveNavigationMode(facts: AccountFacts): NavigationMode {
   if (!facts.signedIn) return "visitor";
-  if (!isApprovedPlayer(facts.player) || facts.activeMemberships.length === 0) return "onboarding";
+  if (!isApprovedPlayer(facts.player)) return "account";
+  if (facts.activeMemberships.length === 0) return "onboarding";
   return facts.activeMemberships.some((membership) => membership.is_captain) ? "captain" : "player";
 }
 
@@ -36,31 +39,27 @@ const JOIN: NavigationItem = { id: "join", to: "/join", label: "Join Open Play",
 const MORE: NavigationItem = { id: "more", to: "/more", label: "More", icon: "more" };
 
 export function navigationItems(mode: NavigationMode, approvedPlayer = false): NavigationItem[] {
+  const playerHome: NavigationItem = { id: "home", to: "/player", label: "Home", icon: "home" };
   switch (mode) {
     case "visitor":
-      // IMG_0581: four tabs for signed-out visitors.
+    case "account":
+      // IMG_0581, IMG_0562 (signed out); IMG_0563-0567 (signed in, player registration not yet approved).
       return [{ id: "home", to: "/", label: "Home", icon: "home" }, MATCH_CENTRE, JOIN, MORE];
     case "onboarding":
-      // IMG_0582 / IMG_0583: transitional five-tab bar until the account belongs to a team.
+      // IMG_0582 / IMG_0583: transitional five-tab bar for an approved player without a team.
       return [{ id: "home", to: approvedPlayer ? "/player" : "/", label: "Home", icon: "home" }, MATCH_CENTRE, TEAMS, JOIN, MORE];
     case "player":
-      // IMG_0572–IMG_0576, IMG_0579, IMG_0580: four persistent tabs; no Join Open Play.
-      return [{ id: "home", to: "/player", label: "Player Hub", icon: "home" }, MATCH_CENTRE, TEAMS, MORE];
+      // IMG_0522, IMG_0532-0542, IMG_0572-0580: Home is the Player Hub; never Join Open Play.
+      return [playerHome, MATCH_CENTRE, TEAMS, MORE];
     case "captain":
-      // No reference image; existing captain workspace tabs retained pending owner confirmation.
-      return [
-        { id: "home", to: "/player", label: "Player Hub", icon: "home" },
-        { id: "club", to: "/captain", hash: "#captain-club", label: "Club", icon: "teams" },
-        { id: "matchday", to: "/captain", hash: "#captain-matchday", label: "Matchday", icon: "whistle" },
-        MORE,
-      ];
+      // IMG_0543: player tabs plus Captain's Hub.
+      return [playerHome, MATCH_CENTRE, TEAMS, { id: "captain", to: "/captain", label: "Captain's Hub", icon: "captain" }, MORE];
   }
 }
 
-export function isNavigationItemActive(item: NavigationItem, pathname: string, hash: string): boolean {
-  if (item.id === "home") return pathname === "/" || pathname === "/player";
-  if (item.id === "club") return pathname === "/captain" && hash !== "#captain-matchday";
-  if (item.id === "matchday") return pathname === "/captain" && hash === "#captain-matchday";
-  if (item.id === "join") return pathname === "/join" || pathname === "/leagues";
+export function isNavigationItemActive(item: NavigationItem, pathname: string): boolean {
+  if (item.id === "home") return pathname === "/" || pathname === "/player" || pathname.startsWith("/player/");
+  if (item.id === "join") return pathname === "/join" || pathname === "/leagues" || pathname === "/register-player";
+  if (item.id === "teams") return pathname === "/teams" || pathname.startsWith("/teams/");
   return pathname === item.to;
 }

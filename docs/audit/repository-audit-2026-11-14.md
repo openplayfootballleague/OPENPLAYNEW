@@ -91,7 +91,7 @@ scale, it gives:
 | --- | --- | --- | --- |
 | Account sign-up, sign-in, reset | `sign-up.tsx`, `sign-in.tsx`, `reset-password.tsx` | Implemented | Supabase Auth. Not exercised against a real project. |
 | Player registration (DOB mandatory, 16+, guardian consent) | `register-player.tsx`, `src/lib/player-age.ts`, `supabase/functions/guardian-consent` | Auto-tested | `player-age.test.ts`; SQL `age_tier_guardian_consent.sql`, `registration_safeguards.sql`. |
-| Emergency contact, declarations, marketing consent (REG-03..05) | — | Missing / Partial | IMG_0564–IMG_0567 have not been supplied to the repository. |
+| Emergency contact, declarations, marketing consent (REG-03..05) | `register-player.tsx` (single form) | Missing / Partial | References IMG_0563–IMG_0566 define the 4-step wizard; not implemented. |
 | Post-registration "next move" (REG-06) | `join.tsx` | Partial | See IMG_0582. |
 | Player Hub | `src/routes/player.tsx` | Implemented | |
 | My Fixtures, My Results | `player_.fixtures.tsx`, `player_.results.tsx`, `src/lib/competition/player-matches.ts` | Auto-tested | Unit tests; Playwright with stand-in data. |
@@ -256,7 +256,7 @@ Checked by ancestry and patch-equivalence (`git cherry`) against the working bra
    - A read-only diff is needed to confirm drift.
    - The 54 pending migrations need owner approval and a backup before they are applied.
 3. **Official logo asset (D5, issue #18).**
-4. **Missing reference images:** IMG_0564–IMG_0567 (registration steps).
+4. **Licensed photography:** the reference images use third-party credited photos. Owner-licensed imagery is needed (all 32 references are now stored).
 5. **Provider configuration** (Stripe test mode, Connect, email/SMS, PostHog keys, push) needs owner
    approval (D6, INF-03).
 6. **Legal text** for the terms and privacy notice (PUB-10).

@@ -18,13 +18,14 @@ images in `docs/reference-assets/visual-references/`, reconciled on 2026-11-14.
 
 | Account state | Persistent or transitional | Bottom navigation | Evidence |
 | --- | --- | --- | --- |
-| Visitor (signed out) | Persistent | **Home, Match Centre, Join Open Play, More** (4) | IMG_0581; Blueprint four-tab rule |
-| Signed in with no active team (account only, or registered player without a team) | **Transitional onboarding**: shown only until the player joins a team | Home, Match Centre, Teams, Join Open Play, More (5); must fit at 390 px without wrapping | IMG_0582, IMG_0583 |
-| Registered player in an active team | Persistent | **Player Hub (Home), Match Centre, Teams, More** (4) | IMG_0572–IMG_0576, IMG_0579, IMG_0580 |
-| Captain | Persistent | Player navigation; captain-only Club and Matchday destinations are reached from Player Hub and More. **No reference image exists, so the owner must confirm** whether they replace Match Centre and Teams. | Captain workflow spec |
-| Team registration wizard (IMG_0568–IMG_0571) | Transitional | Uses the signed-in-no-team navigation with the canonical icons and labels; the wizard images' title-case variant is not adopted | — |
+| Visitor (signed out) | Persistent | **Home, Match Centre, Join Open Play, More** (4) | IMG_0581, IMG_0562; Blueprint four-tab rule |
+| Signed in, not yet an approved player (registering, pending review, restricted) | Persistent until approval | **Home, Match Centre, Join Open Play, More** (4) | IMG_0563–IMG_0567 |
+| Approved player with no active team | **Transitional onboarding**: shown only until the player joins a team | Home, Match Centre, Teams, Join Open Play, More (5); must fit at 390 px without wrapping | IMG_0582, IMG_0583 |
+| Player in an active team | Persistent | **Home (Player Hub), Match Centre, Teams, More** (4) | IMG_0522, IMG_0532–IMG_0542, IMG_0572–IMG_0580 |
+| Captain | Persistent | **Home (Player Hub), Match Centre, Teams, Captain's Hub, More** (5) | IMG_0543 |
 
 - Join Open Play is never a persistent tab for a player who belongs to a team.
+- The team registration wizard (IMG_0568–IMG_0571) uses the account-state bar with the canonical icons and labels.
 - Navigation is presentation only. Every destination enforces its own permissions on the server.
 - Referee and administrator workspaces have their own authorised navigation.
 - Do not add tabs without owner approval.

@@ -4,12 +4,12 @@ import { readFileSync } from "node:fs";
 const navigation = readFileSync("src/components/player-bottom-navigation.tsx", "utf8");
 const navigationRules = readFileSync("src/lib/navigation/account-navigation.ts", "utf8");
 // Behaviour (tab order per account state) is unit-tested in src/lib/navigation/account-navigation.test.ts.
-assert.ok(navigationRules.includes('id: "home", to: "/", label: "Home"') && navigationRules.includes('id: "home", to: "/player", label: "Player Hub"'), "Visitor Home and registered Player Hub must have distinct destinations");
+assert.ok(navigationRules.includes('id: "home", to: "/", label: "Home"') && navigationRules.includes('id: "home", to: "/player", label: "Home"'), "Visitor Home and the player's Home (Player Hub) must have distinct destinations");
 assert.ok(navigationRules.includes('id: "join", to: "/join", label: "Join Open Play"') && navigationRules.includes('id: "teams", to: "/teams"') && navigationRules.includes('id: "match-centre", to: "/match-centre"'), "Navigation must define Match Centre, Teams and Join Open Play destinations");
-assert.ok(navigationRules.includes('id: "club", to: "/captain", hash: "#captain-club"') && navigationRules.includes('id: "matchday", to: "/captain", hash: "#captain-matchday"'), "Captain navigation must expose Club and Matchday as distinct destinations");
+assert.ok(navigationRules.includes('id: "captain", to: "/captain", label: "Captain\'s Hub"'), "Captain navigation must expose Captain's Hub (IMG_0543)");
 assert.ok(navigationRules.includes('player.registration_status === "registered" && !player.is_banned') && navigationRules.includes("facts.activeMemberships.length === 0"), "Navigation must derive player and captain states only from an approved, unbanned player with an active membership");
 assert.ok(navigation.includes('.from("team_memberships").select("is_captain")') && navigation.includes('.eq("status", "active")') && navigation.includes("resolveNavigationMode("), "Navigation must load active memberships from authorised account data");
-assert.ok(navigationRules.includes('pathname === "/" || pathname === "/player"'), "Home must be active on public Home and Player Hub only");
+assert.ok(navigationRules.includes('pathname === "/" || pathname === "/player"'), "Home must be active on public Home and the Player Hub");
 
 const more = readFileSync("src/routes/more.tsx", "utf8");
 for (const destination of ['to="/teams"', 'to="/join"', 'to="/gallery"', 'to="/match-centre"']) {

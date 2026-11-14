@@ -12,14 +12,13 @@ function NavIcon({ name }: { name: NavigationItem["icon"] }) {
   if (name === "match") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="12" cy="12" r="9" /><path d="m12 7 3 2v4l-3 2-3-2V9l3-2ZM9 9l-4-2m10 2 4-2M9 13l-2 5m8-5 2 5" /></svg>;
   if (name === "join") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="9" cy="8" r="4" /><path d="M3 21v-2a6 6 0 0 1 12 0v2M19 8v6m-3-3h6" /></svg>;
   if (name === "teams") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 15a5 5 0 0 1 5 5" /></svg>;
-  if (name === "whistle") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><path d="M4 11h10a6 6 0 1 1-6 6v-2H4a2 2 0 0 1 0-4Z" /><path d="M14 11V7h4l3 4M8 15h3" /></svg>;
+  if (name === "captain") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><path d="m3 8 4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8Z" /><path d="M5 19h14" /></svg>;
   return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg>;
 }
 
 /** Account-state bottom navigation; rules and evidence live in lib/navigation/account-navigation. */
 export function PlayerBottomNavigation() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const hash = useRouterState({ select: (state) => state.location.hash });
   const [state, setState] = useState<{ mode: NavigationMode | "loading"; approvedPlayer: boolean }>({ mode: "loading", approvedPlayer: false });
 
   useEffect(() => {
@@ -42,8 +41,8 @@ export function PlayerBottomNavigation() {
         ]);
         if (!alive || sequence !== requestSequence) return;
         if (playerError || membershipError) {
-          // Fail closed to the signed-in onboarding bar; destinations still enforce access server-side.
-          setState({ mode: "onboarding", approvedPlayer: false });
+          // Fail closed to the signed-in account bar; destinations still enforce access server-side.
+          setState({ mode: "account", approvedPlayer: false });
           return;
         }
         setState({
@@ -71,10 +70,10 @@ export function PlayerBottomNavigation() {
   const items: NavigationItem[] = navigationItems(mode, state.approvedPlayer);
 
   return (
-    <nav className="player-bottom-nav" data-tabs={items.length} aria-label={mode === "captain" ? "Captain navigation" : "Main navigation"}>
+    <nav className="player-bottom-nav" data-tabs={items.length} aria-label="Main navigation">
       {items.map((item) => (
-        <Link key={item.id} to={item.to} hash={item.hash} className={"player-bottom-nav-link" + (isNavigationItemActive(item, pathname, hash) ? " active" : "")}
-          aria-current={isNavigationItemActive(item, pathname, hash) ? "page" : undefined}>
+        <Link key={item.id} to={item.to} className={"player-bottom-nav-link" + (isNavigationItemActive(item, pathname) ? " active" : "")}
+          aria-current={isNavigationItemActive(item, pathname) ? "page" : undefined}>
           <NavIcon name={item.icon} />
           <span>{item.label}</span>
         </Link>

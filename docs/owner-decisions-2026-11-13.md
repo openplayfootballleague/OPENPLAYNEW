@@ -81,8 +81,8 @@ re-approval. Changes require a new dated owner decision recorded here.
    - IMG_0581 shows signed-out visitors four tabs (Home, Match Centre, Join Open Play, More), which matches the
      Blueprint.
    - IMG_0582/IMG_0583 show a transitional five-tab bar for signed-in users without a team.
-   - Still open: **captain navigation**, which no image shows. The rule is in
-     `docs/project-knowledge/product-master-specification.md`.
+   - Captain navigation is resolved by IMG_0543: Home, Match Centre, Teams, Captain's Hub, More.
+   - The rule is in `docs/project-knowledge/product-master-specification.md`.
 
 ## Development safety (unchanged)
 

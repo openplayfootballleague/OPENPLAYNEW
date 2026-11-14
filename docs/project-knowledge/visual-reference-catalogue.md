@@ -1,7 +1,7 @@
 # Open Play — Owner-Supplied Visual Reference Catalogue
 
 **Reference sets:** 10 initial screenshots plus 10 additional screenshots uploaded by the owner on 13 November 2026 (20 source images total).  
-**Status:** authoritative visual reference set for the screens represented below, subject to the conflict rules in this document. The 16 originals supplied on 2026-11-14 (IMG_0568–IMG_0583) are stored at full resolution in `docs/reference-assets/visual-references/`, with an index and a current-implementation comparison in its README. IMG_0564–IMG_0567 still need to be uploaded by the owner. The filenames below are the original upload names; the stored copies add a descriptive suffix.
+**Status:** authoritative visual reference set for the screens represented below, subject to the conflict rules in this document. All owner references supplied on 2026-11-14 (32 images: IMG_0522–IMG_0583, including the player registration steps IMG_0563–IMG_0567) are stored at full resolution in `docs/reference-assets/visual-references/`, with an index and a current-implementation comparison in its README. The filenames below are the original upload names; the stored copies add a descriptive suffix.
 
 ## Source files and screen mapping
 
