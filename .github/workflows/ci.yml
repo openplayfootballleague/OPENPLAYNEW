@@ -511,6 +511,14 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Install PostgreSQL client for multi-statement role tests
         run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      - name: Verify generated Supabase types match the replayed schema
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: 54322
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+        run: node scripts/verify-generated-types.mjs
       - name: Verify player self-service profile permission assertions
         env:
           PGPASSWORD: postgres

@@ -183,6 +183,73 @@ export type Database = {
         }
         Relationships: []
       }
+      finance_operating_costs: {
+        Row: {
+          amount_pence: number
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          league_id: string | null
+          location_id: string | null
+          notes: string | null
+          occurred_at: string
+          reference: string | null
+          season_id: string | null
+        }
+        Insert: {
+          amount_pence: number
+          category: string
+          created_at?: string
+          created_by?: string | null
+          description: string
+          id?: string
+          league_id?: string | null
+          location_id?: string | null
+          notes?: string | null
+          occurred_at?: string
+          reference?: string | null
+          season_id?: string | null
+        }
+        Update: {
+          amount_pence?: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          league_id?: string | null
+          location_id?: string | null
+          notes?: string | null
+          occurred_at?: string
+          reference?: string | null
+          season_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_operating_costs_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_operating_costs_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_operating_costs_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fixture_availability: {
         Row: {
           fixture_id: string
@@ -292,6 +359,64 @@ export type Database = {
           },
           {
             foreignKeyName: "fixture_goal_records_season_team_id_fkey"
+            columns: ["season_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fixture_motm_nominations: {
+        Row: {
+          competition_player_id: string
+          corrected_at: string | null
+          corrected_by: string | null
+          correction_reason: string | null
+          fixture_id: string
+          id: string
+          nominated_at: string
+          nominated_by: string
+          season_team_id: string
+        }
+        Insert: {
+          competition_player_id: string
+          corrected_at?: string | null
+          corrected_by?: string | null
+          correction_reason?: string | null
+          fixture_id: string
+          id?: string
+          nominated_at?: string
+          nominated_by: string
+          season_team_id: string
+        }
+        Update: {
+          competition_player_id?: string
+          corrected_at?: string | null
+          corrected_by?: string | null
+          correction_reason?: string | null
+          fixture_id?: string
+          id?: string
+          nominated_at?: string
+          nominated_by?: string
+          season_team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixture_motm_nominations_competition_player_id_fkey"
+            columns: ["competition_player_id"]
+            isOneToOne: false
+            referencedRelation: "competition_player_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixture_motm_nominations_fixture_id_fkey"
+            columns: ["fixture_id"]
+            isOneToOne: false
+            referencedRelation: "fixtures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixture_motm_nominations_season_team_id_fkey"
             columns: ["season_team_id"]
             isOneToOne: false
             referencedRelation: "season_teams"
@@ -439,6 +564,7 @@ export type Database = {
       }
       fixtures: {
         Row: {
+          gameweek_id: string | null
           away_team_id: string
           created_at: string
           fixture_number: number
@@ -454,6 +580,7 @@ export type Database = {
           is_title_final: boolean
         }
         Insert: {
+          gameweek_id?: string | null
           away_team_id: string
           created_at?: string
           fixture_number?: number
@@ -469,6 +596,7 @@ export type Database = {
           is_title_final?: boolean
         }
         Update: {
+          gameweek_id?: string | null
           away_team_id?: string
           created_at?: string
           fixture_number?: number
@@ -551,6 +679,75 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gameweek_postponement_history: {
+        Row: {
+          actor_user_id: string
+          affected_fixtures: number
+          after_data: Json
+          before_data: Json
+          created_at: string
+          credited_unpaid_obligations: number
+          gameweek_id: string
+          id: string
+          new_scheduled_at: string
+          new_week_number: number
+          old_scheduled_at: string
+          old_week_number: number
+          reason: string
+          refunded_team_payments: number
+          season_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          affected_fixtures: number
+          after_data?: Json
+          before_data?: Json
+          created_at?: string
+          credited_unpaid_obligations?: number
+          gameweek_id: string
+          id?: string
+          new_scheduled_at: string
+          new_week_number: number
+          old_scheduled_at: string
+          old_week_number: number
+          reason: string
+          refunded_team_payments?: number
+          season_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          affected_fixtures?: number
+          after_data?: Json
+          before_data?: Json
+          created_at?: string
+          credited_unpaid_obligations?: number
+          gameweek_id?: string
+          id?: string
+          new_scheduled_at?: string
+          new_week_number?: number
+          old_scheduled_at?: string
+          old_week_number?: number
+          reason?: string
+          refunded_team_payments?: number
+          season_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gameweek_postponement_history_gameweek_id_fkey"
+            columns: ["gameweek_id"]
+            isOneToOne: false
+            referencedRelation: "season_gameweeks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gameweek_postponement_history_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
             referencedColumns: ["id"]
           },
         ]
@@ -666,6 +863,234 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      message_conversation_participants: {
+        Row: {
+          conversation_id: string
+          joined_at: string
+          last_read_at: string
+          left_at: string | null
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          joined_at?: string
+          last_read_at?: string
+          left_at?: string | null
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          joined_at?: string
+          last_read_at?: string
+          left_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_conversation_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "message_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_conversations: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          created_by: string | null
+          direct_pair_key: string | null
+          id: string
+          kind: string
+          location_id: string | null
+          season_id: string | null
+          season_team_id: string | null
+          target_id: string | null
+          target_type: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          direct_pair_key?: string | null
+          id?: string
+          kind: string
+          location_id?: string | null
+          season_id?: string | null
+          season_team_id?: string | null
+          target_id?: string | null
+          target_type?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          direct_pair_key?: string | null
+          id?: string
+          kind?: string
+          location_id?: string | null
+          season_id?: string | null
+          season_team_id?: string | null
+          target_id?: string | null
+          target_type?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_conversations_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_conversations_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_conversations_season_team_id_fkey"
+            columns: ["season_team_id"]
+            isOneToOne: true
+            referencedRelation: "season_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_reports: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          id: string
+          message_id: string | null
+          reason: string
+          reported_user_id: string | null
+          reporter_id: string | null
+          resolution_action: string | null
+          resolution_reason: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          reason: string
+          reported_user_id?: string | null
+          reporter_id?: string | null
+          resolution_action?: string | null
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          reason?: string
+          reported_user_id?: string | null
+          reporter_id?: string | null
+          resolution_action?: string | null
+          resolution_reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reports_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "message_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_reports_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_user_blocks: {
+        Row: {
+          blocked_user_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_user_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_user_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: [
+        ]
+      }
+      messages: {
+        Row: {
+          body: string
+          conversation_id: string
+          created_at: string
+          hidden_at: string | null
+          hidden_by: string | null
+          hidden_reason: string | null
+          id: string
+          is_hidden: boolean
+          message_type: string
+          sender_id: string | null
+        }
+        Insert: {
+          body: string
+          conversation_id: string
+          created_at?: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
+          id?: string
+          is_hidden?: boolean
+          message_type?: string
+          sender_id?: string | null
+        }
+        Update: {
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          hidden_at?: string | null
+          hidden_by?: string | null
+          hidden_reason?: string | null
+          id?: string
+          is_hidden?: boolean
+          message_type?: string
+          sender_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "message_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notification_dispatch_settings: {
         Row: {
@@ -899,8 +1324,111 @@ export type Database = {
           },
         ]
       }
+      player_account_inactivity_warnings: {
+        Row: {
+          claimed_at: string
+          created_at: string
+          inactivity_started_at: string
+          sent_at: string | null
+          status: string
+          user_id: string
+          warning_days: number
+        }
+        Insert: {
+          claimed_at?: string
+          created_at?: string
+          inactivity_started_at: string
+          sent_at?: string | null
+          status?: string
+          user_id: string
+          warning_days: number
+        }
+        Update: {
+          claimed_at?: string
+          created_at?: string
+          inactivity_started_at?: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string
+          warning_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_account_inactivity_warnings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_guardian_consents: {
+        Row: {
+          created_at: string
+          guardian_email: string
+          guardian_full_name: string
+          id: string
+          player_date_of_birth: string
+          player_user_id: string
+          requested_at: string
+          review_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          verification_expires_at: string | null
+          verification_token_hash: string | null
+          verified_at: string | null
+          withdrawal_token_expires_at: string | null
+          withdrawal_token_hash: string | null
+          withdrawn_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          guardian_email: string
+          guardian_full_name: string
+          id?: string
+          player_date_of_birth: string
+          player_user_id: string
+          requested_at?: string
+          review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          verification_expires_at?: string | null
+          verification_token_hash?: string | null
+          verified_at?: string | null
+          withdrawal_token_expires_at?: string | null
+          withdrawal_token_hash?: string | null
+          withdrawn_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          guardian_email?: string
+          guardian_full_name?: string
+          id?: string
+          player_date_of_birth?: string
+          player_user_id?: string
+          requested_at?: string
+          review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          verification_expires_at?: string | null
+          verification_token_hash?: string | null
+          verified_at?: string | null
+          withdrawal_token_expires_at?: string | null
+          withdrawal_token_hash?: string | null
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+        ]
+      }
       player_registration_reviews: {
         Row: {
+          match_evidence: Json
           created_at: string
           email_matched: boolean
           id: string
@@ -914,6 +1442,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          match_evidence?: Json
           created_at?: string
           email_matched: boolean
           id?: string
@@ -927,6 +1456,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          match_evidence?: Json
           created_at?: string
           email_matched?: boolean
           id?: string
@@ -1196,6 +1726,647 @@ export type Database = {
         }
         Relationships: []
       }
+      referee_applications: {
+        Row: {
+          additional_notes: string | null
+          availability: Json
+          contact_phone: string
+          created_at: string
+          experience_summary: string
+          id: string
+          preferred_location_ids: string[]
+          qualifications: string[]
+          review_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          additional_notes?: string | null
+          availability: Json
+          contact_phone: string
+          created_at?: string
+          experience_summary: string
+          id?: string
+          preferred_location_ids: string[]
+          qualifications?: string[]
+          review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          additional_notes?: string | null
+          availability?: Json
+          contact_phone?: string
+          created_at?: string
+          experience_summary?: string
+          id?: string
+          preferred_location_ids?: string[]
+          qualifications?: string[]
+          review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+        ]
+      }
+      referee_connect_accounts: {
+        Row: {
+          charges_enabled: boolean
+          created_at: string
+          details_submitted: boolean
+          disabled_reason: string | null
+          last_synced_at: string
+          onboarding_status: string
+          payouts_enabled: boolean
+          referee_user_id: string
+          requirements_due: Json
+          stripe_account_id: string
+          stripe_event_created_at: string
+          transfers_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          charges_enabled?: boolean
+          created_at?: string
+          details_submitted?: boolean
+          disabled_reason?: string | null
+          last_synced_at?: string
+          onboarding_status?: string
+          payouts_enabled?: boolean
+          referee_user_id: string
+          requirements_due?: Json
+          stripe_account_id: string
+          stripe_event_created_at?: string
+          transfers_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          charges_enabled?: boolean
+          created_at?: string
+          details_submitted?: boolean
+          disabled_reason?: string | null
+          last_synced_at?: string
+          onboarding_status?: string
+          payouts_enabled?: boolean
+          referee_user_id?: string
+          requirements_due?: Json
+          stripe_account_id?: string
+          stripe_event_created_at?: string
+          transfers_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+        ]
+      }
+      referee_connect_webhook_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          processed_at: string | null
+          stripe_event_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          processed_at?: string | null
+          stripe_event_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          processed_at?: string | null
+          stripe_event_id?: string
+        }
+        Relationships: [
+        ]
+      }
+      referee_disciplinary_events: {
+        Row: {
+          card_type: string
+          competition_player_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          event_index: number
+          finance_entry_id: string | null
+          fine_amount_pence: number
+          fixture_id: string
+          id: string
+          minute: number | null
+          recipient_type: string
+          report_id: string
+          season_team_id: string
+          strike_applied: boolean
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          card_type: string
+          competition_player_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_index: number
+          finance_entry_id?: string | null
+          fine_amount_pence: number
+          fixture_id: string
+          id?: string
+          minute?: number | null
+          recipient_type: string
+          report_id: string
+          season_team_id: string
+          strike_applied?: boolean
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          card_type?: string
+          competition_player_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_index?: number
+          finance_entry_id?: string | null
+          fine_amount_pence?: number
+          fixture_id?: string
+          id?: string
+          minute?: number | null
+          recipient_type?: string
+          report_id?: string
+          season_team_id?: string
+          strike_applied?: boolean
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referee_disciplinary_events_competition_player_id_fkey"
+            columns: ["competition_player_id"]
+            isOneToOne: false
+            referencedRelation: "competition_player_identities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referee_disciplinary_events_finance_entry_id_fkey"
+            columns: ["finance_entry_id"]
+            isOneToOne: false
+            referencedRelation: "finance_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referee_disciplinary_events_fixture_id_fkey"
+            columns: ["fixture_id"]
+            isOneToOne: false
+            referencedRelation: "fixtures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referee_disciplinary_events_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "referee_match_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referee_disciplinary_events_season_team_id_fkey"
+            columns: ["season_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referee_fixture_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          assignment_role: string
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          fixture_id: string
+          id: string
+          referee_user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          assignment_role: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          fixture_id: string
+          id?: string
+          referee_user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          assignment_role?: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          fixture_id?: string
+          id?: string
+          referee_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referee_fixture_assignments_fixture_id_fkey"
+            columns: ["fixture_id"]
+            isOneToOne: false
+            referencedRelation: "fixtures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referee_match_report_history: {
+        Row: {
+          action: string
+          changed_by: string | null
+          created_at: string
+          id: string
+          reason: string | null
+          report_id: string
+          report_version: number
+          snapshot: Json
+        }
+        Insert: {
+          action: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          report_id: string
+          report_version: number
+          snapshot: Json
+        }
+        Update: {
+          action?: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          report_id?: string
+          report_version?: number
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referee_match_report_history_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "referee_match_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referee_match_reports: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          away_score: number
+          away_scorers: string[]
+          away_substitute_appearances: string[]
+          created_at: string
+          disciplinary_events: Json
+          fixture_id: string
+          home_score: number
+          home_scorers: string[]
+          home_substitute_appearances: string[]
+          id: string
+          match_write_up: string | null
+          referee_user_id: string | null
+          report_source: string
+          review_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string
+          submitted_by: string | null
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          away_score: number
+          away_scorers?: string[]
+          away_substitute_appearances?: string[]
+          created_at?: string
+          disciplinary_events?: Json
+          fixture_id: string
+          home_score: number
+          home_scorers?: string[]
+          home_substitute_appearances?: string[]
+          id?: string
+          match_write_up?: string | null
+          referee_user_id?: string | null
+          report_source: string
+          review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          away_score?: number
+          away_scorers?: string[]
+          away_substitute_appearances?: string[]
+          created_at?: string
+          disciplinary_events?: Json
+          fixture_id?: string
+          home_score?: number
+          home_scorers?: string[]
+          home_substitute_appearances?: string[]
+          id?: string
+          match_write_up?: string | null
+          referee_user_id?: string | null
+          report_source?: string
+          review_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referee_match_reports_fixture_id_fkey"
+            columns: ["fixture_id"]
+            isOneToOne: true
+            referencedRelation: "fixtures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referee_memberships: {
+        Row: {
+          application_id: string
+          approved_at: string
+          approved_by: string
+          created_at: string
+          status: string
+          status_changed_at: string
+          status_changed_by: string
+          status_reason: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          approved_at?: string
+          approved_by: string
+          created_at?: string
+          status?: string
+          status_changed_at?: string
+          status_changed_by: string
+          status_reason: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          approved_at?: string
+          approved_by?: string
+          created_at?: string
+          status?: string
+          status_changed_at?: string
+          status_changed_by?: string
+          status_reason?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referee_memberships_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "referee_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referee_milestone_rewards: {
+        Row: {
+          amount_pence: number
+          approved_games: number
+          created_at: string
+          failure_reason: string | null
+          id: string
+          milestone_number: number
+          processing_started_at: string | null
+          referee_user_id: string | null
+          status: string
+          stripe_transfer_id: string | null
+          transfer_attempts: number
+          transferred_at: string | null
+        }
+        Insert: {
+          amount_pence?: number
+          approved_games: number
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          milestone_number: number
+          processing_started_at?: string | null
+          referee_user_id?: string | null
+          status?: string
+          stripe_transfer_id?: string | null
+          transfer_attempts?: number
+          transferred_at?: string | null
+        }
+        Update: {
+          amount_pence?: number
+          approved_games?: number
+          created_at?: string
+          failure_reason?: string | null
+          id?: string
+          milestone_number?: number
+          processing_started_at?: string | null
+          referee_user_id?: string | null
+          status?: string
+          stripe_transfer_id?: string | null
+          transfer_attempts?: number
+          transferred_at?: string | null
+        }
+        Relationships: [
+        ]
+      }
+      referee_payout_transfer_history: {
+        Row: {
+          amount_pence: number
+          attempt_number: number
+          created_at: string
+          currency: string
+          failure_reason: string | null
+          id: string
+          payout_id: string
+          payout_type: string
+          referee_user_id: string | null
+          status: string
+          stripe_transfer_id: string | null
+        }
+        Insert: {
+          amount_pence: number
+          attempt_number: number
+          created_at?: string
+          currency?: string
+          failure_reason?: string | null
+          id?: string
+          payout_id: string
+          payout_type: string
+          referee_user_id?: string | null
+          status: string
+          stripe_transfer_id?: string | null
+        }
+        Update: {
+          amount_pence?: number
+          attempt_number?: number
+          created_at?: string
+          currency?: string
+          failure_reason?: string | null
+          id?: string
+          payout_id?: string
+          payout_type?: string
+          referee_user_id?: string | null
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Relationships: [
+        ]
+      }
+      referee_payout_transfer_jobs: {
+        Row: {
+          attempts: number
+          available_at: string
+          created_at: string
+          first_attempt_at: string | null
+          id: string
+          last_error: string | null
+          lock_token: string | null
+          locked_at: string | null
+          payout_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          available_at?: string
+          created_at?: string
+          first_attempt_at?: string | null
+          id?: string
+          last_error?: string | null
+          lock_token?: string | null
+          locked_at?: string | null
+          payout_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          available_at?: string
+          created_at?: string
+          first_attempt_at?: string | null
+          id?: string
+          last_error?: string | null
+          lock_token?: string | null
+          locked_at?: string | null
+          payout_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referee_payout_transfer_jobs_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: true
+            referencedRelation: "referee_report_payouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referee_report_payouts: {
+        Row: {
+          created_at: string
+          deductions_pence: number
+          failure_reason: string | null
+          gross_allocation_pence: number
+          id: string
+          open_play_top_up_pence: number
+          processing_started_at: string | null
+          referee_net_pence: number
+          referee_user_id: string | null
+          report_id: string
+          status: string
+          stripe_transfer_id: string | null
+          transfer_attempts: number
+          transferred_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          deductions_pence?: number
+          failure_reason?: string | null
+          gross_allocation_pence?: number
+          id?: string
+          open_play_top_up_pence?: number
+          processing_started_at?: string | null
+          referee_net_pence?: number
+          referee_user_id?: string | null
+          report_id: string
+          status?: string
+          stripe_transfer_id?: string | null
+          transfer_attempts?: number
+          transferred_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          deductions_pence?: number
+          failure_reason?: string | null
+          gross_allocation_pence?: number
+          id?: string
+          open_play_top_up_pence?: number
+          processing_started_at?: string | null
+          referee_net_pence?: number
+          referee_user_id?: string | null
+          report_id?: string
+          status?: string
+          stripe_transfer_id?: string | null
+          transfer_attempts?: number
+          transferred_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referee_report_payouts_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: true
+            referencedRelation: "referee_match_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       season_fee_configs: {
         Row: {
           changed_by: string | null
@@ -1230,6 +2401,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "season_fee_configs_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      season_gameweeks: {
+        Row: {
+          created_at: string
+          id: string
+          scheduled_at: string | null
+          season_id: string
+          updated_at: string
+          week_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          scheduled_at?: string | null
+          season_id: string
+          updated_at?: string
+          week_number: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          scheduled_at?: string | null
+          season_id?: string
+          updated_at?: string
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "season_gameweeks_season_id_fkey"
             columns: ["season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
@@ -1488,6 +2694,222 @@ export type Database = {
           },
         ]
       }
+      team_fixture_payment_history: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          from_status: string | null
+          id: string
+          metadata: Json
+          obligation_id: string
+          reason: string
+          to_status: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          obligation_id: string
+          reason: string
+          to_status?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          obligation_id?: string
+          reason?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_fixture_payment_history_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "team_fixture_payment_obligations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_fixture_payment_obligations: {
+        Row: {
+          amount_pence: number
+          checkout_attempt: number
+          created_at: string
+          created_by: string
+          currency: string
+          deadline_at: string
+          defaulted_at: string | null
+          finance_cancellation_credit_entry_id: string | null
+          finance_charge_entry_id: string | null
+          finance_payment_entry_id: string | null
+          fixture_id: string
+          grace_ends_at: string
+          id: string
+          paid_at: string | null
+          payment_cycle: number
+          scheduled_at_snapshot: string
+          season_team_id: string
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_pence: number
+          checkout_attempt?: number
+          created_at?: string
+          created_by: string
+          currency?: string
+          deadline_at: string
+          defaulted_at?: string | null
+          finance_cancellation_credit_entry_id?: string | null
+          finance_charge_entry_id?: string | null
+          finance_payment_entry_id?: string | null
+          fixture_id: string
+          grace_ends_at: string
+          id?: string
+          paid_at?: string | null
+          payment_cycle?: number
+          scheduled_at_snapshot: string
+          season_team_id: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_pence?: number
+          checkout_attempt?: number
+          created_at?: string
+          created_by?: string
+          currency?: string
+          deadline_at?: string
+          defaulted_at?: string | null
+          finance_cancellation_credit_entry_id?: string | null
+          finance_charge_entry_id?: string | null
+          finance_payment_entry_id?: string | null
+          fixture_id?: string
+          grace_ends_at?: string
+          id?: string
+          paid_at?: string | null
+          payment_cycle?: number
+          scheduled_at_snapshot?: string
+          season_team_id?: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_fixture_payment_obligati_finance_cancellation_credit__fkey"
+            columns: ["finance_cancellation_credit_entry_id"]
+            isOneToOne: false
+            referencedRelation: "finance_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_fixture_payment_obligations_finance_charge_entry_id_fkey"
+            columns: ["finance_charge_entry_id"]
+            isOneToOne: false
+            referencedRelation: "finance_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_fixture_payment_obligations_finance_payment_entry_id_fkey"
+            columns: ["finance_payment_entry_id"]
+            isOneToOne: false
+            referencedRelation: "finance_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_fixture_payment_obligations_fixture_id_fkey"
+            columns: ["fixture_id"]
+            isOneToOne: false
+            referencedRelation: "fixtures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_fixture_payment_obligations_season_team_id_fkey"
+            columns: ["season_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_fixture_payment_refunds: {
+        Row: {
+          amount_pence: number
+          created_at: string
+          credit_finance_entry_id: string | null
+          failure_reason: string | null
+          id: string
+          obligation_id: string
+          refund_finance_entry_id: string | null
+          status: string
+          stripe_payment_intent_id: string
+          stripe_refund_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_pence: number
+          created_at?: string
+          credit_finance_entry_id?: string | null
+          failure_reason?: string | null
+          id?: string
+          obligation_id: string
+          refund_finance_entry_id?: string | null
+          status?: string
+          stripe_payment_intent_id: string
+          stripe_refund_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_pence?: number
+          created_at?: string
+          credit_finance_entry_id?: string | null
+          failure_reason?: string | null
+          id?: string
+          obligation_id?: string
+          refund_finance_entry_id?: string | null
+          status?: string
+          stripe_payment_intent_id?: string
+          stripe_refund_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_fixture_payment_refunds_credit_finance_entry_id_fkey"
+            columns: ["credit_finance_entry_id"]
+            isOneToOne: false
+            referencedRelation: "finance_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_fixture_payment_refunds_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: true
+            referencedRelation: "team_fixture_payment_obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_fixture_payment_refunds_refund_finance_entry_id_fkey"
+            columns: ["refund_finance_entry_id"]
+            isOneToOne: false
+            referencedRelation: "finance_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_memberships: {
         Row: {
           created_at: string
@@ -1550,6 +2972,99 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_payment_strikes: {
+        Row: {
+          created_at: string
+          fixture_id: string
+          id: string
+          obligation_id: string
+          original_deadline_at: string
+          paid_at: string | null
+          reason: string
+          season_team_id: string
+        }
+        Insert: {
+          created_at?: string
+          fixture_id: string
+          id?: string
+          obligation_id: string
+          original_deadline_at: string
+          paid_at?: string | null
+          reason: string
+          season_team_id: string
+        }
+        Update: {
+          created_at?: string
+          fixture_id?: string
+          id?: string
+          obligation_id?: string
+          original_deadline_at?: string
+          paid_at?: string | null
+          reason?: string
+          season_team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_payment_strikes_fixture_id_fkey"
+            columns: ["fixture_id"]
+            isOneToOne: false
+            referencedRelation: "fixtures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_payment_strikes_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: true
+            referencedRelation: "team_fixture_payment_obligations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_payment_strikes_season_team_id_fkey"
+            columns: ["season_team_id"]
+            isOneToOne: false
+            referencedRelation: "season_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_stripe_webhook_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          obligation_id: string | null
+          processed_at: string | null
+          processing_error: string | null
+          processing_started_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id: string
+          obligation_id?: string | null
+          processed_at?: string | null
+          processing_error?: string | null
+          processing_started_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          obligation_id?: string | null
+          processed_at?: string | null
+          processing_error?: string | null
+          processing_started_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_stripe_webhook_events_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "team_fixture_payment_obligations"
             referencedColumns: ["id"]
           },
         ]
@@ -1706,218 +3221,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_captain_motm_nomination_options: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          fixture_id: string
-          season_team_id: string
-          team_name: string
-          opponent_name: string
-          gameweek: number
-          scheduled_at: string
-          deadline_at: string
-          nomination_id: string | null
-          nominated_competition_player_id: string | null
-          nominated_player_name: string | null
-          can_nominate: boolean
-          eligible_players: Json
-        }[]
+      _resolve_player_transfer_request: {
+        Args: { p_actor: string; p_admin_override: boolean; p_decision: string; p_reason: string; p_request_id: string }
+        Returns: Database["public"]["Tables"]["player_transfer_requests"]["Row"]
       }
-      submit_fixture_motm_nomination: {
-        Args: { p_fixture_id: string; p_competition_player_id: string }
+      _save_referee_match_report: {
+        Args: { p_actor: string; p_away_score: number; p_away_scorers: string[]; p_away_substitute_appearances: string[]; p_disciplinary_events: Json; p_fixture_id: string; p_home_score: number; p_home_scorers: string[]; p_home_substitute_appearances: string[]; p_match_write_up: string; p_reason: string; p_source: string }
         Returns: string
       }
-      admin_list_fixture_motm_nominations: {
-        Args: { p_location_id?: string | null }
-        Returns: {
-          nomination_id: string
-          fixture_id: string
-          season_team_id: string
-          team_name: string
-          opponent_name: string
-          gameweek: number
-          scheduled_at: string | null
-          location_id: string
-          location_name: string
-          competition_player_id: string
-          nominated_player_name: string
-          nominated_by: string
-          nominated_at: string
-          corrected_at: string | null
-          correction_reason: string | null
-          eligible_players: Json
-        }[]
-      }
-      admin_correct_fixture_motm_nomination: {
-        Args: { p_nomination_id: string; p_competition_player_id: string; p_reason: string }
-        Returns: undefined
-      }
-      get_my_player_motm_awards: {
-        Args: { p_season_id?: string | null }
-        Returns: Json
-      }
-      get_public_season_club_leaders: {
-        Args: { p_season_id: string }
-        Returns: {
-          competition_player_id: string
-          player_name: string
-          season_team_id: string
-          team_name: string
-          motm_awards: number
-          appearances: number
-        }[]
-      }
-      admin_search_league_admin_role_candidates: {
-        Args: { p_query: string }
-        Returns: {
-          user_id: string
-          email: string | null
-          display_name: string
-          has_league_admin: boolean
-        }[]
-      }
-      admin_set_league_admin_role: {
-        Args: { p_user_id: string; p_granted: boolean; p_reason: string }
-        Returns: boolean
-      }
-      admin_list_disciplinary_suspensions: {
-        Args: { p_location_id?: string | null }
-        Returns: {
-          competition_player_id: string
-          player_name: string
-          disciplinary_strikes: number
-          last_straight_red_at: string
-          last_fixture_id: string
-          last_gameweek: number
-          last_team_name: string
-        }[]
-      }
-      admin_reactivate_disciplined_player: {
-        Args: { p_competition_player_id: string; p_reason: string }
-        Returns: undefined
-      }
-      admin_postpone_gameweek: {
-        Args: { p_gameweek_id: string; p_replacement_at: string; p_reason: string }
-        Returns: Json
-      }
-      get_admin_postponable_gameweeks: {
-        Args: { p_season_id?: string | null }
-        Returns: {
-          gameweek_id: string
-          season_id: string
-          season_name: string
-          week_number: number
-          scheduled_at: string | null
-          fixture_count: number
-          paid_team_count: number
-          location_name: string | null
-        }[]
-      }
-      admin_list_player_retention_accounts: {
-        Args: { p_search?: string | null }
-        Returns: {
-          account_closed_at: string | null
-          account_retention_status: string
-          archive_expires_at: string | null
-          email: string | null
-          full_name: string
-          last_sign_in_at: string
-          retention_hold: boolean
-          retention_hold_reason: string | null
-          user_id: string
-        }[]
-      }
-      admin_set_player_retention_hold: {
-        Args: { p_hold: boolean; p_reason: string; p_user_id: string }
-        Returns: boolean
-      }
-      admin_close_inactive_player_account: {
-        Args: { p_user_id: string }
-        Returns: boolean
-      }
-      admin_prepare_player_account_erasure: {
-        Args: { p_user_id: string }
-        Returns: boolean
-      }
-      admin_list_expired_player_account_archives: {
-        Args: never
-        Returns: { archive_expires_at: string; email: string | null; user_id: string }[]
-      }
-      admin_list_inactive_player_accounts: {
-        Args: never
-        Returns: { email: string | null; last_sign_in_at: string; user_id: string }[]
-      }
-      admin_mark_player_account_erasure_due: {
-        Args: { p_user_id: string }
-        Returns: boolean
-      }
-      complete_player_account_reactivation: {
-        Args: { p_token_hash: string; p_user_id: string }
-        Returns: boolean
-      }
-      get_my_player_account_retention_status: {
-        Args: never
-        Returns: { account_closed_at: string | null; account_retention_status: string; archive_expires_at: string | null }[]
-      }
-      get_player_account_reactivation_target: {
-        Args: { p_token_hash: string }
-        Returns: string
-      }
-      request_player_account_reactivation: {
-        Args: { p_email: string; p_token_hash: string }
-        Returns: { email: string | null; user_id: string }[]
-      }
-      admin_get_guardian_consent_queue: {
-        Args: never
-        Returns: {
-          created_at: string
-          guardian_email: string
-          guardian_full_name: string
-          id: string
-          player_date_of_birth: string
-          player_email: string
-          player_user_id: string
-          status: string
-          verified_at: string | null
-        }[]
-      }
-      admin_review_guardian_consent: {
-        Args: { p_consent_id: string; p_decision: string; p_reason: string }
-        Returns: string
-      }
-      get_my_guardian_consent_status: {
-        Args: never
-        Returns: {
-          guardian_email: string
-          guardian_full_name: string
-          player_date_of_birth: string
-          review_reason: string | null
-          reviewed_at: string | null
-          status: string
-          verified_at: string | null
-          withdrawn_at: string | null
-        }[]
-      }
-      request_player_guardian_consent: {
-        Args: {
-          p_player_user_id: string
-          p_guardian_email: string
-          p_guardian_full_name: string
-          p_player_date_of_birth: string
-          p_verification_token_hash: string
-          p_withdrawal_token_hash: string
-        }
-        Returns: { requested_at: string; status: string }[]
-      }
-      verify_player_guardian_consent: {
-        Args: { p_token: string }
-        Returns: string
-      }
-      withdraw_player_guardian_consent: {
-        Args: { p_token: string }
-        Returns: string
-      }
-
       admin_add_player_to_team: {
         Args: {
           p_make_captain?: boolean
@@ -1969,6 +3280,34 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_assign_referee_to_fixture: {
+        Args: { p_assignment_role: string; p_fixture_id: string; p_referee_user_id: string }
+        Returns: Database["public"]["Tables"]["referee_fixture_assignments"]["Row"]
+      }
+      admin_cancel_referee_fixture_assignment: {
+        Args: { p_assignment_id: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["referee_fixture_assignments"]["Row"]
+      }
+      admin_claim_player_account_inactivity_warnings: {
+        Args: Record<PropertyKey, never>
+        Returns: { closure_at: string; email: string; inactivity_started_at: string; user_id: string; warning_days: number }[]
+      }
+      admin_close_inactive_player_account: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      admin_close_season_recruitment: {
+        Args: { p_reason: string; p_season_id: string }
+        Returns: Database["public"]["Tables"]["seasons"]["Row"]
+      }
+      admin_correct_approved_referee_match_report: {
+        Args: { p_away_score: number; p_away_scorers: string[]; p_away_substitute_appearances: string[]; p_disciplinary_events: Json; p_expected_version: number; p_home_score: number; p_home_scorers: string[]; p_home_substitute_appearances: string[]; p_match_write_up: string; p_reason: string; p_report_id: string }
+        Returns: number
+      }
+      admin_correct_fixture_motm_nomination: {
+        Args: { p_nomination_id: string; p_competition_player_id: string; p_reason: string }
+        Returns: undefined
+      }
       admin_create_finance_entry: {
         Args: {
           p_amount_pence: number
@@ -2002,79 +3341,6 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
-      }
-      admin_create_venue: {
-        Args: {
-          p_location_id: string
-          p_name: string
-          p_address?: string | null
-          p_operating_days?: number[]
-          p_opens_at?: string | null
-          p_closes_at?: string | null
-          p_is_active?: boolean
-        }
-        Returns: Database["public"]["Tables"]["venues"]["Row"]
-        SetofOptions: {
-          from: "*"
-          to: "venues"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      admin_update_venue: {
-        Args: {
-          p_venue_id: string
-          p_name: string
-          p_address?: string | null
-          p_operating_days?: number[]
-          p_opens_at?: string | null
-          p_closes_at?: string | null
-          p_is_active?: boolean
-        }
-        Returns: Database["public"]["Tables"]["venues"]["Row"]
-        SetofOptions: {
-          from: "*"
-          to: "venues"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      },
-      admin_update_season_matchday_settings: {
-        Args: {
-          p_season_id: string
-          p_matchday_weekday: number | null
-          p_matchday_start_time: string | null
-          p_match_duration_minutes: number | null
-          p_matchday_buffer_minutes?: number
-          p_default_venue_id?: string | null
-          p_round_robin_mode?: string
-        }
-        Returns: Database["public"]["Tables"]["seasons"]["Row"]
-        SetofOptions: {
-          from: "*"
-          to: "seasons"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      },
-      admin_preview_round_robin_fixtures: {
-        Args: { p_season_id: string; p_first_matchday_date: string }
-        Returns: Json
-      },
-      admin_generate_round_robin_fixtures: {
-        Args: { p_season_id: string; p_first_matchday_date: string; p_expected_settings_hash: string }
-        Returns: Json
-      },
-      admin_create_title_final: {
-        Args: {
-          p_away_team_id: string
-          p_home_team_id: string
-          p_reason?: string
-          p_scheduled_at: string
-          p_season_id: string
-          p_venue_id?: string
-        }
-        Returns: Database["public"]["Tables"]["fixtures"]["Row"]
       }
       admin_create_fixture: {
         Args: {
@@ -2158,17 +3424,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      admin_publish_upcoming_season: {
-        Args: { p_reason: string; p_season_id: string }
-        Returns: Database["public"]["Tables"]["seasons"]["Row"]
+      admin_create_message_broadcast: {
+        Args: { p_body: string; p_target_id?: string; p_target_type: string; p_title: string }
+        Returns: string
       }
-      admin_open_season_recruitment: {
-        Args: { p_reason: string; p_season_id: string }
-        Returns: Database["public"]["Tables"]["seasons"]["Row"]
-      }
-      admin_close_season_recruitment: {
-        Args: { p_reason: string; p_season_id: string }
-        Returns: Database["public"]["Tables"]["seasons"]["Row"]
+      admin_create_operating_cost: {
+        Args: { p_amount_pence: number; p_category: string; p_description: string; p_league_id?: string; p_location_id?: string; p_notes?: string; p_occurred_at: string; p_reason?: string; p_reference?: string; p_season_id?: string }
+        Returns: Database["public"]["Tables"]["finance_operating_costs"]["Row"]
       }
       admin_create_season: {
         Args: {
@@ -2230,6 +3492,69 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_create_title_final: {
+        Args: {
+          p_away_team_id: string
+          p_home_team_id: string
+          p_reason?: string
+          p_scheduled_at: string
+          p_season_id: string
+          p_venue_id?: string
+        }
+        Returns: Database["public"]["Tables"]["fixtures"]["Row"]
+      }
+      admin_create_venue: {
+        Args: {
+          p_location_id: string
+          p_name: string
+          p_address?: string | null
+          p_operating_days?: number[]
+          p_opens_at?: string | null
+          p_closes_at?: string | null
+          p_is_active?: boolean
+        }
+        Returns: Database["public"]["Tables"]["venues"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "venues"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_finish_player_account_inactivity_warning: {
+        Args: { p_delivered: boolean; p_inactivity_started_at: string; p_user_id: string; p_warning_days: number }
+        Returns: boolean
+      }
+      admin_generate_round_robin_fixtures: {
+        Args: { p_season_id: string; p_first_matchday_date: string; p_expected_settings_hash: string }
+        Returns: Json
+      },
+      admin_get_approved_referee_report_correction_options: {
+        Args: { p_report_id: string }
+        Returns: Json
+      }
+      admin_get_guardian_consent_queue: {
+        Args: never
+        Returns: {
+          created_at: string
+          guardian_email: string
+          guardian_full_name: string
+          id: string
+          player_date_of_birth: string
+          player_email: string
+          player_user_id: string
+          status: string
+          verified_at: string | null
+        }[]
+      }
+      admin_get_message_reports: {
+        Args: { p_limit?: number; p_status?: string }
+        Returns: { conversation_id: string; conversation_title: string; created_at: string; location_id: string; message_body: string; message_id: string; reason: string; report_id: string; reported_user_name: string; reporter_name: string; status: string }[]
+      }
+      admin_get_message_target_options: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       admin_get_notification_dispatch_status: {
         Args: never
         Returns: {
@@ -2266,6 +3591,17 @@ export type Database = {
         }[]
       }
       admin_get_player_detail: { Args: { p_user_id: string }; Returns: Json }
+      admin_get_referee_fixture_report_options: {
+        Args: { p_fixture_id: string }
+        Returns: Json
+      }
+      admin_get_referee_payout_transfer_history: {
+        Args: { p_payout_type: string; p_payout_id: string }
+        Returns: {
+          attempt_number: number; status: string; amount_pence: number;
+          stripe_transfer_id: string | null; failure_reason: string | null; created_at: string;
+        }[]
+      }
       admin_get_transfer_requests: {
         Args: { p_status?: string }
         Returns: {
@@ -2305,6 +3641,47 @@ export type Database = {
           user_id: string | null
         }[]
       }
+      admin_list_disciplinary_suspensions: {
+        Args: { p_location_id?: string | null }
+        Returns: {
+          competition_player_id: string
+          player_name: string
+          disciplinary_strikes: number
+          last_straight_red_at: string
+          last_fixture_id: string
+          last_gameweek: number
+          last_team_name: string
+        }[]
+      }
+      admin_list_expired_player_account_archives: {
+        Args: never
+        Returns: { archive_expires_at: string; email: string | null; user_id: string }[]
+      }
+      admin_list_fixture_motm_nominations: {
+        Args: { p_location_id?: string | null }
+        Returns: {
+          nomination_id: string
+          fixture_id: string
+          season_team_id: string
+          team_name: string
+          opponent_name: string
+          gameweek: number
+          scheduled_at: string | null
+          location_id: string
+          location_name: string
+          competition_player_id: string
+          nominated_player_name: string
+          nominated_by: string
+          nominated_at: string
+          corrected_at: string | null
+          correction_reason: string | null
+          eligible_players: Json
+        }[]
+      }
+      admin_list_inactive_player_accounts: {
+        Args: never
+        Returns: { email: string | null; last_sign_in_at: string; user_id: string }[]
+      }
       admin_list_location_assignments: {
         Args: { p_location_id?: string }
         Returns: {
@@ -2314,6 +3691,103 @@ export type Database = {
           location_name: string
           user_id: string
         }[]
+      }
+      admin_list_player_retention_accounts: {
+        Args: { p_search?: string | null }
+        Returns: {
+          account_closed_at: string | null
+          account_retention_status: string
+          archive_expires_at: string | null
+          email: string | null
+          full_name: string
+          last_sign_in_at: string
+          retention_hold: boolean
+          retention_hold_reason: string | null
+          user_id: string
+        }[]
+      }
+      admin_list_referee_applications: {
+        Args: { p_status?: string }
+        Returns: { additional_notes: string; application_id: string; availability: Json; contact_phone: string; email: string; experience_summary: string; player_name: string; preferred_location_ids: string[]; preferred_location_names: string[]; qualifications: string[]; review_reason: string; reviewed_at: string; status: string; submitted_at: string; user_id: string }[]
+      }
+      admin_list_referee_appointments: {
+        Args: { p_include_cancelled?: boolean; p_location_id?: string }
+        Returns: { assigned_at: string; assignment_id: string; assignment_role: string; away_team_name: string; cancellation_reason: string; cancelled_at: string; fixture_id: string; fixture_number: number; gameweek: number; home_team_name: string; location_id: string; location_name: string; referee_email: string; referee_name: string; referee_user_id: string; scheduled_at: string }[]
+      }
+      admin_list_referee_assignment_candidates: {
+        Args: { p_location_id?: string }
+        Returns: { availability: Json; preferred_location_ids: string[]; referee_email: string; referee_name: string; referee_user_id: string }[]
+      }
+      admin_list_referee_assignment_fixtures: {
+        Args: Record<PropertyKey, never>
+        Returns: { away_team_name: string; fixture_id: string; fixture_number: number; gameweek: number; home_team_name: string; location_id: string; location_name: string; scheduled_at: string }[]
+      }
+      admin_list_referee_match_reports: {
+        Args: { p_location_id?: string; p_status?: string }
+        Returns: { away_score: number; away_scorers: string[]; away_substitute_appearances: string[]; away_team_name: string; disciplinary_events: Json; fixture_id: string; fixture_number: number; gameweek: number; home_score: number; home_scorers: string[]; home_substitute_appearances: string[]; home_team_name: string; location_id: string; location_name: string; match_write_up: string; referee_email: string; referee_name: string; referee_user_id: string; report_id: string; report_source: string; review_reason: string; scheduled_at: string; status: string; submitted_at: string; version: number }[]
+      }
+      admin_list_referee_milestone_rewards_connect: {
+        Args: { p_status?: string | null }
+        Returns: {
+          reward_id: string; referee_user_id: string | null; referee_name: string;
+          milestone_number: number; approved_games: number; amount_pence: number;
+          status: string; stripe_transfer_id: string | null; failure_reason: string | null;
+          transfer_attempts: number; connect_status: string; transfers_enabled: boolean;
+          payouts_enabled: boolean; created_at: string; transferred_at: string | null;
+        }[]
+      }
+      admin_list_referee_report_payouts: {
+        Args: { p_location_id?: string; p_status?: string }
+        Returns: { created_at: string; deductions_pence: number; fixture_id: string; fixture_number: number; gameweek: number; gross_allocation_pence: number; location_id: string; location_name: string; open_play_top_up_pence: number; payout_id: string; referee_email: string; referee_name: string; referee_net_pence: number; referee_user_id: string; report_id: string; scheduled_at: string; status: string; stripe_transfer_id: string; transferred_at: string }[]
+      }
+      admin_list_referee_report_payouts_connect: {
+        Args: { p_status?: string | null }
+        Returns: {
+          payout_id: string; report_id: string; referee_user_id: string | null;
+          referee_name: string; referee_email: string | null; fixture_id: string;
+          gameweek: number; fixture_number: number; scheduled_at: string | null;
+          location_id: string; location_name: string; gross_allocation_pence: number;
+          deductions_pence: number; referee_net_pence: number; open_play_top_up_pence: number;
+          status: string; stripe_transfer_id: string | null; failure_reason: string | null;
+          transfer_attempts: number; connect_status: string; transfers_enabled: boolean;
+          payouts_enabled: boolean; created_at: string; transferred_at: string | null;
+        }[]
+      }
+      admin_list_referee_reportable_fixtures: {
+        Args: { p_location_id?: string }
+        Returns: { away_team_id: string; away_team_name: string; existing_report_id: string; existing_report_status: string; fixture_id: string; fixture_number: number; gameweek: number; home_team_id: string; home_team_name: string; location_id: string; location_name: string; scheduled_at: string }[]
+      }
+      admin_mark_player_account_erasure_due: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      admin_open_season_recruitment: {
+        Args: { p_reason: string; p_season_id: string }
+        Returns: Database["public"]["Tables"]["seasons"]["Row"]
+      }
+      admin_postpone_gameweek: {
+        Args: { p_gameweek_id: string; p_replacement_at: string; p_reason: string }
+        Returns: Json
+      }
+      admin_prepare_player_account_erasure: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      admin_preview_round_robin_fixtures: {
+        Args: { p_season_id: string; p_first_matchday_date: string }
+        Returns: Json
+      },
+      admin_publish_upcoming_season: {
+        Args: { p_reason: string; p_season_id: string }
+        Returns: Database["public"]["Tables"]["seasons"]["Row"]
+      }
+      admin_reactivate_disciplined_player: {
+        Args: { p_competition_player_id: string; p_reason: string }
+        Returns: undefined
+      }
+      admin_record_fixture_goal_events: {
+        Args: { p_events: Json; p_fixture_id: string; p_reason: string }
+        Returns: Json
       }
       admin_record_fixture_result: {
         Args: {
@@ -2338,10 +3812,6 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
-      }
-      admin_record_fixture_goal_events: {
-        Args: { p_events: Json; p_fixture_id: string; p_reason: string }
-        Returns: Json
       }
       admin_record_fixture_result_with_appearances: {
         Args: {
@@ -2399,6 +3869,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      admin_resolve_message_report: {
+        Args: { p_action: string; p_reason: string; p_report_id: string }
+        Returns: undefined
       }
       admin_resolve_player_transfer_request: {
         Args: { p_decision: string; p_reason: string; p_request_id: string }
@@ -2460,79 +3934,29 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_review_guardian_consent: {
+        Args: { p_consent_id: string; p_decision: string; p_reason: string }
+        Returns: string
+      }
+      admin_review_referee_match_report: {
+        Args: { p_decision: string; p_reason: string; p_report_id: string }
+        Returns: undefined
+      }
+      admin_search_league_admin_role_candidates: {
+        Args: { p_query: string }
+        Returns: {
+          user_id: string
+          email: string | null
+          display_name: string
+          has_league_admin: boolean
+        }[]
+      }
       admin_search_location_admin_candidates: {
         Args: { p_query: string }
         Returns: {
           display_name: string
           email: string
           user_id: string
-        }[]
-      }
-      get_my_referee_connect_status: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      claim_referee_payout_transfer: {
-        Args: { p_payout_type: string; p_payout_id: string }
-        Returns: Json
-      }
-      admin_get_referee_payout_transfer_history: {
-        Args: { p_payout_type: string; p_payout_id: string }
-        Returns: {
-          attempt_number: number; status: string; amount_pence: number;
-          stripe_transfer_id: string | null; failure_reason: string | null; created_at: string;
-        }[]
-      }
-      admin_list_referee_report_payouts_connect: {
-        Args: { p_status?: string | null }
-        Returns: {
-          payout_id: string; report_id: string; referee_user_id: string | null;
-          referee_name: string; referee_email: string | null; fixture_id: string;
-          gameweek: number; fixture_number: number; scheduled_at: string | null;
-          location_id: string; location_name: string; gross_allocation_pence: number;
-          deductions_pence: number; referee_net_pence: number; open_play_top_up_pence: number;
-          status: string; stripe_transfer_id: string | null; failure_reason: string | null;
-          transfer_attempts: number; connect_status: string; transfers_enabled: boolean;
-          payouts_enabled: boolean; created_at: string; transferred_at: string | null;
-        }[]
-      }
-      admin_list_referee_milestone_rewards_connect: {
-        Args: { p_status?: string | null }
-        Returns: {
-          reward_id: string; referee_user_id: string | null; referee_name: string;
-          milestone_number: number; approved_games: number; amount_pence: number;
-          status: string; stripe_transfer_id: string | null; failure_reason: string | null;
-          transfer_attempts: number; connect_status: string; transfers_enabled: boolean;
-          payouts_enabled: boolean; created_at: string; transferred_at: string | null;
-        }[]
-      }
-      admin_get_approved_referee_report_correction_options: {
-        Args: { p_report_id: string }
-        Returns: Json
-      }
-      admin_postpone_gameweek_weather: {
-        Args: {
-          p_gameweek: number
-          p_reason: string
-          p_replacement_date: string
-          p_season_id: string
-        }
-        Returns: Json
-      }
-      get_admin_weather_postponements: {
-        Args: { p_season_id?: string | null }
-        Returns: {
-          created_at: string
-          fixture_count: number
-          original_gameweek: number
-          postponement_id: string
-          reason: string
-          refunds_completed: number
-          refunds_failed: number
-          refunds_pending: number
-          replacement_date: string
-          season_id: string
-          season_name: string
         }[]
       }
       admin_set_fixture_status: {
@@ -2565,6 +3989,10 @@ export type Database = {
       admin_set_gallery_item_published: {
         Args: { p_is_published: boolean; p_item_id: string }
         Returns: undefined
+      }
+      admin_set_league_admin_role: {
+        Args: { p_user_id: string; p_granted: boolean; p_reason: string }
+        Returns: boolean
       }
       admin_set_league_published: {
         Args: { p_is_published: boolean; p_league_id: string }
@@ -2658,6 +4086,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_set_platform_feature_flag: {
+        Args: { p_enabled: boolean; p_feature_key: string; p_reason: string }
+        Returns: Database["public"]["Tables"]["platform_feature_flags"]["Row"]
+      }
       admin_set_player_ban: {
         Args: { p_is_banned: boolean; p_reason: string; p_user_id: string }
         Returns: {
@@ -2715,9 +4147,17 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_set_player_retention_hold: {
+        Args: { p_hold: boolean; p_reason: string; p_user_id: string }
+        Returns: boolean
+      }
       admin_set_season_points: {
         Args: { p_points_for_draw: number; p_points_for_loss: number; p_points_for_win: number; p_reason: string; p_season_id: string }
         Returns: Database["public"]["Tables"]["seasons"]["Row"]
+      }
+      admin_submit_referee_match_report: {
+        Args: { p_away_score: number; p_away_scorers?: string[]; p_away_substitute_appearances?: string[]; p_disciplinary_events?: Json; p_fixture_id: string; p_home_score: number; p_home_scorers?: string[]; p_home_substitute_appearances?: string[]; p_match_write_up?: string; p_reason?: string }
+        Returns: string
       }
       admin_transition_season: {
         Args: {
@@ -2759,9 +4199,65 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_update_season_matchday_settings: {
+        Args: {
+          p_season_id: string
+          p_matchday_weekday: number | null
+          p_matchday_start_time: string | null
+          p_match_duration_minutes: number | null
+          p_matchday_buffer_minutes?: number
+          p_default_venue_id?: string | null
+          p_round_robin_mode?: string
+        }
+        Returns: Database["public"]["Tables"]["seasons"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "seasons"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      },
+      admin_update_venue: {
+        Args: {
+          p_venue_id: string
+          p_name: string
+          p_address?: string | null
+          p_operating_days?: number[]
+          p_opens_at?: string | null
+          p_closes_at?: string | null
+          p_is_active?: boolean
+        }
+        Returns: Database["public"]["Tables"]["venues"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "venues"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      },
+      admin_void_referee_match_report: {
+        Args: { p_reason: string; p_report_id: string }
+        Returns: undefined
+      }
+      anonymise_player_audit_json: {
+        Args: { p_user_id: string; p_value: Json }
+        Returns: Json
+      }
       assert_admin_location_context: {
         Args: { p_location_id: string }
         Returns: undefined
+      }
+      block_message_user: {
+        Args: { p_blocked_user_id: string }
+        Returns: undefined
+      }
+      build_round_robin_fixture_schedule: {
+        Args: { p_first_matchday_date: string; p_season_id: string }
+        Returns: { away_team_id: string; fixture_number: number; gameweek: number; home_team_id: string; scheduled_at: string }[]
+      }
+      can_access_message_conversation: {
+        Args: { p_conversation_id: string }
+        Returns: boolean
       }
       can_administer_location: {
         Args: { p_location_id: string }
@@ -2793,6 +4289,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      captain_next_required_fixture: {
+        Args: { p_season_team_id: string }
+        Returns: string
       }
       claim_notification_events: {
         Args: { p_channels?: string[]; p_limit?: number }
@@ -2827,6 +4327,26 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      claim_referee_payout_transfer: {
+        Args: { p_payout_type: string; p_payout_id: string }
+        Returns: Json
+      }
+      claim_referee_payout_transfer_jobs: {
+        Args: { p_limit?: number }
+        Returns: { job_id: string; lock_token: string; payout_id: string }[]
+      }
+      claim_referee_payout_transfer_worker: {
+        Args: { p_job_id: string; p_lock_token: string; p_payout_id: string }
+        Returns: Json
+      }
+      claim_team_fixture_payment_checkout_attempt: {
+        Args: { p_expected_session_id?: string; p_obligation_id: string }
+        Returns: number
+      }
+      clear_team_fixture_payment_checkout_session: {
+        Args: { p_obligation_id: string; p_session_id: string }
+        Returns: boolean
+      }
       complete_notification_event: {
         Args: { p_event_id: string; p_provider_reference?: string }
         Returns: {
@@ -2860,6 +4380,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      complete_player_account_reactivation: {
+        Args: { p_token_hash: string; p_user_id: string }
+        Returns: boolean
+      }
+      create_direct_message_conversation: {
+        Args: { p_recipient_user_id: string }
+        Returns: string
+      }
       create_player_fixture_payment: {
         Args: { p_fixture_id: string; p_season_team_id: string }
         Returns: {
@@ -2869,7 +4397,19 @@ export type Database = {
           payment_record_id: string
         }[]
       }
+      create_support_message_conversation: {
+        Args: { p_initial_message: string; p_subject: string }
+        Returns: string
+      }
+      create_team_fixture_payment_obligation: {
+        Args: { p_fixture_id: string; p_season_team_id: string }
+        Returns: { amount_pence: number; deadline_at: string; grace_ends_at: string; obligation_id: string; status: string }[]
+      }
       dispatch_notification_worker: { Args: never; Returns: number }
+      dispatch_referee_payout_transfer_worker: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       enqueue_fixture_reminders: { Args: never; Returns: number }
       enqueue_notification_event: {
         Args: { p_event_type: string; p_payload: Json; p_user_id: string }
@@ -2941,6 +4481,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_active_referee_locations: {
+        Args: Record<PropertyKey, never>
+        Returns: { id: string; name: string; region: string; town: string }[]
+      }
       get_admin_audit_history: {
         Args: { p_limit?: number; p_offset?: number; p_search?: string }
         Returns: {
@@ -2952,6 +4496,10 @@ export type Database = {
           id: number
           reason: string
         }[]
+      }
+      get_admin_business_performance: {
+        Args: { p_from_date?: string; p_league_id?: string; p_location_id?: string; p_season_id?: string; p_to_date?: string }
+        Returns: { net_operating_surplus_pence: number; outstanding_pence: number; player_card_fees_pence: number; player_card_gross_pence: number; player_card_net_pence: number; player_card_refunds_pence: number; recorded_costs_pence: number; team_charges_pence: number; team_credits_pence: number; team_fines_pence: number; team_receipts_pence: number; team_refunds_pence: number; upcoming_team_forecast_pence: number; upcoming_team_obligations: number }[]
       }
       get_admin_competition_setup: { Args: never; Returns: Json }
       get_admin_context_preference: { Args: never; Returns: Json }
@@ -3006,6 +4554,19 @@ export type Database = {
           published_at: string
         }[]
       }
+      get_admin_operating_costs: {
+        Args: { p_from_date?: string; p_league_id?: string; p_limit?: number; p_location_id?: string; p_season_id?: string; p_to_date?: string }
+        Returns: { amount_pence: number; category: string; created_at: string; created_by: string; description: string; id: string; league_id: string; league_name: string; location_id: string; location_name: string; notes: string; occurred_at: string; reference: string; season_id: string; season_name: string }[]
+      }
+      get_admin_platform_feature_flags: {
+        Args: never
+        Returns: {
+          enabled: boolean
+          feature_key: string
+          updated_at: string
+          updated_by: string | null
+        }[]
+      }
       get_admin_player_register: {
         Args: {
           p_limit?: number
@@ -3049,11 +4610,51 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_admin_season_statistics: {
+      get_admin_postponable_gameweeks: {
+        Args: { p_season_id?: string | null }
+        Returns: {
+          gameweek_id: string
+          season_id: string
+          season_name: string
+          week_number: number
+          scheduled_at: string | null
+          fixture_count: number
+          paid_team_count: number
+          location_name: string | null
+        }[]
+      }
+      get_admin_product_analytics_scope: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_admin_registration_conversion: {
+        Args: {
+          p_from_date?: string | null
+          p_to_date?: string | null
+          p_location_id?: string | null
+          p_league_id?: string | null
+          p_season_id?: string | null
+        }
+        Returns: {
+          bucket_date: string
+          player_registered: number | null
+          player_pending_review: number | null
+          player_rejected: number | null
+          team_applications: number
+          team_approved: number
+          team_rejected: number
+          team_pending: number
+          membership_requests: number
+          membership_accepted: number
+          membership_rejected: number
+          membership_pending: number
+        }[]
+      }
+      get_admin_season_player_club_statistics: {
         Args: { p_season_id: string }
         Returns: Json
       }
-      get_admin_season_player_club_statistics: {
+      get_admin_season_statistics: {
         Args: { p_season_id: string }
         Returns: Json
       }
@@ -3077,6 +4678,10 @@ export type Database = {
           stripe_fee_pence: number
           team_name: string
         }[]
+      }
+      get_admin_team_fixture_payment_queue: {
+        Args: { p_season_id?: string }
+        Returns: { amount_pence: number; deadline_at: string; fixture_id: string; gameweek: number; grace_ends_at: string; obligation_id: string; opponent_name: string; paid_at: string; refund_status: string; scheduled_at: string; season_id: string; season_name: string; season_team_id: string; status: string; strike_created_at: string; team_name: string }[]
       }
       get_admin_team_sheets: {
         Args: never
@@ -3114,6 +4719,22 @@ export type Database = {
           submitted_at: string
           team_name: string
           team_sheet_id: string
+        }[]
+      }
+      get_admin_user_growth: {
+        Args: {
+          p_from_date?: string | null
+          p_to_date?: string | null
+          p_location_id?: string | null
+          p_league_id?: string | null
+          p_season_id?: string | null
+        }
+        Returns: {
+          bucket_date: string
+          account_signups: number | null
+          player_registrations: number
+          team_applications: number
+          team_approvals: number
         }[]
       }
       get_captain_availability: {
@@ -3155,6 +4776,23 @@ export type Database = {
           team_name: string
         }[]
       }
+      get_captain_motm_nomination_options: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          fixture_id: string
+          season_team_id: string
+          team_name: string
+          opponent_name: string
+          gameweek: number
+          scheduled_at: string
+          deadline_at: string
+          nomination_id: string | null
+          nominated_competition_player_id: string | null
+          nominated_player_name: string | null
+          can_nominate: boolean
+          eligible_players: Json
+        }[]
+      }
       get_captain_team_fixture_payments: {
         Args: never
         Returns: {
@@ -3182,6 +4820,24 @@ export type Database = {
           starters: string[]
           submitted_at: string
           substitutes: string[]
+        }[]
+      }
+      get_captain_transfer_requests: {
+        Args: never
+        Returns: {
+          destination_season_team_id: string
+          destination_team_name: string
+          id: string
+          is_emergency: boolean
+          league_name: string
+          player_name: string
+          reason: string
+          requested_at: string
+          season_name: string
+          source_team_name: string
+          status: string
+          target_fixture_id: string | null
+          user_id: string
         }[]
       }
       get_finance_ledger: {
@@ -3232,9 +4888,13 @@ export type Database = {
           teams_with_entries: number
         }[]
       }
-      get_my_player_statistics: {
-        Args: { p_season_id: string }
-        Returns: Json
+      get_message_history: {
+        Args: { p_before?: string; p_conversation_id: string; p_limit?: number }
+        Returns: { body: string; conversation_id: string; created_at: string; is_hidden: boolean; message_id: string; message_type: string; sender_id: string; sender_name: string }[]
+      }
+      get_my_blocked_message_users: {
+        Args: Record<PropertyKey, never>
+        Returns: { blocked_at: string; display_name: string; user_id: string }[]
       }
       get_my_fixture_payments: {
         Args: never
@@ -3251,6 +4911,23 @@ export type Database = {
           season_team_id: string
           status: Database["public"]["Enums"]["payment_status"]
         }[]
+      }
+      get_my_guardian_consent_status: {
+        Args: never
+        Returns: {
+          guardian_email: string
+          guardian_full_name: string
+          player_date_of_birth: string
+          review_reason: string | null
+          reviewed_at: string | null
+          status: string
+          verified_at: string | null
+          withdrawn_at: string | null
+        }[]
+      }
+      get_my_message_conversations: {
+        Args: { p_limit?: number }
+        Returns: { conversation_id: string; created_at: string; kind: string; last_message_at: string; last_message_body: string; last_message_id: string; last_message_sender_id: string; other_participant_last_read_at: string; other_participant_name: string; other_participant_user_id: string; participant_count: number; read_by_count: number; season_team_id: string; title: string; unread_count: number; updated_at: string }[]
       }
       get_my_notification_preferences: {
         Args: never
@@ -3270,6 +4947,34 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_my_player_account_retention_status: {
+        Args: never
+        Returns: { account_closed_at: string | null; account_retention_status: string; archive_expires_at: string | null }[]
+      }
+      get_my_player_motm_awards: {
+        Args: { p_season_id?: string | null }
+        Returns: Json
+      }
+      get_my_player_statistics: {
+        Args: { p_season_id: string }
+        Returns: Json
+      }
+      get_my_referee_assignments: {
+        Args: Record<PropertyKey, never>
+        Returns: { assigned_at: string; assignment_id: string; assignment_role: string; away_team_name: string; fixture_id: string; fixture_number: number; fixture_status: Database["public"]["Enums"]["fixture_status"]; gameweek: number; home_team_name: string; scheduled_at: string; venue_name: string }[]
+      }
+      get_my_referee_connect_status: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_my_referee_fixture_report_options: {
+        Args: { p_fixture_id: string }
+        Returns: Json
+      }
+      get_my_referee_portal_state: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       get_my_team_request_statuses: {
         Args: never
@@ -3318,73 +5023,28 @@ export type Database = {
           status: string
         }[]
       }
-      get_captain_transfer_requests: {
+      get_player_account_reactivation_target: {
+        Args: { p_token_hash: string }
+        Returns: string
+      }
+      get_public_announcement_status: {
         Args: never
+        Returns: boolean
+      }
+      get_public_season_club_leaders: {
+        Args: { p_season_id: string }
         Returns: {
-          destination_season_team_id: string
-          destination_team_name: string
-          id: string
-          is_emergency: boolean
-          league_name: string
+          competition_player_id: string
           player_name: string
-          reason: string
-          requested_at: string
-          season_name: string
-          source_team_name: string
-          status: string
-          target_fixture_id: string | null
-          user_id: string
+          season_team_id: string
+          team_name: string
+          motm_awards: number
+          appearances: number
         }[]
       }
-      leave_team_membership: {
-        Args: { p_membership_id: string }
-        Returns: {
-          created_at: string
-          id: string
-          is_captain: boolean
-          joined_at: string | null
-          left_at: string | null
-          season_team_id: string
-          squad_number: number | null
-          status: Database["public"]["Enums"]["membership_status"]
-          transfer_request_id: string | null
-          voluntarily_left_at: string | null
-          updated_at: string
-          user_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "team_memberships"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      resolve_player_transfer_request: {
-        Args: { p_decision: string; p_reason: string; p_request_id: string }
-        Returns: {
-          created_at: string
-          destination_season_team_id: string
-          id: string
-          is_emergency: boolean
-          league_id: string
-          reason: string
-          requested_at: string
-          resolution_reason: string | null
-          resolved_at: string | null
-          resolved_by: string | null
-          source_membership_id: string | null
-          source_season_team_id: string
-          status: string
-          target_fixture_id: string | null
-          updated_at: string
-          user_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "player_transfer_requests"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+      get_public_team_recruitment_status: {
+        Args: never
+        Returns: boolean
       }
       handover_team_captain: {
         Args: { p_new_captain_membership_id: string; p_season_team_id: string }
@@ -3410,7 +5070,15 @@ export type Database = {
         }
       }
       has_finance_access: { Args: never; Returns: boolean }
+      has_global_admin_role: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       has_platform_role: { Args: never; Returns: boolean }
+      hash_guardian_consent_token: {
+        Args: { p_token: string }
+        Returns: string
+      }
       is_active_team_captain: {
         Args: { p_season_team_id: string }
         Returns: boolean
@@ -3418,6 +5086,37 @@ export type Database = {
       is_active_team_member: {
         Args: { p_season_team_id: string }
         Returns: boolean
+      }
+      is_platform_feature_enabled: {
+        Args: { p_feature_key: string }
+        Returns: boolean
+      }
+      leave_team_membership: {
+        Args: { p_membership_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          is_captain: boolean
+          joined_at: string | null
+          left_at: string | null
+          season_team_id: string
+          squad_number: number | null
+          status: Database["public"]["Enums"]["membership_status"]
+          transfer_request_id: string | null
+          voluntarily_left_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "team_memberships"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      mark_message_conversation_read: {
+        Args: { p_conversation_id: string }
+        Returns: undefined
       }
       mark_notification_event_unconfirmed: {
         Args: { p_error: string; p_event_id: string }
@@ -3459,6 +5158,38 @@ export type Database = {
       mark_stale_notification_events_unconfirmed: {
         Args: never
         Returns: number
+      }
+      message_actor_is_active: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      normalize_player_phone: {
+        Args: { p_phone: string }
+        Returns: string
+      }
+      open_play_uk_date: {
+        Args: { p_instant: string }
+        Returns: string
+      }
+      process_team_fixture_payment_deadlines: {
+        Args: { p_as_of?: string }
+        Returns: number
+      }
+      record_referee_payout_transfer_failure: {
+        Args: { p_failure_reason: string; p_payout_id: string; p_payout_type: string; p_stripe_transfer_id?: string; p_transfer_reversed?: boolean }
+        Returns: string
+      }
+      record_referee_payout_transfer_success: {
+        Args: { p_amount_pence: number; p_currency: string; p_destination_account_id: string; p_payout_id: string; p_payout_type: string; p_stripe_transfer_id: string }
+        Returns: string
+      }
+      record_team_fixture_payment_refund_result: {
+        Args: { p_failure_reason?: string; p_refund_id: string; p_stripe_refund_id?: string; p_succeeded: boolean }
+        Returns: string
+      }
+      record_team_fixture_payment_success: {
+        Args: { p_obligation_id: string; p_paid_at: string; p_stripe_payment_intent_id: string }
+        Returns: string
       }
       register_player: {
         Args: {
@@ -3517,6 +5248,29 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      release_referee_payout_transfer_job: {
+        Args: { p_delay_seconds?: number; p_job_id: string; p_lock_token: string; p_reason: string }
+        Returns: boolean
+      }
+      report_message: {
+        Args: { p_message_id: string; p_reason: string }
+        Returns: string
+      }
+      request_player_account_reactivation: {
+        Args: { p_email: string; p_token_hash: string }
+        Returns: { email: string | null; user_id: string }[]
+      }
+      request_player_guardian_consent: {
+        Args: {
+          p_player_user_id: string
+          p_guardian_email: string
+          p_guardian_full_name: string
+          p_player_date_of_birth: string
+          p_verification_token_hash: string
+          p_withdrawal_token_hash: string
+        }
+        Returns: { requested_at: string; status: string }[]
       }
       request_player_transfer: {
         Args: {
@@ -3595,6 +5349,33 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      resolve_player_transfer_request: {
+        Args: { p_decision: string; p_reason: string; p_request_id: string }
+        Returns: {
+          created_at: string
+          destination_season_team_id: string
+          id: string
+          is_emergency: boolean
+          league_id: string
+          reason: string
+          requested_at: string
+          resolution_reason: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_membership_id: string | null
+          source_season_team_id: string
+          status: string
+          target_fixture_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "player_transfer_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       resolve_team_membership_request: {
         Args: { p_decision: string; p_membership_id: string }
         Returns: {
@@ -3646,6 +5427,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      review_referee_application: {
+        Args: { p_application_id: string; p_decision: string; p_reason: string }
+        Returns: undefined
+      }
+      round_robin_fixture_settings_hash: {
+        Args: { p_first_matchday_date: string; p_season_id: string }
+        Returns: string
+      }
       save_admin_context_preference: {
         Args: {
           p_league_id?: string
@@ -3678,6 +5467,30 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      search_message_recipients: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: { display_name: string; shared_team_name: string; user_id: string }[]
+      }
+      season_joint_leaders: {
+        Args: { p_season_id: string }
+        Returns: string[]
+      }
+      season_league_points: {
+        Args: { p_season_id: string }
+        Returns: { points: number; team_id: string }[]
+      }
+      send_message: {
+        Args: { p_body: string; p_conversation_id: string; p_message_type?: string }
+        Returns: string
+      }
+      set_referee_membership_status: {
+        Args: { p_reason: string; p_status: string; p_user_id: string }
+        Returns: undefined
+      }
+      set_team_fixture_payment_checkout_session: {
+        Args: { p_attempt: number; p_obligation_id: string; p_session_id: string }
+        Returns: boolean
+      }
       set_team_squad_number: {
         Args: { p_membership_id: string; p_squad_number?: number }
         Returns: {
@@ -3700,6 +5513,18 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      submit_fixture_motm_nomination: {
+        Args: { p_fixture_id: string; p_competition_player_id: string }
+        Returns: string
+      }
+      submit_referee_application: {
+        Args: { p_additional_notes: string; p_availability: Json; p_contact_phone: string; p_experience_summary: string; p_preferred_location_ids: string[]; p_qualifications: string[] }
+        Returns: string
+      }
+      submit_referee_match_report: {
+        Args: { p_away_score: number; p_away_scorers?: string[]; p_away_substitute_appearances?: string[]; p_disciplinary_events?: Json; p_fixture_id: string; p_home_score: number; p_home_scorers?: string[]; p_home_substitute_appearances?: string[]; p_match_write_up?: string }
+        Returns: string
       }
       submit_team_sheet: {
         Args: {
@@ -3725,6 +5550,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      sync_referee_connect_account: {
+        Args: { p_charges_enabled: boolean; p_details_submitted: boolean; p_disabled_reason: string; p_payouts_enabled: boolean; p_referee_user_id: string; p_requirements_due: Json; p_stripe_account_id: string; p_stripe_event_created_at?: string; p_transfers_enabled: boolean }
+        Returns: string
+      }
+      unblock_message_user: {
+        Args: { p_blocked_user_id: string }
+        Returns: undefined
+      }
       update_my_notification_preferences: {
         Args: {
           p_email_enabled: boolean
@@ -3748,66 +5581,16 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      admin_set_platform_feature_flag: {
-        Args: { p_enabled: boolean; p_feature_key: string; p_reason: string }
-        Returns: Database["public"]["Tables"]["platform_feature_flags"]["Row"]
+      verify_player_guardian_consent: {
+        Args: { p_token: string }
+        Returns: string
       }
-      get_public_announcement_status: {
-        Args: never
-        Returns: boolean
+      withdraw_player_guardian_consent: {
+        Args: { p_token: string }
+        Returns: string
       }
-      get_public_team_recruitment_status: {
-        Args: never
-        Returns: boolean
-      }
-      get_admin_platform_feature_flags: {
-        Args: never
-        Returns: {
-          enabled: boolean
-          feature_key: string
-          updated_at: string
-          updated_by: string | null
-        }[]
-      }
-      get_admin_user_growth: {
-        Args: {
-          p_from_date?: string | null
-          p_to_date?: string | null
-          p_location_id?: string | null
-          p_league_id?: string | null
-          p_season_id?: string | null
-        }
-        Returns: {
-          bucket_date: string
-          account_signups: number | null
-          player_registrations: number
-          team_applications: number
-          team_approvals: number
-        }[]
-      }
-      get_admin_registration_conversion: {
-        Args: {
-          p_from_date?: string | null
-          p_to_date?: string | null
-          p_location_id?: string | null
-          p_league_id?: string | null
-          p_season_id?: string | null
-        }
-        Returns: {
-          bucket_date: string
-          player_registered: number | null
-          player_pending_review: number | null
-          player_rejected: number | null
-          team_applications: number
-          team_approved: number
-          team_rejected: number
-          team_pending: number
-          membership_requests: number
-          membership_accepted: number
-          membership_rejected: number
-          membership_pending: number
-        }[]
-      }
+
+
     }
     Enums: {
       competition_format: "six_a_side" | "seven_a_side"
