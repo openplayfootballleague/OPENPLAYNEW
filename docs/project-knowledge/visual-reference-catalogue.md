@@ -1,7 +1,7 @@
 # Open Play — Owner-Supplied Visual Reference Catalogue
 
 **Reference sets:** 10 initial screenshots plus 10 additional screenshots uploaded by the owner on 13 November 2026 (20 source images total).  
-**Status:** authoritative visual reference set for the screens represented below, subject to the conflict rules in this document. The uploaded originals remain available in the originating ChatGPT conversation; binary assets are not yet stored in this Git branch. The source filenames below are the original upload names, not renamed assets.
+**Status:** authoritative visual reference set for the screens represented below, subject to the conflict rules in this document. The 16 originals supplied on 2026-11-14 (IMG_0568–IMG_0583) are stored at full resolution in `docs/reference-assets/visual-references/`, with an index and a current-implementation comparison in its README. IMG_0564–IMG_0567 still need to be uploaded by the owner. The filenames below are the original upload names; the stored copies add a descriptive suffix.
 
 ## Source files and screen mapping
 
@@ -22,8 +22,12 @@
 
 1. These screenshots are the owner's newly supplied references for the represented screens. Use them ahead of older Library concepts when implementing those screens.
 2. These are visual references, not permission to copy illustrative data. Names such as Alex Morgan, Hale Rovers, 6 Offenders, sample scores, dates, counts and standings are placeholder examples unless independently confirmed by the live product data.
-3. The current approved registered-player bottom navigation is exactly **four** tabs: **Home, Match Centre, Teams, More**. The Join Open Play tab belongs to the public/viewer and registration journey as specified by the approved account-state rules. Screenshots showing five tabs or a persistent Join Open Play tab for a fully registered player are superseded on navigation only.
-4. The screenshot labelled “Join Open Play — Registered player” is a post-registration onboarding/next-action page. Do not mistake its five-item bottom bar for the registered player's permanent navigation.
+3. Navigation follows the account-state table in `product-master-specification.md`:
+   - Visitors see four tabs: Home, Match Centre, Join Open Play, More (IMG_0581).
+   - Signed-in users without a team see a transitional five-tab bar (IMG_0582/IMG_0583).
+   - Registered players in a team see four tabs: Home/Player Hub, Match Centre, Teams, More.
+   - Join Open Play is never a persistent tab for a player who belongs to a team.
+4. The screenshot labelled “Join Open Play — Registered player” is a post-registration onboarding/next-action page. Its five-item bar is the **transitional** bar for an account without a team. It is not the permanent navigation of a player who has joined a team.
 5. The product/workflow specification remains authoritative for business rules, permissions, privacy, account states and data. A visual mockup must not override those rules.
 6. Preserve the demonstrated dark interface, orange OP accent, typography hierarchy, card treatments, spacing, rounded corners, restrained status colours, iconography and header patterns. Use the approved Oswald heading / Inter body type system where the screenshot rendering or font fallback is ambiguous.
 7. Do not redraw or approximate the official OP logo. Use the original approved logo asset.
@@ -50,7 +54,7 @@
 - Secondary outlined orange action: Create a Team; explain captain status is granted only once approved.
 - Additional cards: Upcoming Leagues (register interest) and My Applications (track transfer requests, team applications and league-interest registrations).
 - Keep this page useful for a player who has completed player registration but has not joined a team. Do not assume registration means team membership.
-- The image's bottom navigation is not the permanent registered-player nav; apply the four-tab account-state rule after the onboarding/next-action route.
+- The image's five-item bar is the transitional no-team bar. Once the player joins a team, the four-tab persistent navigation applies.
 
 ### Find Your League — `IMG_0583.jpeg` and `IMG_0579.jpeg`
 - Competition discovery is divided into Active Leagues and Upcoming Leagues, each with a short explanatory subheading.

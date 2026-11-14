@@ -167,8 +167,10 @@ Do not introduce automatic goal-difference or head-to-head tie-breakers as a ran
 - Account control must route to the correct account/profile area.
 
 ### Navigation conflict resolution
-- Viewer/public navigation: Home, Match Centre, Teams, Join Open Play, More, as specified for the viewer state.
-- Registered player navigation: Player Hub replaces Home; Match Centre, Teams, More. Exactly four tabs.
+- The authoritative rule is the account-state table in `product-master-specification.md` (Navigation and account states).
+- Visitor (signed out): Home, Match Centre, Join Open Play, More (IMG_0581).
+- Signed in without a team: transitional five-tab bar, Home, Match Centre, Teams, Join Open Play, More (IMG_0582/IMG_0583).
+- Registered player in a team: Player Hub replaces Home; Match Centre, Teams, More. Exactly four tabs.
 - Captain navigation extends the registered-player experience with captain-only Club and Matchday destinations as defined by the captain workflow; do not expose captain functions to ordinary players.
 - A screenshot showing five items or Join Open Play in the permanent registered-player nav is not authoritative for that account state.
 - The post-registration next-action screen may be a transitional onboarding route and must not redefine persistent navigation.
@@ -214,7 +216,7 @@ A screen is not complete merely because its route renders. For each screen, impl
 - Completed Matches section with result count.
 - Each result card displays gameweek, local match date, home and away team names, explicit home/away labels, score, pitch, the player's team's outcome (Win/Draw/Loss) and a result-detail affordance.
 - Pagination displays the current range and total (for example, 1–4 of 10) with disabled Previous/Next states at boundaries.
-- Persistent registered-player navigation remains exactly four tabs: Player Hub/Home, Match Centre, Teams, More, according to the approved account-state labels. Do not reproduce the sample five-tab nav.
+- Persistent navigation for a registered player in a team is exactly four tabs: Player Hub/Home, Match Centre, Teams, More, per the account-state table in `product-master-specification.md`.
 
 ### Behaviour and data
 - Results are scoped to the player's current or selected historical team membership and relevant competition/season; define the historical-membership rule consistently with the team-history model.

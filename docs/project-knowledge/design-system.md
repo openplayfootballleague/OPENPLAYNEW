@@ -10,7 +10,7 @@
 Use centralised design tokens and consistent neutral surfaces. Orange is for key actions, selected states and brand emphasis. Maintain readable contrast in all states; do not use low-contrast orange text on dark surfaces. Avoid unrelated one-off palettes.
 
 ## Layout and navigation
-Mobile-first and iPad-friendly. The mobile bottom navigation follows the exact four-tab model in the product spec. Admin desktop uses a left sidebar; tablet must remain usable. No clipped controls or horizontal page overflow. Fixed navigation must respect safe areas and never obscure content.
+Mobile-first and iPad-friendly. The mobile bottom navigation follows the account-state rule in `product-master-specification.md` (Navigation and account states): four persistent tabs, plus a five-tab transitional bar only for signed-in users without a team. The bar must never wrap at 390 px. Admin desktop uses a left sidebar; tablet must remain usable. No clipped controls or horizontal page overflow. Fixed navigation must respect safe areas and never obscure content.
 
 ## Imagery
 Public hero imagery is cinematic and appropriate to the page. Use approved authentic football imagery where available. The established social creative direction is gritty, cinematic, blurred football action photography. Imagery must never replace the official logo.

@@ -4,7 +4,7 @@
 Support multiple locations, leagues, seasons and formats. Competition settings are data-driven. Season publication and recruitment are explicit states; never infer recruitment from a date, countdown or team count.
 
 ## Fixture generator
-Support single and double round-robin, configurable team count and scheduling inputs, deterministic reviewable output, and validation for duplicate/missing pairings, self-fixtures and uneven rounds. Fixtures require authorised review before publication.
+Support single and double round-robin, with **double round-robin as the default** (owner decision D2: Bideford is 8 teams, 56 matches, 14 gameweeks, 4 per gameweek). Also support configurable team count and scheduling inputs, deterministic reviewable output, and validation for duplicate/missing pairings, self-fixtures and uneven rounds. Fixtures require authorised review before publication.
 
 Established Bideford eight-team home-and-away configuration:
 - 8 teams, 14 gameweeks, 4 matches each gameweek.
