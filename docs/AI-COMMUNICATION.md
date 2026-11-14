@@ -191,3 +191,24 @@ Do not invent a completion percentage. Maintain evidence for each requirement an
 - **Next recommended action:**
   - Implement account-state navigation and the global header.
   - Then the public Join page (IMG_0581) and Your next move (IMG_0582).
+
+### 2026-11-14 — Claude — HANDOVER (Phase 1 alignment audit)
+- **Task / reference:** owner alignment assignment, Phase 1 (full audit and plan before structural change).
+- **Branch / PR / commit:**
+  - Audited commit `171d2af8` on `claude/open-play-master-blueprint-rhtuih`.
+  - Report: `docs/audit/page-audit-2026-11-14.md`.
+  - Still unpublished: GitHub write access returns 403.
+- **Evidence and checks (all at `171d2af8`):**
+  - tsc pass; vitest 195/195; build pass; Wrangler dry run pass.
+  - Clean replay: 153 migrations, 41/41 SQL suites.
+  - Security assertions pass; generated types match.
+  - Responsive/PWA e2e 74/74 at 320–1440 px; PostHog consent e2e 3/3.
+  - Not run here: Deno check and the hosted-order CLI step.
+- **Findings:**
+  - Page classes: 8 complete (locally verified), 24 functional but visually incomplete, 20 partial, 5 missing, 1 incorrectly connected (Pay buttons visible while D6 freezes payments).
+  - Estimates: functional ≈59%, visual ≈30%, automated coverage ≈55%, release readiness ≈15%.
+  - PR #49 and #64 content is byte-identical in HEAD. #109 functional heads are ancestors of HEAD; only its last 3 documentation commits are missing.
+- **Blocker:** contradictory navigation instructions (Phase 3 four-tab player and captain bars vs the screen-by-screen spec's five tabs). No navigation change until the owner decides.
+- **Next recommended action:**
+  - Owner decisions (plan step 0).
+  - Then PR 1: gate the Pay buttons, apply the navigation decision, add negative team-sheet tests.
