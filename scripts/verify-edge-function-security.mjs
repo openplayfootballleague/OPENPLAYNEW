@@ -138,7 +138,7 @@ assert.ok(reportClaim.includes("not public.has_platform_role() or not public.has
 assert.ok(refereeConnectSql.includes("onboarding_status<>'enabled' or (details_submitted and transfers_enabled)"), "Transfer readiness must not depend on bank-payout enablement");
 assert.ok(reportClaim.includes("not v_account.transfers_enabled then") && !reportClaim.includes("not v_account.payouts_enabled"), "Match transfers must require the transfers capability, not bank-payout enablement");
 
-const adminReferees = readFileSync("src/routes/admin/referees.tsx", "utf8");
+const adminReferees = readFileSync("src/routes/admin_.referees.tsx", "utf8");
 const reportReview = adminReferees.slice(adminReferees.indexOf("async function reviewReport"), adminReferees.indexOf("async function decide("));
 const approvalRpcPosition=reportReview.indexOf('rpc("admin_review_referee_match_report"');
 const immediateTransferPosition=reportReview.indexOf('functions.invoke("pay-referee-payout"');
@@ -161,6 +161,14 @@ assert.ok(refereePayoutOutbox.includes("first_attempt_at") && refereePayoutOutbo
 assert.ok(refereePayoutOutbox.includes("security invoker") && refereePayoutOutbox.includes("grant execute on function public.claim_referee_payout_transfer_jobs(integer) to service_role") && refereePayoutOutbox.includes("grant execute on function public.claim_referee_payout_transfer_worker(uuid,uuid,uuid) to service_role"), "Referee payout worker RPCs must use invoker security and service-role-only execution grants");
 assert.ok(refereePayoutOutbox.includes("pg_cron") && refereePayoutOutbox.includes("pg_net") && refereePayoutOutbox.includes("referee_payout_cron_secret"), "Referee payout outbox must include a Vault-backed scheduled dispatcher");
 
+for (const fn of ["create-player-checkout", "create-team-fixture-checkout"]) {
+  const source = readFileSync(`supabase/functions/${fn}/index.ts`, "utf8");
+  const flagCheck = source.search(/\.eq\(\s*"feature_key"\s*,\s*"online_card_payments"\s*\)/);
+  const firstWrite = Math.min(...["create_player_fixture_payment", "create_team_fixture_payment_obligation"]
+    .map((rpc) => source.indexOf(rpc)).filter((index) => index >= 0));
+  assert.ok(flagCheck > 0 && flagCheck < firstWrite && /paymentsFlag\?\.enabled\s*!==\s*true/.test(source),
+    `${fn} must refuse checkout while the online_card_payments flag is off (D6), before creating payment records`);
+}
 console.log("Edge Function security configuration and Phase 1 workflow boundary assertions passed.");
 
 const adminRoute = readFileSync("src/routes/admin.tsx", "utf8");

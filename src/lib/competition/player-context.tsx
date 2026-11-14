@@ -1,3 +1,4 @@
+import { COMPETITION_STORAGE_KEY, LOCATION_CHANGE_EVENT } from "../navigation/global-header";
 import { useEffect, useState } from "react";
 import { getSupabaseClient } from "../supabase/client";
 import { useOpenPlayAnalytics } from "../../components/analytics-provider";
@@ -32,7 +33,7 @@ export type PlayerCompetitionContext = {
   setSeason: (seasonId: string) => void;
 };
 
-const STORAGE_KEY = "open-play:player-competition-context";
+const STORAGE_KEY = COMPETITION_STORAGE_KEY;
 
 export function getPreferredPlayerSeason(options: PlayerSeasonOption[]) {
   return options.find((season) => season.status === "registration_open")
@@ -182,6 +183,16 @@ export function usePlayerCompetitionContext(): PlayerCompetitionContext {
     setSelectedSeasonId(nextSeason);
     persist(locationId, nextSeason);
   }
+
+  // The global header's location selector broadcasts changes so open pages follow it.
+  useEffect(() => {
+    function onLocationChange(event: Event) {
+      const next = (event as CustomEvent<{ locationId?: string }>).detail?.locationId;
+      if (next) setLocation(next);
+    }
+    window.addEventListener(LOCATION_CHANGE_EVENT, onLocationChange);
+    return () => window.removeEventListener(LOCATION_CHANGE_EVENT, onLocationChange);
+  });
 
   function setSeason(seasonId: string) {
     if (!seasons.some((season) => season.id === seasonId && season.location_id === selectedLocationId) || seasonId === selectedSeasonId) return;

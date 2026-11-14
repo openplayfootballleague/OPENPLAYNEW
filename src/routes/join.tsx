@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { RefereeBottomNavigation } from "../components/referee-bottom-navigation";
 import { PlayerCompetitionSelector, usePlayerCompetitionContext } from "../lib/competition/player-context";
 import { Link, createFileRoute } from "@tanstack/react-router";
@@ -6,13 +7,29 @@ import type { Session } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { getTeamRequestDisplay, type TeamRequestStatus } from "../lib/team-request-status";
 import { useOpenPlayAnalytics } from "../components/analytics-provider";
+import { PublicJoinLanding } from "../components/public-join-landing";
 
 type TeamOption = { id: string; name: string; season_id: string };
 type PlayerState = { registration_status: "registered" | "pending_review" | "rejected"; is_banned: boolean };
 
 export const Route = createFileRoute("/join")({ component: JoinPage });
 
-function JoinPage() {
+/** Signed-out visitors get the public Join page (IMG_0581); signed-in accounts get the join workspace. */
+function JoinPage(){
+ const [signedIn,setSignedIn]=useState<boolean|null>(null);
+ useEffect(()=>{
+  const supabase=getSupabaseClient();
+  let alive=true;
+  void supabase.auth.getSession().then(({data})=>{if(alive)setSignedIn(Boolean(data.session));}).catch(()=>{if(alive)setSignedIn(false);});
+  const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,next)=>{if(alive)setSignedIn(Boolean(next));});
+  return ()=>{alive=false;subscription.unsubscribe();};
+ },[]);
+ if(signedIn===null)return <main className="notice-page player-facing"><section className="notice-panel"><p role="status">Loading…</p></section></main>;
+ if(!signedIn)return <PublicJoinLanding/>;
+ return <AuthenticatedSessionBoundary label="JOIN OPEN PLAY" allowSignUp><JoinWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function JoinWorkspace() {
   const competition = usePlayerCompetitionContext();
   const capture = useOpenPlayAnalytics();
   const [session,setSession]=useState<Session|null>(null);

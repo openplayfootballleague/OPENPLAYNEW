@@ -2,20 +2,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const navigation = readFileSync("src/components/player-bottom-navigation.tsx", "utf8");
-assert.ok(navigation.includes('id: "home", to: "/", label: "Home"') && navigation.includes('id: "home", to: "/player", label: "Player Hub"'), "Viewer Home and registered Player Hub must have distinct destinations");
-assert.ok(navigation.includes('id: "match-centre", to: "/match-centre"') && navigation.includes('id: "teams", to: "/teams"') && navigation.includes('id: "join", to: "/join", label: "Join Open Play"'), "Viewer navigation must include Match Centre, Teams and Join Open Play");
-assert.ok(navigation.includes('id: "club", to: "/captain", hash: "#captain-club"') && navigation.includes('id: "matchday", to: "/captain", hash: "#captain-matchday"'), "Captain navigation must expose Club and Matchday as distinct destinations");
-assert.ok(navigation.includes('id: "home", to: "/player"') && navigation.includes('id: "more", to: "/more"'), "Captain navigation must retain Player Hub Home and More");
-assert.ok(navigation.includes('registration_status !== "registered"') && navigation.includes('.eq("is_captain", true)') && navigation.includes('setMode((captainRows ?? []).length > 0 ? "captain" : "player")'), "Navigation must derive viewer, registered-player and captain states from authorised account data");
-const navBlock = navigation.slice(navigation.indexOf("const items: NavigationItem[] ="), navigation.indexOf("\n\n  function isActive"));
-const captainNav = navBlock.match(/mode === "captain"\s*\?\s*\[([\s\S]*?)\]\s*:/)?.[1];
-const playerNav = navBlock.match(/mode === "player"\s*\?\s*\[([\s\S]*?)\]\s*:/)?.[1];
-const viewerNav = navBlock.match(/:\s*\[([\s\S]*?)\];/)?.[1];
-assert.ok(captainNav && playerNav && viewerNav, "Captain, registered-player and viewer navigation arrays must be present");
-assert.equal((captainNav.match(/\{ id:/g) ?? []).length, 4, "Captain navigation must contain exactly four tabs");
-assert.equal((playerNav.match(/\{ id:/g) ?? []).length, 4, "Registered-player navigation must contain exactly four tabs");
-assert.equal((viewerNav.match(/\{ id:/g) ?? []).length, 5, "Viewer navigation must contain Home, Match Centre, Teams, Join Open Play and More");
-assert.ok(navigation.includes('pathname === "/" || pathname === "/player"'), "Home must be active on public Home and Player Hub only");
+const navigationRules = readFileSync("src/lib/navigation/account-navigation.ts", "utf8");
+// Behaviour (tab order per account state) is unit-tested in src/lib/navigation/account-navigation.test.ts.
+assert.ok(navigationRules.includes('mode === "onboarding" || mode === "player" || mode === "captain" ? "/player" : "/"'), "Home must lead approved players to the Player Hub and others to public Home");
+assert.ok(navigationRules.includes('id: "join", to: "/join", label: "Join Open Play"') && navigationRules.includes('id: "teams", to: "/teams"') && navigationRules.includes('id: "match-centre", to: "/match-centre"'), "Navigation must define Match Centre, Teams and Join Open Play destinations");
+assert.ok(navigationRules.includes("return [home, MATCH_CENTRE, TEAMS, JOIN, MORE];") && navigationRules.includes("return [home, MATCH_CENTRE, JOIN, MORE];"), "Navigation must be the agreed five tabs, with the four-tab bar only on registration screens");
+assert.ok(navigationRules.includes('player.registration_status === "registered" && !player.is_banned') && navigationRules.includes("facts.activeMemberships.length === 0"), "Navigation must derive player and captain states only from an approved, unbanned player with an active membership");
+assert.ok(navigation.includes('.from("team_memberships").select("is_captain")') && navigation.includes('.eq("status", "active")') && navigation.includes("resolveNavigationMode("), "Navigation must load active memberships from authorised account data");
+assert.ok(navigationRules.includes('pathname === "/" || pathname === "/player"'), "Home must be active on public Home and the Player Hub");
 
 const more = readFileSync("src/routes/more.tsx", "utf8");
 for (const destination of ['to="/teams"', 'to="/join"', 'to="/gallery"', 'to="/match-centre"']) {
@@ -37,7 +31,7 @@ const refereeTabs = [
 for (const tab of refereeTabs) assert.ok(refereeNavigation.includes(tab), "Approved referee navigation is missing " + tab);
 assert.equal((refereeNavigation.match(/to: "[^"]*" as const, label:/g) ?? []).length, 4, "Referee navigation must contain exactly four tabs");
 assert.ok(refereeNavigation.includes('portal.membership?.status === "active"') && refereeNavigation.includes('!pathname.startsWith("/referee")') && refereeNavigation.includes("<PlayerBottomNavigation />"), "Only active referees inside the referee portal may switch from account-aware player navigation");
-for (const route of ["index.tsx","player.tsx","captain.tsx","join.tsx","match-centre.tsx","teams.tsx","more.tsx","referee.tsx","referee/matchday.tsx"]) {
+for (const route of ["index.tsx","player.tsx","captain.tsx","join.tsx","match-centre.tsx","teams.tsx","more.tsx","referee.tsx","referee_.matchday.tsx"]) {
   const source = readFileSync("src/routes/" + route, "utf8");
   assert.ok(source.includes("<RefereeBottomNavigation"), route + " must use role-aware navigation");
 }
@@ -111,14 +105,17 @@ assert.ok(matchCentreSource.includes("Final required between") && matchCentreSou
 
 const playerStatsSource = readFileSync("src/routes/player.tsx", "utf8");
 assert.ok(playerStatsSource.includes('rpc("get_my_player_statistics"') && playerStatsSource.includes("playerStats.season.stats") && playerStatsSource.includes("playerStats.career"), "Player Hub must load and display the authenticated player's verified season and career statistics");
-assert.ok(playerStatsSource.includes("Assists and Man of the Match awards are not yet included"), "Player Hub must disclose statistics that are not yet supported by audited matchday capture");
+// Assists and own goals are captured through the audited admin_record_fixture_goal_events workflow
+// (migration 20261113170000); the Player Hub must state how they are counted.
+assert.ok(playerStatsSource.includes("own goals never count towards a player's goals") && playerStatsSource.includes("Goal contributions are goals plus assists"), "Player Hub must disclose how assists, own goals and goal contributions are counted");
+assert.ok(playerStatsSource.includes("playerStats.season.stats.assists") && playerStatsSource.includes("playerStats.career.goal_contributions"), "Player Hub must display audited assists and goal contributions");
 
 const analyticsEventsSource = readFileSync("src/lib/analytics/events.ts", "utf8");
 assert.ok(analyticsEventsSource.includes('"player_statistics_viewed"') && analyticsEventsSource.includes('"player_statistics"'), "Player statistics usage must use the consent-gated, allow-listed analytics taxonomy");
 assert.ok(playerStatsSource.includes('capture("player_statistics_viewed"'), "Player Hub statistics views must be captured only through the consent-aware analytics provider");
 
 const adminResultSource = readFileSync("src/routes/admin.tsx", "utf8");
-const refereeReportSource = readFileSync("src/routes/referee/report.$fixtureId.tsx", "utf8");
+const refereeReportSource = readFileSync("src/routes/referee_.report.$fixtureId.tsx", "utf8");
 const optionalGoalMigration = readFileSync("supabase/migrations/20261111203000_optional_goal_attribution.sql", "utf8");
 assert.ok(!adminResultSource.includes("hasOneScorerPerGoal") && adminResultSource.includes("Goalscorer attribution is optional"), "Admin result entry must allow a valid score without named scorers");
 assert.ok(!refereeReportSource.includes("Select one goalscorer for every goal") && refereeReportSource.includes("GOALSCORERS · OPTIONAL"), "Referee reports must allow unattributed goals without inventing player records");
@@ -127,3 +124,20 @@ assert.ok(optionalGoalMigration.includes("cardinality(coalesce(p_home_scorers,'{
 const playerStatsMigration = readFileSync("supabase/migrations/20261111201000_player_self_service_statistics.sql", "utf8");
 assert.ok(playerStatsMigration.includes("auth.uid()") && playerStatsMigration.includes("r.confirmed_at is not null") && playerStatsMigration.includes("ts.is_locked is true") && playerStatsMigration.includes("g.voided_at is null"), "Player statistics must be limited to the signed-in player, locked appearances, confirmed results and non-voided goals");
 assert.ok(playerStatsMigration.includes("revoke all on function public.get_my_player_statistics(uuid) from public, anon;") && playerStatsMigration.includes("grant execute on function public.get_my_player_statistics(uuid) to authenticated;"), "Player statistics RPC must be unavailable to anonymous users");
+
+// Regression (2026-11-14): /teams/$teamId was nested under /teams, which renders no <Outlet/>,
+// so team profiles never displayed. A child route file must either be un-nested (`parent_.`)
+// or its parent must render an Outlet.
+import { readdirSync } from "node:fs";
+const routeFiles = readdirSync("src/routes", { recursive: true }).map(String).filter((f) => f.endsWith(".tsx"));
+for (const file of routeFiles) {
+  const base = file.replace(/\\/g, "/").split("/").pop();
+  const match = base.match(/^([a-z0-9-]+)\.(.+)\.tsx$/i);
+  if (!match || match[1].endsWith("_")) continue;
+  const dir = file.replace(/\\/g, "/").split("/").slice(0, -1).join("/");
+  const parent = `src/routes/${dir ? dir + "/" : ""}${match[1]}.tsx`;
+  let source;
+  try { source = readFileSync(parent, "utf8"); } catch { continue; }
+  assert.ok(source.includes("<Outlet"), `${file} is nested under ${parent}, which renders no <Outlet/>; un-nest it with "${match[1]}_."`);
+}
+console.log("Nested route parents render an Outlet.");

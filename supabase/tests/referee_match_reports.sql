@@ -80,8 +80,9 @@ begin
   select id into v_home_season_team from public.season_teams where slug='ci-report-home';
   select id into v_away_season_team from public.season_teams where slug='ci-report-away';
 
-  v_future_one:=now()+interval '2 days';
-  v_future_two:=now()+interval '4 days';
+  -- Fixed 19:00 London kick-offs keep the availability check independent of the time the suite runs.
+  v_future_one:=((current_date+2)+time '19:00') at time zone 'Europe/London';
+  v_future_two:=((current_date+4)+time '19:00') at time zone 'Europe/London';
   v_weekday:=extract(isodow from v_future_one at time zone 'Europe/London')::integer;
   insert into public.referee_applications(
     user_id,status,experience_summary,qualifications,availability,contact_phone,preferred_location_ids,
@@ -324,7 +325,7 @@ begin
   -- Create a future fixture for the disciplinary guard test. The prior fixtures
   -- are completed, so their team sheets are correctly locked against amendments.
   insert into public.fixtures(season_id,gameweek,fixture_number,home_team_id,away_team_id,venue_id,scheduled_at,status)
-  values(v_season,993,1,v_home_season_team,v_away_season_team,v_location,now()+interval '6 days','scheduled')
+  values(v_season,993,1,v_home_season_team,v_away_season_team,v_location,((current_date+6)+time '19:00') at time zone 'Europe/London','scheduled')
   returning id into v_fixture_three;
   perform set_config('request.jwt.claim.role','service_role',true);
   insert into public.fixture_team_sheets(fixture_id,season_team_id,submitted_by,is_locked)

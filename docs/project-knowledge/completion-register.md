@@ -1,0 +1,127 @@
+# Open Play — Evidence-Based Completion Register
+
+**Single authoritative register.** Branch `claude/open-play-master-blueprint-rhtuih`, which is built on integration tip PR #140 (`6445e3f`).
+Requirement sources: `docs/project-knowledge/*`, `docs/owner-decisions-2026-11-13.md`, visual references `IMG_0564`–`IMG_0583`.
+Percentages: computed by `node scripts/completion-percentage.mjs`, never typed by hand. Four separate stages: **Feature implementation** (all rows except INT-/INF-/SEC-), **Integration** (INT-), **Security & infrastructure** (SEC- and INF-), **Formal acceptance** (rows with status Accepted, across everything).
+
+## Rules
+
+- **Owner definition (2026-11-14):** a screen is Complete only when its correct design (reference image), every control and destination, data source, server-side permissions, validation, loading/empty/pending/success states, mobile/tablet/desktop behaviour and relevant automated tests are all in place.
+- **Functional** (Done/Partial/None): the workflow works end to end in code with server enforcement and automated evidence.
+- **Visual** (Done/Partial/None/n/a): the screen matches its reference image and the design system; n/a for backend-only rows.
+- **Complete:** Functional Done, Visual Done or n/a, and relevant automated checks pass at the stated commit. This is *not* acceptance.
+- **Partially Complete:** some of the agreed implementation exists; the gap is stated.
+- **Not Started:** no implementation of the agreed requirement.
+- **Blocked:** cannot proceed without an owner decision, asset, provider or approval. Counts as 0.
+- **Accepted:** formally accepted by the owner. Nothing is Accepted yet.
+- **Credit:** Complete/Accepted = 1.0, Partially Complete = 0.5, everything else = 0.
+- **Weights:** 1 = small, 2 = standard workflow, 3 = core workflow, 5 = foundational or high-risk.
+- **Evidence:** "SQL" means a `supabase/tests` regression passes in a clean replay; "unit" means Vitest; "browser" means a Playwright check at 390px with test-only data. Local checks were run on this branch; GitHub CI has **not** run on it (unpushed, push 403).
+- **Manual acceptance** (real identities, devices, providers) is outstanding for every row and is not repeated per row.
+
+## Register
+
+| ID | Requirement | Screen / workflow | Frontend | Backend / DB | Security | Validation & states | Automated evidence | PR / commit | Functional | Visual | Status | Weight |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| PUB-01 | Home: hero, CTAs, live competitions/fixtures/results/stats/gallery previews | `/` | Hero + CTAs | Only player/membership lookups; no live competition sections | Public read via RLS | Partial | build | tip | Partial | Partial | Partially Complete | 3 |
+| PUB-02 | Match Centre: season selection, fixtures, results, table | `/match-centre` | Yes; title-final label | Published data via RLS | Public-only data | Loading/empty/error | unit (standings) | tip, `9172928` | Done | Partial | Partially Complete | 3 |
+| PUB-03 | League table: points only, shared positions, final when level first | Match Centre, Admin stats | Yes | `get_admin_season_statistics`, `season_joint_leaders` | Admin RPC scoped | Pre-season tie suppressed | unit + SQL (mutation-checked) | `9172928` | Done | n/a | Complete | 3 |
+| PUB-04 | Team directory and team hub: overview, squad, fixtures, results (IMG_0533/0535/0536/0538/0540) | `/teams`, `/teams/$teamId?view=` | `teams.tsx`, `teams_.$teamId.tsx`, shared UI | `get_public_team_squad`, `get_public_season_team_squad_counts` (signed-in, published scope) | Squad names and counts for signed-in members only; no contact data | Loading/empty/error/retry; search | SQL `public_team_squad.sql` (mutation-checked); unit `team-hub.test.ts`; e2e route regression; Playwright 320/390 | PR #144 | Done | Partial | Partially Complete | 2 |
+| PUB-05 | League discovery, Active/Upcoming (IMG_0583/0579) | `/leagues` | Yes | Published seasons | Public-only | Empty states | CI green at `6445e3f` | #140 | Done | Partial | Partially Complete | 2 |
+| PUB-06 | Public Join Open Play page (IMG_0581): three pathways, player-first | `/join` (signed out) | `src/components/public-join-landing.tsx` | — | All pathways start with an account and player registration | — | Playwright 390px: IMG_0581 layout, 4-tab visitor bar, no overflow | local, 2026-11-14 | Done | Done | Complete | 2 |
+| PUB-07 | Public gallery (published only) | `/gallery` | Yes | `public-gallery` function | Published only | — | SQL (gallery) | tip | Done | Partial | Partially Complete | 2 |
+| PUB-08 | Shared header: signed-in/out variants, notifications, location selector (IMG_0577/0578) | All player-facing | `src/components/global-header.tsx` (root-mounted; marketing Home pending PUB-01) | Unread count from `notification_events` under RLS; published locations only | — | — | `global-header.test.ts`; Playwright 320–1024px no overlap/overflow; e2e device acceptance 20/20 | local, 2026-11-14 | Done | Done | Complete | 2 |
+| PUB-09 | Privacy, policies and terms pages | `/privacy-security`, More | Yes | — | — | — | build | tip | Done | Partial | Partially Complete | 1 |
+| PUB-10 | Legally reviewed Terms and Conditions and privacy notice published | Profile, More | Profile shows "awaiting publication" | — | — | — | — | owner/legal content | None | n/a | Blocked | 1 |
+| NAV-01 | Bottom navigation per owner specification 2026-11-14: five tabs for every account state, a four-tab bar on registration screens, captain areas via Player Hub/More | All | `player-bottom-navigation.tsx`, `src/lib/navigation/account-navigation.ts` | — | Presentation only; server enforces access | — | `account-navigation.test.ts`; e2e at 320/375/390/430/820/1440 px: one row, no clipping or overflow (74/74) | local, 2026-11-14 | Done | Done | Partially Complete | 2 |
+| NAV-02 | Registered player navigation: exactly 4 tabs | Player | Yes | — | Session-derived | — | verify-player-navigation | tip | None | n/a | Blocked | 2 |
+| NAV-03 | Captain navigation: Club and Matchday | Captain | Yes | — | Captain RPCs | — | verify-player-navigation | tip | Partial | n/a | Blocked | 1 |
+| NAV-04 | Every route renders its own page (no child route nested under a parent without an Outlet) | `/teams/$teamId`, `/admin/analytics`, `/admin/referees`, `/admin/retention`, `/admin/guardian-consents`, `/referee/matchday`, `/referee/report/$fixtureId` | Routes un-nested (`parent_.child`) | — | Pages keep their own session boundaries | — | Static guard in `verify-player-navigation.mjs`; e2e: each URL shows its own page | PR #144 | Done | n/a | Complete | 3 |
+| REG-01 | Sign-up, sign-in, sign-out, password reset, verification | auth routes | Yes | Supabase Auth | Session boundary (#117) | Error states | unit + auth lifecycle test | tip, `d415b81` | Done | Partial | Partially Complete | 3 |
+| REG-02 | Player registration: DOB mandatory, duplicate identity review, age tiers, guardian consent | `/register-player` | Yes | `register_player`, guardian consent | Server-validated | Yes | SQL (identity, guardian) | tip | Done | Partial | Partially Complete | 5 |
+| REG-03 | Registration: emergency contact step (IMG_0564) | `/register-player` | Not in player flow (admin view only) | Fields exist in profiles | Restricted | — | — | — | None | None | Not Started | 2 |
+| REG-04 | Registration: fitness and versioned declarations (IMG_0565) | `/register-player` | No | No | — | — | — | — | None | None | Blocked | 3 |
+| REG-05 | Registration: discovery source and separate email/SMS marketing consent (IMG_0566) | `/register-player` | No | No consent records | — | — | — | — | None | None | Not Started | 2 |
+| REG-06 | Post-registration choice: create club, join club, continue as individual (IMG_0567/0582) | onboarding | Partial completion handoff | — | — | — | — | tip | Partial | Partial | Partially Complete | 2 |
+| REG-07 | Team registration four-step wizard with drafts and versioned declarations (IMG_0568–0571) | `/join` | Single form, no wizard or drafts | `register_team` (pending application) | Auth required | — | SQL (team registration) | tip | Partial | None | Partially Complete | 5 |
+| REG-08 | Team Instagram URL and crest upload | wizard, profiles | No | No | — | — | — | #122 (unintegrated) | None | None | Not Started | 1 |
+| REG-09 | Team approval makes the applicant captain atomically | Admin approvals | Yes | `resolve_team_registration` | Admin-scoped, audited | Yes | SQL | tip | Done | n/a | Complete | 3 |
+| REG-10 | Join requests; captain approve/decline, safe against handover races | Captain, Join | Yes | `resolve_team_membership_request` with row locks | Captain/location scope | Yes | SQL incl. `membership_approval_authorization_locks` | `def2a4f` (#138) | Done | Partial | Partially Complete | 3 |
+| REG-11 | No conflicting active memberships location-wide | Membership | — | Season-level only | — | — | — | #113 (unintegrated) | Partial | n/a | Partially Complete | 2 |
+| PH-01 | Player Hub dashboard (team, fixtures, results, table, stats, notifications) | `/player` | Yes | RLS + RPCs | Session isolation (#116) | Load error kept | unit + browser | `6e41bb6` | Partial | Partial | Partially Complete | 3 |
+| PH-02 | My Fixtures page: chronological, home/away, kick-off, pitch, postponed/cancelled states, detail, pagination (IMG_0572) | `/player/fixtures` | Yes | RLS-scoped fixtures, venues | Own team only, session boundary | Loading/empty/error/no-team | unit (domain) + browser (0px overflow) | this commit | Partial | Done | Partially Complete | 2 |
+| PH-03 | My Results page: published only, W/D/L from team perspective, detail, pagination (IMG_0573) | `/player/results` | Yes | RLS-scoped confirmed results | Own team only, session boundary | Loading/empty/error/no-team | unit (domain) + browser | this commit | Partial | Done | Partially Complete | 2 |
+| PH-04 | League table screen with Your Team highlight and position summary (IMG_0574) | Player Hub | Table exists; highlight/summary not verified to spec | Standings service | — | — | — | — | Partial | Partial | Partially Complete | 2 |
+| PH-05 | Statistics: apps 4(3), goals, assists, GPG, MOTM, contributions; season and career | Player Hub | Yes | `get_my_player_statistics`, MOTM awards | Self-scoped RPC | Unavailable states | SQL (mutation-checked) + browser | `6d94841`, `c7ec99a` | Partial | None | Partially Complete | 3 |
+| PH-06 | Player profile screen: picture-only edit, read-only personal and football details, settings links, log out (IMG_0575) | `/player/profile` | Yes | Own rows under RLS; shared avatar module | Picture-only privileges; session boundary | Upload validation, loading/error | unit (avatar) + browser | this commit | Done | Done | Complete | 2 |
+| PH-07 | Inbox: All / Messages / Notifications (IMG_0576) | `/inbox` | Yes | Recipient-scoped reads, mark-read RPC | Session boundary | Loading/empty/error | unit + browser (0px overflow) | `7541042` | Done | Done | Complete | 3 |
+| PH-08 | Notification preferences by category | Profile | Global preferences only | — | — | — | — | #128 vs #129 (competing) | Partial | Partial | Partially Complete | 1 |
+| PH-09 | Account-switch isolation of protected state | All protected | Yes | — | Client isolation | — | unit (5) | `d415b81`, `6e41bb6` | Done | n/a | Complete | 2 |
+| CAP-01 | Captain dashboard, squad, squad numbers | `/captain` | Yes | Captain RPCs | Captain-scoped | Yes | SQL | tip | Done | Partial | Partially Complete | 3 |
+| CAP-02 | Team sheets: 6+3 / 7+4, GK among starters, drafts, lock, next-required fixture | `/captain` | Yes | `submit_team_sheet` | Captain-scoped | Yes | unit + SQL; SQL `team_sheet_validation.sql` (negative: sizes, goalkeeper, duplicates, eligibility, non-captain; mutation-checked) | tip | Done | Partial | Partially Complete | 5 |
+| CAP-03 | Former players preserved on historical team sheets | Admin sheets | Yes | `get_admin_team_sheets_contextual` | Admin-scoped | Former-player fallback | SQL (fixed test, mutation-checked) | `49c9d29` (#137) | Done | n/a | Complete | 1 |
+| CAP-04 | Man of the Match nominations; self-nomination when on the sheet | `/captain`, Admin | Yes | `submit_fixture_motm_nomination` | Eligibility enforced | Yes | SQL | `c7ec99a` | Done | Partial | Partially Complete | 2 |
+| CAP-05 | Captain-requested removal needs player approval | Captain | No | No | — | — | — | #112 (unintegrated) | None | None | Not Started | 1 |
+| CAP-06 | Future-season membership and captaincy transitions | Seasons | No | No | — | — | — | #93 (unintegrated) | None | None | Not Started | 2 |
+| REF-01 | Referee applications, portal, assigned fixtures | `/referee` | Yes | Referee RPCs | Assigned fixtures only | Yes | SQL (applications, assignments) | tip | Done | Partial | Partially Complete | 3 |
+| REF-02 | Match reports, approval, corrections, discipline, return queue | `/referee/*`, Admin | Yes | Yes | Scoped, audited | Yes | SQL (match reports) | tip | Done | Partial | Partially Complete | 3 |
+| REF-03 | Referee Stripe Connect payouts (test mode); ambiguous responses never marked failed | Referee, Finance | Yes | Payout functions + transfer policy | Signature-verified webhook, idempotency keys | Timeout/409/429/5xx stay ambiguous | SQL (connect payouts) + Deno tests (CI) | #64, #114 integrated via `eadd1059` | Partial | Partial | Blocked | 3 |
+| COMP-01 | Locations, leagues, seasons, lifecycle, manual recruitment | Admin | Yes | Yes | Location-scoped | Yes | SQL | tip | Done | Partial | Partially Complete | 3 |
+| COMP-02 | Venues and operating hours | Admin | Yes | `venues` + scoped RPCs | Location-scoped | Yes | SQL (behavioural, mutation-checked) | `259b2b5` | Done | Partial | Partially Complete | 2 |
+| COMP-03 | Round-robin generator: single and double (8 teams: 56/14/4), review before publish | Admin Fixtures | Yes | `admin_generate_round_robin_fixtures` | Location-scoped, preview hash | Yes | SQL (56/14/4, 7+7, single 28/7) | `259b2b5` | Done | Partial | Partially Complete | 3 |
+| COMP-04 | Fixture changes, postponements, weather renumbering with history | Admin | Yes | Yes | Scoped, audited | Yes | SQL (weather) | tip | Done | Partial | Partially Complete | 3 |
+| COMP-05 | Results, scorer validation, audited corrections, published-only | Admin | Yes | Yes | Scoped | Yes | SQL | tip, `abd79a1` | Done | Partial | Partially Complete | 3 |
+| COMP-06 | Assists and own goals as structured events | Admin | Yes | `admin_record_fixture_goal_events` | Scoped, audited | Yes | unit + SQL (mutation-checked) | `6d94841` | Done | Partial | Partially Complete | 2 |
+| COMP-07 | Title final for level first place; completion guard | Admin | Yes | Trigger + RPC | Scoped, audited | Draw/3+ rules pending | SQL (mutation-checked) | `9172928` | Done | Partial | Partially Complete | 3 |
+| COMP-08 | Configurable win/draw/loss points, per season, locked after first published result | Admin stats, Match Centre | Admin editor + Match Centre | `seasons.points_for_*`, `admin_set_season_points`; stats and title-final helper use them | Location-scoped, audited | Ordering, lock, reason | unit + SQL (mutation-checked) | this commit | Done | Partial | Partially Complete | 2 |
+| COMP-09 | Season completion/recruitment guards while fixtures remain (cancelled = final; confirmed results) | Seasons | — | Triggers | — | Yes | SQL (extended, mutation-checked) | `740f771` (#111) | Done | n/a | Complete | 1 |
+| ADM-01 | Admin information architecture (sidebar sections) | `/admin` | Section navigation present | — | — | — | — | tip | Partial | Partial | Partially Complete | 3 |
+| ADM-02 | Needs Attention task centre | `/admin` | Basic queue | — | — | — | — | #110 (unintegrated) | Partial | Partial | Partially Complete | 3 |
+| ADM-03 | Approvals: player and team applications | `/admin` | Yes | Yes | Scoped | Yes | SQL | tip | Done | Partial | Partially Complete | 3 |
+| ADM-04 | Searchable registers, filters, side panels | `/admin` | Player register + detail panel | Yes | Scoped | Partial | SQL | tip | Partial | Partial | Partially Complete | 2 |
+| ADM-05 | Audit history reader | `/admin` | Yes | Deny-all table + RPC | Platform role | — | SQL | tip | Done | Partial | Partially Complete | 2 |
+| ADM-06 | Role management and first-admin bootstrap | Admin | League-admin management only | Yes | Global-admin only | — | SQL (role matrix) | tip; #108 docs | Partial | n/a | Blocked | 3 |
+| ADM-07 | Gallery management | Admin | Yes | Yes | Scoped | — | SQL (gallery) | tip | Done | Partial | Partially Complete | 2 |
+| ADM-08 | Feature management, recruitment and announcement toggles | Admin | Yes | Yes | Scoped | — | SQL (feature management) | tip | Done | Partial | Partially Complete | 2 |
+| ADM-09 | Support case management | Admin, Inbox | Support conversations only | — | — | — | — | #131 (unintegrated) | Partial | Partial | Partially Complete | 2 |
+| FIN-01 | Finance ledger: charges, receipts, refunds, credits, fines | `/finance` | Yes | Append-only ledger | Finance permission | Yes | unit + SQL | tip | Done | Partial | Partially Complete | 3 |
+| FIN-02 | Team weekly fixture payments, deadlines (Stripe test) | Captain, Finance | Pay actions hidden while the `online_card_payments` flag is off (D6) | Checkout + signed webhooks | Verified webhooks | — | SQL (team weekly payment) | tip | Partial | Partial | Blocked | 3 |
+| FIN-03 | Operating costs and business performance reporting | Analytics | Yes | Yes | Finance scope | Insufficient-data states | SQL | tip (#133/#135) | Done | Partial | Partially Complete | 2 |
+| FIN-04 | Online card payments frozen behind an owner-controlled, audited flag (D6) | Player Hub, Captain Hub, checkout functions | Pay actions hidden; honest notice | `online_card_payments` flag (default off); checkout functions refuse before creating records | Only global admins can change it; audited | Read failure is treated as off | SQL `online_card_payments_flag.sql`; unit `online-payments.test.ts`; Edge Function verifier (mutation-checked) | PR #144 | Done | n/a | Complete | 2 |
+| ANA-01 | 10-tab Analytics & Reports workspace | `/admin/analytics` | Yes | Scoped RPCs | Scope + finance gating | Unavailable states | SQL + browser CI | tip | Partial | Partial | Partially Complete | 3 |
+| ANA-02 | Consent-gated PostHog with allow-list and GPC | All | Yes | — | No PII | — | CI PostHog acceptance | tip | Partial | n/a | Blocked | 2 |
+| ANA-03 | CSV export formula-injection protection | Analytics | Yes | — | — | — | unit (7 assertions) | integration line (#118 superseded) | Done | n/a | Complete | 1 |
+| ANA-04 | Registration conversion cohorts in exports | Analytics | Yes | Aggregate RPC | Scoped | — | unit | `3e4a09c` (#136) | Done | n/a | Complete | 1 |
+| NOT-01 | In-app notification outbox and fixture reminders | Inbox | Yes | Outbox + pg_cron | Recipient-scoped | — | unit + SQL | tip | Done | Done | Complete | 3 |
+| NOT-02 | Email/SMS delivery | Providers | — | Edge function | — | — | unit | tip | None | n/a | Blocked | 2 |
+| NOT-03 | Push notifications and devices | — | — | — | — | — | — | #130 (unintegrated) | None | None | Not Started | 1 |
+| MSG-01 | Secure messaging: same-team direct, team groups, blocks, reports, admin moderation | Inbox Messages | Yes | Messaging RPCs | Same-active-team rule | Yes | SQL (messaging) | tip | Done | Partial | Partially Complete | 3 |
+| SEC-01 | RLS, SECURITY DEFINER guards, no anon definer functions | DB | — | Yes | Yes | — | 26 security assertions + SQL | `6e41bb6` | Done | n/a | Complete | 5 |
+| SEC-02 | Database recreatable from repository migrations (D3) | DB | — | 99 sources match hosted ledger; all 153 versions fixed (no CI-generated versions) | — | Generated types verified against replay | migration-source verifier + replay (153 migrations, 41/41 SQL) + `verify-generated-types.mjs` | `d382d822`, `def2a4f` | Done | n/a | Complete | 5 |
+| SEC-03 | Accessibility: global focus states, reduced motion | All | Yes | — | — | — | build | `2548a95` (#141) | Done | n/a | Complete | 2 |
+| SEC-04 | Official logo asset (D5) | All | 192×115 placeholder | — | — | — | — | issue #18 | None | n/a | Blocked | 1 |
+| SEC-05 | Local development and Worker build tooling | Tooling | — | — | — | — | dev server + dry-run | `1798158` | Done | n/a | Complete | 1 |
+| SEC-06 | PWA install shell | All | Yes | — | No auth caching | — | CI PWA acceptance | tip | Done | n/a | Complete | 1 |
+| INT-01 | Working branch published to GitHub with green exact-head CI | GitHub | — | — | — | — | GitHub Actions run 43538901427: all four jobs green at `17324cb1`; Cloudflare preview build green | PR #144 | Done | n/a | Complete | 3 |
+| INT-02 | Open PRs on the current lineage consolidated into one integration branch | GitHub | — | — | — | — | Per-PR verification recorded | 11 integrated or superseded this session; 10 remain (#131, #130, #129/#128, #122, #115, #113, #112, #110, #106, #105) | Partial | n/a | Partially Complete | 3 |
+| INT-03 | Consolidated line promoted to `main` (owner-approved merge) | GitHub | — | — | — | — | — | — | None | n/a | Not Started | 3 |
+| INF-01 | Pending migrations applied to the hosted Supabase project | Supabase | — | 54 pending forward migrations (listed in `docs/migration-integrity-audit-2026-11-14.md`) | — | — | Clean replay only | owner approval required | None | n/a | Blocked | 3 |
+| INF-02 | Staging environment (Supabase + Cloudflare preview) | Infra | — | — | — | — | — | staging budget approval | None | n/a | Blocked | 2 |
+| INF-03 | Provider configuration: Stripe test webhooks/Connect, PostHog ingestion, email/SMS | Providers | — | — | — | — | — | owner approval; no connectors attached | None | n/a | Blocked | 3 |
+| INF-04 | Production deployment on Cloudflare Workers | Infra | — | — | — | — | Worker dry-run passes | owner approval | None | n/a | Blocked | 2 |
+
+## Visual gaps recorded
+
+- The shared location/season selector (`PlayerCompetitionSelector`) renders a light cream panel inside dark player screens. The design system calls for dark charcoal surfaces; restyle it centrally.
+- The visitor bottom navigation shows five tabs and wraps at 390px (NAV-01, awaiting the owner's 4- vs 5-tab decision).
+- Messaging panel controls inherited low-contrast styles (light "Contact admin support" button, light composer).
+
+## Integration position (recomputed 13 Nov 2026)
+
+- Working head: see `git log -1`. GitHub CI has not run on it; every push is refused with 403.
+- **Fully included:** #6, #28, #38, #41, #43, #44, #89, #100, #102, #104, #121, #125, #135, #139, #140.
+- **Integrated:** #143 (docs), #138, #117, #116, #136, #141, #120, #137 (test fixed), #111 (defects fixed), plus the generator branch, #124 venues and #91 MOTM (ported).
+- **Verified superseded (content already on branch):** #118, #119, #49 (registration safeguards; `registration_safeguards.sql` passes), #64 and #114 (referee Connect; integrated via `eadd1059`).
+- **Unique work not yet integrated (recent lineage):** #131, #130, #129/#128 (competing), #122, #115, #113, #112, #110, #106, #105.
+- **Superseded / stale (older bases, functionality since reworked on the integration line):** #1, #2, #4, #8, #12, #13, #20, #21, #26, #27, #29, #32, #35, #36, #49, #51–#57, #59, #63, #64, #70, #72–#75, #78, #82, #83, #86, #87, #92, #93 (its unique future-season work is still Not Started here), #94, #103, #108 (docs only).
+- **Exact-head CI:** green for #116, #117, #138 and #140. Failed for `feat/round-robin-fixture-generator-2026-11-13` at `24e1fe0` (run 43419405437) and for #137 at `5fb544e` (runs 43448347397/43448362145); both were fixed during integration.

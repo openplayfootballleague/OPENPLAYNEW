@@ -91,7 +91,7 @@ begin
   insert into public.fixtures(
     season_id,gameweek,fixture_number,home_team_id,away_team_id,venue_id,scheduled_at,status
   ) values(
-    v_season,1,1,v_home_season_team,v_away_season_team,v_location,now()+interval '1 day','scheduled'
+    v_season,1,1,v_home_season_team,v_away_season_team,v_location,((current_date+1)+time '19:00') at time zone 'Europe/London','scheduled'
   ) returning id into v_fixture;
 
   -- Reproduce the real matchday lifecycle: both sheets are submitted and

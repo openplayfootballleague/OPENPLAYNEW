@@ -30,11 +30,13 @@ function MorePage() {
   useEffect(() => {
     const supabase = getSupabaseClient();
     let active = true;
+    let requestGeneration = 0;
 
     async function loadAccess() {
-      setAccess((current) => ({ ...current, loading: true }));
+      const generation = ++requestGeneration;
+      setAccess({ ...initialAccess, loading: true });
       const { data: { session } } = await supabase.auth.getSession();
-      if (!active) return;
+      if (!active || generation !== requestGeneration) return;
 
       if (!session) {
         setAccess({ ...initialAccess, loading: false });
@@ -61,7 +63,7 @@ function MorePage() {
         supabase.rpc("get_finance_options"),
       ]);
 
-      if (!active) return;
+      if (!active || generation !== requestGeneration) return;
       setAccess({
         loading: false,
         signedIn: true,
@@ -74,11 +76,14 @@ function MorePage() {
 
     void loadAccess();
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      requestGeneration++;
+      setAccess({ ...initialAccess, loading: true });
       void loadAccess();
     });
 
     return () => {
       active = false;
+      requestGeneration++;
       subscription.unsubscribe();
     };
   }, []);
@@ -102,7 +107,8 @@ function MorePage() {
 
         <section className="hub-memberships">
           <div className="hub-section-heading"><span className="hub-kicker">EXPLORE</span></div>
-          <Link className="admin-inline-action" to="/teams">TEAMS &amp; LEAGUES <span aria-hidden="true">↗</span></Link>
+          <Link className="admin-inline-action" to="/leagues">LEAGUE DIRECTORY <span aria-hidden="true">↗</span></Link>
+          <Link className="admin-inline-action" to="/teams">TEAM DIRECTORY <span aria-hidden="true">↗</span></Link>
           <Link className="admin-inline-action" to="/join">JOIN OPEN PLAY <span aria-hidden="true">↗</span></Link>
           <Link className="admin-inline-action" to="/gallery">MATCHDAY GALLERY <span aria-hidden="true">↗</span></Link>
           <Link className="admin-inline-action" to="/match-centre">FIXTURES, RESULTS &amp; TABLES <span aria-hidden="true">↗</span></Link>
@@ -126,7 +132,7 @@ function MorePage() {
         <AnalyticsConsentSettings />
         <section className="hub-memberships">
           <div className="hub-section-heading"><span className="hub-kicker">ACCOUNT</span></div>
-          {access.signedIn && <Link className="admin-inline-action" to="/messages">MESSAGES &amp; SUPPORT <span aria-hidden="true">↗</span></Link>}
+          {access.signedIn && <Link className="admin-inline-action" to="/inbox" search={{ tab: "notifications" }}>INBOX: NOTIFICATIONS, MESSAGES &amp; SUPPORT <span aria-hidden="true">↗</span></Link>}
           <Link className="admin-inline-action" to="/privacy-security">PRIVACY &amp; SECURITY <span aria-hidden="true">↗</span></Link>
           {access.signedIn ? (
             <button className="auth-text-button" type="button" onClick={signOut}>SIGN OUT</button>

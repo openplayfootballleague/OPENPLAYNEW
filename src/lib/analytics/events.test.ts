@@ -141,6 +141,22 @@ describe("consent and role-gated analytics capture", () => {
     )).toBe(false);
   });
 
+  it("captures feature entry using only the approved feature identifier", () => {
+    const capture = vi.fn();
+    expect(captureOpenPlayEvent(
+      { capture },
+      "granted",
+      false,
+      "player",
+      "feature_opened",
+      { feature: "match_centre", route_category: "match_centre", email: "private@example.com" },
+    )).toBe(true);
+    expect(capture).toHaveBeenCalledWith("feature_opened", {
+      feature: "match_centre",
+      route_category: "match_centre",
+    });
+  });
+
   it("captures a consented player event with sanitised properties only", () => {
     const capture = vi.fn();
     const allowedClient: AnalyticsCaptureClient = { capture };

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AuthenticatedSessionBoundary } from "../components/authenticated-session-boundary";
 import { PlayerBottomNavigation } from "../components/player-bottom-navigation";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import type { Session } from "@supabase/supabase-js";
@@ -6,7 +7,11 @@ import { getSupabaseClient } from "../lib/supabase/client";
 
 export const Route = createFileRoute("/reset-password")({ component: ResetPasswordPage });
 
-function ResetPasswordPage() {
+function ResetPasswordPage(){
+ return <AuthenticatedSessionBoundary label="PASSWORD RESET"><ResetPasswordWorkspace/></AuthenticatedSessionBoundary>;
+}
+
+function ResetPasswordWorkspace() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");

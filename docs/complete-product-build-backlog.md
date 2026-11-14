@@ -161,3 +161,23 @@ Added a global-admin-only role management workflow to complement existing locati
 ### Exact-head CI defects corrected — 11 November 2026
 
 The first clean local migration replay exposed a PostgreSQL PL/pgSQL error in `get_my_player_statistics`: a composite `public.players` row variable was included in a multi-target `INTO` list with a scalar. The migration now fetches the player composite and profile retention status in separate statements. Added the canonical player-statistics draft and explicit pinned-CLI generation/draft-parity steps for both `player_self_service_statistics` and `optional_goal_attribution`. The CI workflow also had double-escaped newline sequences in migration manifest/duplicate-version checks; these are now single shell newline escapes. Exact-head replay and build are rerunning; the earlier 146 unit tests and Deno checks passed, but do not count the previous failed build/replay as green.
+
+
+### Continuous development execution log — 13 November 2026
+
+This is an implementation-status update, not a release or acceptance sign-off.
+
+| Workstream | Current artifact | Evidence/status |
+|---|---|---|
+| Scoped user growth reporting | Draft PR #121 | Implementation on branch; automated verification/integration still pending |
+| Optional team Instagram profiles | Draft PR #122 | Implementation and regression tests on branch; latest test run exposed a fixed-identity collision, now changed to generated UUIDs and a per-run slug; rerun pending |
+| Multi-venue management and operating hours | Draft PR #124 | Venue CRUD, location-scoped admin RPCs, public Match Centre venue display and fixture operating-hours checks implemented; exact-head CI still pending |
+| Season matchday settings and round-robin fixture generation | `feat/round-robin-fixture-generator-2026-11-13`, stacked on the venue branch | Season weekday/time/duration/buffer/venue/round-robin settings, preview and non-overwriting generator, responsive Admin UI, security assertions and an 8-team regression test implemented in draft; exact-head build and isolated database replay pending |
+
+The round-robin generator defaults to a double round-robin, schedules fixtures sequentially within the selected venue's operating window, supports odd team counts with byes, checks season dates, records an audit event, and refuses to overwrite an existing fixture schedule. The regression test targets eight teams, 14 gameweeks and 56 fixtures. These are implementation claims pending CI replay, not verified completion.
+
+**Verification boundary:** GitHub Actions run `43418780050` is in progress for the fixture-generator branch head `ec6f0c39f5678a3ac65349598622a5fc354f8428`. Build, browser and clean Supabase migration/security jobs have not yet reported final results. Previous failed runs are not counted as passing. No formal whole-platform end-to-end acceptance campaign has started.
+
+**Release boundary:** All work remains in draft branches/PRs. No PR has been merged as part of this execution, no hosted database migration has been applied, no production deployment has occurred, and no live payment or irreversible production action has been taken.
+
+**Next development task after this CI gate:** complete and verify the fixture-generator branch, then implement season team-cap and squad-size enforcement and configurable league-table points/tie rules. Continue the requirement-by-requirement audit across the remaining public, player, captain, admin, payments, analytics, notification, automation and device requirements. Do not assign an overall application completion percentage until the issue #37 checklist has been audited against implementation and evidence.

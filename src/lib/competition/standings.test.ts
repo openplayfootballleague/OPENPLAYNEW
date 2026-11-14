@@ -40,3 +40,34 @@ describe("Open Play tied first-place final", () => {
     ])).toEqual([]);
   });
 });
+
+describe("Open Play title final (owner decision D7)", () => {
+  it("does not add a title final's result to league points", () => {
+    const rows = buildStandings([{id:"a",name:"A"},{id:"b",name:"B"}],
+      [{id:"l1",home_team_id:"a",away_team_id:"b"},{id:"final",home_team_id:"a",away_team_id:"b",is_title_final:true}],
+      [{fixture_id:"l1",home_score:1,away_score:1},{fixture_id:"final",home_score:3,away_score:0}]);
+    expect(rows.map(({id,played,points,position})=>[id,played,points,position])).toEqual([["a",1,1,1],["b",1,1,1]]);
+  });
+
+  it("does not report a title tie before any team has a point", () => {
+    const rows = buildStandings([{id:"a",name:"A"},{id:"b",name:"B"}],[],[]);
+    expect(rows.every((row)=>row.position===1)).toBe(true);
+    expect(getJointFirstTeams(rows)).toEqual([]);
+  });
+});
+
+describe("configurable season points", () => {
+  it("applies the season's win/draw/loss points, which can make teams level", () => {
+    const teams = [{ id: "a", name: "A" }, { id: "b", name: "B" }, { id: "c", name: "C" }, { id: "d", name: "D" }];
+    const fixtures = [{ id: "1", home_team_id: "a", away_team_id: "d" }, { id: "2", home_team_id: "b", away_team_id: "c" }, { id: "3", home_team_id: "b", away_team_id: "d" }];
+    const results = [{ fixture_id: "1", home_score: 1, away_score: 0 }, { fixture_id: "2", home_score: 0, away_score: 0 }, { fixture_id: "3", home_score: 0, away_score: 0 }];
+    // Default 3/1/0: A has 3, B has 2, so A leads alone and no final is required.
+    expect(getJointFirstTeams(buildStandings(teams, fixtures, results))).toEqual([]);
+    const twoPoint = buildStandings(teams, fixtures, results, { win: 2, draw: 1, loss: 0 });
+    expect(twoPoint.filter((t) => t.position === 1).map((t) => [t.id, t.points])).toEqual([["a", 2], ["b", 2]]);
+    expect(getJointFirstTeams(twoPoint).map((t) => t.id)).toEqual(["a", "b"]);
+    // D: one loss (1 pt) + one draw (1 pt) = 2 under 3/1/1; it would be 1 under 3/1/0.
+    expect(buildStandings(teams, fixtures, results, { win: 3, draw: 1, loss: 1 }).find((t) => t.id === "d")?.points).toBe(2);
+  });
+});
+

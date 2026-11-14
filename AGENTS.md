@@ -3,6 +3,11 @@
 ## Product direction
 Build Open Play as a production-grade football league platform, not a static marketing demo. The public site, player experience, captain workflows and administrator dashboard must share one coherent design system and domain model.
 
+## Authoritative owner decisions
+`docs/owner-decisions-2026-11-13.md` records binding product-owner decisions (Cloudflare hosting, double round-robin
+format, database source of truth, Inbox, logo, payment gates, title-deciding final). They override older documents and
+must be followed without seeking re-approval.
+
 ## Technical foundations
 - TanStack Start with React and TypeScript.
 - Vite build pipeline and Cloudflare Workers deployment.

@@ -2,7 +2,17 @@
 
 ## Status
 
-The canonical integration candidate is PR #109 at commit `dc31eb4e61bdd8696184d454d3b2e5174b88f2c1`. Exact-head CI run [#43408070272](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/43408070272) passed all four jobs: application build and security checks, clean database migration/security replay, Chromium responsive/PWA acceptance, and PostHog consent/network acceptance.
+The canonical integration candidate is PR #109 at the currently verified head commit `8a970a05a6d200cc9996df61305362d51f684c44`.
+
+Exact-head GitHub Actions run [#43413249238](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/43413249238) completed successfully with all four jobs:
+- Application build, Deno type checks, Stripe webhook signature tests, domain tests, migration-source/security configuration checks, and Cloudflare Worker dry-run.
+- Clean Supabase migration replay and database security/role/lifecycle regression assertions.
+- Chromium responsive-route, manifest and offline PWA checks.
+- PostHog consent and network acceptance.
+
+The earlier verified head `5a368326b7e6ceb95612864b53faff57a34b9418` and run [#43409054653](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/43409054653) are historical evidence, not the current head. The earlier referee payment-safety head `dc31eb4e61bdd8696184d454d3b2e5174b88f2c1` and run [#43408070272](https://github.com/openplayfootballleague/OPENPLAYNEW/actions/runs/43408070272) are also historical evidence. The current PR #109 head has its own fresh four-job passing run.
+
+These automated checks are implementation-level CI and targeted browser/security checks. They are not the coordinated full end-to-end acceptance campaign described in the product backlog, and they do not prove that every agreed feature is complete.
 
 This is a release-readiness assessment, not a production approval. PR #109 remains a draft. No production deployment, hosted migration, Stripe resource creation, secret mutation or payment was performed during this assessment.
 
@@ -53,4 +63,4 @@ Performance advisories:
 
 ## Release decision
 
-**Not ready for production release yet.** The integrated code and automated checks are green. The remaining blockers are staging-cost approval, staging deployment/configuration, Stripe test-mode end-to-end acceptance, payout-policy confirmation, and physical-device/owner acceptance.
+**Not ready for production release yet.** The integrated code and automated checks are green. The remaining blockers are staging-cost approval, staging deployment/configuration, Stripe test-mode end-to-end acceptance, payout-policy confirmation, physical-device/owner acceptance, and completion of the wider product feature inventory.

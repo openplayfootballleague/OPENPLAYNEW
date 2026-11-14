@@ -1,32 +1,23 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
+import { House, Menu, Shield, Trophy, UserPlus, type LucideIcon } from "lucide-react";
 import { getSupabaseClient } from "../lib/supabase/client";
+import {
+  isNavigationItemActive, navigationItems, resolveNavigationMode,
+  type NavigationItem, type NavigationMode,
+} from "../lib/navigation/account-navigation";
 
-type NavigationMode = "loading" | "viewer" | "player" | "captain";
-
-type NavigationItem = {
-  id: "home" | "match-centre" | "teams" | "join" | "club" | "matchday" | "more";
-  to: "/" | "/player" | "/match-centre" | "/teams" | "/join" | "/captain" | "/more";
-  hash?: "#captain-club" | "#captain-matchday";
-  label: string;
-  icon: "home" | "match" | "teams" | "join" | "whistle" | "more";
-};
+const NAV_ICONS: Record<NavigationItem["icon"], LucideIcon> = { home: House, match: Trophy, teams: Shield, join: UserPlus, more: Menu };
 
 function NavIcon({ name }: { name: NavigationItem["icon"] }) {
-  const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  if (name === "home") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><path d="m3 10 9-7 9 7" /><path d="M5 9v12h14V9M9 21v-7h6v7" /></svg>;
-  if (name === "match") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="12" cy="12" r="9" /><path d="m12 7 3 2v4l-3 2-3-2V9l3-2ZM9 9l-4-2m10 2 4-2M9 13l-2 5m8-5 2 5" /></svg>;
-  if (name === "join") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="9" cy="8" r="4" /><path d="M3 21v-2a6 6 0 0 1 12 0v2M19 8v6m-3-3h6" /></svg>;
-  if (name === "teams") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 15a5 5 0 0 1 5 5" /></svg>;
-  if (name === "whistle") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><path d="M4 11h10a6 6 0 1 1-6 6v-2H4a2 2 0 0 1 0-4Z" /><path d="M14 11V7h4l3 4M8 15h3" /></svg>;
-  return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg>;
+  const Icon = NAV_ICONS[name];
+  return <Icon aria-hidden="true" strokeWidth={1.8} />;
 }
 
-/** Account-aware four-tab navigation. Only active captains receive Club and Matchday tabs. */
+/** Account-state bottom navigation; rules and evidence live in lib/navigation/account-navigation. */
 export function PlayerBottomNavigation() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const hash = useRouterState({ select: (state) => state.location.hash });
-  const [mode, setMode] = useState<NavigationMode>("loading");
+  const [state, setState] = useState<{ mode: NavigationMode | "loading" }>({ mode: "loading" });
 
   useEffect(() => {
     let alive = true;
@@ -38,23 +29,23 @@ export function PlayerBottomNavigation() {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (!alive || sequence !== requestSequence) return;
-      if (sessionError || !session) {
-        setMode("viewer");
-        return;
-      }
-
-      const [{ data: player, error: playerError }, { data: captainRows, error: captainError }] = await Promise.all([
-        supabase.from("players").select("registration_status,is_banned").eq("user_id", session.user.id).maybeSingle(),
-        supabase.from("team_memberships").select("season_team_id").eq("user_id", session.user.id).eq("status", "active").eq("is_captain", true).limit(1),
-      ]);
-      if (!alive || sequence !== requestSequence) return;
-      if (playerError || captainError || !player || player.registration_status !== "registered" || player.is_banned) {
-        setMode("viewer");
-        return;
-      }
-        setMode((captainRows ?? []).length > 0 ? "captain" : "player");
+        if (sessionError || !session) {
+          setState({ mode: "visitor" });
+          return;
+        }
+        const [{ data: player, error: playerError }, { data: memberships, error: membershipError }] = await Promise.all([
+          supabase.from("players").select("registration_status,is_banned").eq("user_id", session.user.id).maybeSingle(),
+          supabase.from("team_memberships").select("is_captain").eq("user_id", session.user.id).eq("status", "active"),
+        ]);
+        if (!alive || sequence !== requestSequence) return;
+        if (playerError || membershipError) {
+          // Fail closed to the signed-in account bar; destinations still enforce access server-side.
+          setState({ mode: "account" });
+          return;
+        }
+        setState({ mode: resolveNavigationMode({ signedIn: true, player: player ?? null, activeMemberships: memberships ?? [] }) });
       } catch {
-        if (alive && sequence === requestSequence) setMode("viewer");
+        if (alive && sequence === requestSequence) setState({ mode: "visitor" });
       }
     }
 
@@ -69,41 +60,15 @@ export function PlayerBottomNavigation() {
     };
   }, []);
 
-  if (mode === "loading") return null;
-
-  const items: NavigationItem[] = mode === "captain"
-    ? [
-        { id: "home", to: "/player", label: "Player Hub", icon: "home" },
-        { id: "club", to: "/captain", hash: "#captain-club", label: "Club", icon: "teams" },
-        { id: "matchday", to: "/captain", hash: "#captain-matchday", label: "Matchday", icon: "whistle" },
-        { id: "more", to: "/more", label: "More", icon: "more" },
-      ]
-    : mode === "player"
-      ? [
-          { id: "home", to: "/player", label: "Player Hub", icon: "home" },
-          { id: "match-centre", to: "/match-centre", label: "Match Centre", icon: "match" },
-          { id: "teams", to: "/teams", label: "Teams", icon: "teams" },
-          { id: "more", to: "/more", label: "More", icon: "more" },
-        ]
-      : [
-          { id: "home", to: "/", label: "Home", icon: "home" },
-          { id: "match-centre", to: "/match-centre", label: "Match Centre", icon: "match" },
-          { id: "teams", to: "/teams", label: "Teams", icon: "teams" },
-          { id: "join", to: "/join", label: "Join Open Play", icon: "join" },
-          { id: "more", to: "/more", label: "More", icon: "more" },
-        ];
-
-  function isActive(item: NavigationItem) {
-    if (item.id === "home") return pathname === "/" || pathname === "/player";
-    if (item.id === "club") return pathname === "/captain" && hash !== "#captain-matchday";
-    if (item.id === "matchday") return pathname === "/captain" && hash === "#captain-matchday";
-    return pathname === item.to;
-  }
+  if (state.mode === "loading") return null;
+  const mode = state.mode;
+  const items: NavigationItem[] = navigationItems(mode, pathname);
 
   return (
-    <nav className="player-bottom-nav" aria-label={mode === "captain" ? "Captain navigation" : "Main navigation"}>
+    <nav className="player-bottom-nav" data-tabs={items.length} aria-label="Main navigation">
       {items.map((item) => (
-        <Link key={item.id} to={item.to} hash={item.hash} className={"player-bottom-nav-link" + (isActive(item) ? " active" : "")}>
+        <Link key={item.id} to={item.to} className={"player-bottom-nav-link" + (isNavigationItemActive(item, pathname) ? " active" : "")}
+          aria-current={isNavigationItemActive(item, pathname) ? "page" : undefined}>
           <NavIcon name={item.icon} />
           <span>{item.label}</span>
         </Link>
