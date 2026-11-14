@@ -52,3 +52,4 @@
 20261113190005_admin_product_analytics_scope.sql
 20261113190006_season_matchday_and_round_robin.sql
 20261113190007_season_completion_recruitment_guards.sql
+20261114090000_online_card_payments_feature_flag.sql

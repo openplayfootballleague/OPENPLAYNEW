@@ -25,6 +25,14 @@ Deno.serve(async(req)=>{
   if(!stripeKey?.startsWith("sk_test_")||!supabaseUrl||!anonKey||!serviceKey||!allowedOrigin){
     return json({error:"Team payment service is not configured for test mode"},503,headers);
   }
+  // Owner decision D6: online card payments stay frozen until the owner enables the audited flag.
+  // Checked before any obligation or checkout is created.
+  const flagClient=createClient(supabaseUrl,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
+  const {data:paymentsFlag,error:paymentsFlagError}=await flagClient.from("platform_feature_flags")
+    .select("enabled").eq("feature_key","online_card_payments").maybeSingle();
+  if(paymentsFlagError||paymentsFlag?.enabled!==true){
+    return json({error:"Online card payments are not available"},503,headers);
+  }
   const token=(req.headers.get("authorization")??"").replace(/^Bearer\s+/i,"");
   if(!token)return json({error:"Sign in to continue"},401,headers);
   const userClient=createClient(supabaseUrl,anonKey,{

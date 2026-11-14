@@ -212,3 +212,12 @@ Do not invent a completion percentage. Maintain evidence for each requirement an
 - **Next recommended action:**
   - Owner decisions (plan step 0).
   - Then PR 1: gate the Pay buttons, apply the navigation decision, add negative team-sheet tests.
+
+### 2026-11-14 08:30 UTC — Claude — TASK (implementation workstream 1 start)
+- **Base:** PR #144 at `17324cb1`. Work continues on `claude/open-play-master-blueprint-rhtuih`, one branch, so no competing branches.
+- **Workstream 1:** fix unsafe or incorrect functionality.
+  - Gate the Pay actions behind an owner-controlled `online_card_payments` flag (off, D6). The checkout functions enforce it server-side.
+  - Confirm Connect is test-mode only and that the UI separates connected-balance transfers from bank payouts.
+  - Add negative team-sheet SQL tests.
+  - Reconcile the screen statuses across the three registers.
+- **Navigation:** the tab structure is unchanged until the owner resolves the conflict recorded in `docs/audit/page-audit-2026-11-14.md` section 3. The mechanics (one row, no clipping, no overflow) are already enforced at 320–1440 px.

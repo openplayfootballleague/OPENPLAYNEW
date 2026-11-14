@@ -30,6 +30,15 @@ Deno.serve(async (req) => {
   }
   if (!stripeKey.startsWith("sk_test_")) return json({ error: "Only Stripe test mode is enabled" }, 503);
 
+  // Owner decision D6: online card payments stay frozen until the owner enables the audited flag.
+  // Checked before any payment record is created.
+  const flagClient = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data: paymentsFlag, error: paymentsFlagError } = await flagClient.from("platform_feature_flags")
+    .select("enabled").eq("feature_key", "online_card_payments").maybeSingle();
+  if (paymentsFlagError || paymentsFlag?.enabled !== true) {
+    return json({ error: "Online card payments are not available" }, 503);
+  }
+
   const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!token) return json({ error: "Sign in to continue" }, 401);
 

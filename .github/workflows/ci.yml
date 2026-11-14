@@ -624,6 +624,14 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/platform_feature_management.sql
+      - name: Verify online card payments stay frozen behind the owner flag (D6)
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/online_card_payments_flag.sql
+      - name: Verify team-sheet composition, goalkeeper, duplicate, eligibility and captain rules
+        env:
+          PGPASSWORD: postgres
+        run: psql --host 127.0.0.1 --port 54322 --username postgres --dbname postgres --set ON_ERROR_STOP=1 --file supabase/tests/team_sheet_validation.sql
 
       - name: Verify team weekly payment deadlines, strikes, cancellation and refund ledger
         env:

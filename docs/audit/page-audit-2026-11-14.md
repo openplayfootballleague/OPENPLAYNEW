@@ -14,6 +14,20 @@
 - `docs/project-knowledge/screen-register.md` (routes, interactions, permission matrix)
 - `docs/project-knowledge/completion-register.md` (requirement tracker)
 
+## 0. Reconciliation update (2026-11-14, workstream 1)
+
+This audit, `screen-register.md` and `completion-register.md` now use one definition of complete. The
+register also carries separate **Functional** and **Visual** columns.
+
+| Row(s) | Change | Reason |
+| --- | --- | --- |
+| My Fixtures, My Results | Class 1 → 3 | Their fixture-detail and match-report destinations do not exist yet |
+| MOTM | Class 1 → 2 | The Captain Hub card does not yet match IMG_0543 |
+| Team fixture payments | Class 5 → fixed (class 3) | The Pay buttons are now hidden behind the owner flag |
+
+Section 6 totals below are the pre-reconciliation snapshot. Current figures come from
+`node scripts/completion-percentage.mjs`.
+
 ## 1. Classification used (owner definition)
 
 | # | Class | Meaning |
@@ -134,8 +148,8 @@ is authoritative.**
 | My Team | — | **4** | — | No dedicated page. Members reach their team only through `/teams/$teamId`, which has no squad view. |
 | My Profile (account) | `/player/profile`, `player-profile.tsx`, `lib/profile/avatar.ts` | **1** | Avatar unit tests; storage policy SQL (`profile_avatar_only_permissions.sql`); Playwright | Real storage upload not verified. Terms link pending legal text. |
 | Player statistics / public profile | — | **4** | Server statistics exist (`get_admin_season_statistics`, player club statistics, MOTM counts) | No public player profile page. Season and career statistics, goals per game, contributions, career history and goalkeeper variant missing (IMG_0542). |
-| My Fixtures | `/player/fixtures`, `lib/competition/player-matches.ts` | **1** | Unit tests (upcoming-only, 4 per page, paging); Playwright | Fixture → detail link missing because the detail page does not exist. |
-| My Results | `/player/results` | **1** | Unit tests (completed and published only, W/D/L); Playwright | Result → match report link missing because the report page does not exist. |
+| My Fixtures | `/player/fixtures`, `lib/competition/player-matches.ts` | **3** | Unit tests (upcoming-only, 4 per page, paging); Playwright | Fixture → detail link missing because the detail page does not exist. |
+| My Results | `/player/results` | **3** | Unit tests (completed and published only, W/D/L); Playwright | Result → match report link missing because the report page does not exist. |
 | League table (Player Hub) | — (table only in Match Centre) | **3** | Standings logic tested | No IMG_0574 page with Your Team highlight and position summary. |
 | Notifications / Inbox | `/inbox`, `lib/notifications` | **1** | Unit tests; Playwright; RLS limits rows to the owner | Email/SMS delivery not configured (NOT-02); push missing (NOT-03, PR #130). |
 | Notification preferences | `/player#notification-preferences` | **3** | — | Category preferences PRs #128 and #129 compete; neither is integrated. |
@@ -151,9 +165,9 @@ is authoritative.**
 | Membership requests and player approvals | `/captain` | **2** | `resolve_team_membership_request`, `resolve_player_transfer_request`; `membership_approval_authorization_locks.sql`; `player_transfer_workflow.sql` | Location-wide exclusivity (PR #113) not integrated. |
 | Team sheets | `/captain` | **2** | `save_team_sheet_draft` and `submit_team_sheet` enforce 6+3 / 7+4, goalkeeper and eligibility | **Gap:** no negative SQL test proves that wrong-size sheets are rejected. |
 | Matchday | `/captain#captain-matchday` | **2** | `get_captain_fixtures`, `get_captain_availability` | Visual alignment pending. |
-| Man of the Match nominations | `captain-motm-nominations.tsx`; migration `20261113150000` | **1** | `fixture_motm_nominations.sql` | Self-nomination allowed under the same eligibility as any player (matches the specification). |
+| Man of the Match nominations | `captain-motm-nominations.tsx`; migration `20261113150000` | **2** | `fixture_motm_nominations.sql` | Self-nomination allowed under the same eligibility as any player (matches the specification). |
 | Matchday reporting (captain) | — | **4** | — | Only referees and admins report matches. Captain reporting "where authorised" has no defined authority; owner to confirm whether it is required. |
-| Team fixture payments | `captain-team-payments.tsx`, `create-team-fixture-checkout` | **5** | Function rejects non-`sk_test_` keys | **Pay button visible** while online payments are frozen by D6 and the function is not deployed to the hosted project. Pressing it in production would fail. It must be hidden behind an owner-controlled flag until approval. |
+| Team fixture payments | `captain-team-payments.tsx`, `create-team-fixture-checkout` | **3** | Function rejects non-`sk_test_` keys | Fixed after this audit: Pay actions are hidden behind the owner-controlled `online_card_payments` flag (off), and both checkout functions refuse checkout while it is off (D6). Remains blocked on D6 and Stripe configuration. |
 
 ### Referee
 

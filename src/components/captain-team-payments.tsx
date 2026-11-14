@@ -1,4 +1,5 @@
 import { useCallback,useEffect,useMemo,useState } from "react";
+import { ONLINE_PAYMENTS_UNAVAILABLE, useOnlineCardPaymentsEnabled } from "../lib/payments/online-payments";
 import { getSupabaseClient } from "../lib/supabase/client";
 
 type PaymentFixture={
@@ -57,6 +58,7 @@ export function CaptainTeamPayments({fixtures}:{fixtures:PaymentFixture[]}){
     setLoading(false);
   },[]);
   useEffect(()=>{void load();},[load]);
+  const cardPayments=useOnlineCardPaymentsEnabled();
   useEffect(()=>{const id=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(id);},[]);
   const paymentByFixture=useMemo(()=>new Map(payments.map(p=>[p.fixture_id+":"+p.season_team_id,p])),[payments]);
   async function pay(fixture:PaymentFixture){
@@ -77,6 +79,7 @@ export function CaptainTeamPayments({fixtures}:{fixtures:PaymentFixture[]}){
   return <section className="hub-memberships captain-team-payments">
     <div className="hub-section-heading"><span className="hub-kicker">WEEKLY TEAM PAYMENTS</span><span>{payments.length} payment records</span></div>
     <p className="form-note">The team fee is due 24 hours before kick-off. Payment during the following 12 hours is accepted with one team strike. After that, the fixture is cancelled and the fee remains payable.</p>
+    {cardPayments===false&&<p className="form-note" role="status">{ONLINE_PAYMENTS_UNAVAILABLE}</p>}
     {error&&<p className="form-error" role="alert">{error}</p>}
     {notice&&<p className="form-success" role="status">{notice}</p>}
     {loading?<p className="form-note">Loading team payments…</p>:fixtures.length===0?<p className="form-note">No upcoming fixtures currently require a team payment.</p>:fixtures.map(fixture=>{
@@ -97,7 +100,7 @@ export function CaptainTeamPayments({fixtures}:{fixtures:PaymentFixture[]}){
           {payment.status==="grace_period"&&graceEnd&&<p className="payment-countdown">Grace period ends in: {countdown(graceEnd,now)}</p>}
           {payment.paid_at&&<p className="form-note">Paid: {dateTime(payment.paid_at)}</p>}
         </>:<p className="form-note">Create your team's payment from the configured weekly team fee.</p>}
-        {payable&&fixture.scheduled_at&&<button type="button" className="button captain-team-pay-button" disabled={busyId===fixture.fixture_id} onClick={()=>void pay(fixture)}>
+        {cardPayments&&payable&&fixture.scheduled_at&&<button type="button" className="button captain-team-pay-button" disabled={busyId===fixture.fixture_id} onClick={()=>void pay(fixture)}>
           {busyId===fixture.fixture_id?"PREPARING CHECKOUT…":actionLabel} <span>↗</span>
         </button>}
       </article>;

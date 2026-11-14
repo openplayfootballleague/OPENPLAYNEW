@@ -60,8 +60,8 @@ Code: `src/lib/navigation/account-navigation.ts`, unit-tested in `account-naviga
 | IMG_0532 | Match Centre hub | Everyone | Fixtures, results and stats entry | Fixtures, Results, Team stats, Player stats tiles; View full league table | Match Centre | P: `/match-centre` shows a single combined page |
 | IMG_0574 | League table (Player Hub) | Player in a team | Table with Your Team | Row → team page | Team page | P: the table exists in Match Centre without the highlight or position summary |
 | IMG_0522 | Player Hub home | Player | Personal landing | Location pill; avatar → profile; six tiles (My Fixtures `/player/fixtures`, My Results `/player/results`, League Table, My Team `/teams/$id`, My Profile `/player/profile`, Notifications `/inbox`); All fixtures → `/player/fixtures` | Player screens | P: `/player` exists without this layout, the stats strip or the Next Match card |
-| IMG_0572 | My Fixtures | Player in a team | Upcoming fixtures, 4 per page | Previous/Next; fixture → detail | 0573 | IV (unit tests and Playwright, 2026-11-13) |
-| IMG_0573 | My Results | Player in a team | Completed results, 4 per page | Previous/Next; result → match report | Match report | IV |
+| IMG_0572 | My Fixtures | Player in a team | Upcoming fixtures, 4 per page | Previous/Next; fixture → detail | 0573 | P: list and paging are verified (unit tests, Playwright); the fixture-detail destination is missing |
+| IMG_0573 | My Results | Player in a team | Completed results, 4 per page | Previous/Next; result → match report | Match report | P: verified list; the match-report destination is missing |
 | IMG_0575 | Player profile (account) | The player only | Read-only details; avatar is the only edit | Change profile picture → upload; Change password → `/reset-password`; Notification preferences → `/player#notification-preferences`; Privacy → `/privacy-security`; Terms (pending legal text); Log out | — | IV (Playwright; Terms is B on legal text) |
 | IMG_0542 | Player profile — career statistics | Public profile view | Season and career statistics | Club rows → team page | Team page | N: no public player profile route; statistics data exists server-side |
 | IMG_0576 | Inbox | Signed in | Messages and notifications | All / Messages / Notifications tabs; item → relevant page; mark read | — | IV (unit tests and Playwright) |
@@ -95,7 +95,7 @@ own headers.
 | Sign in / Sign up / Reset password | `/sign-in`, `/sign-up`, `/reset-password` | Everyone | Global / 5, 4R on sign-up | L, Er, S | IU |
 | Player registration | `/register-player` | Signed in (verified email) | Global / 4R | L, Er, S, pending, under-16 | P |
 | Player Hub | `/player` | Signed in | Global / 5 | L, E (no profile), Er | P |
-| My Fixtures / My Results | `/player/fixtures`, `/player/results` | Signed in | Global / 5 | L, E, Er | IV |
+| My Fixtures / My Results | `/player/fixtures`, `/player/results` | Signed in | Global / 5 | L, E, Er | P (detail and report destinations missing) |
 | Profile | `/player/profile` | Signed in (own row via RLS) | Global / 5 | L, Er, S (upload) | IV |
 | Inbox | `/inbox` (`/messages` redirects) | Signed in | Global / 5 | L, E, Er | IV |
 | Captain Hub (Club, Matchday) | `/captain` | Active captain (RPC checks) | Global / 5 | L, E ("No captain teams yet"), Er, S | P |

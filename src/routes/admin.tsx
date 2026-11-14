@@ -51,7 +51,7 @@ type AdminTeamSheet={team_sheet_id:string;fixture_id:string;season_team_id:strin
 type AdminTransferRequest={id:string;user_id:string|null;player_name:string|null;source_membership_id:string|null;source_team_name:string;destination_team_id:string;destination_team_name:string;season_name:string;league_name:string;reason:string;status:string;requested_at:string};
 type AdminAuditEvent={id:number;actor_user_id:string|null;action:string;entity_type:string;entity_id:string|null;reason:string|null;created_at:string};
 type AdminGalleryItem={id:string;location_id:string;location_name:string;object_path:string;caption:string;is_published:boolean;created_at:string;published_at:string|null};
-type PlatformFeatureFlag={feature_key:"team_recruitment"|"announcements";enabled:boolean;updated_at:string;updated_by:string|null};
+type PlatformFeatureFlag={feature_key:"team_recruitment"|"announcements"|"online_card_payments";enabled:boolean;updated_at:string;updated_by:string|null};
 export const Route=createFileRoute("/admin")({component:AdminDashboardPage});
 function AdminDashboardPage(){
  return <AuthenticatedSessionBoundary label="ADMIN DASHBOARD"><AdminDashboardWorkspace/></AuthenticatedSessionBoundary>;
@@ -256,11 +256,11 @@ function AdminDashboardWorkspace(){
    {isGlobalAdmin&&<div className="admin-setup-form admin-feature-management">
     <div className="hub-section-heading"><span className="hub-kicker">LIVE FEATURE CONTROLS</span><span>{platformFlagsLoading?"Loading…":platformFlags.length+" controls"}</span></div>
     <div className="admin-feature-status-list">
-     {platformFlags.map(flag=><article className="admin-feature-status" key={flag.feature_key}><div><strong>{flag.feature_key==="team_recruitment"?"Team recruitment":"Announcements"}</strong><p className="form-note">{flag.feature_key==="team_recruitment"?"Controls new player join requests and new team applications across all seasons. Existing memberships and captain approvals are preserved.":"Controls creation of new platform announcement conversations. Existing conversations and messages remain available."}</p></div><span className={flag.enabled?"admin-feature-enabled":"admin-feature-disabled"}>{flag.enabled?"ENABLED":"PAUSED"}</span></article>)}
+     {platformFlags.map(flag=><article className="admin-feature-status" key={flag.feature_key}><div><strong>{flag.feature_key==="team_recruitment"?"Team recruitment":flag.feature_key==="online_card_payments"?"Online card payments":"Announcements"}</strong><p className="form-note">{flag.feature_key==="team_recruitment"?"Controls new player join requests and new team applications across all seasons. Existing memberships and captain approvals are preserved.":flag.feature_key==="online_card_payments"?"Owner decision D6: off until the owner approves online card payments. While off, Pay actions are hidden and the checkout services refuse new checkouts. Ledgers and recorded payments are unaffected.":"Controls creation of new platform announcement conversations. Existing conversations and messages remain available."}</p></div><span className={flag.enabled?"admin-feature-enabled":"admin-feature-disabled"}>{flag.enabled?"ENABLED":"PAUSED"}</span></article>)}
     </div>
     <form className="admin-feature-form" onSubmit={savePlatformFeatureFlag}>
      <label>Feature<select value={platformFlagKey} onChange={event=>{const key=event.target.value as PlatformFeatureFlag["feature_key"];setPlatformFlagKey(key);setPlatformFlagEnabled(platformFlags.find(flag=>flag.feature_key===key)?.enabled??true);}}>
-      <option value="team_recruitment">Team recruitment</option><option value="announcements">Announcements</option>
+      <option value="team_recruitment">Team recruitment</option><option value="announcements">Announcements</option><option value="online_card_payments">Online card payments</option>
      </select></label>
      <label className="admin-feature-toggle"><input type="checkbox" checked={platformFlagEnabled} onChange={event=>setPlatformFlagEnabled(event.target.checked)}/>{platformFlagEnabled?"Enable this feature":"Pause this feature"}</label>
      <label>Reason for change<textarea required minLength={5} maxLength={500} rows={2} value={platformFlagReason} onChange={event=>setPlatformFlagReason(event.target.value)} placeholder="Record why this platform control is changing."/></label>
