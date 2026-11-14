@@ -22,12 +22,10 @@
 
 1. These screenshots are the owner's newly supplied references for the represented screens. Use them ahead of older Library concepts when implementing those screens.
 2. These are visual references, not permission to copy illustrative data. Names such as Alex Morgan, Hale Rovers, 6 Offenders, sample scores, dates, counts and standings are placeholder examples unless independently confirmed by the live product data.
-3. Navigation follows the account-state table in `product-master-specification.md`:
-   - Visitors see four tabs: Home, Match Centre, Join Open Play, More (IMG_0581).
-   - Signed-in users without a team see a transitional five-tab bar (IMG_0582/IMG_0583).
-   - Registered players in a team see four tabs: Home/Player Hub, Match Centre, Teams, More.
-   - Join Open Play is never a persistent tab for a player who belongs to a team.
-4. The screenshot labelled “Join Open Play — Registered player” is a post-registration onboarding/next-action page. Its five-item bar is the **transitional** bar for an account without a team. It is not the permanent navigation of a player who has joined a team.
+3. Navigation follows the five-tab rule in `product-master-specification.md` (owner specification
+   2026-11-14). Screenshots that show four tabs for visitors or players, or a Captain's Hub tab, are
+   superseded on navigation only.
+4. The screenshot labelled “Join Open Play — Registered player” is a post-registration onboarding/next-action page. Its five-item bar matches the standard five-tab navigation.
 5. The product/workflow specification remains authoritative for business rules, permissions, privacy, account states and data. A visual mockup must not override those rules.
 6. Preserve the demonstrated dark interface, orange OP accent, typography hierarchy, card treatments, spacing, rounded corners, restrained status colours, iconography and header patterns. Use the approved Oswald heading / Inter body type system where the screenshot rendering or font fallback is ambiguous.
 7. Do not redraw or approximate the official OP logo. Use the original approved logo asset.
@@ -54,7 +52,7 @@
 - Secondary outlined orange action: Create a Team; explain captain status is granted only once approved.
 - Additional cards: Upcoming Leagues (register interest) and My Applications (track transfer requests, team applications and league-interest registrations).
 - Keep this page useful for a player who has completed player registration but has not joined a team. Do not assume registration means team membership.
-- The image's five-item bar is the transitional no-team bar. Once the player joins a team, the four-tab persistent navigation applies.
+- The image's five-item bar matches the standard five-tab navigation.
 
 ### Find Your League — `IMG_0583.jpeg` and `IMG_0579.jpeg`
 - Competition discovery is divided into Active Leagues and Upcoming Leagues, each with a short explanatory subheading.

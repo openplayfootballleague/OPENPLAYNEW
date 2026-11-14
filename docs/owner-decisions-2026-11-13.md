@@ -81,7 +81,7 @@ re-approval. Changes require a new dated owner decision recorded here.
    - IMG_0581 shows signed-out visitors four tabs (Home, Match Centre, Join Open Play, More), which matches the
      Blueprint.
    - IMG_0582/IMG_0583 show a transitional five-tab bar for signed-in users without a team.
-   - Captain navigation is resolved by IMG_0543: Home, Match Centre, Teams, Captain's Hub, More.
+   - **Superseded by the owner's screen-by-screen specification (2026-11-14):** five tabs (Home, Match Centre, Teams, Join Open Play, More) for visitors and all players; a four-tab bar on registration screens; captain areas reached from the Player Hub and More.
    - The rule is in `docs/project-knowledge/product-master-specification.md`.
 
 ## Development safety (unchanged)

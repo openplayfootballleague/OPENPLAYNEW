@@ -1,15 +1,14 @@
 /**
- * Account-state bottom navigation (docs/project-knowledge/product-master-specification.md,
- * "Navigation and account states"; evidence: docs/reference-assets/visual-references).
+ * Bottom navigation (docs/project-knowledge/product-master-specification.md, "Navigation and account states").
  * Presentation only: every destination enforces its own permissions on the server.
  */
 export type NavigationMode = "visitor" | "account" | "onboarding" | "player" | "captain";
 
 export type NavigationItem = {
-  id: "home" | "match-centre" | "teams" | "join" | "captain" | "more";
+  id: "home" | "match-centre" | "teams" | "join" | "more";
   to: "/" | "/player" | "/match-centre" | "/teams" | "/join" | "/captain" | "/more";
   label: string;
-  icon: "home" | "match" | "teams" | "join" | "captain" | "more";
+  icon: "home" | "match" | "teams" | "join" | "more";
 };
 
 export type AccountFacts = {
@@ -23,8 +22,9 @@ export function isApprovedPlayer(player: AccountFacts["player"]): boolean {
 }
 
 /**
- * visitor: signed out. account: signed in but not an approved player (registering, pending, banned).
+ * visitor: signed out. account: signed in but not an approved player (registering, pending, restricted).
  * onboarding: approved player without an active team. player / captain: in an active team.
+ * The modes drive Home's destination and Captain Hub access; the bar itself is the agreed five tabs.
  */
 export function resolveNavigationMode(facts: AccountFacts): NavigationMode {
   if (!facts.signedIn) return "visitor";
@@ -38,28 +38,31 @@ const TEAMS: NavigationItem = { id: "teams", to: "/teams", label: "Teams", icon:
 const JOIN: NavigationItem = { id: "join", to: "/join", label: "Join Open Play", icon: "join" };
 const MORE: NavigationItem = { id: "more", to: "/more", label: "More", icon: "more" };
 
-export function navigationItems(mode: NavigationMode, approvedPlayer = false): NavigationItem[] {
-  const playerHome: NavigationItem = { id: "home", to: "/player", label: "Home", icon: "home" };
-  switch (mode) {
-    case "visitor":
-    case "account":
-      // IMG_0581, IMG_0562 (signed out); IMG_0563-0567 (signed in, player registration not yet approved).
-      return [{ id: "home", to: "/", label: "Home", icon: "home" }, MATCH_CENTRE, JOIN, MORE];
-    case "onboarding":
-      // IMG_0582 / IMG_0583: transitional five-tab bar for an approved player without a team.
-      return [{ id: "home", to: approvedPlayer ? "/player" : "/", label: "Home", icon: "home" }, MATCH_CENTRE, TEAMS, JOIN, MORE];
-    case "player":
-      // IMG_0522, IMG_0532-0542, IMG_0572-0580: Home is the Player Hub; never Join Open Play.
-      return [playerHome, MATCH_CENTRE, TEAMS, MORE];
-    case "captain":
-      // IMG_0543: player tabs plus Captain's Hub.
-      return [playerHome, MATCH_CENTRE, TEAMS, { id: "captain", to: "/captain", label: "Captain's Hub", icon: "captain" }, MORE];
-  }
+/** Registration screens keep the simplified four-tab bar with Join Open Play highlighted (owner spec 5). */
+export const REGISTRATION_ROUTES = ["/sign-up", "/register-player"] as const;
+export function isRegistrationRoute(pathname: string): boolean {
+  return (REGISTRATION_ROUTES as readonly string[]).includes(pathname) || pathname.startsWith("/join/team");
+}
+
+/** Home is the Player Hub for approved players; everyone else lands on public Home. */
+export function homeDestination(mode: NavigationMode): "/" | "/player" {
+  return mode === "onboarding" || mode === "player" || mode === "captain" ? "/player" : "/";
+}
+
+/**
+ * Owner specification (2026-11-14, section 5): every account state uses the same five tabs —
+ * Home (Player Hub when signed in as an approved player), Match Centre, Teams, Join Open Play, More.
+ * Captain areas (Club, Matchday) are reached from the Player Hub and More, never a second bar.
+ */
+export function navigationItems(mode: NavigationMode, pathname = ""): NavigationItem[] {
+  const home: NavigationItem = { id: "home", to: homeDestination(mode), label: "Home", icon: "home" };
+  if (isRegistrationRoute(pathname)) return [home, MATCH_CENTRE, JOIN, MORE];
+  return [home, MATCH_CENTRE, TEAMS, JOIN, MORE];
 }
 
 export function isNavigationItemActive(item: NavigationItem, pathname: string): boolean {
+  if (item.id === "join") return pathname === "/join" || pathname.startsWith("/join/") || pathname === "/leagues" || isRegistrationRoute(pathname);
   if (item.id === "home") return pathname === "/" || pathname === "/player" || pathname.startsWith("/player/");
-  if (item.id === "join") return pathname === "/join" || pathname === "/leagues" || pathname === "/register-player";
   if (item.id === "teams") return pathname === "/teams" || pathname.startsWith("/teams/");
   return pathname === item.to;
 }

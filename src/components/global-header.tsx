@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { isApprovedPlayer } from "../lib/navigation/account-navigation";
 import { formatUnreadCount, LOCATION_CHANGE_EVENT, COMPETITION_STORAGE_KEY, readStoredLocationId } from "../lib/navigation/global-header";
 
 type Location = { id: string; name: string };
@@ -13,6 +14,7 @@ const icon = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strok
  */
 export function GlobalHeader() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [home, setHome] = useState<"/" | "/player">("/");
   const [unread, setUnread] = useState(0);
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationId, setLocationId] = useState("");
@@ -22,9 +24,15 @@ export function GlobalHeader() {
     let alive = true;
     async function loadAccount(userId: string | null) {
       setSignedIn(Boolean(userId));
-      if (!userId) { setUnread(0); return; }
-      const { count, error } = await supabase.from("notification_events").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null);
-      if (alive) setUnread(error ? 0 : count ?? 0);
+      if (!userId) { setUnread(0); setHome("/"); return; }
+      const [{ count, error }, { data: player }] = await Promise.all([
+        supabase.from("notification_events").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null),
+        supabase.from("players").select("registration_status,is_banned").eq("user_id", userId).maybeSingle(),
+      ]);
+      if (!alive) return;
+      setUnread(error ? 0 : count ?? 0);
+      // The logo returns approved players to their Player Hub (owner spec 4); others to public Home.
+      setHome(isApprovedPlayer(player ?? null) ? "/player" : "/");
     }
     void supabase.auth.getSession().then(({ data }) => { if (alive) void loadAccount(data.session?.user.id ?? null); }).catch(() => { if (alive) setSignedIn(false); });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { if (alive) void loadAccount(session?.user.id ?? null); });
@@ -50,7 +58,7 @@ export function GlobalHeader() {
 
   return (
     <header className={"global-header" + (signedIn === false ? " global-header--signed-out" : "")}>
-      <Link to="/" className="global-header-brand" aria-label="Open Play home">
+      <Link to={home} className="global-header-brand" aria-label={home === "/player" ? "Open Play — Player Hub" : "Open Play home"}>
         <img src="/open-play-logo.png" alt="" /><span>OPEN PLAY</span>
       </Link>
       <div className="global-header-actions">

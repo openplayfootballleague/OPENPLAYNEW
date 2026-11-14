@@ -1,8 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const publicRoutes = ["/", "/match-centre", "/teams", "/join", "/more", "/sign-in"];
+const publicRoutes = ["/", "/match-centre", "/teams", "/leagues", "/join", "/gallery", "/more", "/sign-in", "/sign-up", "/register-player", "/reset-password", "/privacy-security"];
+// Owner specification section 16: 320, 375, 390 and 430 px phones, tablet and desktop.
 const viewports = [
+  { name: "phone-320", width: 320, height: 640 },
+  { name: "phone-375", width: 375, height: 812 },
   { name: "phone", width: 390, height: 844 },
+  { name: "phone-430", width: 430, height: 932 },
   { name: "tablet", width: 820, height: 1180 },
   { name: "desktop", width: 1440, height: 900 },
 ];
@@ -53,6 +57,30 @@ for (const viewport of viewports) {
         .toBeLessThanOrEqual(dimensions.viewport + 1);
       expect(dimensions.body, `body overflow at ${routePath}: ${JSON.stringify(dimensions)}`)
         .toBeLessThanOrEqual(dimensions.viewport + 1);
+      const navigation = page.locator("nav.player-bottom-nav");
+      if (await navigation.count()) {
+        const layout = await navigation.evaluate((nav) => {
+          const links = [...nav.querySelectorAll("a")];
+          return {
+            rows: new Set(links.map((link) => Math.round(link.getBoundingClientRect().top))).size,
+            clipped: links.some((link) => [...link.querySelectorAll("span")].some((label) => label.scrollWidth > label.clientWidth + 1)),
+            outside: links.some((link) => { const r = link.getBoundingClientRect(); return r.left < -1 || r.right > innerWidth + 1; }),
+            labels: links.map((link) => link.textContent?.trim()),
+          };
+        });
+        expect(layout.rows, `bottom navigation wraps at ${routePath}: ${JSON.stringify(layout)}`).toBe(1);
+        expect(layout.clipped, `bottom navigation label clipped at ${routePath}`).toBe(false);
+        expect(layout.outside, `bottom navigation item off-screen at ${routePath}`).toBe(false);
+      }
+      const header = page.locator("header.global-header");
+      if (await header.count()) {
+        const overlap = await header.evaluate((element) => {
+          const boxes = [...element.querySelectorAll(".global-header-brand, .global-header-bell, .global-header-signin, .global-header-avatar, .global-header-location")]
+            .map((child) => child.getBoundingClientRect()).filter((box) => box.width > 0);
+          return boxes.some((a, i) => boxes.some((b, j) => j > i && a.right > b.left + 1 && b.right > a.left + 1 && a.bottom > b.top + 1 && b.bottom > a.top + 1));
+        });
+        expect(overlap, `header controls overlap at ${routePath}`).toBe(false);
+      }
     });
   }
 }

@@ -77,9 +77,10 @@ IMG_0522 shows a real person's portrait.
 
 ## Bottom navigation shown in the references
 
-This is the evidence for the rule in
-[product-master-specification](../../project-knowledge/product-master-specification.md#navigation-and-account-states).
-It is implemented in `src/lib/navigation/account-navigation.ts`.
+What the images show, for the record. **The owner's written specification (2026-11-14) supersedes these
+on navigation:** five tabs for every account state, and four tabs on registration screens only. See
+[product-master-specification](../../project-knowledge/product-master-specification.md#navigation-and-account-states)
+and [screen-register](../../project-knowledge/screen-register.md).
 
 | Account state | Tabs shown | Images |
 | --- | --- | --- |
@@ -121,12 +122,7 @@ states. Status uses the audit scale: Missing / Partial / Implemented.
 | IMG_0533 / IMG_0535 / IMG_0536 / IMG_0540 / IMG_0538 Teams | `src/routes/teams.tsx`, `src/routes/teams.$teamId.tsx` | Partial | The directory and profile exist. Missing: search, initials tiles, squad counts, points, team navigation, squad list with club leaders, and paginated team fixtures and results with a season record. |
 
 **Cross-cutting differences:**
-- **Navigation:** fixed after this comparison (commit "feat(nav): account-state bottom navigation").
-  - Visitors now see 4 tabs.
-  - Signed-in accounts that are not yet approved players see 4 tabs.
-  - Approved players without a team see 5 tabs on one row.
-  - Players in a team see 4 tabs, with Home leading to the Player Hub.
-  - Captains see 5 tabs, including Captain's Hub (IMG_0543).
+- **Navigation:** now follows the owner specification. Every state has five tabs, and registration screens have four.
 - **Headings:** they use mixed case with an orange second line. The references use white uppercase headings ending with a full stop.
 - **Surfaces:** some public surfaces (the Home sections and the join callout) use cream or light backgrounds. The references are charcoal throughout.
 

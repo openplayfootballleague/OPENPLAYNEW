@@ -16,19 +16,21 @@ Open Play is a scalable, multi-location football league operating platform. It i
 This is the single navigation rule. Other documents refer here. The evidence is the owner's reference
 images in `docs/reference-assets/visual-references/`, reconciled on 2026-11-14.
 
-| Account state | Persistent or transitional | Bottom navigation | Evidence |
-| --- | --- | --- | --- |
-| Visitor (signed out) | Persistent | **Home, Match Centre, Join Open Play, More** (4) | IMG_0581, IMG_0562; Blueprint four-tab rule |
-| Signed in, not yet an approved player (registering, pending review, restricted) | Persistent until approval | **Home, Match Centre, Join Open Play, More** (4) | IMG_0563–IMG_0567 |
-| Approved player with no active team | **Transitional onboarding**: shown only until the player joins a team | Home, Match Centre, Teams, Join Open Play, More (5); must fit at 390 px without wrapping | IMG_0582, IMG_0583 |
-| Player in an active team | Persistent | **Home (Player Hub), Match Centre, Teams, More** (4) | IMG_0522, IMG_0532–IMG_0542, IMG_0572–IMG_0580 |
-| Captain | Persistent | **Home (Player Hub), Match Centre, Teams, Captain's Hub, More** (5) | IMG_0543 |
+Owner specification (2026-11-14, section 5) is authoritative. Screenshots that show other tab sets are
+superseded on navigation only.
 
-- Join Open Play is never a persistent tab for a player who belongs to a team.
-- The team registration wizard (IMG_0568–IMG_0571) uses the account-state bar with the canonical icons and labels.
+| Account state | Bottom navigation |
+| --- | --- |
+| Visitor, signed-in account, player (with or without a club), captain | **Home, Match Centre, Teams, Join Open Play, More** (5). Home is the Player Hub for approved players. |
+| Registration screens (`/sign-up`, `/register-player`, team registration wizard) | **Home, Match Centre, Join Open Play, More** (4), with Join Open Play highlighted |
+| Captain extras | Captain Hub (Club and Matchday) is reached from the Player Hub and More. There is no extra or replacement bar. |
+| Administrator and referee | Their own authorised workspace layouts |
+
+- Join Open Play is not removed from player navigation. Teams is for browsing; Join Open Play handles
+  registration and participation.
+- The bar must never wrap, clip or overlap content, at any width.
 - Navigation is presentation only. Every destination enforces its own permissions on the server.
-- Referee and administrator workspaces have their own authorised navigation.
-- Do not add tabs without owner approval.
+- Screen, route, permission and interaction register: `screen-register.md`.
 
 ## Registration
 1. Player registration is Phase 1 and DOB is mandatory.

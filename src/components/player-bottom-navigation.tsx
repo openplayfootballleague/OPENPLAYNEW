@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { getSupabaseClient } from "../lib/supabase/client";
 import {
-  isApprovedPlayer, isNavigationItemActive, navigationItems, resolveNavigationMode,
+  isNavigationItemActive, navigationItems, resolveNavigationMode,
   type NavigationItem, type NavigationMode,
 } from "../lib/navigation/account-navigation";
 
@@ -12,14 +12,13 @@ function NavIcon({ name }: { name: NavigationItem["icon"] }) {
   if (name === "match") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="12" cy="12" r="9" /><path d="m12 7 3 2v4l-3 2-3-2V9l3-2ZM9 9l-4-2m10 2 4-2M9 13l-2 5m8-5 2 5" /></svg>;
   if (name === "join") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="9" cy="8" r="4" /><path d="M3 21v-2a6 6 0 0 1 12 0v2M19 8v6m-3-3h6" /></svg>;
   if (name === "teams") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 15a5 5 0 0 1 5 5" /></svg>;
-  if (name === "captain") return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><path d="m3 8 4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8Z" /><path d="M5 19h14" /></svg>;
   return <svg viewBox="0 0 24 24" aria-hidden="true" {...common}><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></svg>;
 }
 
 /** Account-state bottom navigation; rules and evidence live in lib/navigation/account-navigation. */
 export function PlayerBottomNavigation() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const [state, setState] = useState<{ mode: NavigationMode | "loading"; approvedPlayer: boolean }>({ mode: "loading", approvedPlayer: false });
+  const [state, setState] = useState<{ mode: NavigationMode | "loading" }>({ mode: "loading" });
 
   useEffect(() => {
     let alive = true;
@@ -32,7 +31,7 @@ export function PlayerBottomNavigation() {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (!alive || sequence !== requestSequence) return;
         if (sessionError || !session) {
-          setState({ mode: "visitor", approvedPlayer: false });
+          setState({ mode: "visitor" });
           return;
         }
         const [{ data: player, error: playerError }, { data: memberships, error: membershipError }] = await Promise.all([
@@ -42,15 +41,12 @@ export function PlayerBottomNavigation() {
         if (!alive || sequence !== requestSequence) return;
         if (playerError || membershipError) {
           // Fail closed to the signed-in account bar; destinations still enforce access server-side.
-          setState({ mode: "account", approvedPlayer: false });
+          setState({ mode: "account" });
           return;
         }
-        setState({
-          mode: resolveNavigationMode({ signedIn: true, player: player ?? null, activeMemberships: memberships ?? [] }),
-          approvedPlayer: isApprovedPlayer(player ?? null),
-        });
+        setState({ mode: resolveNavigationMode({ signedIn: true, player: player ?? null, activeMemberships: memberships ?? [] }) });
       } catch {
-        if (alive && sequence === requestSequence) setState({ mode: "visitor", approvedPlayer: false });
+        if (alive && sequence === requestSequence) setState({ mode: "visitor" });
       }
     }
 
@@ -67,7 +63,7 @@ export function PlayerBottomNavigation() {
 
   if (state.mode === "loading") return null;
   const mode = state.mode;
-  const items: NavigationItem[] = navigationItems(mode, state.approvedPlayer);
+  const items: NavigationItem[] = navigationItems(mode, pathname);
 
   return (
     <nav className="player-bottom-nav" data-tabs={items.length} aria-label="Main navigation">
