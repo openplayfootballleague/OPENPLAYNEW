@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { AlertTriangle, ChevronRight, Inbox, LoaderCircle, Search, type LucideIcon } from "lucide-react";
+import { AlertTriangle, ChevronRight, Inbox, LoaderCircle, Search, User, X, type LucideIcon } from "lucide-react";
 
 /**
  * Open Play shared UI (design system, docs/project-knowledge/design-system.md).
@@ -27,14 +27,16 @@ export function PageHeader({ eyebrow, title, subtitle, badge, actions }: {
   );
 }
 
-export function SectionHeading({ title, description, meta, id }: { title: string; description?: string; meta?: ReactNode; id?: string }) {
+export function SectionHeading({ title, description, meta, id, link }: {
+  title: string; description?: string; meta?: ReactNode; id?: string; link?: { to: To; label: string; hash?: string; search?: Record<string, string> };
+}) {
   return (
     <div className="op-section-heading">
       <div>
         <h2 id={id} className="op-section-title">{title}</h2>
         {description && <p className="op-section-description">{description}</p>}
       </div>
-      {meta && <div className="op-section-meta">{meta}</div>}
+      {(meta || link) && <div className="op-section-meta">{meta}{link && <Link to={link.to} hash={link.hash} search={link.search as never} className="op-section-link">{link.label}<ChevronRight aria-hidden="true" /></Link>}</div>}
     </div>
   );
 }
@@ -58,26 +60,29 @@ export function TileLink({ to, icon: Icon, title, description, hash }: {
   );
 }
 
-type ButtonVariant = "primary" | "outline" | "ghost" | "light";
-const buttonClass = (variant: ButtonVariant, block?: boolean) => `op-button op-button-${variant}${block ? " op-button-block" : ""}`;
+type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "light";
+type ButtonSize = "regular" | "large";
+const buttonClass = (variant: ButtonVariant, block?: boolean, size: ButtonSize = "regular") =>
+  `op-button op-button-${variant}${size === "large" ? " op-button-large" : ""}${block ? " op-button-block" : ""}`;
 
-export function Button({ children, variant = "primary", block, type = "button", disabled, busy, onClick, icon: Icon }: {
-  children: ReactNode; variant?: ButtonVariant; block?: boolean; type?: "button" | "submit";
+export function Button({ children, variant = "primary", size, block, type = "button", disabled, busy, onClick, icon: Icon }: {
+  children: ReactNode; variant?: ButtonVariant; size?: ButtonSize; block?: boolean; type?: "button" | "submit";
   disabled?: boolean; busy?: boolean; onClick?: () => void; icon?: LucideIcon;
 }) {
   return (
-    <button type={type} className={buttonClass(variant, block)} disabled={disabled || busy} aria-busy={busy || undefined} onClick={onClick}>
+    <button type={type} className={buttonClass(variant, block, size)} disabled={disabled || busy} aria-busy={busy || undefined} onClick={onClick}>
       {busy ? <LoaderCircle aria-hidden="true" className="op-spin" /> : Icon && <Icon aria-hidden="true" />}
       <span>{children}</span>
     </button>
   );
 }
 
-export function ButtonLink({ children, to, variant = "primary", block, icon: Icon, hash }: {
-  children: ReactNode; to: To; variant?: ButtonVariant; block?: boolean; icon?: LucideIcon; hash?: string;
+export function ButtonLink({ children, to, variant = "primary", size, block, icon: Icon, hash, params, search }: {
+  children: ReactNode; to: To; variant?: ButtonVariant; size?: ButtonSize; block?: boolean; icon?: LucideIcon; hash?: string;
+  params?: Record<string, string>; search?: Record<string, string>;
 }) {
   return (
-    <Link to={to} hash={hash} className={buttonClass(variant, block)}>
+    <Link to={to} hash={hash} params={params as never} search={search as never} className={buttonClass(variant, block, size)}>
       {Icon && <Icon aria-hidden="true" />}<span>{children}</span>
     </Link>
   );
@@ -189,4 +194,89 @@ export function teamInitials(name: string): string {
   if (words.length === 0) return "?";
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
   return words.slice(0, 3).map((word) => word[0]).join("").toUpperCase();
+}
+
+export function IconButton({ label, icon: Icon, onClick, badge }: { label: string; icon: LucideIcon; onClick?: () => void; badge?: ReactNode }) {
+  return <button type="button" className="op-icon-button" aria-label={label} onClick={onClick}><Icon aria-hidden="true" />{badge}</button>;
+}
+
+/** Segmented control for switching views within a page (buttons) — use links with `.op-segment` for routed views. */
+export function SegmentedTabs<T extends string>({ label, value, options, onChange }: {
+  label: string; value: T; options: readonly { value: T; label: string; icon?: LucideIcon }[]; onChange: (value: T) => void;
+}) {
+  return (
+    <div className="op-segmented" role="tablist" aria-label={label}>
+      {options.map(({ value: optionValue, label: optionLabel, icon: Icon }) => (
+        <button key={optionValue} type="button" role="tab" className="op-segment" aria-selected={value === optionValue} onClick={() => onChange(optionValue)}>
+          {Icon && <Icon aria-hidden="true" />}{optionLabel}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function Field({ label, hint, error, children, htmlFor }: { label: string; hint?: string; error?: string; children: ReactNode; htmlFor: string }) {
+  return (
+    <div className="op-field">
+      <label className="op-field-label" htmlFor={htmlFor}>{label}</label>
+      {children}
+      {error ? <span className="op-field-error" role="alert">{error}</span> : hint && <span className="op-field-hint">{hint}</span>}
+    </div>
+  );
+}
+
+/** Side panel for complex records (admin registers). Built on <dialog> for focus management. */
+export function Drawer({ open, title, onClose, children }: { open: boolean; title: string; onClose: () => void; children: ReactNode }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (open && !dialog.open) dialog.showModal();
+    if (!open && dialog.open) dialog.close();
+  }, [open]);
+  return (
+    <dialog ref={ref} className="op-drawer" aria-labelledby={titleId} onCancel={(event) => { event.preventDefault(); onClose(); }}>
+      <div className="op-drawer-header"><h2 id={titleId} className="op-section-title">{title}</h2><IconButton label="Close" icon={X} onClick={onClose} /></div>
+      <div className="op-drawer-body">{children}</div>
+    </dialog>
+  );
+}
+
+export function Avatar({ src, size = 40, label }: { src?: string | null; size?: number; label?: string }) {
+  return (
+    <span className="op-avatar" style={{ width: size, height: size }} aria-label={label} role={label ? "img" : undefined}>
+      {src ? <img src={src} alt="" /> : <User aria-hidden="true" />}
+    </span>
+  );
+}
+
+/** Fixture/result card (IMG_0572/0573/0540). Never shows a score unless `score` is a published result. */
+export function MatchCard({ meta, metaTrailing, home, away, score, foot, to, params, search }: {
+  meta: ReactNode; metaTrailing?: ReactNode;
+  home: { name: string; label?: string }; away: { name: string; label?: string };
+  score?: { home: number; away: number } | null; foot?: ReactNode;
+  to?: To; params?: Record<string, string>; search?: Record<string, string>;
+}) {
+  const body = <>
+    <div className="op-match-meta"><span>{meta}</span>{metaTrailing}</div>
+    <div className="op-match-teams">
+      <span className="op-match-team"><strong>{home.name}</strong>{home.label && <small>{home.label}</small>}</span>
+      {score ? <span className="op-match-centre" aria-label={`${score.home} to ${score.away}`}>{score.home}–{score.away}</span> : <span className="op-match-vs">vs</span>}
+      <span className="op-match-team"><strong>{away.name}</strong>{away.label && <small>{away.label}</small>}</span>
+    </div>
+    {foot && <div className="op-match-foot">{foot}</div>}
+  </>;
+  return to ? <Link to={to} params={params as never} search={search as never} className="op-match">{body}</Link> : <article className="op-match">{body}</article>;
+}
+
+/** Team row used by directories and tables (IMG_0533, IMG_0580). */
+export function TeamRow({ name, meta, trailing, to, params }: { name: string; meta?: ReactNode; trailing?: ReactNode; to?: To; params?: Record<string, string> }) {
+  const body = <><TeamInitials name={name} size="sm" /><span className="op-row-body"><span className="op-row-title">{name}</span>{meta && <span className="op-row-meta">{meta}</span>}</span>{trailing && <span className="op-row-trailing">{trailing}</span>}{to && <ChevronRight aria-hidden="true" className="op-chevron" />}</>;
+  return to ? <Link to={to} params={params as never} className="op-row">{body}</Link> : <div className="op-row">{body}</div>;
+}
+
+/** Player row (squads, leaderboards). Shows display names only — never contact details. */
+export function PlayerRow({ name, leading, meta, trailing }: { name: string; leading?: ReactNode; meta?: ReactNode; trailing?: ReactNode }) {
+  return <div className="op-row">{leading}<span className="op-row-body"><span className="op-row-title">{name}</span>{meta && <span className="op-row-meta">{meta}</span>}</span>{trailing && <span className="op-row-trailing">{trailing}</span>}</div>;
 }
